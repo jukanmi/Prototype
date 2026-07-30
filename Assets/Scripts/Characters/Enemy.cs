@@ -34,7 +34,10 @@ namespace Prototype
             if (data == null) return;
 
             Stats.Set(StatType.AttackPower, data.atk);
+            Stats.Set(StatType.MoveSpeed, data.moveSpeed);   // MoveState가 읽는다
             Combat.SetMaxHealth(data.hp);
+
+            enemyControl?.ApplyData(data);
         }
 
         /// <summary>스테이지 종료 시 호출. AI와 전투 입력을 모두 멈춘다.</summary>
