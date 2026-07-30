@@ -57,6 +57,12 @@ namespace Prototype
             retargetInterval = data.retargetInterval;
             parameters.attackRange = data.attackRange;
             parameters.leashRange = data.leashRange;
+
+            // 0이면 사거리 판정에 영영 들어가지 않는다. 저작 실수를 조용히 넘기지 않는다.
+            // leashRange는 0이 "무제한"이라는 정상값이므로 검사하지 않는다.
+            if (parameters.attackRange <= 0f)
+                BattleLog.Warn(LogCategory.State,
+                    $"{name}: EnemyData '{data.name}'의 attackRange가 0이다. 이 적은 공격하지 않는다.", this);
         }
 
         // 배선 누락을 조용히 넘기지 않는다. ApplyData는 Awake에서 끝나므로 Start에서 판단한다.
