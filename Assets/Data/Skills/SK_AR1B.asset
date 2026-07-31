@@ -10,62 +10,44 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_AR01
+  m_Name: SK_AR1B
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC5F0\uC0AC"
+  skillName: "\uAD00\uD1B5\uC758 \uD654\uC0B4"
   icon: {fileID: 0}
-  description: "AR01 \u2014 \uC5F0\uC0AC"
+  description: "AR1B \u2014 \uBC14\uB8E8\uC2A4 Q \u2014 \uBAA8\uC744\uC218\uB85D
+    \uC138\uC9C0\uACE0 \uC5EC\uB7FF\uC744 \uB6AB\uB294\uB2E4"
   role: 2
-  attackType: 6
+  attackType: 5
   requireState: 0
-  resultState: 0
-  targeting: 0
-  radius: 2
-  castTime: 0.15
+  resultState: 1
+  targeting: 3
+  radius: 3
+  castTime: 0.2
   hitInterval: 0.3
-  recoveryTime: 0.2
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.8
+  maxChargeRadiusMul: 1.6
   projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
-  projectileSpeed: 16
-  projectileRange: 11
-  projectilePierce: 0
+  projectileSpeed: 26
+  projectileRange: 16
+  projectilePierce: 3
   hitDataList:
   - damageData:
-      damage: 6
+      damage: 12
     targetState: 0
-    nextState: 2
-    canOtg: 1
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 2
-    launchForce: 0
-    hitStunDuration: 0.25
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
+    nextState: 1
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 2
     launchForce: 0
-    hitStunDuration: 0.25
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 2
-    launchForce: 0
-    hitStunDuration: 0.25
+    hitStunDuration: 0.4
     snapZ: 0
   effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: 68aa0b7404eb3dc4696975b9ac4e889f, type: 2}
+  animation: {fileID: 0}
   references:
     version: 2
     RefIds: []

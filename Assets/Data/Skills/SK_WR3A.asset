@@ -10,48 +10,44 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WR01
+  m_Name: SK_WR3A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
+  skillName: "\uD68C\uC804 \uAC15\uD0C0"
   icon: {fileID: 0}
-  description: "WR01 \u2014 PDF SK-01"
+  description: "WR3A \u2014 \uD2B8\uB9AC\uC2A4\uD0C0\uB098 R \u2014 \uB300\uC0C1\uC744
+    \uBC00\uC5B4\uB0B8\uB2E4. \uBCBD\uC5D0 \uB2FF\uC73C\uBA74 \uBCBD\uBC14\uC6B4\uB4DC"
   role: 1
-  attackType: 0
-  requireState: 0
-  resultState: 1
-  targeting: 0
-  radius: 3.5
-  castTime: 0.2
+  attackType: 3
+  requireState: 2
+  resultState: 4
+  targeting: 2
+  radius: 3
+  castTime: 0.25
   hitInterval: 0.3
-  recoveryTime: 0.25
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
   projectile: {fileID: 0}
   projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
   hitDataList:
   - damageData:
-      damage: 0
+      damage: 14
     targetState: 0
-    nextState: 1
+    nextState: 3
     canOtg: 0
-    mode: 1
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
+    knockbackForce: 18
     launchForce: 0
-    hitStunDuration: 0.4
-    snapZ: 1
-  effects:
-  - rid: 7198291069231693929
+    hitStunDuration: 0.5
+    snapZ: 0
+  effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: 16f3f5427346486418e7bd42f31ea6ff, type: 2}
+  animation: {fileID: 0}
   references:
     version: 2
-    RefIds:
-    - rid: 7198291069231693929
-      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
-      data:
-        radius: 4
-        force: 12
-        damage: 5
-        hitStun: 0.4
+    RefIds: []

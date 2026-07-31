@@ -10,45 +10,49 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WR01
+  m_Name: SK_WZ2B
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
+  skillName: "\uC2EC\uC5F0\uC758 \uC544\uAC00\uB9AC"
   icon: {fileID: 0}
-  description: "WR01 \u2014 PDF SK-01"
-  role: 1
+  description: "WZ2B \u2014 \uD750\uC6E8\uC774 EE \u2014 \uC9C0\uC815 \uC9C0\uC810\uC73C\uB85C
+    \uB04C\uC5B4\uBAA8\uC740\uB2E4"
+  role: 3
   attackType: 0
   requireState: 0
   resultState: 1
-  targeting: 0
-  radius: 3.5
-  castTime: 0.2
+  targeting: 1
+  radius: 5
+  castTime: 0.35
   hitInterval: 0.3
   recoveryTime: 0.25
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
   projectile: {fileID: 0}
   projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
   hitDataList:
   - damageData:
-      damage: 0
+      damage: 5
     targetState: 0
     nextState: 1
     canOtg: 0
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
+    knockbackForce: 10
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
   effects:
-  - rid: 7198291069231693929
+  - rid: 7198291130188562566
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: 16f3f5427346486418e7bd42f31ea6ff, type: 2}
+  animation: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7198291069231693929
+    - rid: 7198291130188562566
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 4
