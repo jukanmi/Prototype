@@ -18,8 +18,22 @@ namespace Prototype.EditorTools
         private const string SpriteChild = "Sprite";
         private const string ShadowChild = "Shadow";
         private const string RoomName = "Room";
-        private const string WallLayerName = "Wall";
-        private const int WallLayer = 9;                 // 3D전환_TODO.md §2
+
+        // 3D전환_TODO.md §2 — 레이어 번호는 문서와 맞춘다.
+        private const int WallLayer = 9;
+        private const int AllyHurtLayer = 10;
+        private const int EnemyHurtLayer = 11;
+        private const int AllyHitLayer = 12;
+        private const int EnemyHitLayer = 13;
+
+        private static readonly (int index, string name)[] Layers =
+        {
+            (WallLayer,      "Wall"),
+            (AllyHurtLayer,  "AllyHurtbox"),
+            (EnemyHurtLayer, "EnemyHurtbox"),
+            (AllyHitLayer,   "AllyHitbox"),
+            (EnemyHitLayer,  "EnemyHitbox"),
+        };
 
         /// <summary>방 크기(중심 기준 반경). 카메라 한 화면에 들어오는 값.</summary>
         private const float RoomHalfX = 6f;
@@ -54,6 +68,11 @@ namespace Prototype.EditorTools
             }
 
             EnsureWallLayer();
+
+            // 히트박스가 만들어진 뒤에 레이어를 붙여야 한다.
+            foreach (Entity entity in Object.FindObjectsByType<Entity>(FindObjectsInactive.Include))
+                AssignLayers(entity);
+
             BuildRoom();
             SetupCamera();
             EnsureDebugHud();
@@ -167,19 +186,85 @@ namespace Prototype.EditorTools
             return true;
         }
 
-        /// <summary>Wall 레이어를 만든다. 이게 없으면 wallMask로 벽만 골라낼 수 없다.</summary>
+        /// <summary>레이어 등록. 없으면 충돌 매트릭스로 조합을 골라낼 수 없다.</summary>
         private static void EnsureWallLayer()
         {
-            if (LayerMask.LayerToName(WallLayer) == WallLayerName) return;
-
             Object asset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0];
             var so = new SerializedObject(asset);
             SerializedProperty layers = so.FindProperty("layers");
 
-            layers.GetArrayElementAtIndex(WallLayer).stringValue = WallLayerName;
-            so.ApplyModifiedProperties();
+            int added = 0;
+            foreach ((int index, string name) in Layers)
+            {
+                if (LayerMask.LayerToName(index) == name) continue;
+                layers.GetArrayElementAtIndex(index).stringValue = name;
+                added++;
+            }
 
-            Debug.Log($"[SceneLayoutBuilder] 레이어 {WallLayer} = {WallLayerName} 등록");
+            if (added > 0)
+            {
+                so.ApplyModifiedProperties();
+                Debug.Log($"[SceneLayoutBuilder] 레이어 {added}개 등록");
+            }
+
+            ConfigureCollisionMatrix();
+        }
+
+        /// <summary>
+        /// 충돌 매트릭스. 캐릭터끼리는 <b>안 부딪히게</b> 해서 같은 자리에 겹칠 수 있게 한다.
+        /// 위치는 코드가 정하지 유니티 물리가 밀어내면 안 된다(3D전환_TODO.md §3).
+        ///
+        /// 몸통을 트리거로 바꾸는 방법은 못 쓴다 — 벽 판정이 OnCollisionEnter라
+        /// 트리거가 되면 월바운드가 통째로 죽는다.
+        /// </summary>
+        private static void ConfigureCollisionMatrix()
+        {
+            int[] hurt = { AllyHurtLayer, EnemyHurtLayer };
+            int[] hit = { AllyHitLayer, EnemyHitLayer };
+
+            // 1) 몸통끼리 전부 끈다 — 아군·적 구분 없이 겹칠 수 있다.
+            foreach (int a in hurt)
+                foreach (int b in hurt)
+                    UnityEngine.Physics.IgnoreLayerCollision(a, b, true);
+
+            // 2) 히트박스는 서로, 그리고 벽과 부딪힐 필요가 없다.
+            foreach (int a in hit)
+            {
+                foreach (int b in hit) UnityEngine.Physics.IgnoreLayerCollision(a, b, true);
+                UnityEngine.Physics.IgnoreLayerCollision(a, WallLayer, true);
+            }
+
+            // 3) 히트박스 ↔ 상대 몸통만 남긴다. 같은 진영은 끈다.
+            UnityEngine.Physics.IgnoreLayerCollision(AllyHitLayer, EnemyHurtLayer, false);
+            UnityEngine.Physics.IgnoreLayerCollision(EnemyHitLayer, AllyHurtLayer, false);
+            UnityEngine.Physics.IgnoreLayerCollision(AllyHitLayer, AllyHurtLayer, true);
+            UnityEngine.Physics.IgnoreLayerCollision(EnemyHitLayer, EnemyHurtLayer, true);
+
+            // 4) 몸통 ↔ 벽은 반드시 켜져 있어야 한다. 월바운드가 여기서 나온다.
+            foreach (int a in hurt)
+                UnityEngine.Physics.IgnoreLayerCollision(a, WallLayer, false);
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("[SceneLayoutBuilder] 충돌 매트릭스 설정 — 캐릭터끼리 통과, 몸통↔벽 유지");
+        }
+
+        /// <summary>진영에 맞는 레이어를 몸통과 히트박스에 나눠 붙인다.</summary>
+        private static void AssignLayers(Entity entity)
+        {
+            bool ally = entity.Faction == Faction.Ally;
+
+            Undo.RecordObject(entity.gameObject, "layer");
+            entity.gameObject.layer = ally ? AllyHurtLayer : EnemyHurtLayer;
+
+            Attack atk = entity.BasicAttack;
+            if (atk != null)
+            {
+                Undo.RecordObject(atk.gameObject, "layer");
+                atk.gameObject.layer = ally ? AllyHitLayer : EnemyHitLayer;
+                EditorUtility.SetDirty(atk.gameObject);
+            }
+
+            EditorUtility.SetDirty(entity.gameObject);
         }
 
         /// <summary>
