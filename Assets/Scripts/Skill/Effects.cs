@@ -62,6 +62,7 @@ namespace Prototype
 
             // 중심은 텔포가 끝난 시점의 시전자 위치.
             Vector3 center = caster.transform.position;
+            float r = radius * ctx.RadiusScale;   // 차징으로 커진 만큼 넓어진다
 
             var hit = new HitData
             {
@@ -75,10 +76,10 @@ namespace Prototype
                 snapZ = true,
             };
 
-            int caught = EffectUtil.OverlapCombats(center, radius, caster, c => caster.Attack(c, in hit));
+            int caught = EffectUtil.OverlapCombats(center, r, caster, c => caster.Attack(c, in hit));
 
             BattleLog.Log(LogCategory.Skill,
-                $"  └ PullEffect: 중심 {center} 반경 {radius:0.#} → {caught}마리 흡입", caster);
+                $"  └ PullEffect: 중심 {center} 반경 {r:0.#} → {caught}마리 흡입", caster);
             if (caught == 0)
                 BattleLog.Warn(LogCategory.Skill, "  └ PullEffect 헛침 — 반경 안에 적이 없다", caster);
         }
@@ -107,7 +108,8 @@ namespace Prototype
                 hitStunDuration = hitStun,
             };
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius, caster, c => caster.Attack(c, in hit));
+            EffectUtil.OverlapCombats(caster.transform.position, radius * ctx.RadiusScale, caster,
+                                      c => caster.Attack(c, in hit));
         }
     }
 
@@ -179,7 +181,7 @@ namespace Prototype
             Combat caster = ctx.CasterCombat;
             if (caster == null) return;
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius, caster, c =>
+            EffectUtil.OverlapCombats(caster.transform.position, radius * ctx.RadiusScale, caster, c =>
             {
                 Entity e = c.Owner;
                 if (e == null) return;

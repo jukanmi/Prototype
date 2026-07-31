@@ -66,6 +66,8 @@ namespace Prototype
         /// <summary>바닥으로부터의 높이.</summary>
         public float Height => transform.position.y - groundY;
         public float GroundY => groundY;
+        /// <summary>벽으로 볼 레이어. 투사체도 같은 기준으로 소멸한다.</summary>
+        public LayerMask WallMask => wallMask;
         public float Gravity => gravity * gravityScale;
         public float VerticalVelocity => verticalVelocity;
         public Vector3 Facing { get; private set; } = Vector3.right;

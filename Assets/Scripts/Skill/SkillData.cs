@@ -39,6 +39,32 @@ namespace Prototype
         [Tooltip("후딜 — 다음 슬롯으로 넘어가기 전 여유.")]
         public float recoveryTime = 0.2f;
 
+        [Header("차징")]
+        [Tooltip("모을 수 있는 최대 시간. 콤보가 이보다 길어도 더 세지지 않는다.")]
+        public float maxChargeTime = 2.5f;
+        [Tooltip("최대까지 모았을 때의 데미지 · 넉백 배율.")]
+        public float maxChargeDamageMul = 2.5f;
+        [Tooltip("최대까지 모았을 때의 범위 배율. 광역 효과에 곱해진다.")]
+        public float maxChargeRadiusMul = 1.6f;
+
+        /// <summary>
+        /// 차징 스킬인지. <see cref="AttackType"/> 중 <b>유일하게 동작이 달라지는</b> 값이다 —
+        /// 나머지는 분류 태그일 뿐이고 실제 판정은 hitDataList가 정한다.
+        /// </summary>
+        public bool IsCharge => attackType == AttackType.Charge;
+
+        [Header("투사체")]
+        [Tooltip("비우면 근접 — 시전자 앞 히트박스를 켠다. 넣으면 매 타격마다 하나씩 날아간다.")]
+        public Projectile projectile;
+        [Tooltip("초당 이동 거리.")]
+        public float projectileSpeed = 14f;
+        [Tooltip("이 거리를 날면 소멸한다.")]
+        public float projectileRange = 12f;
+        [Tooltip("몇 명을 더 뚫는지. 0이면 첫 적중에 소멸.")]
+        public int projectilePierce = 0;
+
+        public bool IsRanged => projectile != null;
+
         [Header("판정")]
         public List<HitData> hitDataList = new List<HitData>();
 
@@ -59,7 +85,9 @@ namespace Prototype
         /// </summary>
         public virtual IState CreateState(in SkillContext ctx)
         {
-            return new SkillState(this, in ctx);
+            return IsCharge
+                ? new ChargeSkillState(this, in ctx)
+                : new SkillState(this, in ctx);
         }
 
         /// <summary>이 스킬이 시동기(띄우기) 인지. 드로우 확률 보정에 쓴다.</summary>

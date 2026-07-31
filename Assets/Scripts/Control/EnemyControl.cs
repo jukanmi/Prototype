@@ -57,7 +57,10 @@ namespace Prototype
             Vector3 toTarget = target.transform.position - transform.position;
             toTarget.y = 0f;
 
-            if (toTarget.magnitude <= attackRange)
+            // 원거리 평타를 든 적이 생기면 그쪽 사거리를 따른다.
+            float reach = Owner != null && Owner.BasicIsRanged ? Owner.BasicAttackReach : attackRange;
+
+            if (toTarget.magnitude <= reach)
             {
                 if (attackTimer <= 0f)
                 {
