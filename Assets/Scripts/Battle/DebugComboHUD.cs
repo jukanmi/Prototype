@@ -24,6 +24,10 @@ namespace Prototype
         [SerializeField] private Player player;
         [SerializeField] private bool show = true;
 
+        /// <summary>true면 손패/슬롯 입력(커서·확정·회수)만 건너뛴다. 정보 패널(조작법·게이지·파티 등)은 계속 그려진다.
+        /// 다른 카드 배치 UI(ComboBoardUI 등)가 같은 손패/슬롯을 조작할 때 입력이 겹치지 않게 하는 용도.</summary>
+        public bool SuppressCardInput;
+
         private int pickedHandIndex = -1;
         private int handCursor;
         private GUIStyle box;
@@ -41,6 +45,13 @@ namespace Prototype
         {
             // Order 페이즈에서만 손패를 만진다. Freeze · Resolve 중 입력은 버린다.
             if (bulletTime.Tactic == null || !bulletTime.Tactic.AllowsCardEdit)
+            {
+                pickedHandIndex = -1;
+                handCursor = 0;
+                return;
+            }
+
+            if (SuppressCardInput)
             {
                 pickedHandIndex = -1;
                 handCursor = 0;

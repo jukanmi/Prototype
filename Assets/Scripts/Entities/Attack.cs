@@ -23,6 +23,9 @@ namespace Prototype
         /// <summary>지금 판정이 살아 있는지. 디버그 표시용.</summary>
         public bool IsActive => box != null && box.enabled;
 
+        /// <summary>실제로 적중했을 때. 투사체가 관통 횟수를 세는 데 쓴다.</summary>
+        public event System.Action<Combat> OnHit;
+
         private void Awake()
         {
             box = GetComponent<Collider>();
@@ -69,6 +72,8 @@ namespace Prototype
 
             if (victim is IHittable hittable)
                 attacker.Attack(hittable, in hitData);
+
+            OnHit?.Invoke(victim);
         }
     }
 }

@@ -114,6 +114,12 @@ namespace Prototype
                 distance = toTarget.magnitude;
             }
 
+            // struct 복사 — 인스펙터/EnemyData 원본값은 건드리지 않는다.
+              EnemyBrainParams p = parameters;
+
+            // 원거리 평타를 든 적은 근접 사거리 대신 투사체 사거리를 따른다.
+            if (Owner != null && Owner.BasicIsRanged) p.attackRange = Owner.BasicAttackReach;
+
             return new EnemyBrainContext
             {
                 self = Owner,

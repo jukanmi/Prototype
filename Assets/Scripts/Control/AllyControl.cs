@@ -8,6 +8,7 @@ namespace Prototype
     /// </summary>
     public class AllyControl : Control
     {
+        [Tooltip("근접 평타 사거리. 원거리 평타를 든 동료는 Entity의 사거리를 대신 쓴다.")]
         [SerializeField] private float attackRange = 2.2f;
         [SerializeField] private float attackInterval = 1.2f;
         [SerializeField] private float retargetInterval = 0.5f;
@@ -52,7 +53,10 @@ namespace Prototype
             float dist = toTarget.magnitude;
             if (dist > leashRange) return;
 
-            if (dist <= attackRange)
+            // 활을 든 동료가 근접까지 붙으면 원거리로 만든 의미가 없다.
+            float reach = Owner != null && Owner.BasicIsRanged ? Owner.BasicAttackReach : attackRange;
+
+            if (dist <= reach)
             {
                 if (attackTimer <= 0f)
                 {

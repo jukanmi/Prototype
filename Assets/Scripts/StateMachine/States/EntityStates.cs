@@ -153,6 +153,18 @@ namespace Prototype
             float prev = timer;
             timer += dt;
 
+            bool windup = prev < Entity.BasicAttackWindup && timer >= Entity.BasicAttackWindup;
+
+            // 원거리 평타는 선딜 끝에 투사체를 하나 쏘고 끝. 켜고 끌 히트박스가 없다.
+            if (Entity.BasicIsRanged)
+            {
+                if (windup) Entity.FireBasicProjectile();
+
+                if (timer >= Entity.BasicAttackTotal)
+                    Entity.StateMachine.TryChangeState(Entity.IdleState);
+                return;
+            }
+
             Attack box = Entity.BasicAttack;
             if (box == null)
             {
@@ -161,7 +173,7 @@ namespace Prototype
                 return;
             }
 
-            if (prev < Entity.BasicAttackWindup && timer >= Entity.BasicAttackWindup)
+            if (windup)
                 box.Begin(Entity.BuildBasicHit());
 
             if (prev < Entity.BasicAttackActiveEnd && timer >= Entity.BasicAttackActiveEnd)
@@ -187,7 +199,9 @@ namespace Prototype
         public override void Enter()
         {
             timer = 0f;
-            Entity.BasicAttack?.Begin(Entity.BuildBasicHit());
+
+            if (Entity.BasicIsRanged) Entity.FireBasicProjectile();
+            else Entity.BasicAttack?.Begin(Entity.BuildBasicHit());
         }
 
         public override void Tick(float dt)

@@ -49,6 +49,15 @@ namespace Prototype
         public bool isBulletTime;
         public int comboIndex;
 
+        /// <summary>
+        /// 차징으로 커진 범위 배율. 광역 효과가 자기 반경에 곱한다.
+        /// 차징이 아니면 1이다.
+        /// </summary>
+        public float radiusScale;
+
+        /// <summary>0이면 미설정으로 보고 1을 준다. 구조체라 기본값이 0이기 때문.</summary>
+        public float RadiusScale => radiusScale > 0f ? radiusScale : 1f;
+
         public Combat CasterCombat => caster != null ? caster.Combat : null;
         public Physics CasterPhysics => caster != null ? caster.Physics : null;
 

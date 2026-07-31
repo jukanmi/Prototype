@@ -62,13 +62,30 @@ namespace Prototype
 
         /// <summary>지정 좌표에서 가장 가까운 살아 있는 적. 대상 사망 시 재타겟에 쓴다(결정 로그 ⑧).</summary>
         public static Entity NearestEnemy(Vector3 position, Entity exclude = null)
+            => Nearest(enemies, position, exclude);
+
+        /// <summary>가장 가까운 살아 있는 아군. 적 AI와 원거리 평타 조준이 쓴다.</summary>
+        public static Entity NearestAlly(Vector3 position, Entity exclude = null)
+            => Nearest(allies, position, exclude);
+
+        /// <summary>진영에 맞는 상대. 원거리 평타가 스스로 겨눌 때.</summary>
+        public static Entity NearestOpponent(Entity self)
+        {
+            if (self == null) return null;
+
+            return self.Faction == Faction.Ally
+                ? NearestEnemy(self.transform.position)
+                : NearestAlly(self.transform.position, self);
+        }
+
+        private static Entity Nearest(List<Entity> list, Vector3 position, Entity exclude)
         {
             Entity best = null;
             float bestSqr = float.MaxValue;
 
-            for (int i = 0; i < enemies.Count; i++)
+            for (int i = 0; i < list.Count; i++)
             {
-                Entity e = enemies[i];
+                Entity e = list[i];
                 if (e == null || e == exclude || e.Combat.IsDead) continue;
 
                 float sqr = (e.transform.position - position).sqrMagnitude;

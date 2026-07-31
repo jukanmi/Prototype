@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_WR2B
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uD53C\uC758 \uACA9\uB178"
+  icon: {fileID: 0}
+  description: "WR2B \u2014 \uC62C\uB77C\uD504 W \u2014 \uD761\uD608"
+  role: 1
+  attackType: 6
+  requireState: 0
+  resultState: 1
+  targeting: 0
+  radius: 3
+  castTime: 0.15
+  hitInterval: 0.3
+  recoveryTime: 0.2
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  hitDataList:
+  - damageData:
+      damage: 5
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.3
+    snapZ: 0
+  effects:
+  - rid: 7198291130188562562
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7198291130188562562
+      type: {class: LifestealEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        ratio: 0.3
+        duration: 5
