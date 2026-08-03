@@ -98,40 +98,111 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 결정론적 가이드. 불릿타임으로 발동한 스킬은 유저가 찍은 좌표로 순간이동한다.
-        /// 라이브 페이즈에서는 방향만 맞춘다.
+        /// 결정론적 가이드. <b>근거리 직업은 시전 위치로 순간이동한 뒤에 시작한다</b> —
+        /// 제자리에서 휘두르면 조준한 곳에 판정이 안 닿아 콤보가 통째로 헛돈다.
+        /// 원거리 직업은 사거리가 있으니 방향만 맞춘다.
         /// </summary>
         private void PlaceCaster()
         {
             Physics phys = ctx.CasterPhysics;
             if (phys == null) return;
 
-            switch (ctx.targetInfo.type)
-            {
-                case TargetingType.GroundPoint:
-                    if (ctx.isBulletTime)
-                        phys.Teleport(ctx.targetInfo.point);
-                    else
-                        phys.Face(ctx.targetInfo.point - phys.Transform.position);
-                    break;
+            if (TryGetCastSpot(phys, out Vector3 spot))
+                phys.Teleport(spot);
 
-                case TargetingType.EnemyUnit:
-                    if (ctx.targetInfo.unit != null)
-                        phys.Face(ctx.targetInfo.unit.transform.position - phys.Transform.position);
-                    break;
-
-                case TargetingType.Direction:
-                    phys.Face(ctx.targetInfo.direction);
-                    break;
-
-                default:
-                    if (ctx.target != null)
-                        phys.Face(ctx.target.transform.position - phys.Transform.position);
-                    break;
-            }
+            phys.Face(FaceDirection(phys));
 
             // 시전 중 관성은 전부 끊는다. 연계가 밀리는 오차를 차단.
             phys.ResetInertia();
+        }
+
+        /// <summary>
+        /// 근거리 직업인지. 스킬 카드는 직업에 묶여 있으므로(<c>Ally.EquipSkill</c>)
+        /// 에셋의 role이 곧 시전자의 직업이다.
+        ///
+        /// 투사체 유무로 가르지 않는 이유: 위저드 장판은 투사체가 없지만 근거리가 아니다.
+        /// 그걸 근접으로 보면 마법사가 적진 한가운데로 순간이동한다.
+        /// </summary>
+        private bool IsMeleeCaster => data.role == Role.Tanker || data.role == Role.Warrior;
+
+        /// <summary>
+        /// 시전을 시작할 자리. 옮길 필요가 없으면 false.
+        /// </summary>
+        private bool TryGetCastSpot(Physics phys, out Vector3 spot)
+        {
+            spot = default;
+            Vector3 from = phys.GroundPosition;
+
+            switch (ctx.targetInfo.type)
+            {
+                case TargetingType.GroundPoint:
+                    // 찍은 좌표가 곧 시전 위치다.
+                    // 원거리 직업은 불릿타임에 한해 옮긴다 — 기존 동작(위저드 장판 텔포)을 유지한다.
+                    if (!IsMeleeCaster && !ctx.isBulletTime) return false;
+
+                    spot = new Vector3(ctx.targetInfo.point.x, from.y, ctx.targetInfo.point.z);
+                    return true;
+
+                case TargetingType.EnemyUnit:
+                    return IsMeleeCaster && TryApproach(from, ctx.targetInfo.unit, out spot);
+
+                default:
+                    // 방향 지정 · 조준 없음에는 찍은 좌표가 없다.
+                    // 그래도 근거리면 붙어야 하므로 콤보가 잡아 둔 대상으로 간다.
+                    return IsMeleeCaster && TryApproach(from, ctx.target, out spot);
+            }
+        }
+
+        /// <summary>대상 옆에 서는 자리. 오던 쪽에 붙는다 — 대상을 관통해 넘어가지 않게.</summary>
+        private bool TryApproach(Vector3 from, Entity target, out Vector3 spot)
+        {
+            spot = default;
+            if (target == null || target.Physics == null) return false;
+            if (target.Combat != null && target.Combat.IsDead) return false;
+
+            Vector3 t = target.Physics.GroundPosition;
+            float side = from.x >= t.x ? 1f : -1f;
+
+            // 벨트스크롤에서 Z가 어긋나면 후속타가 전부 빗나간다(Physics.SnapZ와 같은 이유).
+            // X만 띄우고 깊이는 대상과 같은 레인에 맞춘다.
+            spot = new Vector3(t.x + side * data.ApproachDistance, from.y, t.z);
+
+            // 이미 그 자리면 옮기지 않는다. 매 타격마다 미세하게 튀는 걸 막는다.
+            Vector3 d = spot - from;
+            d.y = 0f;
+            return d.sqrMagnitude > 0.04f;
+        }
+
+        /// <summary>시전 후 바라볼 방향.</summary>
+        private Vector3 FaceDirection(Physics phys)
+        {
+            Vector3 from = phys.GroundPosition;
+
+            switch (ctx.targetInfo.type)
+            {
+                case TargetingType.Direction:
+                    return ctx.targetInfo.direction;
+
+                case TargetingType.EnemyUnit:
+                    if (ctx.targetInfo.unit != null)
+                        return ctx.targetInfo.unit.Physics.GroundPosition - from;
+                    break;
+
+                case TargetingType.GroundPoint:
+                    // 찍은 자리로 이미 옮겼다면 그 지점을 봐도 방향이 안 나온다. 대상 쪽을 본다.
+                    if (ctx.target != null)
+                        return ctx.target.Physics.GroundPosition - from;
+
+                    Vector3 toPoint = ctx.targetInfo.point - from;
+                    toPoint.y = 0f;
+                    if (toPoint.sqrMagnitude > 0.0001f) return toPoint;
+                    break;
+            }
+
+            if (ctx.target != null)
+                return ctx.target.Physics.GroundPosition - from;
+
+            return phys.Facing;
         }
 
         /// <summary>

@@ -65,6 +65,12 @@ namespace Prototype
 
         public bool IsRanged => projectile != null;
 
+        [Tooltip("근거리 직업(탱커·워리어)이 대상 옆에 설 거리. 0이면 기본값(1.1)을 쓴다.")]
+        public float approachDistance = 0f;
+
+        /// <summary>0을 기본값으로 접어 주는 읽기 창구. 에셋 27개를 손으로 채우지 않아도 된다.</summary>
+        public float ApproachDistance => approachDistance > 0f ? approachDistance : 1.1f;
+
         [Header("판정")]
         public List<HitData> hitDataList = new List<HitData>();
 
