@@ -291,6 +291,9 @@ namespace Prototype.EditorTools
         {
             foreach (Entity e in Object.FindObjectsByType<Entity>(FindObjectsInactive.Include))
             {
+                // 동료는 실제 스프라이트 시트를 쓴다(ArtImportBuilder). 플레이스홀더로 되돌리지 않는다.
+                if (e is Ally) continue;
+
                 var animator = e.GetComponent<Animator>();
                 if (animator == null) animator = Undo.AddComponent<Animator>(e.gameObject);
 
