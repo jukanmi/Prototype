@@ -77,7 +77,11 @@ namespace Prototype
         public float manaCost = 20f;
 
         [Header("연출")]
+        [Tooltip("시전자 본체 모션. 이펙트가 아니다 — Skill 슬롯 클립을 갈아끼운다.")]
         public AnimationClip animation;
+
+        [Tooltip("타격마다 나오는 이펙트. custom을 끄면 전역 기본색을 쓴다.")]
+        public SkillVfx vfx = SkillVfx.Default;
 
         /// <summary>
         /// 런타임 인스턴스를 매번 새로 만드는 팩토리.

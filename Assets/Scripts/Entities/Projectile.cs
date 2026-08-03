@@ -40,7 +40,8 @@ namespace Prototype
         /// 발사. 시전자 · 판정 데이터 · 방향을 받아 살아난다.
         /// </summary>
         public void Launch(Combat attacker, in HitData hit, Vector3 origin, Vector3 dir,
-                           float speed, float range, int pierce, LayerMask wallMask, int layer)
+                           float speed, float range, int pierce, LayerMask wallMask, int layer,
+                           in SkillVfx vfx = default)
         {
             dir.y = 0f;
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
@@ -61,7 +62,8 @@ namespace Prototype
 
             hitbox.Attacker = attacker;
             hitbox.OnHit += HandleHit;
-            hitbox.Begin(in hit);
+            // 궤적은 투사체에서 억제된다. 색은 적중 이펙트에만 쓰인다.
+            hitbox.Begin(in hit, in vfx);
 
             live = true;
             UpdateView();

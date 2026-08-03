@@ -53,7 +53,9 @@ namespace Prototype
                 $"조준 {ctx.targetInfo.type} | {(ctx.isBulletTime ? "불릿타임" : "라이브")} | 히트 {data.hitDataList.Count}단",
                 ctx.caster);
 
+            // 순간이동 뒤라야 조준했던 좌표에 정확히 뜬다.
             PlaceCaster();
+            EmitCastVfx();
             ApplyEffects();
 
             // 선딜이 없으면 즉시 첫 타를 낸다.
@@ -132,6 +134,16 @@ namespace Prototype
             phys.ResetInertia();
         }
 
+        /// <summary>
+        /// 스킬이 터지는 자리를 한 번 크게 알린다.
+        /// 반경은 판정과 같은 값을 쓴다 — 차징으로 커진 배율까지 그대로 따라간다.
+        /// </summary>
+        private void EmitCastVfx()
+        {
+            SkillVfx style = data.vfx.AsSkill();
+            BattleVfx.Cast(ctx.Origin, data.radius * ctx.RadiusScale, in style);
+        }
+
         private void ApplyEffects()
         {
             if (data.effects == null) return;
@@ -171,7 +183,10 @@ namespace Prototype
             if (box.Attacker == null && ctx.caster != null)
                 box.Attacker = ctx.caster.Combat;
 
-            box.Begin(in hit);
+            // 히트박스는 스킬끼리 공유된다(SkillAttack). 켤 때마다 이번 스킬 색을 다시 실어 준다.
+            // AsSkill()로 스킬 표시를 같이 넘겨야 평타보다 크게 그려진다.
+            SkillVfx style = data.vfx.AsSkill();
+            box.Begin(in hit, in style);
         }
 
         /// <summary>원거리 — 타격마다 투사체를 하나씩 쏜다.</summary>
@@ -187,10 +202,12 @@ namespace Prototype
                 ? ctx.caster.BasicAttack.gameObject.layer
                 : ctx.caster.gameObject.layer;
 
+            SkillVfx style = data.vfx.AsSkill();
+
             shot.Launch(ctx.caster.Combat, in hit,
                         phys.GroundPosition, AimDirection(phys),
                         data.projectileSpeed, data.projectileRange, data.projectilePierce,
-                        phys.WallMask, layer);
+                        phys.WallMask, layer, in style);
         }
 
         /// <summary>조준값에서 발사 방향을 뽑는다. 없으면 바라보는 쪽.</summary>
