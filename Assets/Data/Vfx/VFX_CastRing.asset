@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f091ed66ce612d540b990bd7047de5a4, type: 3}
+  m_Name: VFX_CastRing
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxClip
+  frames:
+  - {fileID: 5233801365316963160, guid: c13ee70edc186374691d28977cb62fc8, type: 3}
+  - {fileID: 2332718145802456493, guid: c13ee70edc186374691d28977cb62fc8, type: 3}
+  - {fileID: -3375659950574153142, guid: c13ee70edc186374691d28977cb62fc8, type: 3}
+  - {fileID: -4964935064399937161, guid: c13ee70edc186374691d28977cb62fc8, type: 3}
+  - {fileID: 2154995851152959410, guid: c13ee70edc186374691d28977cb62fc8, type: 3}
+  fps: 20
+  loops: 2
+  fitRadius: 1
+  scale: 1
+  heightOffset: 0
+  sortingOffset: -20
+  rotateToFacing: 0
+  flipToFacing: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  useSkillColor: 1
+  fadeOut: 0.35
