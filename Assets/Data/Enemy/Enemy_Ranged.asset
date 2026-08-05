@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb811218524748478d93baa1bee40f1, type: 3}
+  m_Name: Enemy_Ranged
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyData
+  enemyId: Enemy_Ranged
+  enemyName: "\uAD81\uC218 \uACE0\uBE14\uB9B0"
+  hp: 26
+  atk: 4
+  brain: {fileID: 11400000, guid: 829846ac215afa346866ac5c229ebd80, type: 2}
+  moveSpeed: 3.4
+  attackRange: 7.2
+  attackInterval: 1.8
+  retargetInterval: 0.5
+  leashRange: 16
+  preferredMinRange: 4
+  specialRange: 0
+  specialInterval: 0
+  basicProjectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 14
+  projectileRange: 9
+  projectilePierce: 0
+  exp: 10
+  gold: 5
+  prefab: {fileID: 132684243561720156, guid: 257bbaf80bdf17b45b180245db4a8790, type: 3}

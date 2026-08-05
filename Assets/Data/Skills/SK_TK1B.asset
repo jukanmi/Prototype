@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_TK1B
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uAC15\uCCA0 \uB3CC\uC9C4"
+  icon: {fileID: 0}
+  description: "TK1B \u2014 \uB77C\uC778\uD558\uB974\uD2B8 \uB3CC\uC9C4 \u2014 \uC801\uC744
+    \uB04C\uACE0 \uAC00\uB294 \uAC74 \uBBF8\uAD6C\uD604, \uB3CC\uC9C4+\uBC00\uCE58\uAE30\uB85C
+    \uB300\uCCB4"
+  role: 0
+  attackType: 2
+  requireState: 0
+  resultState: 3
+  targeting: 3
+  radius: 3
+  castTime: 0.2
+  hitInterval: 0.3
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  hitDataList:
+  - damageData:
+      damage: 12
+    targetState: 0
+    nextState: 3
+    canOtg: 0
+    mode: 2
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 20
+    launchForce: 0
+    hitStunDuration: 0.5
+    snapZ: 0
+  effects:
+  - rid: 7198291130188562556
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7198291130188562556
+      type: {class: ChargeEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        speed: 20

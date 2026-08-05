@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_AR2B
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uAC15\uB825 \uC0AC\uACA9"
+  icon: {fileID: 0}
+  description: "AR2B \u2014 \uBCA0\uC778 E \u2014 \uBC00\uC5B4\uB0B4\uACE0 \uBCBD\uC5D0
+    \uB2FF\uC73C\uBA74 \uBCBD\uBC14\uC6B4\uB4DC"
+  role: 2
+  attackType: 3
+  requireState: 2
+  resultState: 4
+  targeting: 2
+  radius: 3
+  castTime: 0.3
+  hitInterval: 0.3
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 20
+  projectileRange: 12
+  projectilePierce: 0
+  hitDataList:
+  - damageData:
+      damage: 13
+    targetState: 0
+    nextState: 3
+    canOtg: 0
+    mode: 2
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 20
+    launchForce: 0
+    hitStunDuration: 0.5
+    snapZ: 0
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

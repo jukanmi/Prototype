@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_AR2A
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uBC1C\uBAA9 \uC0AC\uACA9"
+  icon: {fileID: 0}
+  description: "AR2A \u2014 \uBBF8\uC2A4\uD3EC\uCE08 E \u2014 \uC9C0\uC18D \uC7A5\uD310
+    \uBBF8\uAD6C\uD604, \uC989\uBC1C \uAD11\uC5ED \uB454\uD654\uB85C \uB300\uCCB4"
+  role: 2
+  attackType: 4
+  requireState: 0
+  resultState: 1
+  targeting: 1
+  radius: 4
+  castTime: 0.3
+  hitInterval: 0.3
+  recoveryTime: 0.25
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  hitDataList:
+  - damageData:
+      damage: 6
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.3
+    snapZ: 0
+  effects:
+  - rid: 7198291130188562564
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7198291130188562564
+      type: {class: SlowEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        radius: 4
+        multiplier: 0.5
+        duration: 3

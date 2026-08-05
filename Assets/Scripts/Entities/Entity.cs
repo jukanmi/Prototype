@@ -34,6 +34,38 @@ namespace Prototype
         [Tooltip("스킬 전용 히트박스. 비우면 평타 히트박스를 재사용한다.")]
         [SerializeField] private Attack skillAttack;
 
+        [Header("평타 — 원거리")]
+        [Tooltip("넣으면 평타가 투사체가 된다. 비우면 앞에 히트박스를 켜는 근접 평타.")]
+        [SerializeField] private Projectile basicProjectile;
+        [SerializeField] private float basicProjectileSpeed = 16f;
+        [SerializeField] private float basicProjectileRange = 9f;
+        [SerializeField] private int basicProjectilePierce = 0;
+
+        /// <summary>평타가 날아가는지. AttackState가 이걸로 갈린다.</summary>
+        public bool BasicIsRanged => basicProjectile != null;
+
+        /// <summary>
+        /// 원거리 평타의 유효 사거리. AI가 이 거리에서 멈춰 선다.
+        /// 최대 사거리보다 짧게 잡아 가장자리에서 헛쏘지 않게 한다.
+        /// </summary>
+        public float BasicAttackReach => basicProjectileRange * 0.8f;
+
+        public float BasicProjectileSpeed => basicProjectileSpeed;
+        public float BasicProjectileRange => basicProjectileRange;
+        public int BasicProjectilePierce => basicProjectilePierce;
+
+        /// <summary>
+        /// 평타를 투사체로 바꾼다. EnemyData 주입과 에디터 생성기가 같은 경로를 쓰도록 API로 연다.
+        /// 0 이하 값은 조용히 최소값으로 올린다 — 저작 실수로 제자리에 서는 투사체를 만들지 않는다.
+        /// </summary>
+        public void ConfigureBasicProjectile(Projectile prefab, float speed, float range, int pierce)
+        {
+            basicProjectile = prefab;
+            basicProjectileSpeed = Mathf.Max(0.1f, speed);
+            basicProjectileRange = Mathf.Max(0.5f, range);
+            basicProjectilePierce = Mathf.Max(0, pierce);
+        }
+
         [Header("사망")]
         [Tooltip("쓰러진 채로 남아 있는 시간. 이 뒤에 서서히 사라진다.")]
         [SerializeField] private float despawnDelay = 1f;
@@ -57,11 +89,48 @@ namespace Prototype
             return h;
         }
 
+        /// <summary>
+        /// 원거리 평타 발사. 가장 가까운 상대를 스스로 겨눈다 —
+        /// 근접과 달리 바라보는 방향만으로는 맞히기 어렵다.
+        /// </summary>
+        public void FireBasicProjectile()
+        {
+            if (basicProjectile == null || Physics == null) return;
+
+            Vector3 from = Physics.GroundPosition;
+            Entity target = BattleRegistry.NearestOpponent(this);
+
+            Vector3 dir = target != null
+                ? target.Physics.GroundPosition - from
+                : Physics.Facing;
+
+            // 히트박스 레이어를 물려받아야 충돌 매트릭스가 맞는다.
+            int layer = basicAttack != null ? basicAttack.gameObject.layer : gameObject.layer;
+
+            Projectile shot = Instantiate(basicProjectile);
+            HitData hit = BuildBasicHit();
+
+            shot.Launch(Combat, in hit, from, dir,
+                        basicProjectileSpeed, basicProjectileRange, basicProjectilePierce,
+                        Physics.WallMask, layer);
+
+            // 쏘는 순간 방향을 맞춰 준다. 히트박스 자식과 스프라이트가 따라 돈다.
+            Physics.Face(dir);
+        }
+
         /// <summary>히트박스가 아군을 때리지 않게 거르는 기준. Enemy만 덮어쓴다.</summary>
         public virtual Faction Faction => Faction.Ally;
 
-        public Physics Physics { get; private set; }
-        public Combat Combat { get; private set; }
+        private Physics cachedPhysics;
+        private Combat cachedCombat;
+
+        /// <summary>
+        /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)가 있어 지연 해석한다.
+        /// RequireComponent가 존재를 보장하므로 GetComponent는 반드시 성공한다.
+        /// </summary>
+        public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
+        public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
+
         public Control Control { get; private set; }
         public StateMachine StateMachine { get; private set; }
         public Stats Stats => stats;
@@ -81,8 +150,8 @@ namespace Prototype
 
         protected virtual void Awake()
         {
-            Physics = GetComponent<Physics>();
-            Combat = GetComponent<Combat>();
+            cachedPhysics = GetComponent<Physics>();
+            cachedCombat = GetComponent<Combat>();
             Control = GetComponent<Control>();
             StateMachine = new StateMachine { OwnerName = name };
 
