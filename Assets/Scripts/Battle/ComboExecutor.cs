@@ -45,12 +45,22 @@ namespace Prototype
             BattleLog.Log(LogCategory.Combo, $"<b>콤보 실행 시작</b> — {queue.Count}슬롯", this);
             OnExecuteStarted?.Invoke();
 
+            // 차징 슬롯은 시작만 하고 큐를 막지 않는다. 전부 끝난 뒤 순서대로 터뜨린다.
+            var pending = new List<PendingCharge>();
+
             int index = 0;
             while (queue.Count > 0)
             {
                 ComboSlot slot = queue.Dequeue();
                 BattleLog.Log(LogCategory.Combo,
                     $"── 슬롯 {index++}: {(slot.Data != null ? slot.Data.skillName : "(비어있음)")} / {BattleLog.Name(slot.caster)}", this);
+
+                if (slot.Data != null && slot.Data.IsCharge)
+                {
+                    StartCharge(slot, pending);
+                    OnSlotConsumed?.Invoke(slot.card);
+                    continue;   // 대기하지 않는다 — 뒤 슬롯이 그대로 이어진다
+                }
 
                 yield return RunSlot(slot);
 
@@ -60,10 +70,106 @@ namespace Prototype
                     yield return WaitScaled(slotGap);
             }
 
+            if (pending.Count > 0)
+                yield return ReleaseCharges(pending);
+
             BattleLog.Log(LogCategory.Combo, "<b>콤보 실행 종료</b>", this);
 
             running = null;
             OnExecuteFinished?.Invoke();
+        }
+
+        /// <summary>모으기를 시작한 차징 슬롯. 큐가 빌 때까지 붙잡아 둔다.</summary>
+        private struct PendingCharge
+        {
+            public Ally caster;
+            public ChargeSkillState state;
+            public SkillData data;
+        }
+
+        private void StartCharge(ComboSlot slot, List<PendingCharge> pending)
+        {
+            SkillData data = slot.Data;
+            Ally caster = slot.caster;
+
+            if (caster == null || caster.Combat.IsDead)
+            {
+                BattleLog.Warn(LogCategory.Combo, $"차징 건너뜀 — 시전자 없음 ({data.skillName})", this);
+                return;
+            }
+
+            var ctx = new SkillContext
+            {
+                data = data,
+                caster = caster,
+                target = slot.target.unit,
+                targetInfo = slot.target,
+                isBulletTime = true,
+                comboIndex = 0,
+            };
+
+            // 모으는 동안에도 BT는 멈춰 있어야 한다. 해제까지 지휘 상태를 유지한다.
+            caster.IsCommanded = true;
+
+            IState state = data.CreateState(in ctx);
+            caster.StateMachine.ForceChangeState(state);
+
+            if (state is ChargeSkillState charge)
+            {
+                pending.Add(new PendingCharge { caster = caster, state = charge, data = data });
+                BattleLog.Log(LogCategory.Combo,
+                    $"  └ <color=#FFD166>차징 시작</color> {data.skillName} — 남은 슬롯이 끝나면 터진다", this);
+            }
+            else
+            {
+                BattleLog.Warn(LogCategory.Combo,
+                    $"{data.skillName}은 Charge 유형인데 ChargeSkillState가 아니다", this);
+            }
+        }
+
+        /// <summary>배치 순서대로 차징을 해제하고 전부 끝날 때까지 기다린다.</summary>
+        private IEnumerator ReleaseCharges(List<PendingCharge> pending)
+        {
+            BattleLog.Log(LogCategory.Combo, $"<b>차징 해제</b> — {pending.Count}건", this);
+
+            for (int i = 0; i < pending.Count; i++)
+            {
+                PendingCharge p = pending[i];
+
+                if (p.caster == null || p.caster.Combat.IsDead)
+                {
+                    BattleLog.Warn(LogCategory.Combo, $"{p.data.skillName} 차징 무산 — 시전자 사망", this);
+                    continue;
+                }
+
+                // 사망 등으로 상태를 빼앗겼으면 터뜨릴 게 없다.
+                if (p.caster.StateMachine.CurState != p.state)
+                {
+                    BattleLog.Warn(LogCategory.Combo, $"{p.data.skillName} 차징 무산 — 상태가 바뀌었다", this);
+                    continue;
+                }
+
+                p.state.Release();
+
+                float elapsed = 0f;
+                while (elapsed < slotTimeout)
+                {
+                    if (p.caster.Combat.IsDead) break;
+                    if (p.state.IsFinished) break;
+                    if (p.caster.StateMachine.CurState != p.state) break;
+
+                    elapsed += TimeControl.DeltaTime;
+                    yield return null;
+                }
+
+                p.caster.IsCommanded = false;
+
+                if (p.caster.StateMachine.CurState == p.state && !p.caster.Combat.IsDead)
+                    p.caster.StateMachine.ForceChangeState(p.caster.IdleState);
+
+                if (slotGap > 0f)
+                    yield return WaitScaled(slotGap);
+            }
         }
 
         private IEnumerator RunSlot(ComboSlot slot)

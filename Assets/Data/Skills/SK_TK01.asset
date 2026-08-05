@@ -24,6 +24,10 @@ MonoBehaviour:
   castTime: 0.25
   hitInterval: 0.3
   recoveryTime: 0.25
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
   hitDataList:
   - damageData:
       damage: 0
@@ -40,7 +44,7 @@ MonoBehaviour:
   - rid: 7198291069231693927
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: 0ac041fcf383cf3428c1619e8ed67948, type: 2}
   references:
     version: 2
     RefIds:

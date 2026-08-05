@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_WZ2A
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uC911\uB825 \uAC10\uC625"
+  icon: {fileID: 0}
+  description: "WZ2A \u2014 \uBE45\uD1A0\uB974 W \u2014 \uC9C0\uC18D \uC7A5\uD310\xB7\uC9C0\uC5F0
+    \uAE30\uC808 \uBBF8\uAD6C\uD604, \uC989\uBC1C \uB454\uD654\uB85C \uB300\uCCB4"
+  role: 3
+  attackType: 4
+  requireState: 0
+  resultState: 1
+  targeting: 1
+  radius: 4.5
+  castTime: 0.35
+  hitInterval: 0.3
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  hitDataList:
+  - damageData:
+      damage: 7
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.3
+    snapZ: 0
+  effects:
+  - rid: 7198291130188562565
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7198291130188562565
+      type: {class: SlowEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        radius: 4
+        multiplier: 0.5
+        duration: 3

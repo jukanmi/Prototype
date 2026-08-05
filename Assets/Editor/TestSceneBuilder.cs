@@ -544,6 +544,7 @@ namespace PrototypeEditor
             var predictor = systemGo.AddComponent<ComboPredictor>();
             var selector = systemGo.AddComponent<TargetSelector>();
             var hud = systemGo.AddComponent<DebugComboHUD>();
+            var boardUi = systemGo.AddComponent<ComboBoardUI>();
             systemGo.AddComponent<BattleLogSettings>();
 
             SetSerialized(bullet, so =>
@@ -567,6 +568,11 @@ namespace PrototypeEditor
                 so.FindProperty("bulletTime").objectReferenceValue = bullet;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
                 so.FindProperty("player").objectReferenceValue = player.GetComponent<Player>();
+            });
+
+            SetSerialized(boardUi, so =>
+            {
+                so.FindProperty("targetSelector").objectReferenceValue = selector;
             });
 
             // 플레이어 ↔ 파티 연결. 1~4 키 순서가 이 배열 순서다.
