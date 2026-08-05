@@ -7,13 +7,14 @@ using UnityEngine.UI;
 namespace Prototype
 {
     /// <summary>
-    /// 손패 카드를 콤보 슬롯에 드래그&드롭으로 배치하는 런타임 생성 UI.
+    /// 손패 4장을 <b>항상</b> 보여 주는 런타임 생성 UI.
     /// 씬/프리팹 연결 없이 코드로만 만든다 — BulletTimeController가 붙은 GameObject에 이 컴포넌트만 추가하면 동작한다.
     ///
-    /// 기존 전투 로직(BulletTimeController/ComboSlotBoard/ComboExecutor/TargetSelector)은 건드리지 않고
-    /// 그 공개 API 위에서만 동작한다. DebugComboHUD가 하던 "카드 편집 입력"을 대체하므로,
-    /// 이 컴포넌트가 활성화되는 동안은 DebugComboHUD.SuppressCardInput을 켜서 입력만 겹치지 않게 한다
-    /// (조작법 안내 등 OnGUI 정보 패널은 그대로 계속 보인다).
+    /// 손패가 곧 실행 순서다(왼쪽부터). 실시간에는 표시만 하고,
+    /// 불릿타임 중에만 카드끼리 드래그해 순서를 바꾸거나 클릭해서 조준할 수 있다.
+    ///
+    /// 기존 전투 로직(BulletTimeController/ComboExecutor/TargetSelector)은 건드리지 않고
+    /// 그 공개 API 위에서만 동작한다.
     /// </summary>
     [RequireComponent(typeof(BulletTimeController))]
     public class ComboBoardUI : MonoBehaviour
@@ -21,93 +22,58 @@ namespace Prototype
         [Tooltip("비워두면 같은 GameObject 또는 자식에서 자동으로 찾는다.")]
         [SerializeField] private TargetSelector targetSelector;
 
-        private const float CellSize = 110f;
-        private const float CellSpacing = 10f;
-        private const float TitleHeight = 28f;
-        private const float HintHeight = 22f;
-        private const float ExecuteButtonWidth = 120f;
-        private const float ExecuteButtonHeight = 44f;
-        private const float HandCardWidth = 140f;
-        private const float HandCardHeight = 64f;
+        // 카드 아트가 세로형(약 3:4)이라 위젯도 세로로 잡는다.
+        // 아래 StatusBarHeight만큼은 상태 띠로 남기고 그 위를 아트가 채운다.
+        private const float CardWidth = 140f;
+        private const float CardHeight = 208f;
+        private const float StatusBarHeight = 22f;
+        private const float ArtInset = 3f;
+        private const float CardSpacing = 10f;
 
-        private static readonly Color SlotColor = new Color(0.2f, 0.2f, 0.24f);
-        private static readonly Color EmptySlotColor = new Color(0.15f, 0.15f, 0.17f);
-        private static readonly Color ChainedSlotColor = new Color(0.3f, 0.5f, 0.3f);
-        private static readonly Color HandCardColor = new Color(0.25f, 0.4f, 0.3f);
-        private static readonly Color ExecuteButtonColor = new Color(0.7f, 0.2f, 0.2f);
+        /// <summary>아트 영역이 시작하는 세로 비율. 그 아래는 상태 띠.</summary>
+        private const float ArtBottom = StatusBarHeight / CardHeight;
+        private const float TitleHeight = 26f;
+        private const float HintHeight = 22f;
+
+        private static readonly Color PanelColor = new Color(0.1f, 0.1f, 0.12f, 0.85f);
+        private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.3f);
+        private static readonly Color NextCardColor = new Color(0.28f, 0.38f, 0.34f);
+        private static readonly Color ChainedCardColor = new Color(0.24f, 0.42f, 0.26f);
+        private static readonly Color AimingCardColor = new Color(0.45f, 0.35f, 0.15f);
+        private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
+        private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
 
         private BulletTimeController _bulletTime;
-        private DebugComboHUD _debugHud;
         private GameObject _canvasRoot;
+        private Text _titleText;
         private Text _hintText;
-        private Button _executeButton;
+        private CardWidgets[] _cards;
 
-        private int _slotCount;
-        private SlotWidgets[] _slotWidgets;
-        private HandCardWidgets[] _handWidgets;
+        // 조준이 필요한 카드를 클릭한 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
+        private int _aimingIndex = -1;
 
-        // 조준이 필요한 스킬을 드롭한 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
-        private int _pendingHandIndex = -1;
-        private int _pendingSlotIndex = -1;
-
-        private class SlotWidgets
-        {
-            public Image background;
-            public Text label;
-            public Text predictedLabel;
-        }
-
-        private class HandCardWidgets
+        private class CardWidgets
         {
             public GameObject root;
-            public Text label;
+            /// <summary>카드 전체를 덮는 판. 아트 바깥 테두리 · 하단 상태 띠가 이 색으로 보인다.</summary>
+            public Image background;
+            /// <summary>SkillData.icon. 없으면 꺼지고 이름 · 직업 텍스트가 대신 나온다.</summary>
+            public Image art;
+            public Text nameLabel;
+            public Text subLabel;
+            public Text statusLabel;
             public CanvasGroup group;
         }
 
-        // 손패 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
-        // 실제 손패 반영은 Hand.OnChanged -> RefreshUI가 담당하므로 드래그 자체는 상태를 바꾸지 않는다.
-        private class HandCardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
-        {
-            public int HandIndex;
-            public CanvasGroup Group;
-
-            private RectTransform _rect;
-            private Vector2 _originalPos;
-            private bool _dragging;
-
-            private void Awake() => _rect = GetComponent<RectTransform>();
-
-            public void OnBeginDrag(PointerEventData eventData)
-            {
-                if (Group != null && !Group.interactable) return;
-
-                _dragging = true;
-                _originalPos = _rect.anchoredPosition;
-                Group.blocksRaycasts = false;
-            }
-
-            public void OnDrag(PointerEventData eventData)
-            {
-                if (!_dragging) return;
-                _rect.position += (Vector3)eventData.delta;
-            }
-
-            public void OnEndDrag(PointerEventData eventData)
-            {
-                if (!_dragging) return;
-                _dragging = false;
-                Group.blocksRaycasts = true;
-                _rect.anchoredPosition = _originalPos;
-            }
-        }
-
-        // 보드 슬롯 드래그: 슬롯끼리 드래그하면 재배치, 드래그 없이 클릭만 하면 손패로 회수한다.
+        // 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
+        // 실제 순서 반영은 Hand.OnChanged -> RefreshUI가 담당하므로 드래그 자체는 상태를 바꾸지 않는다.
         // uGUI는 드래그 임계값을 넘기면 같은 프레스에 대해 OnPointerClick을 호출하지 않으므로
-        // 한 컴포넌트에서 드래그와 클릭을 함께 처리해도 서로 충돌하지 않는다.
-        private class BoardSlotDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
+        // 한 컴포넌트에서 드래그(순서 교환)와 클릭(조준)을 함께 처리해도 서로 충돌하지 않는다.
+        private class CardHandler : MonoBehaviour,
+            IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
         {
-            public int SlotIndex;
+            public int Index;
             public ComboBoardUI Owner;
 
             private RectTransform _rect;
@@ -118,8 +84,7 @@ namespace Prototype
 
             public void OnBeginDrag(PointerEventData eventData)
             {
-                if (Owner._pendingHandIndex >= 0) return;
-                if (Owner._bulletTime.Board.Get(SlotIndex).IsEmpty) return;
+                if (!Owner.CanEditNow) return;
 
                 _dragging = true;
                 _originalPos = _rect.anchoredPosition;
@@ -134,41 +99,28 @@ namespace Prototype
             public void OnEndDrag(PointerEventData eventData)
             {
                 if (!_dragging) return;
+
                 _dragging = false;
                 _rect.anchoredPosition = _originalPos;
             }
-
-            public void OnPointerClick(PointerEventData eventData)
-            {
-                if (Owner._pendingHandIndex >= 0) return;
-                if (Owner._bulletTime.Board.Get(SlotIndex).IsEmpty) return;
-
-                Owner._bulletTime.RecallToHand(SlotIndex);
-            }
-        }
-
-        // 슬롯 위 드롭: 드래그 소스가 손패 카드인지 다른 보드 슬롯인지 구분해서 처리한다.
-        private class SlotDropTarget : MonoBehaviour, IDropHandler
-        {
-            public int SlotIndex;
-            public ComboBoardUI Owner;
 
             public void OnDrop(PointerEventData eventData)
             {
                 if (eventData.pointerDrag == null) return;
 
-                var handDrag = eventData.pointerDrag.GetComponent<HandCardDragHandler>();
-                if (handDrag != null)
-                {
-                    Owner.HandleHandCardDropped(handDrag.HandIndex, SlotIndex);
-                    return;
-                }
+                var from = eventData.pointerDrag.GetComponent<CardHandler>();
+                if (from != null && from.Index != Index)
+                    Owner.HandleSwap(from.Index, Index);
+            }
 
-                var slotDrag = eventData.pointerDrag.GetComponent<BoardSlotDragHandler>();
-                if (slotDrag != null && slotDrag.SlotIndex != SlotIndex)
-                    Owner.HandleSlotReordered(slotDrag.SlotIndex, SlotIndex);
+            public void OnPointerClick(PointerEventData eventData)
+            {
+                Owner.HandleCardClicked(Index);
             }
         }
+
+        /// <summary>불릿타임 Order 페이즈이고 조준 대기 중이 아닐 때만 조작을 받는다.</summary>
+        private bool CanEditNow => _bulletTime.AllowsCardEdit && _aimingIndex < 0;
 
         private void Awake()
         {
@@ -176,31 +128,19 @@ namespace Prototype
 
             if (targetSelector == null) targetSelector = GetComponent<TargetSelector>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
-
-            _debugHud = FindAnyObjectByType<DebugComboHUD>();
         }
 
         private void Start()
         {
             EnsureEventSystem();
 
-            _slotCount = _bulletTime.Board != null ? _bulletTime.Board.SlotCount : 0;
-            _slotWidgets = new SlotWidgets[_slotCount];
-            _handWidgets = new HandCardWidgets[Hand.Size];
-
+            _cards = new CardWidgets[Hand.Size];
             BuildUI();
 
             _bulletTime.Hand.OnChanged += RefreshUI;
-            if (_bulletTime.Board != null) _bulletTime.Board.OnBoardChanged += RefreshUI;
-            _bulletTime.OnEnter += HandleEnter;
+            _bulletTime.OnEnter += RefreshUI;
             _bulletTime.OnExit += HandleExit;
 
-            // DebugComboHUD는 같은 손패/슬롯을 키보드+마우스로도 조작하는 임시 컨트롤러라
-            // 입력만 겹친다. 컴포넌트 자체는 켜둬서 조작법 안내 등 정보 패널은 계속 보이게 하고,
-            // 손패/슬롯 입력 처리만 끈다.
-            if (_debugHud != null) _debugHud.SuppressCardInput = true;
-
-            SetVisible(_bulletTime.Tactic != null && _bulletTime.Tactic.AllowsCardEdit);
             RefreshUI();
         }
 
@@ -209,46 +149,50 @@ namespace Prototype
             if (_bulletTime == null) return;
 
             if (_bulletTime.Hand != null) _bulletTime.Hand.OnChanged -= RefreshUI;
-            if (_bulletTime.Board != null) _bulletTime.Board.OnBoardChanged -= RefreshUI;
-            _bulletTime.OnEnter -= HandleEnter;
+            _bulletTime.OnEnter -= RefreshUI;
             _bulletTime.OnExit -= HandleExit;
-
-            if (_debugHud != null) _debugHud.SuppressCardInput = false;
         }
 
         private void Update()
         {
-            if (_pendingHandIndex < 0) return;
+            if (_aimingIndex < 0) return;
 
-            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            // 불릿타임이 풀렸으면 조준 대기도 같이 접는다.
+            if (!_bulletTime.AllowsCardEdit)
             {
-                CancelPendingTarget();
+                CancelAiming();
                 RefreshUI();
                 return;
             }
 
-            // UI 위 클릭은 배치 확정으로 치지 않는다 — 게임 화면(월드)을 클릭했을 때만 확정.
+            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                CancelAiming();
+                RefreshUI();
+                return;
+            }
+
+            // UI 위 클릭은 조준 확정으로 치지 않는다 — 게임 화면(월드)을 클릭했을 때만 확정.
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame &&
                 !EventSystem.current.IsPointerOverGameObject())
             {
                 TargetInfo info = targetSelector != null ? targetSelector.Confirm() : TargetInfo.None;
-                _bulletTime.PlaceFromHand(_pendingHandIndex, _pendingSlotIndex, in info);
 
-                _pendingHandIndex = -1;
-                _pendingSlotIndex = -1;
+                // 인덱스를 먼저 비운다 — SetHandTarget이 OnChanged로 RefreshUI를 부르므로
+                // 그 시점에 이미 조준이 끝난 상태로 보여야 한다.
+                int idx = _aimingIndex;
+                _aimingIndex = -1;
+
+                _bulletTime.SetHandTarget(idx, in info);
                 RefreshUI();
             }
         }
 
-        private void HandleEnter() => SetVisible(true);
-
         private void HandleExit()
         {
-            CancelPendingTarget();
-            SetVisible(false);
+            CancelAiming();
+            RefreshUI();
         }
-
-        private void SetVisible(bool visible) => _canvasRoot.SetActive(visible);
 
         private static void EnsureEventSystem()
         {
@@ -263,7 +207,8 @@ namespace Prototype
 
         private void BuildUI()
         {
-            var canvasGo = new GameObject("ComboBoardCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var canvasGo = new GameObject("ComboBoardCanvas",
+                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);
             _canvasRoot = canvasGo;
 
@@ -275,7 +220,7 @@ namespace Prototype
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 1f;
 
-            var panel = CreatePanel(canvasGo.transform, "ComboBoardPanel", new Color(0.1f, 0.1f, 0.12f, 0.9f));
+            var panel = CreatePanel(canvasGo.transform, "HandPanel", PanelColor);
             var panelRect = panel.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0f);
             panelRect.anchorMax = new Vector2(0.5f, 0f);
@@ -284,8 +229,8 @@ namespace Prototype
 
             var layout = panel.AddComponent<VerticalLayoutGroup>();
             layout.childAlignment = TextAnchor.UpperCenter;
-            layout.spacing = 12;
-            layout.padding = new RectOffset(16, 16, 16, 16);
+            layout.spacing = 8;
+            layout.padding = new RectOffset(16, 16, 12, 16);
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
             layout.childControlWidth = true;
@@ -295,171 +240,114 @@ namespace Prototype
             fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            float rowWidth = _slotCount * CellSize + Mathf.Max(0, _slotCount - 1) * CellSpacing;
+            float rowWidth = Hand.Size * CardWidth + (Hand.Size - 1) * CardSpacing;
 
-            BuildTitle(panel.transform, rowWidth);
-            BuildHint(panel.transform, rowWidth);
-            BuildSlotRow(panel.transform);
-            BuildExecuteButton(panel.transform);
-            BuildHandRow(panel.transform);
+            _titleText = BuildText(panel.transform, "Title", rowWidth, TitleHeight, 18, Color.white, FontStyle.Bold);
+            _hintText = BuildText(panel.transform, "Hint", rowWidth, HintHeight, 14, HintColor, FontStyle.Normal);
+
+            BuildCardRow(panel.transform);
         }
 
-        private void BuildTitle(Transform parent, float width)
-        {
-            var go = new GameObject("Title", typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, TitleHeight);
-
-            var text = go.GetComponent<Text>();
-            text.text = "전술 배치";
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 20;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.raycastTarget = false;
-        }
-
-        private void BuildHint(Transform parent, float width)
-        {
-            var go = new GameObject("Hint", typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, HintHeight);
-
-            _hintText = go.GetComponent<Text>();
-            _hintText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _hintText.fontSize = 15;
-            _hintText.alignment = TextAnchor.MiddleCenter;
-            _hintText.color = HintColor;
-            _hintText.raycastTarget = false;
-            _hintText.text = string.Empty;
-        }
-
-        private void BuildSlotRow(Transform parent)
-        {
-            var gridGo = new GameObject("SlotRow", typeof(RectTransform));
-            gridGo.transform.SetParent(parent, false);
-
-            var grid = gridGo.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(CellSize, CellSize);
-            grid.spacing = new Vector2(CellSpacing, CellSpacing);
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = Mathf.Max(1, _slotCount);
-
-            for (int i = 0; i < _slotCount; i++)
-                _slotWidgets[i] = BuildSlotCell(gridGo.transform, i);
-        }
-
-        private SlotWidgets BuildSlotCell(Transform parent, int index)
-        {
-            var cellGo = CreatePanel(parent, $"Slot_{index}", SlotColor);
-            var widgets = new SlotWidgets { background = cellGo.GetComponent<Image>() };
-
-            var drag = cellGo.AddComponent<BoardSlotDragHandler>();
-            drag.SlotIndex = index;
-            drag.Owner = this;
-
-            var dropTarget = cellGo.AddComponent<SlotDropTarget>();
-            dropTarget.SlotIndex = index;
-            dropTarget.Owner = this;
-
-            widgets.label = CreateLabel(cellGo.transform, string.Empty, 15, Color.white, FontStyle.Bold);
-            widgets.label.raycastTarget = false;
-
-            var predGo = new GameObject("Predicted", typeof(RectTransform), typeof(Text));
-            predGo.transform.SetParent(cellGo.transform, false);
-            var predRect = predGo.GetComponent<RectTransform>();
-            predRect.anchorMin = new Vector2(0f, 0f);
-            predRect.anchorMax = new Vector2(1f, 0f);
-            predRect.pivot = new Vector2(0.5f, 0f);
-            predRect.anchoredPosition = new Vector2(0, 4);
-            predRect.sizeDelta = new Vector2(0, 20);
-
-            widgets.predictedLabel = predGo.GetComponent<Text>();
-            widgets.predictedLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            widgets.predictedLabel.fontSize = 11;
-            widgets.predictedLabel.alignment = TextAnchor.LowerCenter;
-            widgets.predictedLabel.color = new Color(0.6f, 1f, 0.6f);
-            widgets.predictedLabel.raycastTarget = false;
-
-            return widgets;
-        }
-
-        private void BuildExecuteButton(Transform parent)
-        {
-            _executeButton = CreateUIButton(parent, "실행", ExecuteButtonWidth, ExecuteButtonHeight, ExecuteButtonColor, OnExecuteClicked);
-        }
-
-        private void BuildHandRow(Transform parent)
+        private void BuildCardRow(Transform parent)
         {
             var rowGo = new GameObject("HandRow", typeof(RectTransform));
             rowGo.transform.SetParent(parent, false);
 
             var layout = rowGo.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 8;
+            layout.spacing = CardSpacing;
+            layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
             layout.childControlWidth = false;
             layout.childControlHeight = false;
 
             for (int i = 0; i < Hand.Size; i++)
-                _handWidgets[i] = BuildHandCard(rowGo.transform, i);
+                _cards[i] = BuildCard(rowGo.transform, i);
         }
 
-        private HandCardWidgets BuildHandCard(Transform parent, int index)
+        private CardWidgets BuildCard(Transform parent, int index)
         {
-            var go = new GameObject($"Hand_{index}", typeof(RectTransform), typeof(Image));
+            var go = new GameObject($"Card_{index}", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(HandCardWidth, HandCardHeight);
-            go.GetComponent<Image>().color = HandCardColor;
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(CardWidth, CardHeight);
 
-            var widgets = new HandCardWidgets { root = go };
-            widgets.label = CreateLabel(go.transform, string.Empty, 13, Color.white, FontStyle.Normal);
-            widgets.label.raycastTarget = false;
+            var w = new CardWidgets
+            {
+                root = go,
+                background = go.GetComponent<Image>(),
+                group = go.AddComponent<CanvasGroup>(),
+            };
+            w.background.color = CardColor;
 
-            widgets.group = go.AddComponent<CanvasGroup>();
+            // 카드 아트 — 상태 띠 위를 채운다. 바깥으로 ArtInset만큼 배경이 테두리로 남는다.
+            var artGo = new GameObject("Art", typeof(RectTransform), typeof(Image));
+            artGo.transform.SetParent(go.transform, false);
+            var artRect = artGo.GetComponent<RectTransform>();
+            artRect.anchorMin = new Vector2(0f, ArtBottom);
+            artRect.anchorMax = new Vector2(1f, 1f);
+            artRect.offsetMin = new Vector2(ArtInset, ArtInset);
+            artRect.offsetMax = new Vector2(-ArtInset, -ArtInset);
 
-            var drag = go.AddComponent<HandCardDragHandler>();
-            drag.HandIndex = index;
-            drag.Group = widgets.group;
+            w.art = artGo.GetComponent<Image>();
+            w.art.preserveAspect = true;
+            w.art.raycastTarget = false;
+            w.art.enabled = false;
 
-            return widgets;
+            // 아트가 없는 카드용 대체 표기. 아트가 붙으면 둘 다 꺼진다.
+            w.nameLabel = BuildAnchored(go.transform, "Name", new Vector2(0f, 0.52f), new Vector2(1f, 0.72f),
+                14, Color.white, FontStyle.Bold);
+            w.subLabel = BuildAnchored(go.transform, "Sub", new Vector2(0f, 0.38f), new Vector2(1f, 0.53f),
+                11, SubColor, FontStyle.Normal);
+
+            // 하단 상태 띠 — 순번 · U · 조준 여부 · 예측 상태.
+            w.statusLabel = BuildAnchored(go.transform, "Status", new Vector2(0f, 0f), new Vector2(1f, ArtBottom),
+                11, HintColor, FontStyle.Bold);
+
+            var handler = go.AddComponent<CardHandler>();
+            handler.Index = index;
+            handler.Owner = this;
+
+            return w;
         }
 
-        private Button CreateUIButton(Transform parent, string label, float width, float height, Color color, UnityEngine.Events.UnityAction onClick)
+        private static Text BuildAnchored(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
+            int fontSize, Color color, FontStyle style)
         {
-            var go = new GameObject($"Btn_{label}", typeof(RectTransform), typeof(Image), typeof(Button));
+            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
 
-            var image = go.GetComponent<Image>();
-            image.color = color;
-
-            var button = go.GetComponent<Button>();
-            button.targetGraphic = image;
-            button.onClick.AddListener(onClick);
-
-            CreateLabel(go.transform, label, 16, Color.white, FontStyle.Bold);
-            return button;
-        }
-
-        private Text CreateLabel(Transform parent, string text, int fontSize, Color color, FontStyle style)
-        {
-            var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
             var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = new Vector2(4f, 0f);
+            rect.offsetMax = new Vector2(-4f, 0f);
 
             var t = go.GetComponent<Text>();
-            t.text = text;
             t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             t.fontSize = fontSize;
             t.fontStyle = style;
             t.alignment = TextAnchor.MiddleCenter;
             t.color = color;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Truncate;
+            t.raycastTarget = false;
+            return t;
+        }
+
+        private static Text BuildText(Transform parent, string name, float width, float height,
+            int fontSize, Color color, FontStyle style)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
+
+            var t = go.GetComponent<Text>();
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.fontSize = fontSize;
+            t.fontStyle = style;
+            t.alignment = TextAnchor.MiddleCenter;
+            t.color = color;
+            t.raycastTarget = false;
             return t;
         }
 
@@ -471,109 +359,138 @@ namespace Prototype
             return go;
         }
 
-        // ── 배치 / 재배치 / 실행 ──────────────────────────
+        // ── 조작 ─────────────────────────────────────────
 
-        // 손패 카드가 슬롯 위에 드롭됐을 때: 조준이 필요 없으면 즉시 배치, 필요하면 조준 대기로 들어간다.
-        private void HandleHandCardDropped(int handIndex, int slotIndex)
+        private void HandleSwap(int from, int to)
         {
-            if (_pendingHandIndex >= 0) return;
-            if (_bulletTime.Tactic == null || !_bulletTime.Tactic.AllowsCardEdit) return;
-            if (_bulletTime.Board == null || !_bulletTime.Board.Get(slotIndex).IsEmpty) return;
+            if (!CanEditNow) return;
+            _bulletTime.SwapHand(from, to);
+        }
 
-            ComboCard card = _bulletTime.Hand.Get(handIndex);
-            if (card == null || card.Data == null) return;
+        // 카드 클릭 → 조준이 필요한 스킬이면 조준 모드로 들어간다.
+        private void HandleCardClicked(int index)
+        {
+            if (!CanEditNow) return;
 
-            if (card.Data.targeting == TargetingType.None)
+            SkillData data = _bulletTime.Hand.GetData(index);
+            if (data == null) return;
+
+            if (data.targeting == TargetingType.None)
             {
-                _bulletTime.PlaceFromHand(handIndex, slotIndex, TargetInfo.None);
+                BattleLog.Log(LogCategory.Predict, $"{data.skillName} — 조준이 필요 없는 스킬", this);
                 return;
             }
 
-            targetSelector?.Begin(card.Data);
-            _pendingHandIndex = handIndex;
-            _pendingSlotIndex = slotIndex;
+            targetSelector?.Begin(data);
+            _aimingIndex = index;
             RefreshUI();
         }
 
-        // 보드 슬롯끼리 드래그&드롭 -> 순서 교환. ComboSlotBoard.Reorder를 그대로 호출한다.
-        private void HandleSlotReordered(int fromIndex, int toIndex)
+        private void CancelAiming()
         {
-            if (_pendingHandIndex >= 0) return;
-            if (_bulletTime.Tactic == null || !_bulletTime.Tactic.AllowsCardEdit) return;
-            if (_bulletTime.Board == null) return;
-
-            _bulletTime.Board.Reorder(fromIndex, toIndex);
-            _bulletTime.Predictor?.Simulate(_bulletTime.Board.Slots);
-        }
-
-        private void OnExecuteClicked()
-        {
-            if (_pendingHandIndex >= 0) return;
-            _bulletTime.Exit();
-        }
-
-        private void CancelPendingTarget()
-        {
-            if (_pendingHandIndex < 0) return;
+            if (_aimingIndex < 0) return;
 
             targetSelector?.Cancel();
-            _pendingHandIndex = -1;
-            _pendingSlotIndex = -1;
+            _aimingIndex = -1;
         }
 
         // ── 갱신 ─────────────────────────────────────────
 
         private void RefreshUI()
         {
-            bool editable = _bulletTime.Tactic != null && _bulletTime.Tactic.AllowsCardEdit && _pendingHandIndex < 0;
-
-            _hintText.text = _pendingHandIndex >= 0 ? "조준: 좌클릭 확정 / 우클릭 취소" : string.Empty;
-
-            ComboSlotBoard board = _bulletTime.Board;
+            Hand hand = _bulletTime.Hand;
             ComboPredictor predictor = _bulletTime.Predictor;
-            bool hasAnyCard = false;
+            bool editable = _bulletTime.AllowsCardEdit;
 
-            for (int i = 0; i < _slotCount; i++)
+            if (editable)
             {
-                SlotWidgets w = _slotWidgets[i];
-                ComboSlot slot = board.Get(i);
+                _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
+                _hintText.text = _aimingIndex >= 0
+                    ? "조준: 좌클릭 확정 / 우클릭 취소"
+                    : "카드 드래그로 순서 교환 · 클릭으로 조준 · E 또는 Space로 실행";
+            }
+            else
+            {
+                _titleText.text = $"손패  <color=#808080>덱 {_bulletTime.Deck.Count} · 버린 더미 {_bulletTime.Discard.Count}</color>";
+                _hintText.text = "U — 맨 왼쪽 카드 사용 / E — 불릿타임";
+            }
+
+            for (int i = 0; i < Hand.Size; i++)
+            {
+                CardWidgets w = _cards[i];
+                ComboSlot slot = hand.Get(i);
 
                 if (slot.IsEmpty)
                 {
-                    w.label.text = string.Empty;
-                    w.predictedLabel.text = string.Empty;
-                    w.background.color = EmptySlotColor;
+                    w.root.SetActive(false);
                     continue;
                 }
 
-                hasAnyCard = true;
-                w.label.text = slot.Data.skillName;
+                w.root.SetActive(true);
 
-                bool chained = predictor != null && predictor.IsChained(board.Slots, i);
-                w.predictedLabel.text = predictor != null && i < predictor.Predicted.Count
-                    ? predictor.Predicted[i].ToString()
-                    : "?";
-                w.background.color = chained ? ChainedSlotColor : SlotColor;
+                SkillData data = slot.Data;
+                if (data == null)
+                {
+                    // SkillData가 안 꽂힌 카드. 발동은 못 하지만 손패에는 자리를 차지하므로 그대로 보여 준다.
+                    w.art.enabled = false;
+                    w.nameLabel.enabled = true;
+                    w.subLabel.enabled = true;
+                    w.nameLabel.text = "(빈 카드)";
+                    w.subLabel.text = "SkillData 미지정";
+                    w.statusLabel.text = string.Empty;
+                    w.background.color = EmptyCardColor;
+                    w.group.alpha = 1f;
+                    w.group.blocksRaycasts = true;
+                    continue;
+                }
+
+                // 카드 아트에 이름 · 코스트 · 설명이 이미 그려져 있으므로 텍스트를 겹치지 않는다.
+                bool hasArt = data.icon != null;
+                w.art.enabled = hasArt;
+                w.nameLabel.enabled = !hasArt;
+                w.subLabel.enabled = !hasArt;
+
+                if (hasArt)
+                {
+                    w.art.sprite = data.icon;
+                }
+                else
+                {
+                    w.nameLabel.text = data.skillName;
+                    w.subLabel.text = $"{data.role} · {data.attackType}";
+                }
+
+                bool aiming = i == _aimingIndex;
+                bool chained = editable && predictor != null && predictor.IsChained(hand.Slots, i);
+
+                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, editable, predictor);
+
+                w.background.color = aiming ? AimingCardColor
+                                   : chained ? ChainedCardColor
+                                   : i == 0 ? NextCardColor
+                                   : CardColor;
+
+                // 조준 대기 중에는 다른 카드를 흐리게 해서 초점을 남긴다.
+                bool dim = _aimingIndex >= 0 && !aiming;
+                w.group.alpha = dim ? 0.45f : 1f;
+                w.group.blocksRaycasts = !dim;
             }
+        }
 
-            _executeButton.interactable = editable && hasAnyCard;
+        /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 예측 상태를 합친다.</summary>
+        private static string BuildStatus(int index, in ComboSlot slot, SkillData data,
+            bool aiming, bool editable, ComboPredictor predictor)
+        {
+            if (aiming) return "조준 중";
 
-            int handCount = _bulletTime.Hand.Count;
-            for (int i = 0; i < Hand.Size; i++)
-            {
-                HandCardWidgets w = _handWidgets[i];
-                bool has = i < handCount;
-                w.root.SetActive(has);
-                if (!has) continue;
+            string head = index == 0 && !editable ? "U" : $"{index + 1}";
+            if (slot.aimed) head += " ◉";
 
-                ComboCard card = _bulletTime.Hand.Get(i);
-                w.label.text = card != null && card.Data != null
-                    ? $"{card.Data.skillName}\n{card.Data.role}"
-                    : "?";
+            if (editable && predictor != null && index < predictor.Predicted.Count)
+                return $"{head}  → {predictor.Predicted[index]}";
 
-                w.group.interactable = editable;
-                w.group.alpha = editable ? 1f : 0.4f;
-            }
+            // 실시간에는 예측 대신 조준 방식을 알려 준다.
+            return data.targeting == TargetingType.None ? head : $"{head}  {data.targeting}";
         }
     }
 }

@@ -1,20 +1,13 @@
 using System.Text;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Prototype
 {
     /// <summary>
-    /// UI 가 붙기 전까지 쓰는 임시 조작기 + 화면 표시.
-    /// OnGUI 로만 그리므로 프리팹이나 캔버스가 필요 없다.
+    /// 개발용 정보 패널 + 조준 마커. OnGUI로만 그리므로 프리팹이나 캔버스가 필요 없다.
     ///
-    /// 불릿타임 중 흐름:
-    ///   A / D       → 손패 커서 좌우 이동
-    ///   J           → 커서 위 카드 결정 → 빈 슬롯에 배치
-    ///                 (조준이 필요한 스킬이면 J를 한 번 더 눌러 확정)
-    ///   마우스       → 조준 좌표 지정. 좌클릭도 확정, 우클릭은 취소
-    ///   Backspace   → 마지막 슬롯 회수
-    ///   Space       → 실행
+    /// 손패 조작은 <see cref="ComboBoardUI"/>가 전담한다. 여기서는 입력을 받지 않고
+    /// 덱 · 손패 · 파티 · 적 상태를 읽어서 보여 주기만 한다.
     /// </summary>
     [RequireComponent(typeof(BulletTimeController))]
     public class DebugComboHUD : MonoBehaviour
@@ -24,14 +17,7 @@ namespace Prototype
         [SerializeField] private Player player;
         [SerializeField] private bool show = true;
 
-        /// <summary>true면 손패/슬롯 입력(커서·확정·회수)만 건너뛴다. 정보 패널(조작법·게이지·파티 등)은 계속 그려진다.
-        /// 다른 카드 배치 UI(ComboBoardUI 등)가 같은 손패/슬롯을 조작할 때 입력이 겹치지 않게 하는 용도.</summary>
-        public bool SuppressCardInput;
-
-        private int pickedHandIndex = -1;
-        private int handCursor;
         private GUIStyle box;
-        private GUIStyle label;
         private readonly StringBuilder sb = new StringBuilder();
 
         private void Awake()
@@ -39,28 +25,6 @@ namespace Prototype
             if (bulletTime == null) bulletTime = GetComponent<BulletTimeController>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
             if (player == null) player = FindAnyObjectByType<Player>();
-        }
-
-        private void Update()
-        {
-            // Order 페이즈에서만 손패를 만진다. Freeze · Resolve 중 입력은 버린다.
-            if (bulletTime.Tactic == null || !bulletTime.Tactic.AllowsCardEdit)
-            {
-                pickedHandIndex = -1;
-                handCursor = 0;
-                return;
-            }
-
-            if (SuppressCardInput)
-            {
-                pickedHandIndex = -1;
-                handCursor = 0;
-                return;
-            }
-
-            HandleCursor();
-            HandleConfirm();
-            HandleRecall();
         }
 
         private static string PhaseTag(TacticPhase p)
@@ -71,100 +35,6 @@ namespace Prototype
                 case TacticPhase.Order: return "<color=#00E5FF>Order</color>";
                 case TacticPhase.Resolve: return "<color=#8AFF80>Resolve</color>";
                 default: return "RealTime";
-            }
-        }
-
-        private PlayerControl Input => player != null ? player.GetComponent<PlayerControl>() : null;
-
-        /// <summary>A / D — 손패 커서 이동. 카드를 집은 뒤에는 조준 중이므로 움직이지 않는다.</summary>
-        private void HandleCursor()
-        {
-            int count = bulletTime.Hand.Count;
-            if (count == 0) { handCursor = 0; return; }
-
-            handCursor = Mathf.Clamp(handCursor, 0, count - 1);
-
-            PlayerControl pc = Input;
-            if (pc == null || pickedHandIndex >= 0) return;
-
-            int delta = pc.HandCursorDelta;
-            if (delta == 0) return;
-
-            // 양끝에서 반대편으로 감는다. 손패가 짧아 왕복이 잦다.
-            handCursor = (handCursor + delta + count) % count;
-        }
-
-        /// <summary>J — 결정. 집기 → (조준) → 배치 순으로 한 키가 이어진다.</summary>
-        private void HandleConfirm()
-        {
-            PlayerControl pc = Input;
-            bool confirm = pc != null && pc.ConfirmPressed;
-
-            // 우클릭 취소는 조준 중에만 의미가 있다.
-            if (pickedHandIndex >= 0 && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
-            {
-                targetSelector?.Cancel();
-                pickedHandIndex = -1;
-                return;
-            }
-
-            bool click = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
-
-            if (pickedHandIndex < 0)
-            {
-                if (!confirm) return;
-                PickAtCursor();
-                return;
-            }
-
-            if (confirm || click)
-                PlacePicked();
-        }
-
-        /// <summary>커서 위 카드를 집는다. 조준이 필요 없으면 곧바로 배치한다.</summary>
-        private void PickAtCursor()
-        {
-            ComboCard card = bulletTime.Hand.Get(handCursor);
-            if (card == null || card.Data == null) return;
-
-            pickedHandIndex = handCursor;
-            targetSelector?.Begin(card.Data);
-
-            if (card.Data.targeting == TargetingType.None)
-                PlacePicked();
-        }
-
-        private void PlacePicked()
-        {
-            if (pickedHandIndex < 0) return;
-
-            int slot = bulletTime.Board != null ? bulletTime.Board.FirstEmptyIndex() : -1;
-            if (slot < 0)
-            {
-                BattleLog.Warn(LogCategory.Combo, "슬롯이 가득 찼다. Backspace로 회수할 것.", this);
-                targetSelector?.Cancel();
-                pickedHandIndex = -1;
-                return;
-            }
-
-            TargetInfo info = targetSelector != null ? targetSelector.Confirm() : TargetInfo.None;
-            bulletTime.PlaceFromHand(pickedHandIndex, slot, in info);
-            pickedHandIndex = -1;
-
-            // 배치하면 손패가 한 장 줄어든다. 커서가 범위를 벗어나지 않게 당긴다.
-            handCursor = Mathf.Clamp(handCursor, 0, Mathf.Max(0, bulletTime.Hand.Count - 1));
-        }
-
-        private void HandleRecall()
-        {
-            if (Keyboard.current == null || !Keyboard.current.backspaceKey.wasPressedThisFrame) return;
-            if (bulletTime.Board == null) return;
-
-            for (int i = bulletTime.Board.SlotCount - 1; i >= 0; i--)
-            {
-                if (bulletTime.Board.Get(i).IsEmpty) continue;
-                bulletTime.RecallToHand(i);
-                return;
             }
         }
 
@@ -252,7 +122,6 @@ namespace Prototype
                 padding = new RectOffset(10, 10, 10, 10),
                 wordWrap = false,
             };
-            label = new GUIStyle(GUI.skin.label) { richText = true };
         }
 
         private string BuildText()
@@ -260,8 +129,10 @@ namespace Prototype
             sb.Clear();
 
             sb.AppendLine("<b>── 조작 ──</b>");
-            sb.AppendLine("실시간: WASD 이동 / J 평타 / K 점프 / Shift 대쉬 / YUIOP 동료 고유기 / E 불릿타임");
-            sb.AppendLine("불릿타임: A D 손패 커서 / J 결정 / WASD 조준 / J 조준확정 / 우클릭 취소 / Backspace 회수 / Space 실행");
+            sb.AppendLine("실시간: WASD 이동 / J 평타 / K 점프 / Shift 대쉬 / ZXCV 동료 고유기");
+            sb.AppendLine("        <color=#FFD166>U 손패 맨 왼쪽 카드 사용</color> / E 불릿타임");
+            sb.AppendLine("불릿타임: 카드 드래그 순서 교환 / 카드 클릭 조준 / WASD·마우스 조준 / 우클릭 취소");
+            sb.AppendLine("        <color=#FFD166>E 또는 Space</color> 해제 → 왼쪽부터 순서대로 발동");
             sb.AppendLine();
 
             float g = bulletTime.Gauge != null ? bulletTime.Gauge.Ratio : 0f;
@@ -272,7 +143,6 @@ namespace Prototype
             sb.AppendLine();
 
             AppendHand();
-            AppendSlots();
             AppendTargeting();
             AppendParty();
             AppendEnemies();
@@ -282,57 +152,45 @@ namespace Prototype
 
         private void AppendHand()
         {
-            sb.AppendLine("<b>── 손패 ──</b>  <color=#808080>A D 이동 · J 결정</color>");
+            sb.AppendLine("<b>── 손패 ──</b>  <color=#808080>왼쪽이 다음에 나갈 카드</color>");
 
-            if (bulletTime.Hand.Count == 0)
+            Hand hand = bulletTime.Hand;
+            if (hand.Count == 0)
             {
-                sb.AppendLine("  (비어 있음 — E로 불릿타임 진입)");
+                sb.AppendLine("  <color=#FF6B6B>(비어 있음 — 덱과 Discard를 확인할 것)</color>");
                 sb.AppendLine();
                 return;
             }
 
-            for (int i = 0; i < bulletTime.Hand.Count; i++)
-            {
-                ComboCard c = bulletTime.Hand.Get(i);
-                string n = c?.Data != null ? c.Data.skillName : "?";
-                string role = c?.Data != null ? c.Data.role.ToString() : "-";
-                string type = c?.Data != null ? c.Data.attackType.ToString() : "-";
-
-                bool onCursor = i == handCursor;
-                bool aiming = i == pickedHandIndex;
-
-                string cursor = onCursor ? "<color=#00E5FF>▶</color>" : " ";
-                string line = $"{n}  <color=#808080>({role} · {type})</color>";
-                if (onCursor) line = $"<b>{line}</b>";
-                if (aiming) line += " <color=#FFD166>← 조준 중</color>";
-
-                sb.AppendLine($"  {cursor} {line}");
-            }
-
-            sb.AppendLine();
-        }
-
-        private void AppendSlots()
-        {
-            if (bulletTime.Board == null) return;
-
-            sb.AppendLine("<b>── 콤보 슬롯 ──</b>");
             var predicted = bulletTime.Predictor != null ? bulletTime.Predictor.Predicted : null;
+            bool editing = bulletTime.AllowsCardEdit;
 
-            for (int i = 0; i < bulletTime.Board.SlotCount; i++)
+            for (int i = 0; i < hand.Count; i++)
             {
-                ComboSlot s = bulletTime.Board.Get(i);
-                if (s.IsEmpty)
+                ComboSlot s = hand.Get(i);
+                SkillData d = s.Data;
+
+                string head = i == 0 ? "<color=#00E5FF>U ▶</color>" : $"{i + 1}. ";
+
+                if (d == null)
                 {
-                    sb.AppendLine($"  {i}: <color=#606060>비어 있음</color>");
+                    sb.AppendLine($"  {head} <color=#FF6B6B>(빈 카드 — SkillData 미지정)</color>");
                     continue;
                 }
 
-                string pred = predicted != null && i < predicted.Count ? predicted[i].ToString() : "?";
-                bool chained = bulletTime.Predictor != null && bulletTime.Predictor.IsChained(bulletTime.Board.Slots, i);
-                string tag = chained ? "<color=#8AFF80>강화</color>" : "<color=#808080>기본</color>";
+                string line = $"{d.skillName}  <color=#808080>({d.role} · {d.attackType})</color>";
 
-                sb.AppendLine($"  {i}: {s.Data.skillName} → <b>{pred}</b> [{tag}]  <color=#808080>{BattleLog.Name(s.caster)}</color>");
+                if (s.aimed)
+                    line += " <color=#FFD166>◉조준됨</color>";
+
+                if (editing && predicted != null && i < predicted.Count)
+                {
+                    bool chained = bulletTime.Predictor.IsChained(hand.Slots, i);
+                    string tag = chained ? "<color=#8AFF80>강화</color>" : "<color=#808080>기본</color>";
+                    line += $"  → <b>{predicted[i]}</b> [{tag}]";
+                }
+
+                sb.AppendLine($"  {head} {line}");
             }
 
             sb.AppendLine();
@@ -342,7 +200,7 @@ namespace Prototype
         {
             if (targetSelector == null || !targetSelector.IsSelecting) return;
 
-            sb.AppendLine("<b>── 조준 중 ──</b>  <color=#808080>WASD 이동 · J 확정 · 우클릭 취소</color>");
+            sb.AppendLine("<b>── 조준 중 ──</b>  <color=#808080>WASD·마우스 이동 · 좌클릭 확정 · 우클릭 취소</color>");
             sb.AppendLine($"  {targetSelector.Current.skillName} / {targetSelector.Current.targeting}");
             sb.AppendLine($"  좌표 {targetSelector.CursorPoint:F1}  반경 내 적 {targetSelector.EnemiesInRange}마리");
 
@@ -360,7 +218,7 @@ namespace Prototype
         {
             if (player == null) return;
 
-            sb.AppendLine("<b>── 파티 ──</b>");
+            sb.AppendLine("<b>── 파티 ──</b>  <color=#808080>Z X C V 고유기</color>");
             sb.AppendLine($"  {player.name}  HP {player.Combat.Health.CurValue:0}/{player.Combat.Health.MaxValue:0}  {player.Combat.CombatState}");
 
             for (int i = 0; i < player.Party.Length; i++)

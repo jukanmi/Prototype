@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Prototype
 {
-    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 구간.</summary>
+    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · U키 단발 사용 구간.</summary>
     public class RealTimeState : TacticState
     {
         public RealTimeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
@@ -12,6 +12,9 @@ namespace Prototype
         public override void Enter()
         {
             Ctx.ResumeTime();
+
+            // 실행이 끝난 직후일 수 있다. 손패가 비어 있으면 여기서 마저 채운다.
+            Ctx.RefillHand();
         }
 
         public override bool OnBulletTimeKey()
@@ -28,7 +31,8 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 시간 정지 · 덱 셔플 · 드로우. 연출용 구간이라 입력을 받지 않는다.
+    /// 시간 정지. 연출용 구간이라 입력을 받지 않는다.
+    /// 손패는 이미 채워져 있으므로 여기서 드로우하지 않는다.
     /// 길이가 0이면 다음 프레임에 곧바로 Order로 넘어간다.
     /// </summary>
     public class FreezeState : TacticState
@@ -45,7 +49,7 @@ namespace Prototype
 
             Ctx.PayEntryCost();
             Ctx.FreezeTime();
-            Ctx.DrawHand();
+            Ctx.PredictHand();
             Ctx.RaiseEnter();
         }
 
@@ -57,7 +61,7 @@ namespace Prototype
         }
     }
 
-    /// <summary>손패 조작 구간. 유저가 실제로 머무는 곳.</summary>
+    /// <summary>손패 조작 구간. 순서 변경 · 조준. 유저가 실제로 머무는 곳.</summary>
     public class OrderState : TacticState
     {
         public OrderState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
@@ -66,7 +70,7 @@ namespace Prototype
 
         public override bool AllowsCardEdit => true;
 
-        // E와 Space 모두 실행. 기존 조작(E 토글 / Space 실행)을 그대로 유지한다.
+        // E와 Space 모두 해제 · 실행. E 토글 조작을 그대로 유지한다.
         public override bool OnBulletTimeKey() => GoResolve();
         public override bool OnExecuteKey() => GoResolve();
 
@@ -78,7 +82,7 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 조립한 큐를 실행한다. 시간이 다시 흐르고, 카드 편집 입력은 전부 막힌다.
+    /// 손패를 왼쪽부터 순서대로 발동한다. 시간이 다시 흐르고 카드 조작 입력은 전부 막힌다.
     /// 실행이 끝나야 RealTime으로 돌아간다 — 그 전엔 재진입 불가.
     /// </summary>
     public class ResolveState : TacticState
@@ -94,11 +98,13 @@ namespace Prototype
             Ctx.ConsumeGauge();
             Ctx.StartCooldown();
 
-            Queue<ComboSlot> queue = Ctx.CollectQueue();
+            Queue<ComboSlot> queue = Ctx.BuildQueueFromHand();
             Ctx.RaiseExit();
 
             if (queue != null && queue.Count > 0)
                 Ctx.Executor?.Execute(queue);
+            else
+                Ctx.RefillHand();   // 실행할 게 없으면 Executor가 안 돌아 보충 신호도 안 온다
         }
 
         public override void Tick(float dt)

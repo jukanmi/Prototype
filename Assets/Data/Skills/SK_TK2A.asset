@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SK_TK2A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC0AC\uC2AC \uACAC\uC778"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 3aa7140f3eff4ccb8c6b3464b1f46080, type: 3}
   description: "TK2A \u2014 \uC138\uD2B8 E \u2014 \uCC0D\uC740 \uC9C0\uC810\uC73C\uB85C
     \uD154\uD3EC \uD6C4 \uC8FC\uBCC0 \uD761\uC785"
   role: 0

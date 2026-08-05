@@ -2157,15 +2157,15 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: b9ea90343eccd4a46b279fb63d28b58e, type: 2}
+      objectReference: {fileID: 11400000, guid: 6415b9b5a1c32ba4eae24b40376bc2dc, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: 1a2bace62a92c584ba0f31c1fa519ffe, type: 2}
+      objectReference: {fileID: 11400000, guid: 226b683b42e44e449863feea73376cf3, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: 28d4cfef8ddd1b0459ef419b31e94195, type: 2}
+      objectReference: {fileID: 11400000, guid: fedc606f064276b4cbeaa8761ea43011, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -2774,7 +2774,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1026486063}
   - component: {fileID: 1026486062}
-  - component: {fileID: 1026486061}
   - component: {fileID: 1026486060}
   - component: {fileID: 1026486059}
   - component: {fileID: 1026486058}
@@ -2831,19 +2830,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 137b1c003874b7a48b8115425ef36405, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboPredictor
---- !u!114 &1026486061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1026486057}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d35f83d2b5c53a54ca5756ca0d32550f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboSlotBoard
-  slotCount: 4
 --- !u!114 &1026486062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2857,7 +2843,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BulletTimeController
   player: {fileID: 2022376785}
-  board: {fileID: 0}
   executor: {fileID: 0}
   predictor: {fileID: 0}
   targetSelector: {fileID: 0}
@@ -2866,7 +2851,6 @@ MonoBehaviour:
   requiredRatio: 1
   manaCost: 0
   cooldown: 0
-  drawCount: 5
   buildDeckOnStart: 1
   freezeDuration: 0
 --- !u!4 &1026486063
@@ -4185,19 +4169,19 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].data
       value: 
-      objectReference: {fileID: 11400000, guid: 171d2e45bf5b57941825836e6e352491, type: 2}
+      objectReference: {fileID: 11400000, guid: bb9298474df187d41aaaab68f9d30ef1, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: fdca8d483a90533458d87385ccb16516, type: 2}
+      objectReference: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: c253a443a6f1e2349be297aec655f61e, type: 2}
+      objectReference: {fileID: 11400000, guid: c454e5b693081074a951013e0fbbb4e8, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: 521d5a12ef7cbae4895dfa57e0382453, type: 2}
+      objectReference: {fileID: 11400000, guid: 979956968c484fc4fb04fe49d3b6f3a4, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -4507,15 +4491,15 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: 783dbe8fd6d7c6a4bb116bfeead7a535, type: 2}
+      objectReference: {fileID: 11400000, guid: bbb4fa807ed37584884356d2f2d0b0bd, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: d34241e958218f6489d10119ba20b935, type: 2}
+      objectReference: {fileID: 11400000, guid: fca1c060857dab341bd3f3e32c4a69a5, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: 655a884c04f83454d95a0d3772720364, type: 2}
+      objectReference: {fileID: 11400000, guid: b5bdb8717f10aa843960b62ef90ab697, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -5703,15 +5687,15 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: 09aa6602d8336d44b92daa52a58ece48, type: 2}
+      objectReference: {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: 52e5273fbcb7cd44fb1a2ff2bff33025, type: 2}
+      objectReference: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: a056e9315e84e2442991f539f3722c61, type: 2}
+      objectReference: {fileID: 11400000, guid: ec4ee9dda8379094b802f6ffde208562, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1

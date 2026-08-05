@@ -10,7 +10,8 @@ namespace Prototype
     public class ComboCard
     {
         [SerializeField] private SkillData data;
-        [Tooltip("드로우 가중치. 시동기가 안 나오는 패 꼬임을 막는 인챈트(선발투수 기믹).")]
+        [Tooltip("드로우 가중치. 시동기가 안 나오는 패 꼬임을 막는 인챈트(선발투수 기믹).\n" +
+                 "현재 미사용 — 드로우가 덱 맨 위에서 순서대로 가져가므로 셔플 단계에 편향을 주는 식으로 되살려야 한다.")]
         [SerializeField] private float drawWeight = 1f;
 
         public SkillData Data => data;

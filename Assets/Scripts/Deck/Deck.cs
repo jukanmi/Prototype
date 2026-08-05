@@ -6,6 +6,7 @@ namespace Prototype
 {
     /// <summary>
     /// 16장 덱. 직업별 6종 중 4장씩 골라 4직업 = 16장.
+    /// <b>맨 위에서 순서대로</b> 뽑는다 — 그래서 <see cref="Shuffle"/>이 실제 순서를 정한다.
     /// 덱이 비면 Discard를 회수해 재셔플한다.
     /// </summary>
     [Serializable]
@@ -46,8 +47,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// n장 드로우. 드로우 가중치가 높은 카드(시동기)가 먼저 뽑히도록 보정한다.
-        /// 덱이 모자라면 Discard를 회수해 채운다.
+        /// 맨 위에서 n장 뽑는다. 덱이 모자라면 Discard를 회수해 섞은 뒤 계속 채운다.
         /// </summary>
         public List<ComboCard> Draw(int n, Discard discard = null)
         {
@@ -62,9 +62,8 @@ namespace Prototype
                     if (cards.Count == 0) break;
                 }
 
-                int index = PickWeightedIndex();
-                drawn.Add(cards[index]);
-                cards.RemoveAt(index);
+                drawn.Add(cards[0]);
+                cards.RemoveAt(0);
             }
 
             BattleLog.Log(LogCategory.Deck,
@@ -91,76 +90,120 @@ namespace Prototype
         public void Replace(IEnumerable<ComboCard> newCards)
         {
             cards.Clear();
-            cards.AddRange(newCards);
+            if (newCards != null) cards.AddRange(newCards);
             OnChanged?.Invoke();
         }
 
-        private int PickWeightedIndex()
+        public void Clear()
         {
-            float total = 0f;
-            for (int i = 0; i < cards.Count; i++)
-                total += cards[i].DrawWeight;
-
-            float roll = UnityEngine.Random.Range(0f, total);
-            for (int i = 0; i < cards.Count; i++)
-            {
-                roll -= cards[i].DrawWeight;
-                if (roll <= 0f) return i;
-            }
-
-            return cards.Count - 1;
+            cards.Clear();
+            OnChanged?.Invoke();
         }
     }
 
-    /// <summary>손패 5장. ASDFG 단축키에 순서대로 매핑된다.</summary>
+    /// <summary>
+    /// 손패 4장. <b>큐처럼</b> 굴러간다 — 왼쪽(0번)이 다음에 나갈 카드이고,
+    /// 한 장이 빠지면 나머지가 왼쪽으로 당겨지고 오른쪽 끝이 덱에서 채워진다.
+    ///
+    /// 카드만이 아니라 조준값까지 함께 들고 있으므로(<see cref="ComboSlot"/>)
+    /// 손패 자체가 곧 콤보 실행 순서다. 별도 슬롯 보드가 필요 없다.
+    /// </summary>
     [Serializable]
     public class Hand
     {
-        public const int Size = 5;
+        public const int Size = 4;
 
-        [SerializeField] private List<ComboCard> cards = new List<ComboCard>();
+        [SerializeField] private List<ComboSlot> slots = new List<ComboSlot>();
 
-        public int Count => cards.Count;
-        public IReadOnlyList<ComboCard> Cards => cards;
+        public int Count => slots.Count;
+        public bool IsFull => slots.Count >= Size;
+
+        /// <summary>ComboPredictor가 그대로 받는다.</summary>
+        public IReadOnlyList<ComboSlot> Slots => slots;
 
         public event Action OnChanged;
 
-        public ComboCard Get(int idx)
-            => idx >= 0 && idx < cards.Count ? cards[idx] : null;
+        public ComboSlot Get(int idx)
+            => idx >= 0 && idx < slots.Count ? slots[idx] : default;
 
-        public void Fill(IEnumerable<ComboCard> drawn)
+        public ComboCard GetCard(int idx) => Get(idx).card;
+
+        public SkillData GetData(int idx) => Get(idx).Data;
+
+        /// <summary>
+        /// 덱에서 뽑아 <see cref="Size"/>까지 채운다.
+        /// 덱이 비어 있으면 <see cref="Deck.Draw"/>가 Discard를 회수해 섞는다.
+        /// </summary>
+        public int Refill(Deck deck, Discard discard)
         {
-            cards.AddRange(drawn);
-            if (cards.Count > Size)
-                cards.RemoveRange(Size, cards.Count - Size);
+            if (deck == null) return 0;
+
+            int need = Size - slots.Count;
+            if (need <= 0) return 0;
+
+            List<ComboCard> drawn = deck.Draw(need, discard);
+            for (int i = 0; i < drawn.Count; i++)
+                slots.Add(new ComboSlot { card = drawn[i] });
+
+            if (drawn.Count > 0) OnChanged?.Invoke();
+            return drawn.Count;
+        }
+
+        /// <summary>맨 왼쪽 카드를 꺼낸다. 나머지는 왼쪽으로 당겨진다.</summary>
+        public ComboSlot Dequeue()
+        {
+            if (slots.Count == 0) return default;
+
+            ComboSlot s = slots[0];
+            slots.RemoveAt(0);
+            OnChanged?.Invoke();
+            return s;
+        }
+
+        /// <summary>두 칸의 순서를 바꾼다. 조준값도 카드를 따라 같이 이동한다.</summary>
+        public bool Swap(int a, int b)
+        {
+            if (a < 0 || a >= slots.Count) return false;
+            if (b < 0 || b >= slots.Count || a == b) return false;
+
+            (slots[a], slots[b]) = (slots[b], slots[a]);
+
+            BattleLog.Log(LogCategory.Combo, $"손패 순서 변경 {a} ↔ {b}");
+
+            OnChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>유저가 확정한 조준값을 해당 칸에 박제한다.</summary>
+        public bool SetTarget(int idx, in TargetInfo target)
+        {
+            if (idx < 0 || idx >= slots.Count) return false;
+
+            ComboSlot s = slots[idx];
+            s.target = target;
+            s.aimed = true;
+            slots[idx] = s;
+
+            OnChanged?.Invoke();
+            return true;
+        }
+
+        public void ClearTarget(int idx)
+        {
+            if (idx < 0 || idx >= slots.Count) return;
+
+            ComboSlot s = slots[idx];
+            s.target = TargetInfo.None;
+            s.aimed = false;
+            slots[idx] = s;
 
             OnChanged?.Invoke();
         }
 
-        /// <summary>슬롯에 배치하며 손패에서 빼낸다.</summary>
-        public ComboCard Take(int idx)
+        public List<ComboSlot> TakeAll()
         {
-            ComboCard c = Get(idx);
-            if (c == null) return null;
-
-            cards.RemoveAt(idx);
-            OnChanged?.Invoke();
-            return c;
-        }
-
-        /// <summary>슬롯에서 회수한 카드를 손패로 되돌린다.</summary>
-        public void Return(ComboCard card)
-        {
-            if (card == null || cards.Count >= Size) return;
-
-            cards.Add(card);
-            OnChanged?.Invoke();
-        }
-
-        public List<ComboCard> TakeAll()
-        {
-            var all = new List<ComboCard>(cards);
-            cards.Clear();
+            var all = new List<ComboSlot>(slots);
+            slots.Clear();
             OnChanged?.Invoke();
             return all;
         }
@@ -187,7 +230,15 @@ namespace Prototype
 
         public void AddRange(IEnumerable<ComboCard> range)
         {
+            if (range == null) return;
+
             cards.AddRange(range);
+            OnChanged?.Invoke();
+        }
+
+        public void Clear()
+        {
+            cards.Clear();
             OnChanged?.Invoke();
         }
 

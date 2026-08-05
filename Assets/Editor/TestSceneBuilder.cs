@@ -539,7 +539,6 @@ namespace PrototypeEditor
             // ── 전투 매니저 ──
             var systemGo = new GameObject("BattleSystem");
             var bullet = systemGo.AddComponent<BulletTimeController>();
-            var board = systemGo.AddComponent<ComboSlotBoard>();
             var executor = systemGo.AddComponent<ComboExecutor>();
             var predictor = systemGo.AddComponent<ComboPredictor>();
             var selector = systemGo.AddComponent<TargetSelector>();
@@ -551,7 +550,6 @@ namespace PrototypeEditor
             SetSerialized(bullet, so =>
             {
                 so.FindProperty("player").objectReferenceValue = player.GetComponent<Player>();
-                so.FindProperty("board").objectReferenceValue = board;
                 so.FindProperty("executor").objectReferenceValue = executor;
                 so.FindProperty("predictor").objectReferenceValue = predictor;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;

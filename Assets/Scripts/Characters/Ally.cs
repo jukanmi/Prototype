@@ -104,6 +104,53 @@ namespace Prototype
             return true;
         }
 
+        // ── 콤보 카드 (실시간 U키 단발) ──────────────────
+
+        /// <summary>실시간 단발 카드를 받을 수 있는 상태인지. 카드 쿨타임은 덱이 관리하므로 보지 않는다.</summary>
+        public bool CanCastCard => !Combat.IsDead && !IsBusy && !IsCommanded;
+
+        /// <summary>
+        /// 손패 카드 한 장을 즉시 발동한다.
+        /// <see cref="ComboExecutor"/>를 거치지 않고 상태머신에 바로 밀어넣는다 —
+        /// 실시간 사용은 콤보 큐가 아니라 즉발이기 때문.
+        /// </summary>
+        public bool CastCard(SkillData data, in TargetInfo info)
+        {
+            if (data == null || !CanCastCard) return false;
+
+            Entity target = info.unit != null
+                ? info.unit
+                : (allyControl != null && allyControl.Target != null
+                    ? allyControl.Target
+                    : BattleRegistry.NearestEnemy(transform.position));
+
+            var ctx = new SkillContext
+            {
+                data = data,
+                caster = this,
+                target = target,
+                targetInfo = info,
+                isBulletTime = false,
+                comboIndex = -1,
+            };
+
+            IState state = data.CreateState(in ctx);
+            StateMachine.ForceChangeState(state);
+            return true;
+        }
+
+        /// <summary>유저 조준이 없을 때 쓰는 자동 조준. 가장 가까운 적을 기준으로 채운다.</summary>
+        public TargetInfo AutoTarget(SkillData data)
+        {
+            if (data == null) return TargetInfo.None;
+
+            Entity target = allyControl != null && allyControl.Target != null
+                ? allyControl.Target
+                : BattleRegistry.NearestEnemy(transform.position);
+
+            return AutoTarget(data, target);
+        }
+
         /// <summary>라이브 페이즈에서는 유저가 조준하지 않으므로 AI가 대신 채운다.</summary>
         private TargetInfo AutoTarget(SkillData data, Entity target)
         {

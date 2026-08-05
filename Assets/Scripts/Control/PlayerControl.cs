@@ -12,26 +12,22 @@ namespace Prototype
 
         private float dashTimer;
 
-        /// <summary>E — 불릿타임 진입 요청.</summary>
+        /// <summary>E — 불릿타임 진입 · 해제 요청.</summary>
         public bool BulletTimePressed { get; private set; }
         /// <summary>Spacebar — 콤보 실행 요청.</summary>
         public bool ExecutePressed { get; private set; }
-        /// <summary>Y U I O P — 동료 고유기(실시간 전투). 없으면 -1.</summary>
+        /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용(실시간 전투).</summary>
+        public bool CardUsePressed { get; private set; }
+        /// <summary>Z X C V — 동료 고유기(실시간 전투). 없으면 -1.</summary>
         public int SelfSkillPressed { get; private set; } = -1;
-
-        /// <summary>A / D — 손패 커서 좌우 이동(불릿타임 중). -1, 0, +1.</summary>
-        public int HandCursorDelta { get; private set; }
-        /// <summary>J — 손패 커서 위치의 카드를 결정(불릿타임 중).</summary>
-        public bool ConfirmPressed { get; private set; }
 
         public override void Tick(float dt)
         {
             Clear();
             BulletTimePressed = false;
             ExecutePressed = false;
+            CardUsePressed = false;
             SelfSkillPressed = -1;
-            HandCursorDelta = 0;
-            ConfirmPressed = false;
 
             if (dashTimer > 0f) dashTimer -= dt;
 
@@ -46,15 +42,11 @@ namespace Prototype
             // 지휘 입력은 시간 정지 중에도 받아야 하므로 상태와 무관하게 먼저 읽는다.
             BulletTimePressed = kb.eKey.wasPressedThisFrame;
             ExecutePressed = kb.spaceKey.wasPressedThisFrame;
+            CardUsePressed = kb.uKey.wasPressedThisFrame;
 
-            // 시간이 멈춰 있는 동안에는 같은 키가 손패 조작으로 바뀐다.
-            // A/D는 이동, J는 평타와 겹치므로 여기서 갈라 놓는다.
-            if (TimeControl.IsFrozen)
-            {
-                HandCursorDelta = (kb.dKey.wasPressedThisFrame ? 1 : 0) - (kb.aKey.wasPressedThisFrame ? 1 : 0);
-                ConfirmPressed = kb.jKey.wasPressedThisFrame;
-                return;
-            }
+            // 정지 중에는 이동 · 평타 입력을 받지 않는다.
+            // WASD는 TargetSelector가 조준용으로 직접 읽어 간다.
+            if (TimeControl.IsFrozen) return;
 
             if (Owner != null && Owner.IsBusy) return;
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState)) return;
@@ -92,15 +84,15 @@ namespace Prototype
 
         /// <summary>
         /// 실시간 전투 동료 고유기.
-        /// 기획서는 ASDF를 지정했지만 WASD 이동과 충돌하므로 YUIOP로 옮겼다.
+        /// 기획서는 ASDF를 지정했지만 WASD 이동과 충돌한다.
+        /// YUIOP를 쓰다가 U를 카드 사용에 내주면서 ZXCV로 옮겼다.
         /// </summary>
         private static int ReadSelfSkillKey(Keyboard kb)
         {
-            if (kb.yKey.wasPressedThisFrame) return 0;
-            if (kb.uKey.wasPressedThisFrame) return 1;
-            if (kb.iKey.wasPressedThisFrame) return 2;
-            if (kb.oKey.wasPressedThisFrame) return 3;
-            if (kb.pKey.wasPressedThisFrame) return 4;
+            if (kb.zKey.wasPressedThisFrame) return 0;
+            if (kb.xKey.wasPressedThisFrame) return 1;
+            if (kb.cKey.wasPressedThisFrame) return 2;
+            if (kb.vKey.wasPressedThisFrame) return 3;
             return -1;
         }
     }
