@@ -30,12 +30,23 @@ namespace Prototype
         public CombatState CombatState { get; private set; } = CombatState.Neutral;
         public Energy Health => health;
         public Physics Physics => physics;
-        public Entity Owner => owner;
+        public Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
         public int AirHitCount => airHitCount;
         public bool IsDead => CombatState == CombatState.Dead;
 
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
+
+        /// <summary>누가 누구를 때렸든 한 번씩. 시전자를 모르는 관전자(HUD 등)가 붙는다.</summary>
+        public static event Action<Combat, Combat> OnAnyHitLanded;
+
+        /// <summary>
+        /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
+        /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => OnAnyHitLanded = null;
+
         /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
         public event Action<HitData, CombatState> OnHitTaken;
         public event Action<CombatState, CombatState> OnCombatStateChanged;
@@ -104,7 +115,7 @@ namespace Prototype
             if (target == null || IsDead) return;
             if (ReferenceEquals(target, this)) return;
 
-            target.Hit(in hit, this);
+            if (!target.Hit(in hit, this)) return;
 
             if (lifestealRatio > 0f)
             {
@@ -117,24 +128,26 @@ namespace Prototype
                 $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
 
             OnHitLanded?.Invoke(this, hit);
+            if (target is Combat victim)
+                OnAnyHitLanded?.Invoke(this, victim);
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────
 
-        public void Hit(in HitData hit, Combat attacker)
+        public bool Hit(in HitData hit, Combat attacker)
         {
-            if (IsDead) return;
+            if (IsDead) return false;
 
             // 무적 판정 — 다운/기상은 OTG를 제외하면 통과하지 않는다.
             if (CombatStateRules.IsInvincible(CombatState, hit.canOtg))
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#808080>무적으로 흘림</color> ({CombatState}, OTG {hit.canOtg})", this);
-                return;
+                return false;
             }
 
             TakeDamage(hit.damageData);
-            if (IsDead) return;
+            if (IsDead) return true;
 
             // 슈퍼아머: 상태머신이 전이를 거부하면 경직 · 넉백을 적용하지 않는다.
             // 데미지는 이미 들어갔다(결정 로그 ③).
@@ -143,7 +156,7 @@ namespace Prototype
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#FFD166>슈퍼아머</color> — 경직·넉백 무시 (데미지만 적용)", this);
-                return;
+                return true;
             }
 
             ApplyKnockback(in hit, attacker);
@@ -168,6 +181,7 @@ namespace Prototype
                 $"{name} 피격 | {before} → <b>{next}</b> | HP {health.CurValue:0.#}/{health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s", this);
 
             OnHitTaken?.Invoke(hit, next);
+            return true;
         }
 
         public void TakeDamage(in DamageData damageData)

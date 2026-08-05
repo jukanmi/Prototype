@@ -435,6 +435,9 @@ namespace Prototype.EditorTools
             var hud = btc.GetComponent<DebugComboHUD>();
             if (hud == null) hud = Undo.AddComponent<DebugComboHUD>(btc.gameObject);
 
+            if (btc.GetComponent<RecentHitEnemyHUD>() == null)
+                Undo.AddComponent<RecentHitEnemyHUD>(btc.gameObject);
+
             var so = new SerializedObject(hud);
             so.FindProperty("bulletTime").objectReferenceValue = btc;
             so.FindProperty("targetSelector").objectReferenceValue = Object.FindAnyObjectByType<TargetSelector>();
