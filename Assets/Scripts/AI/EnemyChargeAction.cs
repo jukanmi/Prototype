@@ -182,7 +182,7 @@ namespace Prototype
         }
 
         private void HandleHit(Combat victim) => sequence.HitOrWall();
-        private void HandleWall(Vector3 normal) => sequence.HitOrWall();
+        private void HandleWall(Physics.WallHit wall) => sequence.HitOrWall();
 
         private void OnDisable()
         {

@@ -16,6 +16,19 @@ namespace Prototype
         [SerializeField] private float downDuration = 1.2f;
         [SerializeField] private float getupDuration = 0.4f;
 
+        [Header("벽 바운드")]
+        [Tooltip("반발 계수. 1이면 들어온 속도 그대로 튕긴다.")]
+        [SerializeField] private float wallRestitution = 1.5f;
+        [Tooltip("최소 반사 속력. 살살 닿아도 이만큼은 튕긴다.")]
+        [SerializeField] private float wallMinBounce = 10f;
+        [Tooltip("이 속도로 처박으면 띄우기가 최대가 된다.")]
+        [SerializeField] private float wallHardSpeed = 18f;
+        [Tooltip("벽에서 뜨는 높이 속도. 약하게 → 세게 박았을 때.")]
+        [SerializeField] private float wallMinLaunch = 3f;
+        [SerializeField] private float wallMaxLaunch = 15f;
+        [Tooltip("연속 재바운드 방지. 이 시간 안에는 다시 튕기지 않는다.")]
+        [SerializeField] private float wallBounceCooldown = 0.2f;
+
         private Physics physics;
         private Entity owner;
         private Energy health;
@@ -23,6 +36,7 @@ namespace Prototype
         private float hitStunDuration;
         private float stunTimer;
         private float shield;
+        private float wallBounceTimer;
 
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
@@ -79,6 +93,8 @@ namespace Prototype
         /// <summary>Entity가 스케일된 dt로 호출한다.</summary>
         public void Tick(float dt)
         {
+            if (wallBounceTimer > 0f) wallBounceTimer -= dt;
+
             if (stunTimer <= 0f) return;
 
             stunTimer -= dt;
@@ -258,17 +274,41 @@ namespace Prototype
             }
         }
 
-        private void HandleWallHit(Vector3 normal)
+        private void HandleWallHit(Physics.WallHit wall)
         {
+            // 벽 모서리에서 접촉이 연달아 들어오면 같은 자리에서 계속 튕긴다.
+            if (wallBounceTimer > 0f) return;
+
             CombatState next = CombatStateRules.OnWallContact(CombatState);
             if (next == CombatState) return;
 
-            BattleLog.Log(LogCategory.Physics, $"{name} 벽 접촉 | {CombatState} → <b>{next}</b>", this);
+            wallBounceTimer = wallBounceCooldown;
+
+            // 세게 처박을수록 크게 튕기고 높이 뜬다. 0~1로 정규화해 한 값으로 전부 몬다.
+            float force = Mathf.Clamp01(wall.speed / Mathf.Max(0.01f, wallHardSpeed));
 
             SetCombatState(next);
-            // 벽에서 튕겨 나오며 공중 체류 시간을 번다.
-            physics.AddImpulse(normal, 4f, resetInertia: true);
-            physics.AddLaunch(3f);
+            owner?.RequestHitReaction(next);
+
+            float back = physics.Reflect(wall.normal, wallRestitution, wallMinBounce);
+            physics.AddLaunch(Mathf.Lerp(wallMinLaunch, wallMaxLaunch, force));
+
+            EmitWallVfx(in wall, force);
+
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} <b>벽 바운드</b> | {CombatState} → <b>{next}</b> | " +
+                $"충돌 {wall.speed:0.#} → 반사 {back:0.#} (세기 {force * 100f:0}%)", this);
+        }
+
+        /// <summary>부딪힌 벽면에서 터뜨린다. 세게 박을수록 크게.</summary>
+        private void EmitWallVfx(in Physics.WallHit wall, float force)
+        {
+            Vector3 ground = wall.point;
+            float height = Mathf.Max(0f, ground.y - physics.GroundY);
+            ground.y = 0f;
+
+            // 방향은 벽 바깥쪽 — 파편이 벽에서 튀어나오는 것처럼 읽힌다.
+            BattleVfx.WallBounce(ground, height, wall.normal, Mathf.Lerp(0.5f, 1.3f, force));
         }
 
         /// <summary>기상 완료. 공중 콤보 카운트와 중력 보정을 여기서만 되돌린다(결정 로그 ⑦).</summary>

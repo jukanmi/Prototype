@@ -24,6 +24,9 @@ MonoBehaviour:
   castTime: 0.15
   hitInterval: 0.3
   recoveryTime: 0.2
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
   projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
   projectileSpeed: 16
   projectileRange: 11
@@ -65,7 +68,13 @@ MonoBehaviour:
   effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: 68aa0b7404eb3dc4696975b9ac4e889f, type: 2}
+  animation: {fileID: 7400000, guid: 496bdfb9f71f2174aa0ef4152a90a5de, type: 2}
+  vfx:
+    custom: 1
+    swing: {r: 0, g: 0.98, b: 1, a: 0.9}
+    impact: {r: 0.7987421, g: 0.59335136, b: 0, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
   references:
     version: 2
     RefIds: []

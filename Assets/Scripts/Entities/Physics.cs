@@ -72,10 +72,42 @@ namespace Prototype
         public float VerticalVelocity => verticalVelocity;
         public Vector3 Facing { get; private set; } = Vector3.right;
 
+        /// <summary>
+        /// 벽에 닿은 순간의 정보. 법선만으로는 "살짝 밀려 닿았다"와 "전속력으로 처박았다"를
+        /// 구분할 수 없어 바운드가 항상 같은 세기로 나왔다. 파고든 속도를 같이 넘긴다.
+        /// </summary>
+        public readonly struct WallHit
+        {
+            /// <summary>벽에서 바깥으로 나오는 방향(수평 성분만).</summary>
+            public readonly Vector3 normal;
+            /// <summary>접촉 지점. 연출을 벽면에 붙이는 데 쓴다.</summary>
+            public readonly Vector3 point;
+            /// <summary>벽으로 파고들던 속도. 0이면 스쳤을 뿐이다.</summary>
+            public readonly float speed;
+
+            public WallHit(Vector3 normal, Vector3 point, float speed)
+            {
+                this.normal = normal;
+                this.point = point;
+                this.speed = speed;
+            }
+        }
+
         /// <summary>착지 순간. Combat이 구독해 공중피격 → 다운 전이를 처리한다.</summary>
         public event Action OnLand;
         /// <summary>벽 접촉. 넉백 중이면 벽 바운드로 이어진다.</summary>
-        public event Action<Vector3> OnWallHit;
+        public event Action<WallHit> OnWallHit;
+
+        /// <summary>합산 수평 속도. 벽 반사와 디버그가 읽는다.</summary>
+        public Vector3 HorizontalVelocity
+        {
+            get
+            {
+                Vector3 v = internalVelocity + impulseVelocity + continuousVelocity;
+                v.y = 0f;
+                return v;
+            }
+        }
 
         private void Awake()
         {
@@ -265,7 +297,50 @@ namespace Prototype
             if ((wallMask.value & (1 << collision.gameObject.layer)) == 0)
                 return;
 
-            OnWallHit?.Invoke(collision.GetContact(0).normal);
+            ContactPoint c = collision.GetContact(0);
+
+            Vector3 normal = c.normal;
+            normal.y = 0f;
+            if (normal.sqrMagnitude <= 0.0001f) return;
+            normal.Normalize();
+
+            // Rigidbody 속도는 솔버가 이미 지웠다. 우리가 들고 있는 값이 충돌 직전 속도다.
+            float into = Mathf.Max(0f, Vector3.Dot(HorizontalVelocity, -normal));
+
+            OnWallHit?.Invoke(new WallHit(normal, c.point, into));
+        }
+
+        /// <summary>
+        /// 벽 반사. 파고들던 성분을 뒤집고 <paramref name="restitution"/>만큼 남긴다.
+        /// 벽을 따라 흐르던 성분은 그대로 둔다 — 비스듬히 박으면 비스듬히 튄다.
+        /// </summary>
+        /// <returns>튕겨 나가는 속력. 호출부가 연출·띄우기 세기를 여기 맞춘다.</returns>
+        public float Reflect(Vector3 normal, float restitution, float minSpeed = 0f)
+        {
+            normal.y = 0f;
+            if (normal.sqrMagnitude <= 0.0001f) return 0f;
+            normal.Normalize();
+
+            Vector3 bounced = Vector3.Reflect(HorizontalVelocity, normal) * Mathf.Max(0f, restitution);
+            bounced.y = 0f;
+
+            // 반사 후에도 벽 안쪽을 향하는 성분이 남으면 그 자리에서 다시 충돌한다. 잘라낸다.
+            float into = Vector3.Dot(bounced, normal);
+            if (into < 0f) bounced -= normal * into;
+
+            // 살짝 닿았어도 최소한은 튕겨야 벽에 붙어 비비는 그림이 안 나온다.
+            if (bounced.magnitude < minSpeed) bounced = normal * minSpeed;
+
+            internalVelocity = Vector3.zero;
+            continuousVelocity = Vector3.zero;
+            desiredMoveDir = Vector3.zero;
+            hasMoveInput = false;
+            impulseVelocity = bounced;
+
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} 벽 반사 normal={normal} → v={bounced.magnitude:0.#} (반발 {restitution:0.##})", this);
+
+            return bounced.magnitude;
         }
 
         /// <summary>

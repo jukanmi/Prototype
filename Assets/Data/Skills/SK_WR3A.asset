@@ -48,6 +48,15 @@ MonoBehaviour:
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
+  vfx:
+    custom: 0
+    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 0.10569749, g: 0.047169685, b: 1, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    swingClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds: []
