@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: SK_TK04
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uC0AC\uC2AC \uAC10\uC544\uCE58\uAE30"
+  icon: {fileID: 0}
+  description: "TK04 \u2014 \uB2E4\uB2E8 3\uD788\uD2B8"
+  role: 0
+  attackType: 2
+  requireState: 0
+  resultState: 2
+  targeting: 3
+  radius: 3
+  castTime: 0.15
+  hitInterval: 0.3
+  recoveryTime: 0.2
+  hitDataList:
+  - damageData:
+      damage: 6
+    targetState: 0
+    nextState: 2
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.25
+    snapZ: 0
+  - damageData:
+      damage: 6
+    targetState: 0
+    nextState: 2
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.25
+    snapZ: 0
+  - damageData:
+      damage: 6
+    targetState: 0
+    nextState: 2
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 2
+    launchForce: 0
+    hitStunDuration: 0.25
+    snapZ: 0
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

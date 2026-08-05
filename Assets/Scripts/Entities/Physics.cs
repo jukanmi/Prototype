@@ -1,0 +1,299 @@
+using System;
+using UnityEngine;
+
+namespace Prototype
+{
+    /// <summary>
+    /// 의사 물리(Pseudo-Physics). 바닥 이동(XZ)과 공중 높이(Y) 연산을 <b>완전히 분리</b>한다.
+    /// 조작감을 위해 유니티 물리에 맡기지 않고 속도를 코드로 직접 제어한다.
+    /// Rigidbody는 벽 충돌 해석에만 쓴다.
+    /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
+    public class Physics : MonoBehaviour
+    {
+        [Header("바닥")]
+        [SerializeField] private float groundY = 0f;
+        [SerializeField] private LayerMask wallMask = ~0;
+
+        [Header("이동 감각")]
+        [Tooltip("XZ 가속도. 클수록 즉각적.")]
+        [SerializeField] private float acceleration = 60f;
+        [Tooltip("XZ 감속도. 입력이 없을 때 적용.")]
+        [SerializeField] private float deceleration = 80f;
+        [Tooltip("충격 속도가 사그라지는 비율(1/s).")]
+        [SerializeField] private float impulseDamping = 8f;
+
+        [Header("중력")]
+        [SerializeField] private float gravity = 30f;
+
+        [Tooltip("바라보는 방향으로 transform을 돌린다. 히트박스 방향이 여기 따라간다.")]
+        [SerializeField] private bool rotateToFacing = true;
+
+        // ── 속도 3종. 합산해서 최종 XZ 속도를 만든다. ──
+        private Vector3 internalVelocity;    // 이동 입력 기반
+        private Vector3 impulseVelocity;     // 순간 충격 (넉백 등). 시간에 따라 감쇠.
+        private Vector3 continuousVelocity;  // 지속 힘 (몹몰이 등). 매 프레임 갱신, 자동 소멸.
+
+        private float verticalVelocity;
+        private float baseGravity;
+        private float gravityScale = 1f;
+
+        private Vector3 desiredMoveDir;
+        private float desiredMoveSpeed;
+        private bool hasMoveInput;
+
+        private Transform cachedTransform;
+
+        /// <summary>
+        /// 지연 초기화. BeltScrollView가 [ExecuteAlways]라 Awake 전에도 읽는다.
+        /// </summary>
+        public Transform Transform => cachedTransform != null ? cachedTransform : (cachedTransform = base.transform);
+
+        public Rigidbody Rigidbody { get; private set; }
+        public PhysicsState PhysicsState { get; private set; } = PhysicsState.Ground;
+
+        /// <summary>바닥 좌표. 그림자와 벨트스크롤 렌더가 이 값을 쓴다.</summary>
+        public Vector3 GroundPosition
+        {
+            get
+            {
+                Vector3 p = Transform.position;
+                p.y = groundY;
+                return p;
+            }
+        }
+
+        /// <summary>바닥으로부터의 높이.</summary>
+        public float Height => transform.position.y - groundY;
+        public float GroundY => groundY;
+        public float Gravity => gravity * gravityScale;
+        public float VerticalVelocity => verticalVelocity;
+        public Vector3 Facing { get; private set; } = Vector3.right;
+
+        /// <summary>착지 순간. Combat이 구독해 공중피격 → 다운 전이를 처리한다.</summary>
+        public event Action OnLand;
+        /// <summary>벽 접촉. 넉백 중이면 벽 바운드로 이어진다.</summary>
+        public event Action<Vector3> OnWallHit;
+
+        private void Awake()
+        {
+            cachedTransform = base.transform;
+            Rigidbody = GetComponent<Rigidbody>();
+            Rigidbody.useGravity = false;
+            Rigidbody.freezeRotation = true;
+            Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+            Rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            baseGravity = gravity;
+        }
+
+        private void FixedUpdate()
+        {
+            // 불릿타임 배율을 고정 스텝에 곱해 넣는다. Time.timeScale 미사용(결정 로그 ⑥).
+            float dt = Time.fixedDeltaTime * TimeControl.Scale;
+            if (dt <= 0f)
+            {
+                Rigidbody.linearVelocity = Vector3.zero;
+                return;
+            }
+
+            HandleMovement(dt);
+            HandleGravity(dt);
+            Apply(dt);
+        }
+
+        // ── 입력 API ────────────────────────────────────
+
+        /// <summary>이동 입력. XZ축을 가/감속하며 이동한다.</summary>
+        public void Move(Vector3 dir, float speed)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 1f) dir.Normalize();
+
+            desiredMoveDir = dir;
+            desiredMoveSpeed = speed;
+            hasMoveInput = dir.sqrMagnitude > 0.0001f;
+
+            if (hasMoveInput)
+                Facing = dir.normalized;
+        }
+
+        /// <summary>대쉬. 가속을 무시하고 XZ 속도를 즉시 덮어쓴다.</summary>
+        public void Dash(Vector3 dir, float speed)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude <= 0.0001f) dir = Facing;
+            dir.Normalize();
+
+            internalVelocity = dir * speed;
+            impulseVelocity = Vector3.zero;
+            Facing = dir;
+
+            BattleLog.Log(LogCategory.Physics, $"{name} 대쉬 dir={dir} speed={speed:0.#}", this);
+        }
+
+        /// <summary>점프. 목표 높이 h와 도달 시간 t로 중력을 역산한다. G = 2h / t².</summary>
+        public void Jump(float height, float time)
+        {
+            if (time <= 0f) return;
+
+            gravity = 2f * height / (time * time);
+            baseGravity = gravity;
+            verticalVelocity = gravity * time;   // v0 = G * t = 2h / t
+            PhysicsState = PhysicsState.Aerial;
+
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} 점프 h={height:0.##} t={time:0.##} → G={gravity:0.##}, v0={verticalVelocity:0.##}", this);
+        }
+
+        /// <summary>순간 충격. 넉백 · 띄우기가 사용한다. 기존 관성은 끊는다.</summary>
+        public void AddImpulse(Vector3 dir, float force, bool resetInertia = true)
+        {
+            dir.y = 0f;
+            if (resetInertia)
+                ResetInertia();
+
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                impulseVelocity += dir.normalized * force;
+                BattleLog.Log(LogCategory.Physics, $"{name} 넉백 dir={dir.normalized} force={force:0.#}", this);
+            }
+        }
+
+        /// <summary>수직 충격. 띄우기 전용.</summary>
+        public void AddLaunch(float force)
+        {
+            if (force <= 0f) return;
+            verticalVelocity = force;
+            PhysicsState = PhysicsState.Aerial;
+
+            BattleLog.Log(LogCategory.Physics, $"{name} 띄우기 force={force:0.#}", this);
+        }
+
+        /// <summary>지속 힘. 매 프레임 호출해야 유지된다. ex) 몹몰이 장판.</summary>
+        public void AddForce(Vector3 dir, float force)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude <= 0.0001f) return;
+            continuousVelocity += dir.normalized * force;
+        }
+
+        /// <summary>관성 강제 초기화. 스킬 적중 시 연계가 빗나가는 오차를 차단한다.</summary>
+        public void ResetInertia()
+        {
+            internalVelocity = Vector3.zero;
+            impulseVelocity = Vector3.zero;
+            continuousVelocity = Vector3.zero;
+            desiredMoveDir = Vector3.zero;
+            hasMoveInput = false;
+        }
+
+        // ── 중력 보정 (전투 시스템 연계) ──────────────────
+
+        /// <summary>중력 원본값을 설정한다. 보정 초기화에 쓰인다.</summary>
+        public void SetGravity(float value)
+        {
+            baseGravity = value;
+            gravity = value;
+            gravityScale = 1f;
+        }
+
+        /// <summary>중력 배율을 덧씌운다. AirHitCount 가중치가 이 경로로 들어온다.</summary>
+        public void AddGravity(float scale)
+        {
+            gravityScale = Mathf.Max(0f, scale);
+            gravity = baseGravity;
+        }
+
+        // ── 내부 처리 ───────────────────────────────────
+
+        /// <summary>XZ축 이동. 입력이 있으면 가속, 없으면 감속.</summary>
+        private void HandleMovement(float dt)
+        {
+            Vector3 target = hasMoveInput ? desiredMoveDir * desiredMoveSpeed : Vector3.zero;
+            float rate = hasMoveInput ? acceleration : deceleration;
+
+            internalVelocity = Vector3.MoveTowards(internalVelocity, target, rate * dt);
+            impulseVelocity = Vector3.MoveTowards(impulseVelocity, Vector3.zero, impulseDamping * impulseVelocity.magnitude * dt);
+        }
+
+        /// <summary>Y축 속도를 중력만큼 감소시키고 착지를 판정한다.</summary>
+        private void HandleGravity(float dt)
+        {
+            float y = Transform.position.y;
+
+            if (PhysicsState == PhysicsState.Aerial || y > groundY + 0.001f)
+            {
+                verticalVelocity -= Gravity * dt;
+                PhysicsState = PhysicsState.Aerial;
+            }
+
+            float nextY = y + verticalVelocity * dt;
+            if (PhysicsState == PhysicsState.Aerial && nextY <= groundY && verticalVelocity <= 0f)
+            {
+                Vector3 p = Transform.position;
+                p.y = groundY;
+                Transform.position = p;
+
+                verticalVelocity = 0f;
+                PhysicsState = PhysicsState.Ground;
+                OnLand?.Invoke();
+            }
+        }
+
+        private void Apply(float dt)
+        {
+            Vector3 horizontal = internalVelocity + impulseVelocity + continuousVelocity;
+            horizontal.y = 0f;
+
+            float vy = PhysicsState == PhysicsState.Aerial ? verticalVelocity : 0f;
+
+            // 불릿타임에는 배율만큼 실제 이동량이 줄어야 한다.
+            Rigidbody.linearVelocity = (horizontal + Vector3.up * vy) * TimeControl.Scale;
+
+            // 히트박스는 자식 오브젝트라 루트가 돌아야 방향이 맞는다.
+            if (rotateToFacing && Facing.sqrMagnitude > 0.0001f)
+                Transform.rotation = Quaternion.LookRotation(Facing, Vector3.up);
+
+            // 지속 힘은 매 프레임 다시 쌓아야 유지된다.
+            continuousVelocity = Vector3.zero;
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            if ((wallMask.value & (1 << collision.gameObject.layer)) == 0)
+                return;
+
+            OnWallHit?.Invoke(collision.GetContact(0).normal);
+        }
+
+        /// <summary>
+        /// 모으기 계열의 Z축 정렬. 벨트스크롤에서 Z가 어긋나면 후속타가 전부 빗나간다.
+        /// </summary>
+        public void SnapZ(float z)
+        {
+            Vector3 p = Transform.position;
+            BattleLog.Log(LogCategory.Physics, $"{name} Z 정렬 {p.z:0.##} → {z:0.##} (모으기 보정)", this);
+            p.z = z;
+            Transform.position = p;
+        }
+
+        /// <summary>불릿타임 중 시전자 배치. 위치를 즉시 덮어쓴다.</summary>
+        public void Teleport(Vector3 groundPoint)
+        {
+            BattleLog.Log(LogCategory.Physics, $"{name} 텔레포트 {Transform.position} → {groundPoint}", this);
+
+            groundPoint.y = groundY;
+            Transform.position = groundPoint;
+            verticalVelocity = 0f;
+            PhysicsState = PhysicsState.Ground;
+            ResetInertia();
+        }
+
+        public void Face(Vector3 dir)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f)
+                Facing = dir.normalized;
+        }
+    }
+}
