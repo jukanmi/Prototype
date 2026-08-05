@@ -15,6 +15,8 @@ namespace Prototype
         [Header("타이머")]
         [SerializeField] private float attackInterval = 1.5f;
         [SerializeField] private float retargetInterval = 0.5f;
+        [Tooltip("특수 행동(돌진) 쿨. 평타 쿨과 따로 돈다.")]
+        [SerializeField] private float specialInterval = 4f;
 
         [Header("브레인 파라미터")]
         [SerializeField] private EnemyBrainParams parameters = new EnemyBrainParams
@@ -26,9 +28,24 @@ namespace Prototype
         private Entity target;
         private float attackTimer;
         private float retargetTimer;
+        private float specialTimer;
         private bool active = true;
 
+        private EnemyChargeAction chargeAction;
+
         public Entity Target => target;
+
+        /// <summary>폴백 브레인. 프리팹 배선 검사용 읽기 전용 창구.</summary>
+        public EnemyBrainAsset Brain => brain;
+
+        /// <summary>지금 특수 행동을 실행 중인지. 디버그 HUD가 읽는다.</summary>
+        public bool IsRunningSpecial => chargeAction != null && chargeAction.IsRunning;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            chargeAction = GetComponent<EnemyChargeAction>();
+        }
 
         /// <summary>도발 등으로 타겟을 강제 지정한다.</summary>
         public void SetTarget(Entity forced)
@@ -40,7 +57,11 @@ namespace Prototype
         public void SetActive(bool value)
         {
             active = value;
-            if (!active) Clear();
+            if (!active)
+            {
+                Clear();
+                if (chargeAction != null) chargeAction.Cancel();
+            }
         }
 
         /// <summary>
@@ -55,8 +76,11 @@ namespace Prototype
 
             attackInterval = data.attackInterval;
             retargetInterval = data.retargetInterval;
+            specialInterval = data.specialInterval;
             parameters.attackRange = data.attackRange;
             parameters.leashRange = data.leashRange;
+            parameters.preferredMinRange = data.preferredMinRange;
+            parameters.specialRange = data.specialRange;
 
             // 0이면 사거리 판정에 영영 들어가지 않는다. 저작 실수를 조용히 넘기지 않는다.
             // leashRange는 0이 "무제한"이라는 정상값이므로 검사하지 않는다.
@@ -77,14 +101,41 @@ namespace Prototype
             Clear();
             if (!active) return;
             if (brain == null) return;
-            if (Owner != null && (Owner.IsBusy || CombatStateRules.IsStunned(Owner.Combat.CombatState))) return;
 
             attackTimer -= dt;
             retargetTimer -= dt;
+            specialTimer -= dt;
+
+            // 경직·사망 중에는 돌진이 이어지면 안 된다. 무적 관통처럼 보인다.
+            if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))
+            {
+                if (chargeAction != null) chargeAction.Cancel();
+                return;
+            }
+
+            // 실행 중인 특수 행동이 우선. 새 판단을 받으면 돌진이 매 프레임 다시 시작된다.
+            if (chargeAction != null && chargeAction.IsRunning)
+            {
+                chargeAction.Tick(dt);
+                return;
+            }
+
+            if (Owner != null && Owner.IsBusy) return;
 
             Retarget();
 
             EnemyIntent intent = brain.Decide(BuildContext(dt));
+
+            if (intent.kind == EnemyActionKind.Charge)
+            {
+                // 쿨은 실제로 시작됐을 때만 태운다.
+                if (chargeAction != null && chargeAction.TryStart(target))
+                {
+                    specialTimer = specialInterval;
+                    chargeAction.Tick(dt);
+                }
+                return;
+            }
 
             Command = intent.command;
             MoveDirection = intent.moveDirection;
@@ -115,7 +166,7 @@ namespace Prototype
             }
 
             // struct 복사 — 인스펙터/EnemyData 원본값은 건드리지 않는다.
-              EnemyBrainParams p = parameters;
+            EnemyBrainParams p = parameters;
 
             // 원거리 평타를 든 적은 근접 사거리 대신 투사체 사거리를 따른다.
             if (Owner != null && Owner.BasicIsRanged) p.attackRange = Owner.BasicAttackReach;
@@ -127,7 +178,8 @@ namespace Prototype
                 toTarget = toTarget,
                 distance = distance,
                 attackReady = attackTimer <= 0f,
-                p = parameters,
+                specialReady = specialTimer <= 0f && chargeAction != null,
+                p = p,
                 dt = dt,
             };
         }

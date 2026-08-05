@@ -25,6 +25,23 @@ namespace Prototype
         [Tooltip("타겟이 이보다 멀면 추격을 포기한다. 0이면 무제한.")]
         public float leashRange = 0f;
 
+        [Tooltip("원거리 전용. 이보다 가까우면 물러난다. 0이면 물러나지 않는다.")]
+        public float preferredMinRange = 0f;
+
+        [Header("특수 행동 (돌진)")]
+        [Tooltip("돌진이 닿는 최대 거리. 0이면 돌진하지 않는다.")]
+        public float specialRange = 0f;
+
+        [Tooltip("돌진 재사용 대기시간.")]
+        public float specialInterval = 4f;
+
+        [Header("평타 — 원거리")]
+        [Tooltip("넣으면 평타가 투사체가 된다. 비우면 근접 평타 그대로.")]
+        public Projectile basicProjectile;
+        public float projectileSpeed = 16f;
+        public float projectileRange = 9f;
+        public int projectilePierce = 0;
+
         [Header("보상")]
         public int exp = 10;
         public int gold = 5;

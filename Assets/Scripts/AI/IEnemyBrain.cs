@@ -15,6 +15,12 @@ namespace Prototype
 
         [Tooltip("타겟이 이보다 멀면 포기한다. 0이면 무제한.")]
         public float leashRange;
+
+        [Tooltip("원거리 전용. 이보다 가까우면 물러난다. 0이면 물러나지 않는다.")]
+        public float preferredMinRange;
+
+        [Tooltip("특수 행동(돌진)이 닿는 최대 거리. 0이면 특수 행동을 쓰지 않는다.")]
+        public float specialRange;
     }
 
     /// <summary>브레인이 판단에 쓰는 입력. EnemyControl이 매 프레임 채운다.</summary>
@@ -34,27 +40,50 @@ namespace Prototype
         /// <summary>공격 쿨이 끝났는지. 쿨 관리는 EnemyControl이 한다.</summary>
         public bool attackReady;
 
+        /// <summary>특수 행동(돌진) 쿨이 끝났는지. 평타 쿨과 따로 돈다.</summary>
+        public bool specialReady;
+
         public EnemyBrainParams p;
         public float dt;
+    }
+
+    /// <summary>
+    /// 브레인이 고른 행동의 종류.
+    /// <see cref="Command"/>와 나눠 둔 이유: 돌진은 상태머신이 아는 명령이 아니라
+    /// EnemyControl이 붙잡고 돌리는 <b>실행기</b>가 처리한다.
+    /// </summary>
+    public enum EnemyActionKind
+    {
+        None,
+        Move,
+        Attack,
+        Charge,
     }
 
     /// <summary>브레인이 내는 결론. EnemyControl이 그대로 Control 프로퍼티로 옮긴다.</summary>
     public struct EnemyIntent
     {
+        public EnemyActionKind kind;
         public Command command;
         public Vector3 moveDirection;
 
         public static EnemyIntent None => default;
 
         public static EnemyIntent Move(Vector3 dir)
-            => new EnemyIntent { command = Command.Move, moveDirection = dir };
+            => new EnemyIntent { kind = EnemyActionKind.Move, command = Command.Move, moveDirection = dir };
 
         /// <summary>
         /// face는 AttackState.Enter가 Physics.Face에 쓴다.
         /// 비우면 Facing이 갱신되지 않아 마지막 이동 방향으로 헛휘두른다.
         /// </summary>
         public static EnemyIntent Attack(Vector3 face)
-            => new EnemyIntent { command = Command.Attack, moveDirection = face };
+            => new EnemyIntent { kind = EnemyActionKind.Attack, command = Command.Attack, moveDirection = face };
+
+        /// <summary>
+        /// 돌진. command는 None으로 남긴다 — 평타 명령으로 새면 상태머신이 AttackState로 끌고 간다.
+        /// </summary>
+        public static EnemyIntent Charge(Vector3 dir)
+            => new EnemyIntent { kind = EnemyActionKind.Charge, command = Command.None, moveDirection = dir };
     }
 
     /// <summary>

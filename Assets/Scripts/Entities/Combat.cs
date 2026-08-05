@@ -28,7 +28,12 @@ namespace Prototype
         private int airHitCount;
 
         public CombatState CombatState { get; private set; } = CombatState.Neutral;
-        public Energy Health => health;
+
+        /// <summary>
+        /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)를 위해 첫 접근에 만든다.
+        /// Owner를 지연 해석하는 것과 같은 이유다.
+        /// </summary>
+        public Energy Health => health != null ? health : health = new Energy(EnergyType.Health, maxHealth);
         public Physics Physics => physics;
         public Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
         public int AirHitCount => airHitCount;
@@ -120,8 +125,8 @@ namespace Prototype
             if (lifestealRatio > 0f)
             {
                 float heal = hit.damageData.damage * lifestealRatio;
-                health.Recover(heal);
-                BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {health.CurValue:0.#})", this);
+                Health.Recover(heal);
+                BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
             }
 
             BattleLog.Log(LogCategory.Combat,
@@ -178,7 +183,7 @@ namespace Prototype
             }
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} 피격 | {before} → <b>{next}</b> | HP {health.CurValue:0.#}/{health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s", this);
+                $"{name} 피격 | {before} → <b>{next}</b> | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s", this);
 
             OnHitTaken?.Invoke(hit, next);
             return true;
@@ -200,9 +205,9 @@ namespace Prototype
             }
 
             if (dmg > 0f)
-                health.Lose(dmg);
+                Health.Lose(dmg);
 
-            if (health.IsEmpty)
+            if (Health.IsEmpty)
                 Die();
         }
 
@@ -294,7 +299,7 @@ namespace Prototype
         public void SetLifesteal(float ratio) => lifestealRatio = Mathf.Max(0f, ratio);
 
         /// <summary>EnemyData 등 외부 테이블로 최대 체력을 덮어쓴다.</summary>
-        public void SetMaxHealth(float value, bool refill = true) => health.SetMax(value, refill);
+        public void SetMaxHealth(float value, bool refill = true) => Health.SetMax(value, refill);
 
         public float Shield => shield;
         public void AddShield(float amount) => shield += Mathf.Max(0f, amount);
