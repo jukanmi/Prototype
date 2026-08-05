@@ -545,6 +545,7 @@ namespace PrototypeEditor
             var selector = systemGo.AddComponent<TargetSelector>();
             var hud = systemGo.AddComponent<DebugComboHUD>();
             var boardUi = systemGo.AddComponent<ComboBoardUI>();
+            systemGo.AddComponent<RecentHitEnemyHUD>();
             systemGo.AddComponent<BattleLogSettings>();
 
             SetSerialized(bullet, so =>

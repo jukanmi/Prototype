@@ -183,9 +183,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77cec54ed9850bd45af0f7f011f2882e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyControl
-  attackRange: 1.8
+  brain: {fileID: 11400000, guid: 1c69808f3f8ad9f43abb9ff92dfe6970, type: 2}
   attackInterval: 1.5
   retargetInterval: 0.5
+  parameters:
+    attackRange: 1.8
+    leashRange: 0
 --- !u!114 &6070326376275052667
 MonoBehaviour:
   m_ObjectHideFlags: 0

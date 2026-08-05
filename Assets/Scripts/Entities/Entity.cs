@@ -50,6 +50,22 @@ namespace Prototype
         /// </summary>
         public float BasicAttackReach => basicProjectileRange * 0.8f;
 
+        public float BasicProjectileSpeed => basicProjectileSpeed;
+        public float BasicProjectileRange => basicProjectileRange;
+        public int BasicProjectilePierce => basicProjectilePierce;
+
+        /// <summary>
+        /// 평타를 투사체로 바꾼다. EnemyData 주입과 에디터 생성기가 같은 경로를 쓰도록 API로 연다.
+        /// 0 이하 값은 조용히 최소값으로 올린다 — 저작 실수로 제자리에 서는 투사체를 만들지 않는다.
+        /// </summary>
+        public void ConfigureBasicProjectile(Projectile prefab, float speed, float range, int pierce)
+        {
+            basicProjectile = prefab;
+            basicProjectileSpeed = Mathf.Max(0.1f, speed);
+            basicProjectileRange = Mathf.Max(0.5f, range);
+            basicProjectilePierce = Mathf.Max(0, pierce);
+        }
+
         [Header("사망")]
         [Tooltip("쓰러진 채로 남아 있는 시간. 이 뒤에 서서히 사라진다.")]
         [SerializeField] private float despawnDelay = 1f;
@@ -105,8 +121,16 @@ namespace Prototype
         /// <summary>히트박스가 아군을 때리지 않게 거르는 기준. Enemy만 덮어쓴다.</summary>
         public virtual Faction Faction => Faction.Ally;
 
-        public Physics Physics { get; private set; }
-        public Combat Combat { get; private set; }
+        private Physics cachedPhysics;
+        private Combat cachedCombat;
+
+        /// <summary>
+        /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)가 있어 지연 해석한다.
+        /// RequireComponent가 존재를 보장하므로 GetComponent는 반드시 성공한다.
+        /// </summary>
+        public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
+        public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
+
         public Control Control { get; private set; }
         public StateMachine StateMachine { get; private set; }
         public Stats Stats => stats;
@@ -126,8 +150,8 @@ namespace Prototype
 
         protected virtual void Awake()
         {
-            Physics = GetComponent<Physics>();
-            Combat = GetComponent<Combat>();
+            cachedPhysics = GetComponent<Physics>();
+            cachedCombat = GetComponent<Combat>();
             Control = GetComponent<Control>();
             StateMachine = new StateMachine { OwnerName = name };
 

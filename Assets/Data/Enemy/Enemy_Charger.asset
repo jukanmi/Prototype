@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb811218524748478d93baa1bee40f1, type: 3}
+  m_Name: Enemy_Charger
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyData
+  enemyId: Enemy_Charger
+  enemyName: "\uB3CC\uC9C4 \uBA67\uB3FC\uC9C0"
+  hp: 60
+  atk: 7
+  brain: {fileID: 11400000, guid: c3723a832cbe1a54192f9955658f878c, type: 2}
+  moveSpeed: 3.6
+  attackRange: 2
+  attackInterval: 1.6
+  retargetInterval: 0.5
+  leashRange: 18
+  preferredMinRange: 0
+  specialRange: 7
+  specialInterval: 4
+  basicProjectile: {fileID: 0}
+  projectileSpeed: 0
+  projectileRange: 0
+  projectilePierce: 0
+  exp: 10
+  gold: 5
+  prefab: {fileID: 8205942163614616472, guid: 597eabee1a19a184fa846ab0429eef36, type: 3}
