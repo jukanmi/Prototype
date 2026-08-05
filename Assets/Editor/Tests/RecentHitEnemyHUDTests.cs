@@ -90,6 +90,27 @@ namespace Prototype.Tests
         }
 
         [Test]
+        public void HealthBar_ShrinksWithTargetHealth()
+        {
+            Combat attacker = NewAlly();
+            Combat target = NewEnemy();
+            float half = target.Health.MaxValue * 0.5f;
+
+            var chunk = new HitData
+            {
+                damageData = new DamageData(half),
+                targetState = CombatState.Neutral,
+                nextState = CombatState.LightHit,
+                mode = KnockbackMode.Fixed,
+                fixedDir = Vector3.forward,
+            };
+            attacker.Attack(target, in chunk);
+
+            Assert.That(target.Health.Ratio, Is.EqualTo(0.5f).Within(0.01f), "선행 조건: 체력이 절반이어야 한다");
+            Assert.That(hud.HealthFillRatio, Is.EqualTo(0.5f).Within(0.01f));
+        }
+
+        [Test]
         public void AfterVisibleDuration_Hides()
         {
             Combat attacker = NewAlly();

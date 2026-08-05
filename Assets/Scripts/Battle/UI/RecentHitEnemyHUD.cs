@@ -10,12 +10,15 @@ namespace Prototype
 
         private GameObject panel;
         private Text nameLabel;
-        private Image healthFill;
+        private RectTransform healthFill;
         private Combat currentTarget;
         private float expiresAt;
 
         public Combat CurrentTarget => currentTarget;
         public bool IsVisible => panel != null && panel.activeSelf;
+
+        /// <summary>체력 바가 실제로 그려지는 비율. 0~1.</summary>
+        public float HealthFillRatio => healthFill != null ? healthFill.anchorMax.x : 0f;
 
         private void Awake()
         {
@@ -72,7 +75,19 @@ namespace Prototype
             }
 
             nameLabel.text = currentTarget.name;
-            healthFill.fillAmount = currentTarget.Health.Ratio;
+            SetFillRatio(currentTarget.Health.Ratio);
+        }
+
+        /// <summary>
+        /// 오른쪽 앵커를 움직여 폭을 줄인다.
+        /// Image.fillAmount는 스프라이트가 있을 때만 동작한다 — 이 HUD는 스프라이트 없이
+        /// 코드로만 만들기 때문에 sprite가 null이고, 그 경우 Image는 type/fillAmount를
+        /// 무시하고 RectTransform 전체를 채운다. 그래서 폭을 직접 그린다.
+        /// </summary>
+        private void SetFillRatio(float ratio)
+        {
+            if (healthFill == null) return;
+            healthFill.anchorMax = new Vector2(Mathf.Clamp01(ratio), 1f);
         }
 
         private void Clear()
@@ -139,16 +154,15 @@ namespace Prototype
 
             var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
             fill.transform.SetParent(bar.transform, false);
-            healthFill = fill.GetComponent<Image>();
-            healthFill.color = new Color(0.91f, 0.25f, 0.22f, 1f);
-            healthFill.type = Image.Type.Filled;
-            healthFill.fillMethod = Image.FillMethod.Horizontal;
-            healthFill.fillOrigin = 0;
-            RectTransform fillRect = healthFill.GetComponent<RectTransform>();
-            fillRect.anchorMin = Vector2.zero;
-            fillRect.anchorMax = Vector2.one;
-            fillRect.offsetMin = Vector2.zero;
-            fillRect.offsetMax = Vector2.zero;
+            fill.GetComponent<Image>().color = new Color(0.91f, 0.25f, 0.22f, 1f);
+
+            // 왼쪽 고정, 오른쪽 앵커만 움직여 폭을 만든다. SetFillRatio가 anchorMax.x를 쓴다.
+            healthFill = fill.GetComponent<RectTransform>();
+            healthFill.anchorMin = Vector2.zero;
+            healthFill.anchorMax = Vector2.one;
+            healthFill.pivot = new Vector2(0f, 0.5f);
+            healthFill.offsetMin = Vector2.zero;
+            healthFill.offsetMax = Vector2.zero;
         }
 
         private static Text CreateText(Transform parent, string name, int size, TextAnchor alignment)
