@@ -12,14 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_WZ2A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC911\uB825 \uAC10\uC625"
-  icon: {fileID: 0}
-  description: "WZ2A \u2014 \uBE45\uD1A0\uB974 W \u2014 \uC9C0\uC18D \uC7A5\uD310\xB7\uC9C0\uC5F0
-    \uAE30\uC808 \uBBF8\uAD6C\uD604, \uC989\uBC1C \uB454\uD654\uB85C \uB300\uCCB4"
+  skillName: "\uC735\uAE30"
+  icon: {fileID: 21300000, guid: 3def76580f8e4ceba81f6eb096e1c6f9, type: 3}
+  description: "WZ2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uC9C0\uBA74\uC744 \uC19F\uAD6C\uCCD0 \uB744\uC6B4\uB2E4"
   role: 3
-  attackType: 4
-  requireState: 0
-  resultState: 1
+  attackType: 1
+  requireState: 1
+  resultState: 2
   targeting: 1
   radius: 4.5
   castTime: 0.35
@@ -36,25 +35,18 @@ MonoBehaviour:
   - damageData:
       damage: 7
     targetState: 0
-    nextState: 1
+    nextState: 2
     canOtg: 0
-    mode: 0
+    mode: 3
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 2
-    launchForce: 0
-    hitStunDuration: 0.3
+    knockbackForce: 0
+    launchForce: 12
+    hitStunDuration: 0.6
     snapZ: 0
-  effects:
-  - rid: 7198291130188562565
+  effects: []
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
   references:
     version: 2
-    RefIds:
-    - rid: 7198291130188562565
-      type: {class: SlowEffect, ns: Prototype, asm: Assembly-CSharp}
-      data:
-        radius: 4
-        multiplier: 0.5
-        duration: 3
+    RefIds: []

@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "WR3B \u2014 \uB204\uB204 R \u2014 \uCF64\uBCF4 \uB05D\uAE4C\uC9C0
     \uBAA8\uC558\uB2E4\uAC00 \uD130\uC9C4\uB2E4"
   role: 1
-  attackType: 5
+  attackType: 4
   requireState: 0
   resultState: 2
   targeting: 0

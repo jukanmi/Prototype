@@ -217,7 +217,8 @@ namespace PrototypeEditor
                     new List<HitData> { Hit(12f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 5f) },
                     new List<ISkillEffect> { new ChargeEffect() }),
 
-                MakeSkill("SK_T4_도발방벽", "도발 방벽", Role.Tanker, AttackType.DamageCut,
+                // AttackType.DamageCut 이 사라져 분류만 Strike로 옮겼다. 효과는 그대로 방어형이다.
+                MakeSkill("SK_T4_도발방벽", "도발 방벽", Role.Tanker, AttackType.Strike,
                     CombatState.Neutral, CombatState.Neutral, TargetingType.None,
                     new List<HitData>(),
                     new List<ISkillEffect> { new DamageCutEffect(), new TauntEffect(), new ShieldEffect() }),
@@ -269,10 +270,10 @@ namespace PrototypeEditor
                     new List<HitData> { Hit(18f, CombatState.Knockback, KnockbackMode.AwayFromCaster, knockback: 22f, stun: 0.6f) },
                     null),
 
-                MakeSkill("SK_A3_발목사격", "발목 사격", Role.Archer, AttackType.Slow,
-                    CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                    new List<HitData>(),
-                    new List<ISkillEffect> { new SlowEffect() }, radius: 4f),
+                MakeSkill("SK_A3_상승화살", "상승 화살", Role.Archer, AttackType.Launcher,
+                    CombatState.LightHit, CombatState.AerialHit, TargetingType.GroundPoint,
+                    new List<HitData> { Hit(6f, CombatState.AerialHit, KnockbackMode.Up, launch: 12f, stun: 0.6f) },
+                    null, radius: 4f),
 
                 MakeSkill("SK_A4_사출화살", "사출 화살", Role.Archer, AttackType.Launcher,
                     CombatState.LightHit, CombatState.AerialHit, TargetingType.EnemyUnit,
@@ -305,7 +306,8 @@ namespace PrototypeEditor
             };
 
             // ── 라이브 페이즈 고유기 (1~4 키) ─────────────
-            s.Self[Role.Tanker] = MakeSkill("SS_T_방패막기", "방패 막기", Role.Tanker, AttackType.DamageCut,
+            // 방어형 고유기. AttackType.DamageCut 제거 후 분류만 Strike로 옮겼다.
+            s.Self[Role.Tanker] = MakeSkill("SS_T_방패막기", "방패 막기", Role.Tanker, AttackType.Strike,
                 CombatState.Neutral, CombatState.Neutral, TargetingType.None,
                 new List<HitData>(), new List<ISkillEffect> { new ShieldEffect() });
 
@@ -317,9 +319,10 @@ namespace PrototypeEditor
                 CombatState.Neutral, CombatState.LightHit, TargetingType.EnemyUnit,
                 new List<HitData> { Hit(9f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 3f) }, null);
 
-            s.Self[Role.Wizard] = MakeSkill("SS_M_냉기", "냉기", Role.Wizard, AttackType.Slow,
+            s.Self[Role.Wizard] = MakeSkill("SS_M_냉기", "냉기", Role.Wizard, AttackType.Strike,
                 CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                new List<HitData>(), new List<ISkillEffect> { new SlowEffect() }, radius: 4f);
+                new List<HitData> { Hit(8f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 2f) },
+                null, radius: 4f);
 
             return s;
         }

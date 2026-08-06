@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_TK3A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uB300\uC9C0 \uAC15\uD0C0"
-  icon: {fileID: 21300000, guid: a8f0405a06a24f3581100aeadedea1e4, type: 3}
+  skillName: "\uBC29\uD328 \uC62C\uB824\uCE58\uAE30"
+  icon: {fileID: 21300000, guid: 30a5c51fb1bf4da8bc377c67848cfd24, type: 3}
   description: "TK3A \u2014 \uB9D0\uD30C\uC774\uD2B8 R \u2014 \uB3CC\uC9C4 \uD6C4
     \uAD11\uC5ED \uC5D0\uC5B4\uBCF8"
   role: 0

@@ -47,9 +47,7 @@ namespace Prototype
         Launcher,    // 띄우기 (시동기)
         Strike,      // 공격기
         Push,        // 밀치기
-        Slow,        // 둔화
         Charge,      // 차징
-        DamageCut,   // 피해감소
     }
 
     /// <summary>넉백 방향 계산 방식. 방향은 타격 순간에 계산한다.</summary>

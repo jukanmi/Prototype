@@ -106,16 +106,17 @@ namespace Prototype.EditorTools
             var t = new List<Spec>();
 
             // ══ 탱커 ══ 스킬3 두 번째 칸은 표에 비어 있어 만들지 않는다.
+            // 피해감소 계열(수호 보호막 · 수호 결계)은 있으나 없으나 차이가 없어 표에서 뺐다.
             t.Add(new Spec {
-                id = "TK1A", name = "수호 보호막", note = "노틸러스 W — 보호막. 평타 강화는 미구현",
-                role = Role.Tanker, type = AttackType.DamageCut, aim = TargetingType.None,
-                castTime = 0.15f, recovery = 0.2f,
-                hits = { Damage(6f) },
-                effects = { new ShieldEffect() },
+                id = "TK1A", name = "소용돌이 베기", note = "몸을 회전시켜 주변 적을 끌어모은다",
+                role = Role.Tanker, type = AttackType.Gather, aim = TargetingType.None, radius = 3.5f,
+                castTime = 0.2f, recovery = 0.25f,
+                hits = { Gather() },
+                effects = { new PullEffect() },
             });
             t.Add(new Spec {
-                id = "TK1B", name = "강철 돌진", note = "라인하르트 돌진 — 적을 끌고 가는 건 미구현, 돌진+밀치기로 대체",
-                role = Role.Tanker, type = AttackType.Strike, aim = TargetingType.Direction,
+                id = "TK1B", name = "대지 강타", note = "라인하르트 돌진 — 돌진해 땅을 내려찍어 밀어낸다",
+                role = Role.Tanker, type = AttackType.Push, aim = TargetingType.Direction,
                 castTime = 0.2f, recovery = 0.3f,
                 hits = { Push(12f, 20f) },
                 effects = { new ChargeEffect() },
@@ -128,14 +129,7 @@ namespace Prototype.EditorTools
                 effects = { new PullEffect() },
             });
             t.Add(new Spec {
-                id = "TK2B", name = "수호 결계", note = "람머스 W — 피해감소. 반사는 미구현",
-                role = Role.Tanker, type = AttackType.DamageCut, aim = TargetingType.None,
-                castTime = 0.15f, recovery = 0.2f,
-                hits = { Damage(4f) },
-                effects = { new DamageCutEffect() },
-            });
-            t.Add(new Spec {
-                id = "TK3A", name = "대지 강타", note = "말파이트 R — 돌진 후 광역 에어본",
+                id = "TK3A", name = "방패 올려치기", note = "말파이트 R — 돌진 후 광역 에어본",
                 role = Role.Tanker, type = AttackType.Launcher, require = CombatState.LightHit,
                 aim = TargetingType.GroundPoint, radius = 4f,
                 castTime = 0.35f, recovery = 0.35f,
@@ -157,20 +151,6 @@ namespace Prototype.EditorTools
                 aim = TargetingType.None,
                 castTime = 0.12f, hitInterval = 0.18f, recovery = 0.25f,
                 hits = { Damage(5f, 0.2f), Damage(5f, 0.2f), Launch(9f, 13f) },
-            });
-            t.Add(new Spec {
-                id = "WR2A", name = "허공 가르기", note = "야스오 R — 뜬 적에게 붙어 공중에 붙잡아 둔다",
-                role = Role.Warrior, type = AttackType.Gather, require = CombatState.AerialHit,
-                aim = TargetingType.EnemyUnit, radius = 3f,
-                castTime = 0.2f, recovery = 0.3f,
-                hits = { Aerial(10f) },
-            });
-            t.Add(new Spec {
-                id = "WR2B", name = "피의 격노", note = "올라프 W — 흡혈",
-                role = Role.Warrior, type = AttackType.DamageCut, aim = TargetingType.None,
-                castTime = 0.15f, recovery = 0.2f,
-                hits = { Damage(5f) },
-                effects = { new LifestealEffect() },
             });
             t.Add(new Spec {
                 id = "WR3A", name = "회전 강타", note = "트리스타나 R — 대상을 밀어낸다. 벽에 닿으면 벽바운드",
@@ -197,19 +177,11 @@ namespace Prototype.EditorTools
                 projectile = true, projSpeed = 22f, projRange = 10f,
             });
             t.Add(new Spec {
-                id = "AR1B", name = "관통의 화살", note = "바루스 Q — 모을수록 세지고 여럿을 뚫는다",
-                role = Role.Archer, type = AttackType.Charge, aim = TargetingType.Direction,
-                castTime = 0.2f, recovery = 0.3f,
-                hits = { Damage(12f, 0.4f) },
-                projectile = true, projSpeed = 26f, projRange = 16f, projPierce = 3,
-                maxChargeTime = 2.5f, chargeDamageMul = 2.8f,
-            });
-            t.Add(new Spec {
-                id = "AR2A", name = "발목 사격", note = "미스포츈 E — 지속 장판 미구현, 즉발 광역 둔화로 대체",
-                role = Role.Archer, type = AttackType.Slow, aim = TargetingType.GroundPoint, radius = 4f,
+                id = "AR2A", name = "상승 화살", note = "시동기 — 화살로 쳐올려 띄운다",
+                role = Role.Archer, type = AttackType.Launcher, require = CombatState.LightHit,
+                aim = TargetingType.GroundPoint, radius = 4f,
                 castTime = 0.3f, recovery = 0.25f,
-                hits = { Damage(6f) },
-                effects = { new SlowEffect() },
+                hits = { Launch(6f, 12f) },
             });
             t.Add(new Spec {
                 id = "AR2B", name = "강력 사격", note = "베인 E — 밀어내고 벽에 닿으면 벽바운드",
@@ -220,18 +192,11 @@ namespace Prototype.EditorTools
                 projectile = true, projSpeed = 20f, projRange = 12f,
             });
             t.Add(new Spec {
-                id = "AR3A", name = "탄막", note = "미스포츈 R — 채널링 미구현, 5단 연사로 근사",
-                role = Role.Archer, type = AttackType.Strike, aim = TargetingType.Direction,
-                castTime = 0.25f, hitInterval = 0.14f, recovery = 0.35f,
-                hits = { Aerial(6f), Aerial(6f), Aerial(6f), Aerial(6f), Aerial(6f) },
-                projectile = true, projSpeed = 24f, projRange = 12f, projPierce = 1,
-            });
-            t.Add(new Spec {
-                id = "AR3B", name = "정조준 사격", note = "케이틀린 R — 초장거리 단발",
-                role = Role.Archer, type = AttackType.Strike, aim = TargetingType.EnemyUnit,
-                castTime = 0.5f, recovery = 0.4f,
-                hits = { Damage(28f, 0.5f) },
-                projectile = true, projSpeed = 30f, projRange = 26f,
+                id = "AR3A", name = "그물사격", note = "그물을 쏴 지정 지점의 적을 끌어모은다",
+                role = Role.Archer, type = AttackType.Gather, aim = TargetingType.GroundPoint, radius = 4f,
+                castTime = 0.3f, recovery = 0.2f,
+                hits = { Gather() },
+                effects = { new PullEffect() },
             });
 
             // ══ 마법사 ══
@@ -243,40 +208,25 @@ namespace Prototype.EditorTools
                 projectile = true, projSpeed = 24f, projRange = 12f,
             });
             t.Add(new Spec {
-                id = "WZ1B", name = "공허 균열", note = "벨코즈 W — 분열 미구현, 관통 1회로 대체",
-                role = Role.Wizard, type = AttackType.Strike, aim = TargetingType.Direction,
-                castTime = 0.25f, recovery = 0.25f,
-                hits = { Damage(11f) },
-                projectile = true, projSpeed = 18f, projRange = 13f, projPierce = 1,
-            });
-            t.Add(new Spec {
-                id = "WZ2A", name = "중력 감옥", note = "빅토르 W — 지속 장판·지연 기절 미구현, 즉발 둔화로 대체",
-                role = Role.Wizard, type = AttackType.Slow, aim = TargetingType.GroundPoint, radius = 4.5f,
+                id = "WZ2A", name = "융기", note = "시동기 — 지면을 솟구쳐 띄운다",
+                role = Role.Wizard, type = AttackType.Launcher, require = CombatState.LightHit,
+                aim = TargetingType.GroundPoint, radius = 4.5f,
                 castTime = 0.35f, recovery = 0.3f,
-                hits = { Damage(7f) },
-                effects = { new SlowEffect() },
+                hits = { Launch(7f, 12f) },
             });
             t.Add(new Spec {
-                id = "WZ2B", name = "심연의 아가리", note = "흐웨이 EE — 지정 지점으로 끌어모은다",
+                id = "WZ2B", name = "중력장", note = "흐웨이 EE — 지정 지점으로 끌어모은다",
                 role = Role.Wizard, type = AttackType.Gather, aim = TargetingType.GroundPoint, radius = 5f,
                 castTime = 0.35f, recovery = 0.25f,
                 hits = { Gather(5f) },
                 effects = { new PullEffect() },
             });
             t.Add(new Spec {
-                id = "WZ3A", name = "운석 낙하", note = "아우렐리온 솔 R — 광역 낙하 + 에어본",
-                role = Role.Wizard, type = AttackType.Strike, require = CombatState.LightHit,
-                aim = TargetingType.GroundPoint, radius = 4.5f,
-                castTime = 0.5f, recovery = 0.4f,
-                hits = { Launch(16f, 11f) },
-            });
-            t.Add(new Spec {
-                id = "WZ3B", name = "충격 명령", note = "오리아나 R — 지정 지점으로 빨아들이며 띄운다",
-                role = Role.Wizard, type = AttackType.Launcher, require = CombatState.LightHit,
-                aim = TargetingType.GroundPoint, radius = 4f,
-                castTime = 0.4f, recovery = 0.35f,
-                hits = { Launch(13f, 14f) },
-                effects = { new PullEffect() },
+                id = "WZ3A", name = "충격파", note = "앞으로 충격파를 뿜어 밀어낸다. 벽에 닿으면 벽바운드",
+                role = Role.Wizard, type = AttackType.Push, require = CombatState.AerialHit,
+                aim = TargetingType.Direction, radius = 3.5f,
+                castTime = 0.3f, recovery = 0.3f,
+                hits = { Push(14f, 18f) },
             });
 
             return t;

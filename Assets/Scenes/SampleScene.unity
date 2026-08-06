@@ -2216,19 +2216,19 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].data
       value: 
-      objectReference: {fileID: 11400000, guid: 88582f4b383907548a04cd03d7d7aff8, type: 2}
+      objectReference: {fileID: 11400000, guid: fedc606f064276b4cbeaa8761ea43011, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: 6415b9b5a1c32ba4eae24b40376bc2dc, type: 2}
+      objectReference: {fileID: 11400000, guid: 6bc815d41a0a3384ba58fb6d1f4881a3, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: 226b683b42e44e449863feea73376cf3, type: 2}
+      objectReference: {fileID: 11400000, guid: d4b5c167348f61e44937a1347b3ee857, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: fedc606f064276b4cbeaa8761ea43011, type: 2}
+      objectReference: {fileID: 11400000, guid: 226b683b42e44e449863feea73376cf3, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -4292,7 +4292,7 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: selfSkill
       value: 
-      objectReference: {fileID: 11400000, guid: 171d2e45bf5b57941825836e6e352491, type: 2}
+      objectReference: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: basicAttack
       value: 
@@ -4312,11 +4312,11 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].data
       value: 
-      objectReference: {fileID: 11400000, guid: bb9298474df187d41aaaab68f9d30ef1, type: 2}
+      objectReference: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
+      objectReference: {fileID: 11400000, guid: 979956968c484fc4fb04fe49d3b6f3a4, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
@@ -4324,7 +4324,7 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: 979956968c484fc4fb04fe49d3b6f3a4, type: 2}
+      objectReference: {fileID: 11400000, guid: 714e06cac6581824bbf165bee4e9e9c1, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -4651,7 +4651,7 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].data
       value: 
-      objectReference: {fileID: 11400000, guid: 4f0187f40d3dbfb4b81acca06bc4c989, type: 2}
+      objectReference: {fileID: 11400000, guid: fca1c060857dab341bd3f3e32c4a69a5, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
@@ -4659,11 +4659,11 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: fca1c060857dab341bd3f3e32c4a69a5, type: 2}
+      objectReference: {fileID: 11400000, guid: b5bdb8717f10aa843960b62ef90ab697, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: b5bdb8717f10aa843960b62ef90ab697, type: 2}
+      objectReference: {fileID: 11400000, guid: dc02247b290e86d48a4db0005b619c03, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
@@ -5861,19 +5861,19 @@ PrefabInstance:
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].data
       value: 
-      objectReference: {fileID: 11400000, guid: b9d05feee1dbefe41b1f09b79926e67a, type: 2}
+      objectReference: {fileID: 11400000, guid: fd740031699e49f38758fb01b7bb4b57, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[1].data
       value: 
-      objectReference: {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
+      objectReference: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[2].data
       value: 
-      objectReference: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
+      objectReference: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[3].data
       value: 
-      objectReference: {fileID: 11400000, guid: ec4ee9dda8379094b802f6ffde208562, type: 2}
+      objectReference: {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: equipped.Array.data[0].drawWeight
       value: 1
