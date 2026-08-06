@@ -50,7 +50,10 @@ namespace Prototype
         private Text _hintText;
         private CardWidgets[] _cards;
 
-        // 조준이 필요한 카드를 클릭한 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
+        /// <summary>손패 판. 카드를 이 밖으로 꺼냈는지 판정하는 기준이다.</summary>
+        private RectTransform _handPanelRect;
+
+        // 조준이 필요한 카드를 손패 밖으로 꺼낸 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
         private int _aimingIndex = -1;
 
         private class CardWidgets
@@ -68,19 +71,32 @@ namespace Prototype
 
         // 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
         // 실제 순서 반영은 Hand.OnChanged -> RefreshUI가 담당하므로 드래그 자체는 상태를 바꾸지 않는다.
-        // uGUI는 드래그 임계값을 넘기면 같은 프레스에 대해 OnPointerClick을 호출하지 않으므로
-        // 한 컴포넌트에서 드래그(순서 교환)와 클릭(조준)을 함께 처리해도 서로 충돌하지 않는다.
+        //
+        // 드래그 하나로 두 가지를 가른다:
+        //   · 손패 안에서 놓으면  → 그 자리 카드와 순서 교환 (OnDrop)
+        //   · 손패 밖으로 꺼내면  → 조준 시작 (OnEndDrag)
+        //
+        // <b>끌고 다니는 동안 blocksRaycasts를 끄는 게 핵심이다.</b> 카드는 커서를 따라다니므로
+        // 켜 둔 채로는 자기 자신이 커서 아래에 남아 레이캐스트를 먼저 먹는다. 그러면 uGUI가
+        //     pointerPress == 놓은 자리의 핸들러  →  드롭이 아니라 클릭
+        // 으로 판정해 OnDrop이 아예 오지 않는다. 게다가 어느 쪽이 먹느냐는 형제 순서가 정하므로
+        // 뒤 형제(오른쪽 카드)를 왼쪽으로 끌 때만 교환이 조용히 실패했다.
         private class CardHandler : MonoBehaviour,
-            IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
+            IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
         {
             public int Index;
             public ComboBoardUI Owner;
 
             private RectTransform _rect;
+            private CanvasGroup _group;
             private Vector2 _originalPos;
             private bool _dragging;
 
-            private void Awake() => _rect = GetComponent<RectTransform>();
+            private void Awake()
+            {
+                _rect = GetComponent<RectTransform>();
+                _group = GetComponent<CanvasGroup>();
+            }
 
             public void OnBeginDrag(PointerEventData eventData)
             {
@@ -88,6 +104,9 @@ namespace Prototype
 
                 _dragging = true;
                 _originalPos = _rect.anchoredPosition;
+
+                // 커서 아래를 비워 준다 — 밑에 깔린 카드가 드롭 대상이 되도록.
+                if (_group != null) _group.blocksRaycasts = false;
             }
 
             public void OnDrag(PointerEventData eventData)
@@ -101,7 +120,13 @@ namespace Prototype
                 if (!_dragging) return;
 
                 _dragging = false;
+                if (_group != null) _group.blocksRaycasts = true;
                 _rect.anchoredPosition = _originalPos;
+
+                // 손패 밖에서 놓았으면 조준으로 넘어간다.
+                // 안에서 놓았으면 이미 OnDrop이 순서 교환을 처리했다.
+                if (!Owner.IsInsideHandPanel(eventData))
+                    Owner.HandleCardPulledOut(Index);
             }
 
             public void OnDrop(PointerEventData eventData)
@@ -111,11 +136,6 @@ namespace Prototype
                 var from = eventData.pointerDrag.GetComponent<CardHandler>();
                 if (from != null && from.Index != Index)
                     Owner.HandleSwap(from.Index, Index);
-            }
-
-            public void OnPointerClick(PointerEventData eventData)
-            {
-                Owner.HandleCardClicked(Index);
             }
         }
 
@@ -222,6 +242,7 @@ namespace Prototype
 
             var panel = CreatePanel(canvasGo.transform, "HandPanel", PanelColor);
             var panelRect = panel.GetComponent<RectTransform>();
+            _handPanelRect = panelRect;
             panelRect.anchorMin = new Vector2(0.5f, 0f);
             panelRect.anchorMax = new Vector2(0.5f, 0f);
             panelRect.pivot = new Vector2(0.5f, 0f);
@@ -367,8 +388,20 @@ namespace Prototype
             _bulletTime.SwapHand(from, to);
         }
 
-        // 카드 클릭 → 조준이 필요한 스킬이면 조준 모드로 들어간다.
-        private void HandleCardClicked(int index)
+        /// <summary>
+        /// 뗀 자리가 손패 판 안인지. 화면좌표로 본다 —
+        /// 끌려 나간 카드의 RectTransform이 아니라 <b>커서 위치</b>가 기준이다.
+        /// </summary>
+        private bool IsInsideHandPanel(PointerEventData eventData)
+        {
+            if (_handPanelRect == null) return true;
+
+            return RectTransformUtility.RectangleContainsScreenPoint(
+                _handPanelRect, eventData.position, eventData.pressEventCamera);
+        }
+
+        // 카드를 손패 밖으로 꺼냄 → 조준이 필요한 스킬이면 조준 모드로 들어간다.
+        private void HandleCardPulledOut(int index)
         {
             if (!CanEditNow) return;
 
@@ -407,7 +440,7 @@ namespace Prototype
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
                 _hintText.text = _aimingIndex >= 0
                     ? "조준: 좌클릭 확정 / 우클릭 취소"
-                    : "카드 드래그로 순서 교환 · 클릭으로 조준 · E 또는 Space로 실행";
+                    : "손패 안에서 드래그 — 순서 교환 · 손패 밖으로 꺼내기 — 조준 · E 또는 Space로 실행";
             }
             else
             {

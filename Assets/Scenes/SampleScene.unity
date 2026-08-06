@@ -2089,6 +2089,10 @@ PrefabInstance:
       propertyPath: wallMask.m_Bits
       value: 512
       objectReference: {fileID: 0}
+    - target: {fileID: 3542221482747386564, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_SortingOrder
       value: 201
@@ -2914,10 +2918,11 @@ MonoBehaviour:
   targetSelector: {fileID: 0}
   maxGauge: 100
   gaugeRegen: 8
-  requiredRatio: 1
+  requiredRatio: 0.1
   manaCost: 0
   cooldown: 0
   buildDeckOnStart: 1
+  purgeCardsOnAllyDeath: 1
   freezeDuration: 0
 --- !u!4 &1026486063
 Transform:
@@ -4184,6 +4189,10 @@ PrefabInstance:
       propertyPath: wallMask.m_Bits
       value: 512
       objectReference: {fileID: 0}
+    - target: {fileID: 3542221482747386564, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_SortingOrder
       value: -199
@@ -4526,6 +4535,10 @@ PrefabInstance:
     - target: {fileID: 3283989239390232723, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 3542221482747386564, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: animator
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_SortingOrder
@@ -5748,6 +5761,10 @@ PrefabInstance:
     - target: {fileID: 3283989239390232723, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 3542221482747386564, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: animator
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalPosition.x
