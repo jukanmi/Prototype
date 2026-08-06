@@ -139,14 +139,14 @@ namespace Prototype.EditorTools
 
             // ══ 근거리 딜러 (Warrior) ══
             t.Add(new Spec {
-                id = "WR1A", name = "질풍 베기", note = "리븐 E — 짧은 대쉬 + 보호막",
+                id = "WR1A", name = "돌진 베기", note = "리븐 E — 짧은 대쉬 + 보호막",
                 role = Role.Warrior, type = AttackType.Strike, aim = TargetingType.Direction,
                 castTime = 0.12f, recovery = 0.2f,
                 hits = { Damage(7f) },
                 effects = { new ChargeEffect(), new ShieldEffect() },
             });
             t.Add(new Spec {
-                id = "WR1B", name = "삼단 올려베기", note = "요네 Q 3타 — 앞 2타는 평타, 3타만 띄운다",
+                id = "WR1B", name = "올려베기", note = "요네 Q 3타 — 앞 2타는 평타, 3타만 띄운다",
                 role = Role.Warrior, type = AttackType.Launcher, require = CombatState.LightHit,
                 aim = TargetingType.None,
                 castTime = 0.12f, hitInterval = 0.18f, recovery = 0.25f,
@@ -160,7 +160,7 @@ namespace Prototype.EditorTools
                 hits = { Push() },
             });
             t.Add(new Spec {
-                id = "WR3B", name = "절대 영도", note = "누누 R — 콤보 끝까지 모았다가 터진다",
+                id = "WR3B", name = "사슬 감아치기", note = "누누 R — 콤보 끝까지 모았다가 터진다",
                 role = Role.Warrior, type = AttackType.Charge, aim = TargetingType.None, radius = 5f,
                 castTime = 0.15f, recovery = 0.4f,
                 hits = { Launch(14f, 10f) },
@@ -201,7 +201,7 @@ namespace Prototype.EditorTools
 
             // ══ 마법사 ══
             t.Add(new Spec {
-                id = "WZ1A", name = "마력탄", note = "이즈리얼 Q — 기본 스킬샷",
+                id = "WZ1A", name = "마력탄 연사", note = "이즈리얼 Q — 기본 스킬샷",
                 role = Role.Wizard, type = AttackType.Strike, aim = TargetingType.Direction,
                 castTime = 0.15f, recovery = 0.2f,
                 hits = { Damage(9f) },
