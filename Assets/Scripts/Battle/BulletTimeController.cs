@@ -36,6 +36,10 @@ namespace Prototype
         [Tooltip("Start에서 파티 장착 카드로 덱을 짠다. 포스트 배틀 흐름이 붙기 전까지만.")]
         [SerializeField] private bool buildDeckOnStart = true;
 
+        [Tooltip("동료가 죽으면 그 직업 카드를 덱 · 손패 · 버린 더미에서 전부 걷어낸다. " +
+                 "같은 직업 동료가 아직 살아 있으면 남긴다.")]
+        [SerializeField] private bool purgeCardsOnAllyDeath = true;
+
         [Header("전술 페이즈")]
         [Tooltip("Freeze 체류 시간(비배율 초). 0이면 다음 프레임에 곧바로 Order로 넘어간다. UI 확대 연출을 넣을 자리.")]
         [SerializeField] private float freezeDuration = 0f;
@@ -46,6 +50,12 @@ namespace Prototype
 
         private TacticStateMachine tactic;
         private float cooldownTimer;
+
+        /// <summary>
+        /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
+        /// 해제하려면 그때 넘긴 델리게이트 인스턴스를 그대로 들고 있어야 한다.
+        /// </summary>
+        private readonly List<(Combat combat, Action handler)> deathHooks = new List<(Combat, Action)>();
 
         public Energy Gauge { get; private set; }
 
@@ -100,6 +110,8 @@ namespace Prototype
                 executor.OnSlotConsumed += HandleSlotConsumed;
                 executor.OnExecuteFinished += HandleExecuteFinished;
             }
+
+            SubscribeAllyDeaths();
         }
 
         private void OnDisable()
@@ -109,6 +121,8 @@ namespace Prototype
                 executor.OnSlotConsumed -= HandleSlotConsumed;
                 executor.OnExecuteFinished -= HandleExecuteFinished;
             }
+
+            UnsubscribeAllyDeaths();
         }
 
         private void Update()
@@ -341,8 +355,94 @@ namespace Prototype
 
         private void HandleSlotConsumed(ComboCard card)
         {
+            // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 실행 큐는 손패를 통째로 굳혀 두므로
+            // 콤보 도중에 시전자가 죽어도 남은 슬롯이 여기까지 흘러온다 —
+            // 그대로 넣으면 덱이 소진될 때 Discard가 회수되면서 죽은 동료 카드가 되살아난다.
+            if (purgeCardsOnAllyDeath && IsOrphanCard(card))
+            {
+                BattleLog.Log(LogCategory.Deck,
+                    $"{(card.Data != null ? card.Data.skillName : "(빈 카드)")} — " +
+                    "시전 직업이 전멸해 버린 더미로 보내지 않고 소멸", this);
+                return;
+            }
+
             // 사용한 카드는 즉시 소멸 이동.
             discard.Add(card);
+        }
+
+        /// <summary>살아 있는 시전자가 없어 영영 쓸 수 없게 된 카드인지.</summary>
+        private bool IsOrphanCard(ComboCard card)
+            => card != null && card.Data != null && ResolveCaster(card.Data.role) == null;
+
+        // ── 동료 사망 → 카드 회수 ─────────────────────────
+
+        private void SubscribeAllyDeaths()
+        {
+            if (player == null) return;
+
+            foreach (Ally a in player.Party)
+            {
+                if (a == null || a.Combat == null) continue;
+
+                Ally dead = a;
+                Action handler = () => HandleAllyDied(dead);
+
+                dead.Combat.OnDead += handler;
+                deathHooks.Add((dead.Combat, handler));
+            }
+        }
+
+        private void UnsubscribeAllyDeaths()
+        {
+            for (int i = 0; i < deathHooks.Count; i++)
+                if (deathHooks[i].combat != null)
+                    deathHooks[i].combat.OnDead -= deathHooks[i].handler;
+
+            deathHooks.Clear();
+        }
+
+        private void HandleAllyDied(Ally dead)
+        {
+            if (!purgeCardsOnAllyDeath || dead == null) return;
+
+            // 같은 직업 동료가 아직 살아 있으면 그 카드는 여전히 발동할 수 있다.
+            if (ResolveCaster(dead.Role) != null)
+            {
+                BattleLog.Log(LogCategory.Deck,
+                    $"{BattleLog.Name(dead)} 사망 — 같은 직업({dead.Role}) 동료가 살아 있어 카드는 남긴다", this);
+                return;
+            }
+
+            BattleLog.Log(LogCategory.Deck, $"<b>{BattleLog.Name(dead)} 사망</b> — {dead.Role} 카드를 걷어낸다", this);
+            PurgeRole(dead.Role);
+        }
+
+        /// <summary>
+        /// 한 직업의 카드를 덱 · 손패 · 버린 더미에서 통째로 걷어낸다.
+        /// <b>버린 더미까지 지우는 게 핵심</b> — 남겨 두면 덱이 소진될 때 회수돼 되살아난다.
+        /// </summary>
+        public int PurgeRole(Role role)
+        {
+            bool Match(ComboCard c) => c != null && c.Data != null && c.Data.role == role;
+
+            int fromDeck = deck.RemoveAll(Match);
+            int fromHand = hand.RemoveAll(Match);
+            int fromDiscard = discard.RemoveAll(Match);
+            int total = fromDeck + fromHand + fromDiscard;
+
+            BattleLog.Log(LogCategory.Deck,
+                $"<b>{role} 카드 {total}장 제거</b> — 덱 {fromDeck} · 손패 {fromHand} · 버린 더미 {fromDiscard} → " +
+                $"덱 {deck.Count} · 손패 {hand.Count} · 버린 더미 {discard.Count}", this);
+
+            if (total == 0) return 0;
+
+            // 손패에 구멍이 났으면 메운다. 실행 중에는 건드리지 않는다 —
+            // 아직 Discard로 안 간 카드가 다시 뽑히기 때문(HandleExecuteFinished가 대신 채운다).
+            if (executor == null || !executor.IsRunning)
+                RefillHand();
+
+            PredictHand();
+            return total;
         }
 
         private void HandleExecuteFinished()

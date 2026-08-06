@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "WZ3A \u2014 \uC544\uC6B0\uB810\uB9AC\uC628 \uC194 R \u2014 \uAD11\uC5ED
     \uB099\uD558 + \uC5D0\uC5B4\uBCF8"
   role: 3
-  attackType: 2
+  attackType: 1
   requireState: 1
   resultState: 2
   targeting: 1

@@ -16,7 +16,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   description: "AR01 \u2014 \uC5F0\uC0AC"
   role: 2
-  attackType: 6
+  attackType: 2
   requireState: 0
   resultState: 0
   targeting: 0

@@ -17,7 +17,7 @@ MonoBehaviour:
   description: "WR2A \u2014 \uC57C\uC2A4\uC624 R \u2014 \uB72C \uC801\uC5D0\uAC8C
     \uBD99\uC5B4 \uACF5\uC911\uC5D0 \uBD99\uC7A1\uC544 \uB454\uB2E4"
   role: 1
-  attackType: 0
+  attackType: 2
   requireState: 2
   resultState: 2
   targeting: 2

@@ -86,6 +86,16 @@ namespace Prototype
             BattleLog.Log(LogCategory.Deck, $"덱 소진 → Discard {recovered}장 회수 후 재셔플 (덱 {cards.Count})");
         }
 
+        /// <summary>조건에 맞는 카드를 덱에서 걷어낸다. 지운 장수를 돌려준다.</summary>
+        public int RemoveAll(Predicate<ComboCard> match)
+        {
+            if (match == null) return 0;
+
+            int removed = cards.RemoveAll(match);
+            if (removed > 0) OnChanged?.Invoke();
+            return removed;
+        }
+
         /// <summary>포스트 배틀에서만 호출한다. 전투 중 덱 수정은 막는다.</summary>
         public void Replace(IEnumerable<ComboCard> newCards)
         {
@@ -158,6 +168,20 @@ namespace Prototype
             slots.RemoveAt(0);
             OnChanged?.Invoke();
             return s;
+        }
+
+        /// <summary>
+        /// 조건에 맞는 카드가 든 칸을 손패에서 걷어낸다. 지운 장수를 돌려준다.
+        /// 남은 칸은 왼쪽으로 당겨지므로 <b>인덱스가 밀린다</b> —
+        /// 조준 대기 중인 UI가 있으면 갱신을 받아야 한다.
+        /// </summary>
+        public int RemoveAll(Predicate<ComboCard> match)
+        {
+            if (match == null) return 0;
+
+            int removed = slots.RemoveAll(s => match(s.card));
+            if (removed > 0) OnChanged?.Invoke();
+            return removed;
         }
 
         /// <summary>두 칸의 순서를 바꾼다. 조준값도 카드를 따라 같이 이동한다.</summary>
@@ -234,6 +258,16 @@ namespace Prototype
 
             cards.AddRange(range);
             OnChanged?.Invoke();
+        }
+
+        /// <summary>조건에 맞는 카드를 버린 더미에서 걷어낸다. 지운 장수를 돌려준다.</summary>
+        public int RemoveAll(Predicate<ComboCard> match)
+        {
+            if (match == null) return 0;
+
+            int removed = cards.RemoveAll(match);
+            if (removed > 0) OnChanged?.Invoke();
+            return removed;
         }
 
         public void Clear()

@@ -159,6 +159,14 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2577717552074091696, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.9399999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2625240665475409222, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: -160
+      objectReference: {fileID: 0}
     - target: {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Color.b
       value: 0
@@ -215,6 +223,10 @@ PrefabInstance:
       propertyPath: basicAttack
       value: 
       objectReference: {fileID: 1536242962}
+    - target: {fileID: 7720110155626573987, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: -159
+      objectReference: {fileID: 0}
     - target: {fileID: 8469159987788027404, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Layer
       value: 13
@@ -222,6 +234,10 @@ PrefabInstance:
     - target: {fileID: 8582682390267516575, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 9030279768759049339, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.4399999
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -287,6 +303,14 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2577717552074091696, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.6600001
+      objectReference: {fileID: 0}
+    - target: {fileID: 2625240665475409222, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: 240
+      objectReference: {fileID: 0}
     - target: {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Color.b
       value: 0
@@ -343,6 +367,10 @@ PrefabInstance:
       propertyPath: basicAttack
       value: 
       objectReference: {fileID: 721362450}
+    - target: {fileID: 7720110155626573987, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: 241
+      objectReference: {fileID: 0}
     - target: {fileID: 8469159987788027404, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Layer
       value: 13
@@ -350,6 +378,10 @@ PrefabInstance:
     - target: {fileID: 8582682390267516575, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 9030279768759049339, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2.16
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -390,7 +422,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d68ae93b93bd43041858cf1a2aca09b4, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.Attack
   attacker: {fileID: 666351962}
   hitData:
@@ -405,6 +437,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &182686509
 GameObject:
   m_ObjectHideFlags: 0
@@ -1315,6 +1348,8 @@ MonoBehaviour:
   shadow: {fileID: 219172755}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -1394,6 +1429,8 @@ MonoBehaviour:
   shadow: {fileID: 217981156}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -1732,6 +1769,8 @@ MonoBehaviour:
   shadow: {fileID: 2014610881}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -1820,6 +1859,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -1955,6 +1995,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &666351960 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6734300126761519738, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
@@ -1992,6 +2033,8 @@ MonoBehaviour:
   shadow: {fileID: 596965028}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -2046,6 +2089,10 @@ PrefabInstance:
       propertyPath: wallMask.m_Bits
       value: 512
       objectReference: {fileID: 0}
+    - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: 201
+      objectReference: {fileID: 0}
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -2069,6 +2116,10 @@ PrefabInstance:
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6145137433148996099, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: 200
       objectReference: {fileID: 0}
     - target: {fileID: 6551534858345200687, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_Layer
@@ -2121,6 +2172,14 @@ PrefabInstance:
     - target: {fileID: 8163877768535530770, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8695398512408841438, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 9000278587293893684, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.8
       objectReference: {fileID: 0}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: role
@@ -2243,6 +2302,8 @@ MonoBehaviour:
   shadow: {fileID: 1663491509}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -2315,6 +2376,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &779222351
 GameObject:
   m_ObjectHideFlags: 0
@@ -2534,6 +2596,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &851669541
 GameObject:
   m_ObjectHideFlags: 0
@@ -2722,6 +2785,8 @@ MonoBehaviour:
   shadow: {fileID: 789200035}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -2779,6 +2844,7 @@ GameObject:
   - component: {fileID: 1026486058}
   - component: {fileID: 1026486064}
   - component: {fileID: 1026486065}
+  - component: {fileID: 1026486066}
   m_Layer: 0
   m_Name: CombatManager
   m_TagString: Untagged
@@ -2884,7 +2950,6 @@ MonoBehaviour:
   targetSelector: {fileID: 1026486058}
   player: {fileID: 2022376785}
   show: 1
-  SuppressCardInput: 0
 --- !u!114 &1026486065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2898,6 +2963,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboBoardUI
   targetSelector: {fileID: 0}
+--- !u!114 &1026486066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026486057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12834e749c38c0644bb93bcf5714df06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.DeckInspectorUI
 --- !u!1001 &1034345465
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2937,6 +3014,14 @@ PrefabInstance:
     - target: {fileID: 2539846597733611993, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2577717552074091696, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.66
+      objectReference: {fileID: 0}
+    - target: {fileID: 2625240665475409222, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: -240
       objectReference: {fileID: 0}
     - target: {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Color.b
@@ -2994,6 +3079,10 @@ PrefabInstance:
       propertyPath: basicAttack
       value: 
       objectReference: {fileID: 1748487199}
+    - target: {fileID: 7720110155626573987, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: -239
+      objectReference: {fileID: 0}
     - target: {fileID: 8469159987788027404, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Layer
       value: 13
@@ -3001,6 +3090,10 @@ PrefabInstance:
     - target: {fileID: 8582682390267516575, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 9030279768759049339, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.16
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -3304,6 +3397,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1331892244 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6734300126761519738, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
@@ -3341,6 +3435,8 @@ MonoBehaviour:
   shadow: {fileID: 1737416431}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -3410,7 +3506,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ac3a0876cf9c81946a0e87404b703621, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.YG.BattleSceneController
 --- !u!4 &1497370465
 Transform:
@@ -3457,6 +3553,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1543333409 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8469159987788027404, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -3487,6 +3584,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1568981378 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 636828377596309778, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -3524,6 +3622,8 @@ MonoBehaviour:
   shadow: {fileID: 1148258930}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -3795,6 +3895,14 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2577717552074091696, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.94
+      objectReference: {fileID: 0}
+    - target: {fileID: 2625240665475409222, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: 160
+      objectReference: {fileID: 0}
     - target: {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Color.b
       value: 0
@@ -3851,6 +3959,10 @@ PrefabInstance:
       propertyPath: basicAttack
       value: 
       objectReference: {fileID: 1543333410}
+    - target: {fileID: 7720110155626573987, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_SortingOrder
+      value: 161
+      objectReference: {fileID: 0}
     - target: {fileID: 8469159987788027404, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Layer
       value: 13
@@ -3858,6 +3970,10 @@ PrefabInstance:
     - target: {fileID: 8582682390267516575, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 9030279768759049339, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.4399999
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
@@ -3904,6 +4020,8 @@ MonoBehaviour:
   shadow: {fileID: 851669543}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -4066,6 +4184,10 @@ PrefabInstance:
       propertyPath: wallMask.m_Bits
       value: 512
       objectReference: {fileID: 0}
+    - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: -199
+      objectReference: {fileID: 0}
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -4089,6 +4211,10 @@ PrefabInstance:
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6145137433148996099, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: -200
       objectReference: {fileID: 0}
     - target: {fileID: 6551534858345200687, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_Layer
@@ -4141,6 +4267,14 @@ PrefabInstance:
     - target: {fileID: 8163877768535530770, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8695398512408841438, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 9000278587293893684, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.8
       objectReference: {fileID: 0}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: role
@@ -4380,6 +4514,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1001 &1777933558
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4391,6 +4526,10 @@ PrefabInstance:
     - target: {fileID: 3283989239390232723, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: wallMask.m_Bits
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 3572346084441602960, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: 101
       objectReference: {fileID: 0}
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4415,6 +4554,10 @@ PrefabInstance:
     - target: {fileID: 4869655705139622662, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6145137433148996099, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_SortingOrder
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 6551534858345200687, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_Layer
@@ -4467,6 +4610,14 @@ PrefabInstance:
     - target: {fileID: 8163877768535530770, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8695398512408841438, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 9000278587293893684, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.9
       objectReference: {fileID: 0}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: role
@@ -4570,6 +4721,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1864877444
 GameObject:
   m_ObjectHideFlags: 0
@@ -4784,6 +4936,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1926106289
 GameObject:
   m_ObjectHideFlags: 0
@@ -4897,6 +5050,8 @@ MonoBehaviour:
   shadow: {fileID: 2003934692}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -5274,6 +5429,8 @@ MonoBehaviour:
   shadow: {fileID: 331791352}
   depthToScreen: 0.9
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -5667,6 +5824,10 @@ PrefabInstance:
     - target: {fileID: 8163877768535530770, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9000278587293893684, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
       propertyPath: selfSkill
