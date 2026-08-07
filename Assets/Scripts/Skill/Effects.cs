@@ -44,7 +44,7 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 모으기. 찍은 지점으로 텔포한 <b>뒤의 시전자 위치</b>를 중심으로 반경 내 적을 끌어당긴다.
+    /// 모으기. <see cref="SkillContext.Origin"/>을 중심으로 반경 내 적을 끌어당긴다.
     /// 적을 개별 지정하지 않는다 — 좌표 하나만 받는다.
     /// </summary>
     [Serializable]
@@ -60,8 +60,9 @@ namespace Prototype
             Combat caster = ctx.CasterCombat;
             if (caster == null) return;
 
-            // 중심은 텔포가 끝난 시점의 시전자 위치.
-            Vector3 center = caster.transform.position;
+            // 중심은 조준한 좌표. 원거리 직업은 실시간에 텔포하지 않으므로
+            // 시전자 위치로 잡으면 범위가 발밑에 생긴다.
+            Vector3 center = ctx.Origin;
             float r = radius * ctx.RadiusScale;   // 차징으로 커진 만큼 넓어진다
 
             var hit = new HitData
@@ -85,7 +86,7 @@ namespace Prototype
         }
     }
 
-    /// <summary>띄우기. 반경 내 적을 공중으로 올린다. 시동기의 실체.</summary>
+    /// <summary>띄우기. <see cref="SkillContext.Origin"/> 반경 내 적을 공중으로 올린다. 시동기의 실체.</summary>
     [Serializable]
     public class AirborneEffect : ISkillEffect
     {
@@ -108,7 +109,7 @@ namespace Prototype
                 hitStunDuration = hitStun,
             };
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius * ctx.RadiusScale, caster,
+            EffectUtil.OverlapCombats(ctx.Origin, radius * ctx.RadiusScale, caster,
                                       c => caster.Attack(c, in hit));
         }
     }
@@ -160,7 +161,7 @@ namespace Prototype
             Entity casterEntity = ctx.caster;
             if (caster == null || casterEntity == null) return;
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius, caster, c =>
+            EffectUtil.OverlapCombats(ctx.Origin, radius, caster, c =>
             {
                 var ec = c.GetComponent<EnemyControl>();
                 if (ec != null) ec.SetTarget(casterEntity);

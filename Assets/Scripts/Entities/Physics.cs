@@ -25,6 +25,9 @@ namespace Prototype
 
         [Header("중력")]
         [SerializeField] private float gravity = 30f;
+        [Tooltip("내려올 때만 곱하는 중력 배율. 1보다 작으면 정점에서 둥실 떠 있다가 천천히 떨어진다.\n" +
+                 "올라가는 속도는 건드리지 않으므로 launchForce 튜닝값이 그대로 유지된다.")]
+        [Range(0.1f, 2f)][SerializeField] private float fallGravityScale = 1f;
 
         [Tooltip("바라보는 방향으로 transform을 돌린다. 히트박스 방향이 여기 따라간다.")]
         [SerializeField] private bool rotateToFacing = true;
@@ -231,6 +234,13 @@ namespace Prototype
             gravityScale = 1f;
         }
 
+        /// <summary>낙하 중 중력 배율. 1보다 작으면 천천히 내려온다.</summary>
+        public float FallGravityScale
+        {
+            get => fallGravityScale;
+            set => fallGravityScale = Mathf.Max(0.01f, value);
+        }
+
         /// <summary>중력 배율을 덧씌운다. AirHitCount 가중치가 이 경로로 들어온다.</summary>
         public void AddGravity(float scale)
         {
@@ -257,7 +267,10 @@ namespace Prototype
 
             if (PhysicsState == PhysicsState.Aerial || y > groundY + 0.001f)
             {
-                verticalVelocity -= Gravity * dt;
+                // 내려올 때만 배율을 먹인다. 올라가는 구간은 그대로 둬야 띄운 높이가 안 변한다.
+                float g = verticalVelocity < 0f ? Gravity * fallGravityScale : Gravity;
+
+                verticalVelocity -= g * dt;
                 PhysicsState = PhysicsState.Aerial;
             }
 

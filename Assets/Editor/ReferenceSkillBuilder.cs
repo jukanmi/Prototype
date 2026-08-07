@@ -177,11 +177,13 @@ namespace Prototype.EditorTools
                 projectile = true, projSpeed = 22f, projRange = 10f,
             });
             t.Add(new Spec {
+                // 투사체로 쏜다. 히트박스는 시전자에 붙어 있어 원거리 직업이 제자리에서 쓰면 닿지 않는다.
                 id = "AR2A", name = "상승 화살", note = "시동기 — 화살로 쳐올려 띄운다",
                 role = Role.Archer, type = AttackType.Launcher, require = CombatState.LightHit,
-                aim = TargetingType.GroundPoint, radius = 4f,
+                aim = TargetingType.EnemyUnit, radius = 4f,
                 castTime = 0.3f, recovery = 0.25f,
                 hits = { Launch(6f, 12f) },
+                projectile = true, projSpeed = 22f, projRange = 10f,
             });
             t.Add(new Spec {
                 id = "AR2B", name = "강력 사격", note = "베인 E — 밀어내고 벽에 닿으면 벽바운드",
@@ -208,11 +210,13 @@ namespace Prototype.EditorTools
                 projectile = true, projSpeed = 24f, projRange = 12f,
             });
             t.Add(new Spec {
+                // 찍은 지점에서 솟구친다. 판정을 AirborneEffect에 맡겨야 ctx.Origin 기준으로 터진다.
+                // 시전자에 붙은 히트박스로는 원거리 직업이 제자리에서 쓸 때 좌표가 어긋난다.
                 id = "WZ2A", name = "융기", note = "시동기 — 지면을 솟구쳐 띄운다",
                 role = Role.Wizard, type = AttackType.Launcher, require = CombatState.LightHit,
                 aim = TargetingType.GroundPoint, radius = 4.5f,
                 castTime = 0.35f, recovery = 0.3f,
-                hits = { Launch(7f, 12f) },
+                effects = { new AirborneEffect() },
             });
             t.Add(new Spec {
                 id = "WZ2B", name = "중력장", note = "흐웨이 EE — 지정 지점으로 끌어모은다",
