@@ -58,6 +58,15 @@ namespace Prototype
         /// <summary>0이면 미설정으로 보고 1을 준다. 구조체라 기본값이 0이기 때문.</summary>
         public float RadiusScale => radiusScale > 0f ? radiusScale : 1f;
 
+        /// <summary>
+        /// 콤보 QTE 판정 배율. <see cref="BulletTimeQTEController"/>가 스킬 발동 직전에 채운다.
+        /// 실패해도 페널티는 없으므로 최솟값은 1이다.
+        /// </summary>
+        public float qteMultiplier;
+
+        /// <summary>0이면 미설정으로 보고 1을 준다.</summary>
+        public float QteMultiplier => qteMultiplier > 0f ? qteMultiplier : 1f;
+
         public Combat CasterCombat => caster != null ? caster.Combat : null;
         public Physics CasterPhysics => caster != null ? caster.Physics : null;
 

@@ -38,8 +38,20 @@ namespace Prototype
         /// <summary>
         /// 타격 직전에 HitData를 손볼 마지막 기회. 차징이 배율을 여기서 태운다.
         /// 원본 에셋은 건드리지 않는다 — 값 복사본만 바뀐다.
+        ///
+        /// 기본 구현은 콤보 QTE 배율(<see cref="SkillContext.QteMultiplier"/>)을 적용한다 —
+        /// 차징 스킬을 포함해 모든 스킬이 공통으로 받는 보너스이기 때문.
         /// </summary>
-        protected virtual HitData ModifyHit(HitData hit) => hit;
+        protected virtual HitData ModifyHit(HitData hit)
+        {
+            float mul = ctx.QteMultiplier;
+            if (mul == 1f) return hit;
+
+            hit.damageData.damage *= mul;
+            hit.knockbackForce *= mul;
+            hit.launchForce *= mul;
+            return hit;
+        }
 
         public virtual void Enter()
         {

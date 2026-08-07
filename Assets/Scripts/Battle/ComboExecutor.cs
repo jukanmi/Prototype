@@ -17,6 +17,12 @@ namespace Prototype
         [Tooltip("스킬이 끝나지 않을 때 강제로 넘기는 상한.")]
         [SerializeField] private float slotTimeout = 5f;
 
+        [Tooltip("비워두면 같은 GameObject에서 찾는다. 없으면 QTE 없이 곧바로 발동한다.")]
+        [SerializeField] private BulletTimeQTEController qte;
+
+        [Tooltip("비워두면 같은 GameObject에서 찾거나 새로 붙인다. QTE Good/Perfect 성공 시 카드를 띄운다.")]
+        [SerializeField] private SkillCutUI skillCut;
+
         private Coroutine running;
 
         public bool IsRunning => running != null;
@@ -25,6 +31,14 @@ namespace Prototype
         public event Action OnExecuteFinished;
         /// <summary>실행이 끝난 카드. Discard로 옮기는 쪽이 구독한다.</summary>
         public event Action<ComboCard> OnSlotConsumed;
+
+        private void Awake()
+        {
+            if (qte == null) qte = GetComponent<BulletTimeQTEController>();
+
+            if (skillCut == null) skillCut = GetComponentInChildren<SkillCutUI>();
+            if (skillCut == null) skillCut = gameObject.AddComponent<SkillCutUI>();
+        }
 
         public void Execute(Queue<ComboSlot> queue)
         {
@@ -57,7 +71,7 @@ namespace Prototype
 
                 if (slot.Data != null && slot.Data.IsCharge)
                 {
-                    StartCharge(slot, pending);
+                    yield return StartCharge(slot, pending);
                     OnSlotConsumed?.Invoke(slot.card);
                     continue;   // 대기하지 않는다 — 뒤 슬롯이 그대로 이어진다
                 }
@@ -87,7 +101,7 @@ namespace Prototype
             public SkillData data;
         }
 
-        private void StartCharge(ComboSlot slot, List<PendingCharge> pending)
+        private IEnumerator StartCharge(ComboSlot slot, List<PendingCharge> pending)
         {
             SkillData data = slot.Data;
             Ally caster = slot.caster;
@@ -95,7 +109,22 @@ namespace Prototype
             if (caster == null || caster.Combat.IsDead)
             {
                 BattleLog.Warn(LogCategory.Combo, $"차징 건너뜀 — 시전자 없음 ({data.skillName})", this);
-                return;
+                yield break;
+            }
+
+            float qteMultiplier = 1f;
+            if (qte != null)
+            {
+                yield return qte.Run(data, caster);
+                qteMultiplier = qte.LastResult.damageMultiplier;
+                skillCut.Show(data, qte.LastResult.tier);
+            }
+
+            // QTE가 슬로우로 벌어 준 시간 동안 시전자가 죽었을 수 있다 — 여기서 다시 확인한다.
+            if (caster.Combat.IsDead)
+            {
+                BattleLog.Warn(LogCategory.Combo, $"{data.skillName} 건너뜀 — QTE 중 시전자 사망", this);
+                yield break;
             }
 
             var ctx = new SkillContext
@@ -106,6 +135,7 @@ namespace Prototype
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
+                qteMultiplier = qteMultiplier,
             };
 
             // 모으는 동안에도 BT는 멈춰 있어야 한다. 해제까지 지휘 상태를 유지한다.
@@ -188,21 +218,26 @@ namespace Prototype
             Entity target = info.unit;
 
             // 대상이 이미 죽었으면 사망 위치 기준 최근접 적으로 재타겟한다(결정 로그 ⑧).
-            if (info.type == TargetingType.EnemyUnit && (target == null || target.Combat.IsDead))
+            if (!TryEnsureAliveTarget(data, ref info, ref target))
+                yield break;
+
+            float qteMultiplier = 1f;
+            if (qte != null)
             {
-                Vector3 deadPos = target != null ? target.transform.position : info.point;
-                target = Retarget(deadPos);
-
-                if (target == null)
-                {
-                    BattleLog.Warn(LogCategory.Combo, $"재타겟 실패 — 살아 있는 적이 없다. {data.skillName} 취소", this);
-                    yield break;
-                }
-
-                BattleLog.Log(LogCategory.Combo,
-                    $"대상 사망 → 최근접 재타겟: {BattleLog.Name(target)} (사망 위치 {deadPos})", this);
-                info = TargetInfo.Unit(target);
+                yield return qte.Run(data, caster);
+                qteMultiplier = qte.LastResult.damageMultiplier;
+                skillCut.Show(data, qte.LastResult.tier);
             }
+
+            // QTE가 슬로우로 벌어 준 시간 동안 시전자가 죽었거나 대상이 죽었을 수 있다 — 다시 확인한다.
+            if (caster.Combat.IsDead)
+            {
+                BattleLog.Warn(LogCategory.Combo, $"{data.skillName} 건너뜀 — QTE 중 시전자 사망", this);
+                yield break;
+            }
+
+            if (!TryEnsureAliveTarget(data, ref info, ref target))
+                yield break;
 
             var ctx = new SkillContext
             {
@@ -212,6 +247,7 @@ namespace Prototype
                 targetInfo = info,
                 isBulletTime = true,
                 comboIndex = 0,
+                qteMultiplier = qteMultiplier,
             };
 
             caster.IsCommanded = true;
@@ -245,6 +281,30 @@ namespace Prototype
         private Entity Retarget(Vector3 deadPos)
         {
             return BattleRegistry.NearestEnemy(deadPos);
+        }
+
+        /// <summary>
+        /// EnemyUnit 조준인데 대상이 죽어 있으면 사망 위치 기준 최근접 적으로 재타겟한다(결정 로그 ⑧).
+        /// QTE가 시간을 벌어 준 사이 대상이 죽는 경우가 생겨 RunSlot에서 QTE 전후로 두 번 부른다.
+        /// </summary>
+        private bool TryEnsureAliveTarget(SkillData data, ref TargetInfo info, ref Entity target)
+        {
+            if (info.type != TargetingType.EnemyUnit) return true;
+            if (target != null && !target.Combat.IsDead) return true;
+
+            Vector3 deadPos = target != null ? target.transform.position : info.point;
+            target = Retarget(deadPos);
+
+            if (target == null)
+            {
+                BattleLog.Warn(LogCategory.Combo, $"재타겟 실패 — 살아 있는 적이 없다. {data.skillName} 취소", this);
+                return false;
+            }
+
+            BattleLog.Log(LogCategory.Combo,
+                $"대상 사망 → 최근접 재타겟: {BattleLog.Name(target)} (사망 위치 {deadPos})", this);
+            info = TargetInfo.Unit(target);
+            return true;
         }
 
         private IEnumerator WaitScaled(float seconds)

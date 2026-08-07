@@ -93,11 +93,15 @@ namespace Prototype
 
         private float DamageMultiplier => Mathf.Lerp(1f, Data.maxChargeDamageMul, lockedRatio);
 
-        /// <summary>모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.</summary>
+        /// <summary>
+        /// 모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.
+        /// base.ModifyHit이 먼저 QTE 배율을 태우고, 그 위에 차징 배율을 곱한다 — 둘은 중첩된다.
+        /// </summary>
         protected override HitData ModifyHit(HitData hit)
         {
-            float mul = DamageMultiplier;
+            hit = base.ModifyHit(hit);
 
+            float mul = DamageMultiplier;
             hit.damageData.damage *= mul;
             hit.knockbackForce *= mul;
             hit.launchForce *= mul;

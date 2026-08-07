@@ -17,6 +17,7 @@ namespace Prototype
         Bullet = 1 << 5,  // 불릿타임 진입 / 해제
         Combo = 1 << 6,   // 슬롯 배치 · 큐 실행 · 재타겟
         Predict = 1 << 7, // 예측 · 헛침 경고
+        Qte = 1 << 8,     // 콤보 QTE 판정
 
         All = ~0,
     }
@@ -67,6 +68,7 @@ namespace Prototype
                 case LogCategory.Bullet: return "#00E5FF";
                 case LogCategory.Combo: return "#8AFF80";
                 case LogCategory.Predict: return "#F78C6C";
+                case LogCategory.Qte: return "#FF6FCF";
                 default: return "white";
             }
         }
