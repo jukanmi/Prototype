@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_WR1A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC9C8\uD48D \uBCA0\uAE30"
+  skillName: "\uB3CC\uC9C4 \uBCA0\uAE30"
   icon: {fileID: 21300000, guid: e6d8977c6a6a4baeb397427c3d51881d, type: 3}
   description: "WR1A \u2014 \uB9AC\uBE10 E \u2014 \uC9E7\uC740 \uB300\uC26C + \uBCF4\uD638\uB9C9"
   role: 1
