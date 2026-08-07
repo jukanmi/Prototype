@@ -959,6 +959,9 @@ git commit -am "fix: 상태 라벨 크기·높이 조정"
 별도 스펙으로 처리한다. 지금 손대면 회귀 원인을 못 가린다.
 
 1. **깊이감** — 뒷벽 + 깊이 스케일. 현재 바닥이 단색 사각형 한 장이라 평면으로 읽힌다.
+   스펙이 이미 있다: [2026-08-07-belt-scroll-depth-design.md](../specs/2026-08-07-belt-scroll-depth-design.md).
+   **이 계획을 먼저 끝내고 그쪽으로 간다** — 둘 다 `SpriteRenderer.color`를 건드리므로
+   섞으면 어느 쪽이 색을 망쳤는지 못 가린다.
 2. **변종 프리팹 복구** — `Enemy_Ranged`·`Enemy_Charger`에 `Sprite`/`Shadow` 자식과
    `BeltScrollView`가 없다. `EnemyPrefabBuilder.Paint`가 루트 대신 Sprite 자식을 칠하도록
    고치고 빌더를 다시 돌려야 한다.
