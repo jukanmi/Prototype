@@ -17,6 +17,24 @@ namespace Prototype
         /// </summary>
         public static float DepthToScreen { get; set; } = 0.5f;
 
+        /// <summary>
+        /// 깊이 1당 줄어드는 표시 배율. z=0이 기준 1.0이다.
+        /// <see cref="BeltScrollView"/>가 자기 설정값으로 덮어쓴다.
+        /// </summary>
+        public static float DepthScalePerUnit { get; set; } = 0.06f;
+
+        /// <summary>
+        /// 배율 하한. 방 밖으로 밀려나거나 계수를 크게 잡으면 1 - z·k가 0 아래로 내려가
+        /// 스프라이트가 좌우로 뒤집히거나 사라진다.
+        /// </summary>
+        public const float MinScale = 0.05f;
+
+        /// <summary>
+        /// 깊이에 따른 표시 배율. <b>논리 좌표에는 영향이 없다</b> —
+        /// 판정은 3D 콜라이더가 그대로 하고, 이건 그리는 크기만 바꾼다.
+        /// </summary>
+        public static float ScaleAt(float z) => Mathf.Max(MinScale, 1f - z * DepthScalePerUnit);
+
         /// <summary>논리 좌표 → 그리는 위치. height는 점프 높이.</summary>
         public static Vector3 ToView(Vector3 ground, float height = 0f)
             => new Vector3(ground.x, ground.y + ground.z * DepthToScreen + height, ground.z);
