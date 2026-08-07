@@ -39,9 +39,12 @@ namespace Prototype
         /// 논리 좌표가 아니라 <see cref="BeltScroll.ToView"/>를 거친 <b>그리는 위치</b>다.
         /// 루트 transform은 깊이가 화면 세로로 접히기 전 값(x, 0, z)을 들고 있어서,
         /// 그대로 쓰면 라벨이 발밑 훨씬 아래에 찍힌다.
+        ///
+        /// 머리 오프셋에는 깊이 배율을 먹인다 — 뒤에 선 적은 몸이 줄어 머리도 내려온다.
+        /// 글자 크기는 안 건드린다. 어느 깊이에서나 같게 읽혀야 한다.
         /// </summary>
         public static Vector3 LabelPosition(Vector3 ground, float height, float headOffset)
-            => BeltScroll.ToView(ground, height + headOffset);
+            => BeltScroll.ToView(ground, height + headOffset * BeltScroll.ScaleAt(ground.z));
 
         // 캐릭터 위치는 LateUpdate에 확정된다(BeltScrollView). 그 뒤에 읽는다.
         // TimeControl을 보지 않으므로 불릿타임 중에도 보인다 — 조준하는 동안 상태가 보여야 한다.
