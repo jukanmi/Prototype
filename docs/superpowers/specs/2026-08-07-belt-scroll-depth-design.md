@@ -34,7 +34,8 @@
 **비범위** (별건):
 - `VfxSprite` 깊이 스케일 — 자기 `transform.localScale`을 이펙트 곡선으로 구동하므로
   ([VfxSprite.cs:93](../../../Assets/Scripts/Vfx/VfxSprite.cs#L93)) 캐릭터와 같은 View 노드 분리가 선행돼야 한다.
-- `ChargeGauge`·`RangeIndicator` 깊이 스케일 — UI성 표시라 크기가 일정한 편이 읽기 좋다.
+- `ChargeGauge`·`RangeIndicator`·`EnemyStateLabel`의 **크기** — UI성 표시라 일정한 편이 읽기 좋다.
+  다만 **머리 위 오프셋은 배율을 따라야 한다**(아래 참조).
 - 측벽·바닥 그라데이션·타일 패턴 — 아트가 붙을 때.
 - `EnemyPrefabBuilder` 변종 프리팹 복구 — 별도 스펙. 이 스펙은 그것과 독립적으로 동작해야 한다.
 
@@ -146,7 +147,17 @@ shadow.localScale = shadowBaseScale * shrink * s;
 1.3으로 올리면 -3.7 ~ 6.3 — 아래 여백이 1.0으로 줄고 벽 4 중 3.6이 보인다.
 벽 윗변이 살짝 잘리는 건 의도다. 벽이 화면 위로 계속 이어지는 편이 자연스럽다.
 
-### 4. `Projectile` — 같은 배율
+### 4. 머리 위에 붙는 표시 — 오프셋에만 배율
+
+[ChargeGauge](../../../Assets/Scripts/Vfx/ChargeGauge.cs#L75)와
+`EnemyStateLabel`(작업 중)은 `BeltScroll.ToView(ground, height + headOffset)`으로
+캐릭터 머리 위에 붙는다. 캐릭터가 뒤에서 0.82배로 줄면 머리도 그만큼 내려오는데
+`headOffset`이 고정이면 표시가 머리 위로 붕 뜬다.
+
+`headOffset * BeltScroll.ScaleAt(ground.z)`로 고친다. **위젯 자체의 크기는 안 건드린다** —
+게이지·글자는 어느 깊이에서나 같은 크기로 읽혀야 한다. 앵커 높이만 따라간다.
+
+### 5. `Projectile` — 같은 배율
 
 [Projectile.cs:123](../../../Assets/Scripts/Entities/Projectile.cs#L123)의 sprite·shadow에도
 `BeltScroll.ScaleAt(ground.z)`를 곱한다. Projectile은 Animator가 없어 스케일 충돌이 없다 —
