@@ -23,6 +23,7 @@ namespace Prototype.Tests
 
             // Sync가 static을 덮어쓴다. 다음 테스트로 새지 않게 되돌린다.
             BeltScroll.DepthToScreen = 0.5f;
+            BeltScroll.DepthToScreenX = 0.45f;
             BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
@@ -59,6 +60,7 @@ namespace Prototype.Tests
             so.FindProperty("shadow").objectReferenceValue = shadow;
             so.FindProperty("depthRoot").objectReferenceValue = depthRoot;
             so.FindProperty("depthToScreen").floatValue = 0.9f;
+            so.FindProperty("depthToScreenX").floatValue = 0.45f;
             so.FindProperty("depthScalePerUnit").floatValue = 0.06f;
             so.FindProperty("spriteOffsetY").floatValue = 0.5f;
             so.ApplyModifiedPropertiesWithoutUndo();

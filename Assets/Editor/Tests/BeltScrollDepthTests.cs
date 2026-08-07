@@ -12,6 +12,7 @@ namespace Prototype.Tests
         public void SetDefaults()
         {
             BeltScroll.DepthToScreen = 0.9f;
+            BeltScroll.DepthToScreenX = 0.45f;
             BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
@@ -20,6 +21,7 @@ namespace Prototype.Tests
         {
             // static이라 다음 테스트로 새어 나간다. 원래 기본값으로 돌려놓는다.
             BeltScroll.DepthToScreen = 0.5f;
+            BeltScroll.DepthToScreenX = 0.45f;
             BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
@@ -57,6 +59,57 @@ namespace Prototype.Tests
 
             Assert.That(back.x, Is.EqualTo(ground.x).Within(0.0001f));
             Assert.That(back.z, Is.EqualTo(ground.z).Within(0.0001f));
+        }
+
+        // ── 가로 밀림(oblique) ───────────────────────────
+
+        /// <summary>깊이가 가로로도 밀려야 바닥이 평행사변형으로 보인다.</summary>
+        [Test]
+        public void ToView_ShiftsSidewaysWithDepth()
+        {
+            Vector3 back = BeltScroll.ToView(new Vector3(0f, 0f, 3f));
+            Vector3 front = BeltScroll.ToView(new Vector3(0f, 0f, -3f));
+
+            Assert.That(back.x, Is.EqualTo(3f * 0.45f).Within(0.0001f), "뒤쪽이 오른쪽으로 밀린다");
+            Assert.That(front.x, Is.EqualTo(-3f * 0.45f).Within(0.0001f), "앞쪽이 왼쪽으로 밀린다");
+        }
+
+        /// <summary>z=0 평면은 밀림이 없다 — 기준선이 흔들리면 안 된다.</summary>
+        [Test]
+        public void ToView_AtZeroDepth_DoesNotShift()
+        {
+            Vector3 p = BeltScroll.ToView(new Vector3(4.2f, 0f, 0f));
+
+            Assert.That(p.x, Is.EqualTo(4.2f).Within(0.0001f));
+        }
+
+        /// <summary>
+        /// 밀림이 붙어도 역변환이 성립해야 한다 — 마우스 피킹이 여기 걸려 있다.
+        /// 세로에서 깊이를 먼저 되찾고 그 깊이로 가로에서 밀림을 뺀다.
+        /// </summary>
+        [Test]
+        public void ViewToGround_UndoesTheSidewaysShift()
+        {
+            var ground = new Vector3(-1.5f, 0f, 2.25f);
+
+            Vector3 view = BeltScroll.ToView(ground);
+            Assert.That(view.x, Is.Not.EqualTo(ground.x).Within(0.001f), "밀림이 실제로 걸려야 한다");
+
+            Vector3 back = BeltScroll.ToGround(view);
+
+            Assert.That(back.x, Is.EqualTo(ground.x).Within(0.0001f));
+            Assert.That(back.z, Is.EqualTo(ground.z).Within(0.0001f));
+        }
+
+        /// <summary>밀림을 끄면 정면 투영으로 돌아간다.</summary>
+        [Test]
+        public void ToView_WithZeroShear_KeepsX()
+        {
+            BeltScroll.DepthToScreenX = 0f;
+
+            Vector3 p = BeltScroll.ToView(new Vector3(1f, 0f, 3f));
+
+            Assert.That(p.x, Is.EqualTo(1f).Within(0.0001f));
         }
     }
 }

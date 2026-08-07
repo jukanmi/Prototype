@@ -49,6 +49,9 @@ namespace Prototype.EditorTools
         /// <summary>깊이를 화면 세로로 접는 비율. 아이작 쪽으로 강하게.</summary>
         private const float DepthToScreen = 0.9f;
 
+        /// <summary>깊이를 화면 가로로 미는 비율. 바닥이 평행사변형으로 기운다.</summary>
+        private const float DepthToScreenX = 0.45f;
+
         /// <summary>깊이 1당 줄어드는 표시 배율. 방 깊이 ±3에서 앞뒤 1.44배.</summary>
         private const float DepthScalePerUnit = 0.06f;
 
@@ -228,6 +231,7 @@ namespace Prototype.EditorTools
             so.FindProperty("depthRoot").objectReferenceValue = depthRoot;
             // 모든 인스턴스가 같은 값이어야 한다 — BeltScroll의 static이 한 벌이다.
             so.FindProperty("depthToScreen").floatValue = DepthToScreen;
+            so.FindProperty("depthToScreenX").floatValue = DepthToScreenX;
             so.FindProperty("depthScalePerUnit").floatValue = DepthScalePerUnit;
 
             // 그림자가 먼저(뒤에), 스프라이트가 나중(앞에) 그려져야 한다.
@@ -427,37 +431,137 @@ namespace Prototype.EditorTools
         /// 방 배경. 바닥 판 하나로는 점프한 높이가 "화면에서 위로 갔다"로만 보인다.
         /// 뒷벽과 경계선을 세워 <b>높이를 잴 기준면</b>을 만든다.
         ///
-        /// 논리 좌표계의 사각형은 진짜 원근이면 사다리꼴이 되지만, X에는 원근을 안 먹인다 —
-        /// 판정이 모든 z에서 x ∈ [-RoomHalfX, RoomHalfX]인 직사각형이라 그림만 좁히면 어긋난다.
+        /// 깊이가 화면 가로로도 접히므로(<see cref="DepthToScreenX"/>) 논리 좌표의 사각형이
+        /// 화면에서 <b>평행사변형</b>이 된다. 바닥은 그래서 4점 메시다 — Transform은 기울일 수 없다.
+        /// 뒷벽과 경계선은 z가 한 값(RoomHalfZ)으로 고정이라 통째로 옆으로 밀린 직사각형이다.
+        ///
+        /// 폭은 안 좁힌다. 판정이 모든 z에서 x ∈ [-RoomHalfX, RoomHalfX]인 직사각형이라
+        /// 그림만 좁히면 뒤쪽에서 캐릭터가 바닥 밖으로 걸어 나간 것처럼 보인다.
         ///
         /// 테스트가 씬을 건드리지 않고 임시 오브젝트로 부를 수 있게 public이다.
         /// </summary>
         public static void BuildRoomVisual(GameObject room)
         {
-            // 바닥 윗변. 벽과 경계선이 전부 이 높이에 맞물린다.
-            float floorTop = RoomHalfZ * DepthToScreen;
+            // 방 뒷변이 화면에서 놓이는 자리. 벽과 경계선이 전부 여기 맞물린다.
+            float backY = RoomHalfZ * DepthToScreen;
+            float backX = RoomHalfZ * DepthToScreenX;
             float width = RoomHalfX * 2f;
 
             // 캐릭터 정렬은 -z*100이라 최저 z(-3)에서도 -300이다. 배경은 전부 그보다 뒤로 보낸다.
-            MakePanel(room, "BackWall",
-                      new Vector3(0f, floorTop + WallVisualHeight * 0.5f, 0f),
+            SpriteRenderer wall = MakePanel(room, "BackWall",
+                      new Vector3(backX, backY + WallVisualHeight * 0.5f, 0f),
                       new Vector3(width, WallVisualHeight, 1f),
                       new Color(0.10f, 0.11f, 0.14f, 1f), -10001);
 
-            MakePanel(room, "Floor",
-                      Vector3.zero,
-                      new Vector3(width, RoomHalfZ * 2f * DepthToScreen, 1f),
-                      new Color(0.16f, 0.17f, 0.20f, 1f), -10000);
-
             // 바닥과 벽이 꺾이는 선. 점프 높이가 이 선 대비로 읽힌다.
             MakePanel(room, "Horizon",
-                      new Vector3(0f, floorTop, 0f),
+                      new Vector3(backX, backY, 0f),
                       new Vector3(width, 0.06f, 1f),
                       new Color(0.32f, 0.34f, 0.40f, 1f), -9999);
+
+            MakeFloor(room, new Color(0.16f, 0.17f, 0.20f, 1f), -10000,
+                      wall != null ? wall.sharedMaterial : null);
         }
 
-        private static void MakePanel(GameObject room, string name, Vector3 localPos,
-                                      Vector3 scale, Color color, int order)
+        /// <summary>
+        /// 평행사변형 바닥. 논리 좌표의 네 모서리를 그대로 투영해 꼭짓점으로 쓴다 —
+        /// 캐릭터가 밟는 자리와 그림이 정의상 일치한다.
+        ///
+        /// 메시는 에셋으로 저장한다. 씬에만 들고 있으면 저장·재시작에서 참조가 끊긴다.
+        /// </summary>
+        private static void MakeFloor(GameObject room, Color color, int order, Material material)
+        {
+            Transform t = room.transform.Find("Floor");
+            if (t == null)
+            {
+                var go = new GameObject("Floor");
+                t = go.transform;
+                t.SetParent(room.transform, false);
+            }
+
+            // 예전엔 사각형 스프라이트였다. 남겨 두면 평행사변형 위에 겹쳐 그려진다.
+            var legacy = t.GetComponent<SpriteRenderer>();
+            if (legacy != null) Object.DestroyImmediate(legacy);
+
+            t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            t.localScale = Vector3.one;   // 크기는 메시 꼭짓점이 들고 있다
+
+            var mf = t.GetComponent<MeshFilter>();
+            if (mf == null) mf = t.gameObject.AddComponent<MeshFilter>();
+
+            var mr = t.GetComponent<MeshRenderer>();
+            if (mr == null) mr = t.gameObject.AddComponent<MeshRenderer>();
+
+            mf.sharedMesh = SaveFloorMesh(color);
+
+            // 스프라이트 머티리얼을 그대로 쓴다 — 정점색을 곱해 주므로 색이 그대로 나오고,
+            // 2D 렌더러가 같은 패스로 그린다. 비워 두면 URP 기본 머티리얼이 붙어 분홍이 된다.
+            if (material == null)
+                material = AssetDatabase.GetBuiltinExtraResource<Material>("Sprites-Default.mat");
+            if (material != null) mr.sharedMaterial = material;
+
+            mr.sortingOrder = order;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+
+            EditorUtility.SetDirty(t.gameObject);
+        }
+
+        private const string FloorMeshPath = "Assets/Data/Mesh/RoomFloor.asset";
+
+        private static Mesh SaveFloorMesh(Color color)
+        {
+            // 논리 (x, z) → 화면 (x + z·kx, z·ky). 캐릭터가 거치는 변환과 같은 식이다.
+            Vector3 Corner(float x, float z)
+                => new Vector3(x + z * DepthToScreenX, z * DepthToScreen, 0f);
+
+            var vertices = new[]
+            {
+                Corner(-RoomHalfX, -RoomHalfZ),   // 0 앞왼
+                Corner( RoomHalfX, -RoomHalfZ),   // 1 앞오
+                Corner( RoomHalfX,  RoomHalfZ),   // 2 뒤오
+                Corner(-RoomHalfX,  RoomHalfZ),   // 3 뒤왼
+            };
+
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(FloorMeshPath);
+            bool created = mesh == null;
+            if (created) mesh = new Mesh();
+
+            mesh.name = "RoomFloor";
+            mesh.Clear();
+            mesh.vertices = vertices;
+            mesh.triangles = new[] { 0, 3, 2, 0, 2, 1 };
+            // 색은 정점에 싣는다. 스프라이트 머티리얼이 _MainTex(흰색)에 정점색을 곱하므로
+            // 머티리얼을 인스턴스화하지 않고도 원하는 색이 나온다.
+            mesh.colors = new[] { color, color, color, color };
+            mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            if (created)
+            {
+                EnsureFolder("Assets/Data/Mesh");
+                AssetDatabase.CreateAsset(mesh, FloorMeshPath);
+            }
+
+            EditorUtility.SetDirty(mesh);
+            AssetDatabase.SaveAssets();
+            return mesh;
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+
+            int cut = path.LastIndexOf('/');
+            string parent = path.Substring(0, cut);
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, path.Substring(cut + 1));
+        }
+
+        private static SpriteRenderer MakePanel(GameObject room, string name, Vector3 localPos,
+                                                Vector3 scale, Color color, int order)
         {
             Transform t = room.transform.Find(name);
             if (t == null)
@@ -481,6 +585,7 @@ namespace Prototype.EditorTools
             t.localScale = scale;
 
             EditorUtility.SetDirty(t.gameObject);
+            return sr;
         }
 
         /// <summary>

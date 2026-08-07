@@ -20,6 +20,8 @@ namespace Prototype
         [SerializeField] private Transform shadow;
         [Tooltip("깊이(Z)가 화면 세로로 환산되는 비율. 벨트의 기울기. tan θ에 해당한다.")]
         [SerializeField] private float depthToScreen = 0.5f;
+        [Tooltip("깊이(Z)가 화면 가로로 밀리는 비율. 바닥이 평행사변형으로 기운다. 0이면 정면 투영.")]
+        [SerializeField] private float depthToScreenX = 0.45f;
         [Tooltip("깊이(Z) 1당 줄어드는 표시 배율. 0이면 크기가 일정하다. 모든 인스턴스가 같은 값이어야 한다.")]
         [SerializeField] private float depthScalePerUnit = 0.06f;
         [Tooltip("발이 바닥에 닿아 보이도록 스프라이트를 위로 올리는 양. 보통 스프라이트 높이의 절반. 피벗이 발밑이면 0.")]
@@ -64,6 +66,7 @@ namespace Prototype
 
             // 조준점 등 다른 시스템도 같은 비율로 투영해야 한다. 한 벌만 유지한다.
             BeltScroll.DepthToScreen = depthToScreen;
+            BeltScroll.DepthToScreenX = depthToScreenX;
             BeltScroll.DepthScalePerUnit = depthScalePerUnit;
 
             Vector3 ground = physics.GroundPosition;

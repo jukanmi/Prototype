@@ -13,6 +13,7 @@ namespace Prototype.Tests
         public void SetUp()
         {
             BeltScroll.DepthToScreen = 0.9f;
+            BeltScroll.DepthToScreenX = 0.45f;
             BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
@@ -20,7 +21,20 @@ namespace Prototype.Tests
         public void TearDown()
         {
             BeltScroll.DepthToScreen = 0.5f;
+            BeltScroll.DepthToScreenX = 0.45f;
             BeltScroll.DepthScalePerUnit = 0.06f;
+        }
+
+        /// <summary>게이지가 몸과 다른 x에 뜨면 누구 게이지인지 알 수 없다.</summary>
+        [Test]
+        public void GaugeSharesTheBodyColumn()
+        {
+            var ground = new Vector3(1f, 0f, -2.5f);
+
+            Vector3 body = BeltScroll.ToView(ground, 0f);
+            Vector3 gauge = ChargeGauge.GaugePosition(ground, height: 0f, headOffset: 1.6f);
+
+            Assert.That(gauge.x, Is.EqualTo(body.x).Within(0.0001f));
         }
 
         [Test]
