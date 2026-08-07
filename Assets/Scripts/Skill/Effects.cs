@@ -168,31 +168,6 @@ namespace Prototype
         }
     }
 
-    /// <summary>둔화. 반경 내 적의 이동속도를 일정 시간 깎는다.</summary>
-    [Serializable]
-    public class SlowEffect : ISkillEffect
-    {
-        [SerializeField] private float radius = 4f;
-        [Range(0.1f, 1f)][SerializeField] private float multiplier = 0.5f;
-        [SerializeField] private float duration = 3f;
-
-        public void Apply(in SkillContext ctx)
-        {
-            Combat caster = ctx.CasterCombat;
-            if (caster == null) return;
-
-            EffectUtil.OverlapCombats(caster.transform.position, radius * ctx.RadiusScale, caster, c =>
-            {
-                Entity e = c.Owner;
-                if (e == null) return;
-
-                float original = e.Stats.GetValue(StatType.MoveSpeed, 6f);
-                e.Stats.Set(StatType.MoveSpeed, original * multiplier);
-                EffectRunner.Instance.Schedule(duration, () => e.Stats.Set(StatType.MoveSpeed, original));
-            });
-        }
-    }
-
     /// <summary>차징 · 돌진. 시전자를 지정 방향으로 밀어낸다.</summary>
     [Serializable]
     public class ChargeEffect : ISkillEffect

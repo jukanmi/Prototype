@@ -114,9 +114,24 @@ namespace Prototype
         public static float AirGravityScale(int airHitCount)
             => Mathf.Min(1f + airHitCount * AirGravityStep, MaxAirGravityScale);
 
-        /// <summary>벽에 닿았을 때의 전이. 넉백 중이면 벽 바운드.</summary>
+        /// <summary>
+        /// 벽에 닿았을 때의 전이. 넉백과 공중 피격이 벽 바운드로 간다.
+        ///
+        /// 공중 피격을 넣은 이유: 띄워서 벽으로 날린 대상이 벽에 부딪혀도 아무 일도 없었다.
+        /// 콤보에서 가장 눈에 띄는 순간인데 반응이 없으니 벽이 그냥 스토퍼로 읽혔다.
+        /// <see cref="CombatState.WallBound"/>는 여기서 다시 튕기지 않는다 — 한 번의 접촉에 한 번.
+        /// </summary>
         public static CombatState OnWallContact(CombatState cur)
-            => cur == CombatState.Knockback ? CombatState.WallBound : cur;
+        {
+            switch (cur)
+            {
+                case CombatState.Knockback:
+                case CombatState.AerialHit:
+                    return CombatState.WallBound;
+                default:
+                    return cur;
+            }
+        }
 
         /// <summary>바닥에 닿았을 때의 전이. 공중 피격 계열은 전부 다운.</summary>
         public static CombatState OnGroundContact(CombatState cur)

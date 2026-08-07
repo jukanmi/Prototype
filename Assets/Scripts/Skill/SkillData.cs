@@ -65,6 +65,12 @@ namespace Prototype
 
         public bool IsRanged => projectile != null;
 
+        [Tooltip("근거리 직업(탱커·워리어)이 대상 옆에 설 거리. 0이면 기본값(1.1)을 쓴다.")]
+        public float approachDistance = 0f;
+
+        /// <summary>0을 기본값으로 접어 주는 읽기 창구. 에셋 27개를 손으로 채우지 않아도 된다.</summary>
+        public float ApproachDistance => approachDistance > 0f ? approachDistance : 1.1f;
+
         [Header("판정")]
         public List<HitData> hitDataList = new List<HitData>();
 
@@ -77,7 +83,11 @@ namespace Prototype
         public float manaCost = 20f;
 
         [Header("연출")]
+        [Tooltip("시전자 본체 모션. 이펙트가 아니다 — Skill 슬롯 클립을 갈아끼운다.")]
         public AnimationClip animation;
+
+        [Tooltip("타격마다 나오는 이펙트. custom을 끄면 전역 기본색을 쓴다.")]
+        public SkillVfx vfx = SkillVfx.Default;
 
         /// <summary>
         /// 런타임 인스턴스를 매번 새로 만드는 팩토리.

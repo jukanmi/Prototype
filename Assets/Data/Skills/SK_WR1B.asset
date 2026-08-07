@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_WR1B
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC0BC\uB2E8 \uC62C\uB824\uBCA0\uAE30"
-  icon: {fileID: 0}
+  skillName: "\uC62C\uB824\uBCA0\uAE30"
+  icon: {fileID: 21300000, guid: 9cd07c1e72074fd58aee94d96bb1d090, type: 3}
   description: "WR1B \u2014 \uC694\uB124 Q 3\uD0C0 \u2014 \uC55E 2\uD0C0\uB294 \uD3C9\uD0C0,
     3\uD0C0\uB9CC \uB744\uC6B4\uB2E4"
   role: 1

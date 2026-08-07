@@ -12,19 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_WZ3A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC6B4\uC11D \uB099\uD558"
-  icon: {fileID: 0}
-  description: "WZ3A \u2014 \uC544\uC6B0\uB810\uB9AC\uC628 \uC194 R \u2014 \uAD11\uC5ED
-    \uB099\uD558 + \uC5D0\uC5B4\uBCF8"
+  skillName: "\uCDA9\uACA9\uD30C"
+  icon: {fileID: 21300000, guid: 38a8e27be2af4b49bbc62adbb71882c9, type: 3}
+  description: "WZ3A \u2014 \uBC00\uCE58\uAE30 \u2014 \uC55E\uC73C\uB85C \uCDA9\uACA9\uD30C\uB97C \uBFDC\uC5B4 \uBC00\uC5B4\uB0B8\uB2E4. \uBCBD\uC5D0 \uB2FF\uC73C\uBA74 \uBCBD\uBC14\uC6B4\uB4DC"
   role: 3
-  attackType: 2
-  requireState: 1
-  resultState: 2
-  targeting: 1
-  radius: 4.5
-  castTime: 0.5
+  attackType: 3
+  requireState: 2
+  resultState: 4
+  targeting: 3
+  radius: 3.5
+  castTime: 0.3
   hitInterval: 0.3
-  recoveryTime: 0.4
+  recoveryTime: 0.3
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -34,15 +33,15 @@ MonoBehaviour:
   projectilePierce: 0
   hitDataList:
   - damageData:
-      damage: 16
+      damage: 14
     targetState: 0
-    nextState: 2
+    nextState: 3
     canOtg: 0
-    mode: 3
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 11
-    hitStunDuration: 0.6
+    knockbackForce: 18
+    launchForce: 0
+    hitStunDuration: 0.5
     snapZ: 0
   effects: []
   cooldown: 5

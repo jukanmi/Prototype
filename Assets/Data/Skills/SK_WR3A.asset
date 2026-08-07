@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SK_WR3A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uD68C\uC804 \uAC15\uD0C0"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c7a46118db0a4fa5874d56c6279dfe9a, type: 3}
   description: "WR3A \u2014 \uD2B8\uB9AC\uC2A4\uD0C0\uB098 R \u2014 \uB300\uC0C1\uC744
     \uBC00\uC5B4\uB0B8\uB2E4. \uBCBD\uC5D0 \uB2FF\uC73C\uBA74 \uBCBD\uBC14\uC6B4\uB4DC"
   role: 1
@@ -48,6 +48,15 @@ MonoBehaviour:
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
+  vfx:
+    custom: 0
+    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 0.10569749, g: 0.047169685, b: 1, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    swingClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds: []

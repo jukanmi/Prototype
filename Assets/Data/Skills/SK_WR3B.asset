@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_WR3B
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC808\uB300 \uC601\uB3C4"
-  icon: {fileID: 0}
+  skillName: "\uC0AC\uC2AC \uAC10\uC544\uCE58\uAE30"
+  icon: {fileID: 21300000, guid: bf411261d6bf4e94b93ffd6662cc0bf0, type: 3}
   description: "WR3B \u2014 \uB204\uB204 R \u2014 \uCF64\uBCF4 \uB05D\uAE4C\uC9C0
     \uBAA8\uC558\uB2E4\uAC00 \uD130\uC9C4\uB2E4"
   role: 1
-  attackType: 5
+  attackType: 4
   requireState: 0
   resultState: 2
   targeting: 0

@@ -12,86 +12,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
   m_Name: SK_AR3A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uD0C4\uB9C9"
-  icon: {fileID: 0}
-  description: "AR3A \u2014 \uBBF8\uC2A4\uD3EC\uCE08 R \u2014 \uCC44\uB110\uB9C1
-    \uBBF8\uAD6C\uD604, 5\uB2E8 \uC5F0\uC0AC\uB85C \uADFC\uC0AC"
+  skillName: "\uADF8\uBB3C\uC0AC\uACA9"
+  icon: {fileID: 21300000, guid: 8a42a2e387134d6297ea8ace4f1f8ce5, type: 3}
+  description: "AR3A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uADF8\uBB3C\uC744 \uC3F4 \uC9C0\uC815 \uC9C0\uC810\uC758 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
   role: 2
-  attackType: 2
+  attackType: 0
   requireState: 0
-  resultState: 2
-  targeting: 3
-  radius: 3
-  castTime: 0.25
-  hitInterval: 0.14
-  recoveryTime: 0.35
+  resultState: 1
+  targeting: 1
+  radius: 4
+  castTime: 0.3
+  hitInterval: 0.3
+  recoveryTime: 0.2
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectile: {fileID: 0}
   projectileSpeed: 24
   projectileRange: 12
-  projectilePierce: 1
+  projectilePierce: 0
   hitDataList:
   - damageData:
-      damage: 6
+      damage: 4
     targetState: 0
-    nextState: 2
+    nextState: 1
     canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
+    mode: 1
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 10
     launchForce: 0
-    hitStunDuration: 0.35
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
-    launchForce: 0
-    hitStunDuration: 0.35
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
-    launchForce: 0
-    hitStunDuration: 0.35
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
-    launchForce: 0
-    hitStunDuration: 0.35
-    snapZ: 0
-  - damageData:
-      damage: 6
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
-    launchForce: 0
-    hitStunDuration: 0.35
-    snapZ: 0
-  effects: []
+    hitStunDuration: 0.4
+    snapZ: 1
+  effects:
+  - rid: 7198291130188562601
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: f265362c04ccca74d8a3e85f2c07b537, type: 2}
+  vfx:
+    custom: 0
+    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7198291130188562601
+      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        radius: 4
+        force: 12
+        damage: 5
+        hitStun: 0.4
