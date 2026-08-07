@@ -142,6 +142,7 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
 --- !u!1 &1472196988004724306
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,12 +260,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5332179128920662470}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 24479137226618131}
+  m_Father: {fileID: 8893746887719801601}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6118572367038369068
 SpriteRenderer:
@@ -326,6 +327,38 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
+--- !u!1 &8356298390117266490
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8893746887719801601}
+  m_Layer: 0
+  m_Name: View
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8893746887719801601
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8356298390117266490}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 422353865598778232}
+  m_Father: {fileID: 24479137226618131}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8689976968062280079
 GameObject:
   m_ObjectHideFlags: 0
@@ -365,8 +398,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8196910985166871716}
-  - {fileID: 422353865598778232}
   - {fileID: 6184566404241876827}
+  - {fileID: 8893746887719801601}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &7186105310300289469
@@ -457,6 +490,12 @@ MonoBehaviour:
   damageCutRatio: 0
   downDuration: 1.2
   getupDuration: 0.4
+  wallRestitution: 1.5
+  wallMinBounce: 10
+  wallHardSpeed: 18
+  wallMinLaunch: 3
+  wallMaxLaunch: 15
+  wallBounceCooldown: 0.2
 --- !u!114 &4540215255994790702
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -528,9 +567,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BeltScrollView
   sprite: {fileID: 422353865598778232}
+  depthRoot: {fileID: 8893746887719801601}
   shadow: {fileID: 6184566404241876827}
   depthToScreen: 0.9
+  depthScalePerUnit: 0.06
   spriteOffsetY: 0.5
+  flipToFacing: 0
+  facingRenderer: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
