@@ -30,6 +30,12 @@ namespace Prototype
         [Tooltip("Z가 클수록(멀수록) 뒤에 그린다.")]
         [SerializeField] private float sortingPrecision = 100f;
 
+        /// <summary>
+        /// 몸 스프라이트가 붙은 자식. 색을 바꾸려는 쪽(<see cref="EnemyStateTint"/>)이
+        /// 그림자를 잘못 집지 않도록 정확히 이 하나만 열어 준다.
+        /// </summary>
+        public Transform SpriteRoot => sprite;
+
         private Physics physics;
 
         private void Awake()
