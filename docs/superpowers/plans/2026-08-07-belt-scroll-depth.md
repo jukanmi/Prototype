@@ -1277,6 +1277,27 @@ git commit -m "fix: 적 상태 라벨 머리 오프셋에 깊이 배율 적용"
 
 ---
 
+---
+
+## 실행 중 발견 — 계획에서 바뀐 것
+
+**프리팹 인스턴스는 재부모화가 막힌다.** 계획은 `RigBeltScrollView`가 씬 오브젝트의
+`Sprite`를 새 `View` 아래로 옮기면 된다고 봤지만, 씬의 엔티티 11개가 프리팹 인스턴스이고
+`Player.prefab`·`Ally.prefab`이 `Sprite`·`Shadow`를 프리팹 자식으로 갖고 있다.
+유니티는 인스턴스에서 프리팹 소유 자식의 부모를 바꾸는 걸 막는다
+("Cannot restructure Prefab instance") — 그대로 돌렸으면 Task 6에서 실패했다.
+
+고친 내용 (커밋 `9ac8019`):
+
+1. `BuildLayout`이 `RigPrefabAssets()`를 **먼저** 부른다 — `Assets/Prefabs`의
+   `Entity` 프리팹을 `PrefabUtility.LoadPrefabContents`로 열어 원본에 `View`를 만든다.
+   인스턴스는 이걸 물려받으므로 씬 패스에서는 재부모화가 아예 안 일어난다.
+2. `RigBeltScrollView`·`EnsureDepthRoot`에서 **Undo를 걷어냈다** — 프리팹 프리뷰 씬
+   안에서도 불리는데 거기서는 Undo 등록이 오작동한다. 빌더는 마지막에 씬을 저장하므로
+   되돌리기는 어차피 의미가 없었다.
+3. `EnsureDepthRoot`에 가드를 넣었다 — 재부모화가 필요한데 대상이 프리팹 인스턴스면
+   `Debug.LogError`로 멈춘다. 조용히 넘어가면 배율이 안 걸린 채 씬이 저장된다.
+
 ## 완료 기준
 
 - [ ] EditMode 테스트 19개 신규(Task 1: 4, Task 2: 5, Task 4·5: 7, Task 7: 3) + 기존 전부 PASS
