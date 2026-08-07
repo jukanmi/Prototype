@@ -20,8 +20,12 @@ namespace Prototype.EditorTools
         private const string ClipFolder = "Assets/Data/Animation";
         private const string ControllerPath = ClipFolder + "/EntityAnimator.controller";
 
-        /// <summary>클립이 물리는 자식. BeltScrollView가 만든 스프라이트 자식이다.</summary>
-        private const string SpritePath = "Sprite";
+        /// <summary>
+        /// 클립이 물리는 자식. SceneLayoutBuilder가 만든 깊이 배율 노드 아래에 있다.
+        /// 배율은 View가, 스쿼시 · 스트레치는 Sprite가 나눠 갖는다 —
+        /// 한 트랜스폼에 둘을 얹으면 Animator와 BeltScrollView가 매 프레임 서로 덮어쓴다.
+        /// </summary>
+        private const string SpritePath = "View/Sprite";
 
         [MenuItem("Prototype/애니메이션 - 플레이스홀더 굽기 + 배선")]
         public static void BuildAll()

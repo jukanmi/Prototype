@@ -19,6 +19,7 @@ namespace Prototype.EditorTools
         private const string ViewChild = "View";
         private const string ShadowChild = "Shadow";
         private const string RoomName = "Room";
+        private const string PrefabFolder = "Assets/Prefabs";
 
         // 3D전환_TODO.md §2 — 레이어 번호는 문서와 맞춘다.
         private const int WallLayer = 9;
@@ -67,6 +68,10 @@ namespace Prototype.EditorTools
             int rigged = 0;
             enemyIndex = 0;
 
+            // 프리팹 원본이 먼저다. 씬 인스턴스에서는 프리팹이 소유한 자식을 다른 부모로
+            // 못 옮긴다 — 유니티가 "Cannot restructure Prefab instance"로 막는다.
+            int prefabs = RigPrefabAssets();
+
             foreach (Entity entity in Object.FindObjectsByType<Entity>(FindObjectsInactive.Include))
             {
                 Reposition(entity.gameObject);
@@ -87,7 +92,40 @@ namespace Prototype.EditorTools
             EditorSceneManager.MarkAllScenesDirty();
             EditorSceneManager.SaveOpenScenes();
 
-            Debug.Log($"[SceneLayoutBuilder] 완료 — BeltScrollView 배선 {rigged}개, 카메라 정리 1개");
+            Debug.Log($"[SceneLayoutBuilder] 완료 — 프리팹 {prefabs}개, 씬 BeltScrollView 배선 {rigged}개, 카메라 정리 1개");
+        }
+
+        /// <summary>
+        /// 프리팹 원본의 BeltScrollView 배선. 씬보다 먼저 돌아야 한다.
+        ///
+        /// 인스턴스에서는 프리팹이 소유한 <c>Sprite</c>를 새 <c>View</c> 아래로 못 옮긴다.
+        /// 원본을 고쳐 두면 인스턴스가 View 노드를 물려받으므로 씬 쪽은 값만 덮어쓰면 된다.
+        /// </summary>
+        private static int RigPrefabAssets()
+        {
+            int rigged = 0;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { PrefabFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                GameObject contents = PrefabUtility.LoadPrefabContents(path);
+
+                try
+                {
+                    // BeltScrollView로 그리는 캐릭터만 대상이다. 투사체는 자기 방식으로 그린다.
+                    if (contents.GetComponent<Entity>() == null) continue;
+
+                    RigBeltScrollView(contents);
+                    PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    rigged++;
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+
+            return rigged;
         }
 
         /// <summary>적은 방 오른쪽에 벌려 놓는다. 벽에 밀어붙일 여유를 남긴다.</summary>
@@ -133,6 +171,9 @@ namespace Prototype.EditorTools
         /// 깊이 배율을 같은 트랜스폼에 얹으면 매 프레임 서로 덮어쓴다.
         ///
         /// 테스트가 씬을 건드리지 않고 오브젝트 하나로 부를 수 있게 public이다.
+        ///
+        /// Undo를 안 쓴다 — <see cref="RigPrefabAssets"/>가 프리팹 프리뷰 씬 안에서도 이걸 부르는데
+        /// 거기서는 Undo 등록이 오작동한다. 어차피 이 빌더는 마지막에 씬을 저장한다.
         /// </summary>
         public static bool RigBeltScrollView(GameObject root)
         {
@@ -145,7 +186,6 @@ namespace Prototype.EditorTools
             if (sprite == null)
             {
                 var spriteGo = new GameObject(SpriteChild);
-                Undo.RegisterCreatedObjectUndo(spriteGo, "sprite child");
                 sprite = spriteGo.transform;
                 sprite.SetParent(root.transform, false);
 
@@ -160,7 +200,7 @@ namespace Prototype.EditorTools
 
             // 루트 렌더러는 이제 필요 없다. 두면 자식과 겹쳐 그려진다.
             if (rootRenderer != null)
-                Undo.DestroyObjectImmediate(rootRenderer);
+                Object.DestroyImmediate(rootRenderer);
 
             Transform depthRoot = EnsureDepthRoot(root, sprite);
 
@@ -168,7 +208,6 @@ namespace Prototype.EditorTools
             if (shadow == null)
             {
                 var shadowGo = new GameObject(ShadowChild);
-                Undo.RegisterCreatedObjectUndo(shadowGo, "shadow child");
                 shadow = shadowGo.transform;
                 shadow.SetParent(root.transform, false);
 
@@ -181,7 +220,7 @@ namespace Prototype.EditorTools
             }
 
             var view = root.GetComponent<BeltScrollView>();
-            if (view == null) view = Undo.AddComponent<BeltScrollView>(root);
+            if (view == null) view = root.AddComponent<BeltScrollView>();
 
             var so = new SerializedObject(view);
             so.FindProperty("sprite").objectReferenceValue = sprite;
@@ -216,7 +255,6 @@ namespace Prototype.EditorTools
             if (view == null)
             {
                 var go = new GameObject(ViewChild);
-                Undo.RegisterCreatedObjectUndo(go, "depth root");
                 view = go.transform;
                 view.SetParent(root.transform, false);
             }
@@ -226,7 +264,19 @@ namespace Prototype.EditorTools
             view.localScale = Vector3.one;   // 런타임에 BeltScrollView가 매 프레임 덮어쓴다
 
             if (sprite.parent != view)
-                Undo.SetTransformParent(sprite, view, "reparent sprite");
+            {
+                // 프리팹이 소유한 자식은 인스턴스에서 못 옮긴다. 원본을 먼저 고쳐야 한다.
+                // 여기서 조용히 넘어가면 깊이 배율이 안 걸린 채로 씬이 저장된다.
+                if (PrefabUtility.IsPartOfPrefabInstance(sprite))
+                {
+                    Debug.LogError(
+                        $"[SceneLayoutBuilder] {root.name}/{sprite.name}은 프리팹 인스턴스라 " +
+                        "View 아래로 못 옮긴다. 프리팹 원본을 먼저 손봐야 한다(RigPrefabAssets).", root);
+                    return view;
+                }
+
+                sprite.SetParent(view, false);
+            }
 
             // 위치는 View가 잡는다. Sprite는 부모에 붙어만 있으면 된다.
             sprite.localPosition = Vector3.zero;
