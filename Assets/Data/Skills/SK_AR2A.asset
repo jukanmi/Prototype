@@ -20,7 +20,7 @@ MonoBehaviour:
   attackType: 1
   requireState: 1
   resultState: 2
-  targeting: 2
+  targeting: 1
   radius: 4
   castTime: 0.3
   hitInterval: 0.3
@@ -42,7 +42,7 @@ MonoBehaviour:
     mode: 3
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 0
-    launchForce: 12
+    launchForce: 20
     hitStunDuration: 0.6
     snapZ: 0
   effects: []

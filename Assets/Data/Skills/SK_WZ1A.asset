@@ -37,9 +37,9 @@ MonoBehaviour:
     targetState: 0
     nextState: 1
     canOtg: 0
-    mode: 0
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 2
+    knockbackForce: 6
     launchForce: 0
     hitStunDuration: 0.3
     snapZ: 0

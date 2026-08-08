@@ -41,7 +41,7 @@ MonoBehaviour:
     mode: 3
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
-    launchForce: 14
+    launchForce: 20
     hitStunDuration: 0.6
     snapZ: 0
   effects:

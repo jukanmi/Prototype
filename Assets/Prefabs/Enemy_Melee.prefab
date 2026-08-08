@@ -169,6 +169,7 @@ MonoBehaviour:
   deceleration: 80
   impulseDamping: 8
   gravity: 30
+  fallGravityScale: 0.45
   rotateToFacing: 1
 --- !u!114 &9028539018283597318
 MonoBehaviour:
