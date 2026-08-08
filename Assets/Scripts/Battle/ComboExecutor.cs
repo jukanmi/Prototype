@@ -102,7 +102,6 @@ namespace Prototype
             {
                 data = data,
                 caster = caster,
-                target = slot.target.unit,
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
@@ -184,32 +183,13 @@ namespace Prototype
                 yield break;
             }
 
-            TargetInfo info = slot.target;
-            Entity target = info.unit;
-
-            // 대상이 이미 죽었으면 사망 위치 기준 최근접 적으로 재타겟한다(결정 로그 ⑧).
-            if (info.type == TargetingType.EnemyUnit && (target == null || target.Combat.IsDead))
-            {
-                Vector3 deadPos = target != null ? target.transform.position : info.point;
-                target = Retarget(deadPos);
-
-                if (target == null)
-                {
-                    BattleLog.Warn(LogCategory.Combo, $"재타겟 실패 — 살아 있는 적이 없다. {data.skillName} 취소", this);
-                    yield break;
-                }
-
-                BattleLog.Log(LogCategory.Combo,
-                    $"대상 사망 → 최근접 재타겟: {BattleLog.Name(target)} (사망 위치 {deadPos})", this);
-                info = TargetInfo.Unit(target);
-            }
-
+            // 조준은 좌표만 박아 두고, 상대는 시전 순간 SkillState가 그 좌표에서 다시 고른다.
+            // 그래서 대상이 그사이 죽어도 별도의 재타겟 경로가 필요 없다(결정 로그 ⑧).
             var ctx = new SkillContext
             {
                 data = data,
                 caster = caster,
-                target = target,
-                targetInfo = info,
+                targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
             };
@@ -239,12 +219,6 @@ namespace Prototype
 
             if (caster.StateMachine.CurState == state && !caster.Combat.IsDead)
                 caster.StateMachine.ForceChangeState(caster.IdleState);
-        }
-
-        /// <summary>사망 위치에서 가장 가까운 살아 있는 적을 새 대상으로 잡는다.</summary>
-        private Entity Retarget(Vector3 deadPos)
-        {
-            return BattleRegistry.NearestEnemy(deadPos);
         }
 
         private IEnumerator WaitScaled(float seconds)

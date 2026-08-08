@@ -20,7 +20,7 @@ MonoBehaviour:
   attackType: 3
   requireState: 2
   resultState: 4
-  targeting: 2
+  targeting: 1
   radius: 3
   castTime: 0.3
   hitInterval: 0.3

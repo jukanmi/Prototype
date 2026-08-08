@@ -18,8 +18,6 @@ namespace Prototype
         [Header("키보드 조준")]
         [Tooltip("WASD로 조준점이 움직이는 속도(units/s).")]
         [SerializeField] private float cursorSpeed = 9f;
-        [Tooltip("EnemyUnit 조준에서 조준점이 적을 붙잡는 거리.")]
-        [SerializeField] private float snapRadius = 1.5f;
         [Tooltip("조준을 시작할 때 커서가 놓이는 기준. 비우면 Player를 찾는다.")]
         [SerializeField] private Transform cursorOrigin;
 
@@ -36,11 +34,13 @@ namespace Prototype
         /// 캐릭터와 같은 <see cref="BeltScroll"/> 변환을 거친다.
         /// </summary>
         public Vector3 CursorViewPoint => BeltScroll.ToView(CursorPoint);
-        /// <summary>커서가 겹친 적. EnemyUnit 조준용.</summary>
-        public Entity HoveredUnit { get; private set; }
         /// <summary>반경 안에 걸리는 적 수. 0이면 헛침 경고를 띄운다.</summary>
         public int EnemiesInRange { get; private set; }
-        public bool WillWhiff => IsSelecting && current.targeting == TargetingType.GroundPoint && EnemiesInRange == 0;
+        /// <summary>
+        /// 헛침 경고. radius로 때리는 스킬에만 뜬다 —
+        /// 근접은 시전자 히트박스로 때리므로 반경 안이 비어도 멀쩡히 맞는다.
+        /// </summary>
+        public bool WillWhiff => IsSelecting && current.UsesRadius && EnemiesInRange == 0;
 
         private void Awake()
         {
@@ -58,7 +58,6 @@ namespace Prototype
         public void Begin(SkillData data)
         {
             current = data;
-            HoveredUnit = null;
             EnemiesInRange = 0;
 
             // 커서를 매번 원점에서 시작하면 멀리서부터 끌고 와야 한다.
@@ -76,7 +75,6 @@ namespace Prototype
         public void Cancel()
         {
             current = null;
-            HoveredUnit = null;
             EnemiesInRange = 0;
         }
 
@@ -90,12 +88,8 @@ namespace Prototype
             {
                 case TargetingType.GroundPoint:
                     // 적을 지정하지 않는다. 찍은 좌표 하나만 받는다.
-                    // (탱커 모으기 = 그 지점으로 텔포 → 주변을 자기 쪽으로 흡입)
+                    // 실제 상대는 시전 순간 이 좌표에서 다시 뽑힌다(SkillState.ResolveTarget).
                     info = TargetInfo.Ground(CursorPoint);
-                    break;
-
-                case TargetingType.EnemyUnit:
-                    info = TargetInfo.Unit(HoveredUnit);
                     break;
 
                 case TargetingType.Direction:
@@ -110,7 +104,7 @@ namespace Prototype
             }
 
             BattleLog.Log(LogCategory.Predict,
-                $"조준 확정: {current.skillName} | {info.type} | point {info.point} | unit {BattleLog.Name(info.unit)}", this);
+                $"조준 확정: {current.skillName} | {info.type} | point {info.point}", this);
 
             if (WillWhiff)
                 BattleLog.Warn(LogCategory.Predict,
@@ -127,7 +121,7 @@ namespace Prototype
             // 시간이 멈춰 있어도 조준은 돌아야 한다.
             UpdateCursor();
 
-            if (current.targeting == TargetingType.GroundPoint && predictor != null)
+            if (current.UsesRadius && predictor != null)
                 EnemiesInRange = predictor.CountEnemiesInRadius(CursorPoint, current.radius);
         }
 
@@ -136,17 +130,6 @@ namespace Prototype
             // 마우스를 실제로 움직인 프레임에만 마우스가 우선한다. 그 외에는 키보드.
             if (!MoveByMouse())
                 MoveByKeyboard();
-
-            HoveredUnit = null;
-            if (current.targeting != TargetingType.EnemyUnit) return;
-
-            // 조준점에서 가장 가까운 적을 붙잡는다. 키보드로도 유닛 지정이 되게 하는 장치.
-            Entity nearest = BattleRegistry.NearestEnemy(CursorPoint);
-            if (nearest == null) return;
-
-            Vector3 d = nearest.transform.position - CursorPoint;
-            d.y = 0f;
-            if (d.magnitude <= snapRadius) HoveredUnit = nearest;
         }
 
         /// <summary>

@@ -65,6 +65,20 @@ namespace Prototype
 
         public bool IsRanged => projectile != null;
 
+        /// <summary>
+        /// <see cref="radius"/>가 곧 타격 범위인지. 조준 링과 헛침 경고가 진실인 스킬.
+        ///
+        /// 원거리는 즉시 장판이든 투사체 도착 폭발이든 결국 radius만큼 터진다.
+        /// 근거리만 예외 — 시전자 몸에 붙은 히트박스로 때린다.
+        /// </summary>
+        public bool UsesRadius => role != Role.Tanker && role != Role.Warrior;
+
+        /// <summary>
+        /// 기다리지 않고 <b>시전 즉시</b> 기준점 반경이 터지는 스킬인지.
+        /// 투사체가 있으면 날아가서 터지므로 여기에 속하지 않는다.
+        /// </summary>
+        public bool IsAreaSkill => UsesRadius && !IsRanged;
+
         [Tooltip("근거리 직업(탱커·워리어)이 대상 옆에 설 거리. 0이면 기본값(1.1)을 쓴다.")]
         public float approachDistance = 0f;
 

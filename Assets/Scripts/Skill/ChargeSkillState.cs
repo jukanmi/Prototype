@@ -32,6 +32,12 @@ namespace Prototype
 
         public bool IsCharging => charging;
 
+        /// <summary>
+        /// 모으기 시작에서 이미 자리를 잡았다. 터질 때 다시 옮기면 순간이동이 두 번 보이고,
+        /// 모으는 내내 서 있던 자리가 무의미해진다.
+        /// </summary>
+        protected override bool PlaceOnEnter => false;
+
         /// <summary>0~1. 해제 후에는 터질 때의 값으로 고정된다.</summary>
         public float ChargeRatio => charging
             ? Mathf.Clamp01(chargeTimer / Mathf.Max(0.01f, Data.maxChargeTime))
@@ -45,7 +51,11 @@ namespace Prototype
             charging = true;
             chargeTimer = 0f;
 
-            // 모으는 동안 제자리에 선다. 실제 시전 준비는 Release에서.
+            // 자리부터 잡고 모은다. 터질 때 옮기면 모으는 내내 엉뚱한 곳에 서 있게 된다.
+            ResolveTarget();
+            PlaceCaster();
+
+            // 모으는 동안은 제자리에 선다. 실제 시전 타임라인은 Release에서 시작한다.
             Physics phys = Context.CasterPhysics;
             if (phys != null)
             {

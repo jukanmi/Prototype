@@ -229,13 +229,17 @@ namespace Prototype
 
         private void ApplyKnockback(in HitData hit, Combat attacker)
         {
-            Vector3 casterPos = attacker != null ? attacker.transform.position : transform.position;
+            // 장판은 시전자와 떨어진 좌표에서 터지므로 기준점을 따로 싣고 온다.
+            // 없으면 예전대로 시전자 위치 — 근접 히트박스와 투사체는 그게 맞다.
+            Vector3 casterPos = hit.hasOrigin
+                ? hit.origin
+                : (attacker != null ? attacker.transform.position : transform.position);
             Vector3 casterFwd = attacker != null ? attacker.Physics.Facing : physics.Facing;
 
             // 관성 강제 초기화 — 연계 스킬이 빗나가는 오차를 차단한다.
             physics.ResetInertia();
 
-            if (hit.snapZ && attacker != null)
+            if (hit.snapZ && (attacker != null || hit.hasOrigin))
                 physics.SnapZ(casterPos.z);
 
             Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position);

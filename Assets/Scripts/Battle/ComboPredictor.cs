@@ -116,11 +116,14 @@ namespace Prototype
             return alive;
         }
 
-        /// <summary>배치 예정 카드가 헛칠지 미리 본다.</summary>
+        /// <summary>
+        /// 배치 예정 카드가 헛칠지 미리 본다.
+        /// 반경으로 때리는 스킬만 판단한다 — 근접은 시전자 히트박스라 radius를 쓰지 않는다.
+        /// </summary>
         public bool WillWhiff(SkillData data, in TargetInfo target)
         {
             if (data == null) return true;
-            if (data.targeting != TargetingType.GroundPoint) return false;
+            if (!data.UsesRadius) return false;
 
             return CountEnemiesInRadius(target.point, data.radius) == 0;
         }

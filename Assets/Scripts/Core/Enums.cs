@@ -68,6 +68,12 @@ namespace Prototype
     {
         None,
         GroundPoint,
+        /// <summary>
+        /// <b>사용 중단.</b> 대상 지정은 전부 <see cref="GroundPoint"/>로 옮겼다 —
+        /// 상대는 좌표에서 시전 순간에 뽑는 편이 재타겟 · 사망 처리를 전부 없애 준다.
+        /// 값을 지우면 뒤의 <see cref="Direction"/>이 3→2로 밀려 기존 .asset이 통째로 오독되므로
+        /// <b>자리만 남겨 둔다</b>. 새 스킬에 쓰지 말 것 — SkillTableBuilder 검증이 잡는다.
+        /// </summary>
         EnemyUnit,
         Direction,
     }
