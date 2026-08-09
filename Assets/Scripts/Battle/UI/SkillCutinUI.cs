@@ -80,6 +80,9 @@ namespace Prototype
 
         public bool IsPlaying { get; private set; }
 
+        /// <summary>패널이 화면에 켜져 있는지. RecentHitEnemyHUD.IsVisible과 같은 선례.</summary>
+        public bool IsVisible => panel != null && panel.activeSelf;
+
         /// <summary>초상화가 비었을 때 쓰는 직업 색.</summary>
         public static Color RoleColor(Role role)
         {
@@ -93,6 +96,15 @@ namespace Prototype
         }
 
         private void Awake() => EnsureBuilt();
+
+        /// <summary>
+        /// 오브젝트가 비활성화되거나 파괴될 때의 안전판.
+        /// ComboExecutor.Abort()가 유일한 Cancel 호출자였는데 실제 프로덕션 코드에는 그 호출자가
+        /// 없다(테스트에서만 부른다) — 즉 SetActive(false)나 파괴로 재생 도중 패널이 사라지면
+        /// TimeControl.Scale이 0에 묶인 채로 아무도 되돌리지 않아 게임이 영구 정지한다.
+        /// RecentHitEnemyHUD도 같은 자리에서 정리한다.
+        /// </summary>
+        private void OnDisable() => Cancel();
 
         /// <summary>
         /// 캔버스가 아직 없으면 짓는다.
@@ -155,17 +167,16 @@ namespace Prototype
             Cancel();
         }
 
-        /// <summary>경과 시간에 맞춰 두 요소의 가로 위치와 투명도를 다시 그린다.</summary>
+        /// <summary>경과 시간에 맞춰 두 요소의 가로 위치를 다시 그린다. 알파는 건드리지 않는다.</summary>
         private void Layout(float elapsed)
         {
             float p = SlideAmount(elapsed, 0f);
             float l = SlideAmount(elapsed, LabelDelay);
 
-            if (portraitRect != null)
-                portraitRect.anchoredPosition = new Vector2(Mathf.Lerp(PortraitHiddenX, portraitShownX, p), 0f);
-
-            if (labelRect != null)
-                labelRect.anchoredPosition = new Vector2(Mathf.Lerp(LabelHiddenX, labelShownX, l), 90f);
+            // EnsureBuilt가 Play보다 먼저 반드시 돌아 portraitRect/labelRect를 채워 둔다 —
+            // Dress와 마찬가지로 null 검사 없이 역참조해도 안전하다.
+            portraitRect.anchoredPosition = new Vector2(Mathf.Lerp(PortraitHiddenX, portraitShownX, p), 0f);
+            labelRect.anchoredPosition = new Vector2(Mathf.Lerp(LabelHiddenX, labelShownX, l), 90f);
         }
 
         /// <summary>이번 컷인에 쓸 얼굴과 글자를 채운다.</summary>
