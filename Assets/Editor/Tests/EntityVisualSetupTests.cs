@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Prototype.EditorTools;
 using UnityEditor;
 using UnityEngine;
 
@@ -75,6 +76,28 @@ namespace Prototype.Tests
                     $"{root.name}과 {(seen.ContainsKey(c) ? seen[c] : "?")}의 틴트가 같다: {c}");
                 seen[c] = root.name;
             }
+        }
+
+        /// <summary>
+        /// 변종 프리팹은 EnemyPrefabBuilder 메뉴가 enemy.prefab을 복제해 만든다.
+        /// 빌더가 스프라이트 색을 안 넣으면 메뉴를 누르는 순간 세 변종이 전부 기준 프리팹 색이 된다.
+        /// 그래서 "빌더가 아는 색"과 "프리팹에 박힌 색"이 같은지 검사한다.
+        /// </summary>
+        [TestCase("Assets/Prefabs/Enemy_Melee.prefab")]
+        [TestCase("Assets/Prefabs/Enemy_Charger.prefab")]
+        [TestCase("Assets/Prefabs/Enemy_Ranged.prefab")]
+        public void VariantTint_MatchesBuilderTable(string prefabPath)
+        {
+            var root = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            Assert.That(root, Is.Not.Null, $"프리팹이 없다: {prefabPath}");
+
+            Assert.That(EnemyPrefabBuilder.TryGetVariantColor(root.name, out Color expected), Is.True,
+                $"빌더 표에 {root.name}이 없다");
+
+            Color actual = BodyOf(root).color;
+            Assert.That(actual.r, Is.EqualTo(expected.r).Within(0.001f), $"{root.name} R");
+            Assert.That(actual.g, Is.EqualTo(expected.g).Within(0.001f), $"{root.name} G");
+            Assert.That(actual.b, Is.EqualTo(expected.b).Within(0.001f), $"{root.name} B");
         }
     }
 }

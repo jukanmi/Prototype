@@ -87,6 +87,28 @@ namespace Prototype.EditorTools
             },
         };
 
+        /// <summary>
+        /// 변종 색을 밖에서 물어볼 수 있게 연다. 프리팹에 박힌 틴트와 이 표가
+        /// 어긋나면 메뉴를 누르는 순간 색이 바뀌므로, 테스트가 둘을 맞물려 놓는다.
+        /// </summary>
+        /// <param name="enemyId">프리팹 이름(<c>Enemy_Melee</c>) 또는 변종 id(<c>Melee</c>).</param>
+        internal static bool TryGetVariantColor(string enemyId, out Color color)
+        {
+            string id = enemyId != null && enemyId.StartsWith("Enemy_")
+                ? enemyId.Substring("Enemy_".Length)
+                : enemyId;
+
+            foreach (Variant v in Variants)
+            {
+                if (v.id != id) continue;
+                color = v.color;
+                return true;
+            }
+
+            color = Color.white;
+            return false;
+        }
+
         [MenuItem("Prototype/적 - 근접·원거리·돌진 프리팹 만들기")]
         public static void Build()
         {
@@ -126,6 +148,7 @@ namespace Prototype.EditorTools
             root.transform.rotation = Quaternion.identity;
 
             BuildBody(root, material);
+            TintSprite(root, v.color);
             Attack basicHitbox = EnsureBasicHitbox(root);
             WireEnemy(root, data, basicHitbox, v, projectilePrefab);
             WireControl(root, brain, v);
@@ -247,6 +270,29 @@ namespace Prototype.EditorTools
             MakeMesh(root, "Body", PrimitiveType.Capsule, BodyCenter, Vector3.one, material);
             MakeMesh(root, "FacingMarker", PrimitiveType.Cube,
                      new Vector3(0f, 1f, 0.55f), new Vector3(0.2f, 0.2f, 0.4f), material);
+        }
+
+        /// <summary>
+        /// 몸 스프라이트를 변종색으로 물들인다. 이 색이 곧 EnemyStateTint의 BaseColor가 되어,
+        /// 상태에 물든 뒤에도 "무슨 적이었는지"의 흔적으로 남는다.
+        ///
+        /// 알파는 건드리지 않는다 — 사망 페이드 커브 소유다.
+        /// </summary>
+        private static void TintSprite(GameObject root, Color color)
+        {
+            Transform sprite = root.transform.Find("View/Sprite");
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[EnemyPrefabBuilder] {root.name}: View/Sprite가 없어 틴트를 못 넣는다");
+                return;
+            }
+
+            var sr = sprite.GetComponent<SpriteRenderer>();
+            if (sr == null) return;
+
+            Color c = color;
+            c.a = sr.color.a;
+            sr.color = c;
         }
 
         private static void MakeMesh(GameObject root, string name, PrimitiveType type,
