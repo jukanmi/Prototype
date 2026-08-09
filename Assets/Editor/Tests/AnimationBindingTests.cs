@@ -56,5 +56,37 @@ namespace Prototype.Tests
             Assert.That(target, Is.Not.Null,
                 $"{root.name} / {clip.name}: 경로 '{binding.path}'가 계층에 없다 ({binding.propertyName})");
         }
+
+        /// <summary>
+        /// 위 테스트는 컨트롤러가 아는 클립만 본다. 그런데 스킬 클립은 SkillData.animation을
+        /// 통해 Skill 슬롯에 런타임으로 꽂히므로 controller.animationClips에 안 잡힌다 —
+        /// 실제로 궁수 스킬 4종이 삭제된 AerialAttack.anim을 가리킨 채로 이 구멍을 통과했었다.
+        /// SkillData 에셋을 전부 훑어 같은 검사를 돌린다.
+        /// </summary>
+        [Test]
+        public void SkillAnimationClips_ResolveInEveryPrefabHierarchy()
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:SkillData"))
+            {
+                string skillPath = AssetDatabase.GUIDToAssetPath(guid);
+                var skill = AssetDatabase.LoadAssetAtPath<SkillData>(skillPath);
+                Assert.That(skill, Is.Not.Null, $"SkillData를 못 읽었다: {skillPath}");
+
+                AnimationClip clip = skill.animation;
+                if (clip == null) continue; // 비어 있으면 기본 플레이스홀더로 폴백 — 정상.
+
+                foreach (string prefabPath in PrefabPaths)
+                {
+                    var root = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                    Assert.That(root, Is.Not.Null, $"프리팹이 없다: {prefabPath}");
+
+                    foreach (EditorCurveBinding b in AnimationUtility.GetCurveBindings(clip))
+                        AssertResolves(root, clip, b);
+
+                    foreach (EditorCurveBinding b in AnimationUtility.GetObjectReferenceCurveBindings(clip))
+                        AssertResolves(root, clip, b);
+                }
+            }
+        }
     }
 }

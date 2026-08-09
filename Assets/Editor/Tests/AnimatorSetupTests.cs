@@ -92,5 +92,23 @@ namespace Prototype.Tests
             if (typeof(SkillState).IsAssignableFrom(t)) return "Skill";
             return t.Name.EndsWith("State") ? t.Name.Substring(0, t.Name.Length - "State".Length) : t.Name;
         }
+
+        /// <summary>
+        /// Skill 스테이트만 모션을 확인하던 구멍. 컨트롤러 병합의 실제 산출물은
+        /// 나머지 열 개 스테이트의 모션 배선이므로, 전부 비지 않았고 올바른 클립군을
+        /// 가리키는지 여기서 같이 고정한다.
+        /// </summary>
+        [Test]
+        public void EveryState_HasMotion_FromExpectedClipSet()
+        {
+            foreach (ChildAnimatorState s in States())
+            {
+                Assert.That(s.state.motion, Is.Not.Null, $"{s.state.name}: 모션이 비었다");
+                Assert.That(
+                    s.state.motion.name == EntityAnimator.SkillSlotClip ||
+                    s.state.motion.name.StartsWith("Ally_"),
+                    $"{s.state.name}: 모션 '{s.state.motion.name}'이 예상 클립군(Skill_Placeholder / Ally_*)이 아니다");
+            }
+        }
     }
 }
