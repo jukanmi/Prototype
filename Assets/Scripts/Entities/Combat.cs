@@ -244,10 +244,30 @@ namespace Prototype
 
             Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position);
             if (hit.knockbackForce > 0f)
-                physics.AddImpulse(dir, hit.knockbackForce, resetInertia: false);
+                physics.AddImpulse(dir, PullClamped(hit, casterPos), resetInertia: false);
 
             if (hit.launchForce > 0f)
                 physics.AddLaunch(hit.launchForce);
+        }
+
+        /// <summary>
+        /// 끌어당기기의 충격량을 <b>중심까지의 거리</b>로 잘라 준다.
+        ///
+        /// <see cref="Physics.AddImpulse"/>는 지수감쇠라 이동거리가 <c>force / impulseDamping</c>로
+        /// 고정된다 — 거리와 무관하다. 그래서 고정값을 쓰면 중심 가까이 있던 적이 중심을 지나쳐
+        /// 반대편으로 튀고, 맞은편 적과 교차하면서 오히려 흩어진다.
+        ///
+        /// 잘라 두면 <c>knockbackForce</c>는 "최대 끌어올 거리"의 의미가 되고,
+        /// 멀리 있는 적만 힘을 다 쓰므로 전원이 중심에 모인다.
+        /// </summary>
+        private float PullClamped(in HitData hit, Vector3 center)
+        {
+            if (hit.mode != KnockbackMode.TowardCaster) return hit.knockbackForce;
+
+            Vector3 flat = center - transform.position;
+            flat.y = 0f;
+
+            return Mathf.Min(hit.knockbackForce, physics.ImpulseToTravel(flat.magnitude));
         }
 
         private void Die()

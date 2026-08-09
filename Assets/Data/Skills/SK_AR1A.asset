@@ -40,7 +40,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0
@@ -51,7 +51,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0
@@ -62,7 +62,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0

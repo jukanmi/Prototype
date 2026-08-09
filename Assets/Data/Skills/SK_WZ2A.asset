@@ -53,6 +53,6 @@ MonoBehaviour:
       type: {class: AirborneEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 4.5
-        launchForce: 30
+        launchForce: 12
         damage: 7
         hitStun: 0.6

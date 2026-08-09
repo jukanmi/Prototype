@@ -56,6 +56,6 @@ MonoBehaviour:
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 4
-        force: 12
+        force: 32
         damage: 5
         hitStun: 0.4

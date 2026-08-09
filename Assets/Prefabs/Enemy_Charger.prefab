@@ -392,7 +392,9 @@ MonoBehaviour:
   deceleration: 80
   impulseDamping: 8
   gravity: 30
-  fallGravityScale: 0.45
+  fallGravityScale: 0.22
+  apexHangTime: 0.35
+  apexVelocityThreshold: 3
   rotateToFacing: 1
 --- !u!114 &6942183595845164812
 MonoBehaviour:

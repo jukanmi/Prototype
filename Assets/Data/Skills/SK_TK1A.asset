@@ -41,7 +41,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 20
+    knockbackForce: 28
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
@@ -64,6 +64,6 @@ MonoBehaviour:
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 3.5
-        force: 12
+        force: 28
         damage: 4
         hitStun: 0.4
