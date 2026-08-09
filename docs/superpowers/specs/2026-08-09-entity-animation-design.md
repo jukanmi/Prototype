@@ -124,6 +124,11 @@ Player와 enemy 프리팹은 이미 `EntityAnimator.controller`를 참조하므�
 
 ### 3단계 — 프리팹 설정
 
+`Enemy_Melee` · `Enemy_Charger` · `Enemy_Ranged`는 `EnemyPrefabBuilder` 메뉴가 `enemy.prefab`을
+복제해 찍어내는 프리팹이다. 따라서 **`enemy.prefab`에 넣은 것은 재빌드 때 자동으로 상속된다** —
+Animator도, `BeltScrollView` 필드도. 변종별로 달라지는 값(틴트)만 빌더 코드가 따로 넣어줘야 한다.
+다만 메뉴를 실행하지 않고 작업하므로, 세 프리팹 애셋도 같은 결과가 되도록 직접 맞춘다.
+
 **Animator가 없는 3종** — `Enemy_Melee`, `Enemy_Charger`, `Enemy_Ranged`:
 루트에 `Animator`(Controller = `EntityAnimator.controller`) + `EntityAnimator` 추가,
 `EntityAnimator.animator` 필드를 그 Animator에 연결한다.
@@ -140,13 +145,22 @@ Player와 enemy 프리팹은 이미 `EntityAnimator.controller`를 참조하므�
 
 **틴트** — 6종 전부 대상. Sprite의 `m_Color` RGB만 바꾸고 알파는 건드리지 않는다(클립 소유).
 
-| 프리팹 | RGB |
-|---|---|
-| Player | `1.00, 1.00, 1.00` (원본) |
-| Ally | `0.65, 0.85, 1.00` (푸른빛) |
-| enemy · Enemy_Melee | `1.00, 0.55, 0.50` (붉은빛) |
-| Enemy_Charger | `1.00, 0.75, 0.35` (주황) |
-| Enemy_Ranged | `0.80, 0.60, 1.00` (보라) |
+색값은 새로 짓지 않는다. 적 3종은 [EnemyPrefabBuilder](../../../Assets/Editor/EnemyPrefabBuilder.cs)의
+`Variants` 표에 이미 정해져 있다 — 지금은 머티리얼에만 반영되고 스프라이트에는 안 닿는다.
+그 값을 그대로 SpriteRenderer로 옮긴다.
+
+| 프리팹 | RGB | 출처 |
+|---|---|---|
+| Player | `1.00, 1.00, 1.00` | 원본 (가장 밝게) |
+| Ally | `0.55, 1.00, 0.65` | 연두 — 적 3색·상태색 어느 것과도 안 겹친다 |
+| enemy (기준) | `0.90, 0.30, 0.28` | Melee와 동일. 씬의 더미 적 |
+| Enemy_Melee | `0.90, 0.30, 0.28` | 빌더 `고블린` |
+| Enemy_Ranged | `0.35, 0.62, 1.00` | 빌더 `궁수 고블린` |
+| Enemy_Charger | `1.00, 0.65, 0.20` | 빌더 `돌진 멧돼지` |
+
+**빌더도 함께 고친다** — `BuildVariant`가 `Sprite` 자식의 `SpriteRenderer.color`에 `v.color`를 넣도록
+몇 줄 추가한다. 그러지 않으면 메뉴를 다시 누르는 순간 세 프리팹의 틴트가 `enemy.prefab` 값으로 되돌아간다
+(변종은 기준 프리팹의 복제본이다). 캡슐 메쉬(`BuildBody`)는 이 스펙에서 건드리지 않는다 — 별건이다.
 
 이 틴트는 기존 설계와 충돌하지 않는다. [EnemyStateTint](../../../Assets/Scripts/Vfx/EnemyStateTint.cs)가
 Awake에 `body.color`를 `BaseColor`로 붙잡고, [CombatStateVisuals.Tint](../../../Assets/Scripts/Vfx/CombatStateVisuals.cs)가
@@ -178,8 +192,11 @@ Awake에 `body.color`를 `BaseColor`로 붙잡고, [CombatStateVisuals.Tint](../
 - 이동 방향에 따라 스프라이트가 뒤집힌다
 - 그림자(`shadowBaseScale` 0.9 × 0.35)가 새 실루엣 발밑에 맞는가
 - `Attack` 자식의 `CapsuleCollider`(height 2, center 0,0,1) 위치가 새 스프라이트 기준으로 어긋나지 않는가
-- 적 3종의 틴트가 난전에서 서로 구분된다. 상태 틴트(경직 흰색·공중 하늘색·넉백 주황)와도 헷갈리지 않는가
-  — Enemy_Charger의 주황과 넉백 주황이 가장 위험하다
+- 적 3종의 틴트가 난전에서 서로 구분된다. 상태 틴트(경직 흰색·공중 하늘색·넉백 주황)와도 헷갈리지 않는가.
+  두 조합이 특히 위험하다 — Enemy_Charger 주황(`1, 0.65, 0.20`) × 넉백 주황(`1, 0.549, 0.259`),
+  Enemy_Ranged 파랑(`0.35, 0.62, 1`) × 공중 하늘색(`0.349, 0.761, 1`).
+  `TintStrength`가 0.8이라 궁수가 공중에 뜨면 원래 색과 거의 같아진다. 안 보이면 라벨로 충분한지,
+  아니면 궁수 고유색을 옮길지 판단한다 (별건으로 뺀다)
 - 사망 시 페이드가 끝까지 간다 (`Ally_Dead`의 알파 커브 × `Entity.despawnFade`)
 - 스킬 사용 시 스킬별 클립이 나온다 (전제 ②가 풀렸는지)
 
