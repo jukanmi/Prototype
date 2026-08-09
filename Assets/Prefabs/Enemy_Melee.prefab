@@ -307,9 +307,9 @@ MonoBehaviour:
   shadow: {fileID: 4902101889167759731}
   depthToScreen: 0.9
   depthScalePerUnit: 0.06
-  spriteOffsetY: 0.5
-  flipToFacing: 0
-  facingRenderer: {fileID: 0}
+  spriteOffsetY: 0
+  flipToFacing: 1
+  facingRenderer: {fileID: 1543204692497008705}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -429,7 +429,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 75f5f34dc1b5347e0b8351032682f224, type: 3}
+  m_Sprite: {fileID: 3204480812468917802, guid: e0f8723057d189b448ec92be461e8175, type: 3}
   m_Color: {r: 0.9, g: 0.3, b: 0.28, a: 1}
   m_FlipX: 0
   m_FlipY: 0

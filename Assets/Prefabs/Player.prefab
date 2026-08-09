@@ -316,8 +316,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0, g: 1, b: 0.24236071, a: 1}
+  m_Sprite: {fileID: 3204480812468917802, guid: e0f8723057d189b448ec92be461e8175, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -571,9 +571,9 @@ MonoBehaviour:
   shadow: {fileID: 6184566404241876827}
   depthToScreen: 0.9
   depthScalePerUnit: 0.06
-  spriteOffsetY: 0.5
-  flipToFacing: 0
-  facingRenderer: {fileID: 0}
+  spriteOffsetY: 0
+  flipToFacing: 1
+  facingRenderer: {fileID: 6118572367038369068}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
