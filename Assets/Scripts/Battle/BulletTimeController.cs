@@ -8,7 +8,7 @@ namespace Prototype
     /// 지휘 모드의 관제탑. 덱 · 손패 · 실행을 이어 붙인다.
     ///
     /// 손패는 <b>불릿타임과 무관하게 항상 4장이 유지된다</b>. 큐처럼 굴러가서
-    /// 실시간에는 U키로 왼쪽 한 장씩 소모하고, 불릿타임을 걸었다 풀면 왼쪽부터 전부 발동한다.
+    /// 실시간에는 Z키로 왼쪽 한 장씩 소모하고, 불릿타임을 걸었다 풀면 왼쪽부터 전부 발동한다.
     ///
     /// <b>Time.timeScale은 쓰지 않는다</b> — UI와 애니메이션까지 멈추면
     /// 정작 손패를 조작할 수 없기 때문(결정 로그 ⑥).
@@ -166,13 +166,13 @@ namespace Prototype
             return "마나 부족";
         }
 
-        /// <summary>E키 요청. 실제 판정은 현재 전술 페이즈가 내린다.</summary>
+        /// <summary>Space키 요청. 실제 판정은 현재 전술 페이즈가 내린다.</summary>
         public bool Enter() => tactic != null && tactic.OnBulletTimeKey();
 
         /// <summary>Spacebar 요청. Order 페이즈에서만 Resolve로 넘어간다.</summary>
         public void Exit() => tactic?.OnExecuteKey();
 
-        // ── 실시간 단발 사용 (U키) ───────────────────────
+        // ── 실시간 단발 사용 (Z키) ───────────────────────
 
         /// <summary>
         /// 손패 맨 왼쪽 카드를 즉시 발동한다. 실시간 전투 전용.
@@ -472,7 +472,7 @@ namespace Prototype
                     if (c == null) continue;
 
                     // SkillData가 없는 카드는 영영 발동할 수 없다.
-                    // 덱에 들이면 손패 맨 앞을 막아 U키가 먹통이 되므로 여기서 잘라 낸다.
+                    // 덱에 들이면 손패 맨 앞을 막아 Z키가 먹통이 되므로 여기서 잘라 낸다.
                     if (c.Data == null)
                     {
                         empty++;

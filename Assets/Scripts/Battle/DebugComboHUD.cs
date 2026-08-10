@@ -129,10 +129,10 @@ namespace Prototype
             sb.Clear();
 
             sb.AppendLine("<b>── 조작 ──</b>");
-            sb.AppendLine("실시간: WASD 이동 / J 평타 / K 점프 / Shift 대쉬 / ZXCV 동료 고유기");
-            sb.AppendLine("        <color=#FFD166>U 손패 맨 왼쪽 카드 사용</color> / E 불릿타임");
-            sb.AppendLine("불릿타임: 카드 드래그 순서 교환 / 카드 클릭 조준 / WASD·마우스 조준 / 우클릭 취소");
-            sb.AppendLine("        <color=#FFD166>E 또는 Space</color> 해제 → 왼쪽부터 순서대로 발동");
+            sb.AppendLine("실시간: 방향키 이동 / X 평타 / C 점프 / Shift 대쉬");
+            sb.AppendLine("        <color=#FFD166>Z 손패 맨 왼쪽 카드 사용</color> / Space 불릿타임");
+            sb.AppendLine("불릿타임: 카드 드래그 순서 교환 / 카드 클릭 조준 / 방향키·마우스 조준 / 우클릭 취소");
+            sb.AppendLine("        <color=#FFD166>Space</color> 해제 → 왼쪽부터 순서대로 발동");
             sb.AppendLine();
 
             float g = bulletTime.Gauge != null ? bulletTime.Gauge.Ratio : 0f;
@@ -170,7 +170,7 @@ namespace Prototype
                 ComboSlot s = hand.Get(i);
                 SkillData d = s.Data;
 
-                string head = i == 0 ? "<color=#00E5FF>U ▶</color>" : $"{i + 1}. ";
+                string head = i == 0 ? "<color=#00E5FF>Z ▶</color>" : $"{i + 1}. ";
 
                 if (d == null)
                 {
@@ -200,7 +200,7 @@ namespace Prototype
         {
             if (targetSelector == null || !targetSelector.IsSelecting) return;
 
-            sb.AppendLine("<b>── 조준 중 ──</b>  <color=#808080>WASD·마우스 이동 · 좌클릭 확정 · 우클릭 취소</color>");
+            sb.AppendLine("<b>── 조준 중 ──</b>  <color=#808080>방향키·마우스 이동 · 좌클릭 확정 · 우클릭 취소</color>");
             sb.AppendLine($"  {targetSelector.Current.skillName} / {targetSelector.Current.targeting}");
             sb.AppendLine($"  좌표 {targetSelector.CursorPoint:F1}  반경 내 적 {targetSelector.EnemiesInRange}마리");
 
@@ -214,7 +214,7 @@ namespace Prototype
         {
             if (player == null) return;
 
-            sb.AppendLine("<b>── 파티 ──</b>  <color=#808080>Z X C V 고유기</color>");
+            sb.AppendLine("<b>── 파티 ──</b>");
             sb.AppendLine($"  {player.name}  HP {player.Combat.Health.CurValue:0}/{player.Combat.Health.MaxValue:0}  {player.Combat.CombatState}");
 
             for (int i = 0; i < player.Party.Length; i++)

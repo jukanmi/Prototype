@@ -7,7 +7,7 @@ namespace Prototype
     /// 불릿타임 중 카드를 슬롯에 놓을 때의 조준(결정 로그 ④).
     /// 시간이 멈춰 있으므로 조준할 여유가 있다.
     ///
-    /// 기본은 <b>WASD 키보드 조준</b>이다. 마우스를 실제로 움직이면 그 프레임부터 마우스가 잡는다.
+    /// 기본은 <b>방향키 키보드 조준</b>이다. 마우스를 실제로 움직이면 그 프레임부터 마우스가 잡는다.
     /// </summary>
     public class TargetSelector : MonoBehaviour
     {
@@ -16,7 +16,7 @@ namespace Prototype
         [SerializeField] private ComboPredictor predictor;
 
         [Header("키보드 조준")]
-        [Tooltip("WASD로 조준점이 움직이는 속도(units/s).")]
+        [Tooltip("방향키로 조준점이 움직이는 속도(units/s).")]
         [SerializeField] private float cursorSpeed = 9f;
         [Tooltip("조준을 시작할 때 커서가 놓이는 기준. 비우면 Player를 찾는다.")]
         [SerializeField] private Transform cursorOrigin;
@@ -150,14 +150,14 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>WASD로 조준점을 민다. 시간이 멈춰 있으므로 unscaled로 돌린다.</summary>
+        /// <summary>방향키로 조준점을 민다. 시간이 멈춰 있으므로 unscaled로 돌린다.</summary>
         private void MoveByKeyboard()
         {
             Keyboard kb = Keyboard.current;
             if (kb == null) return;
 
-            float x = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-            float z = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
+            float x = (kb.rightArrowKey.isPressed ? 1f : 0f) - (kb.leftArrowKey.isPressed ? 1f : 0f);
+            float z = (kb.upArrowKey.isPressed ? 1f : 0f) - (kb.downArrowKey.isPressed ? 1f : 0f);
 
             var dir = new Vector3(x, 0f, z);
             if (dir.sqrMagnitude <= 0.0001f) return;

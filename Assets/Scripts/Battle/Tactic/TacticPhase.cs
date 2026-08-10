@@ -35,7 +35,7 @@ namespace Prototype
         public virtual void Tick(float dt) { }
         public virtual void Exit() { }
 
-        /// <summary>E키. 처리했으면 true.</summary>
+        /// <summary>Space키. 처리했으면 true.</summary>
         public virtual bool OnBulletTimeKey() => false;
 
         /// <summary>Spacebar. 처리했으면 true.</summary>

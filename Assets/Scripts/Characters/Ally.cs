@@ -16,7 +16,7 @@ namespace Prototype
         [Header("정체성")]
         [SerializeField] private Role role;
 
-        [Tooltip("라이브 페이즈 고유기. 단축키로 직접 발동한다.")]
+        [Tooltip("라이브 페이즈 고유기. CastSelfSkill() 호출로 발동한다 — 전용 단축키 없음.")]
         [SerializeField] private SkillData selfSkill;
 
         [Tooltip("직업당 6종 중 4장. 덱 16장의 1/4을 이룬다.")]
@@ -84,7 +84,7 @@ namespace Prototype
 
         public bool CanCastSelfSkill => selfSkill != null && selfSkillCooldown <= 0f && !Combat.IsDead && !IsBusy;
 
-        /// <summary>ASDF 고유기. AI가 조준값을 채운다 — 유저 지정 없음.</summary>
+        /// <summary>고유기 발동. AI가 조준값을 채운다 — 유저 키 입력 없음.</summary>
         public bool CastSelfSkill()
         {
             if (!CanCastSelfSkill) return false;
@@ -110,7 +110,7 @@ namespace Prototype
             return true;
         }
 
-        // ── 콤보 카드 (실시간 U키 단발) ──────────────────
+        // ── 콤보 카드 (실시간 Z키 단발) ──────────────────
 
         /// <summary>실시간 단발 카드를 받을 수 있는 상태인지. 카드 쿨타임은 덱이 관리하므로 보지 않는다.</summary>
         public bool CanCastCard => !Combat.IsDead && !IsBusy && !IsCommanded;
@@ -147,7 +147,7 @@ namespace Prototype
         /// <summary>
         /// <see cref="SkillState"/>는 후딜이 끝나도 <c>finished</c> 표시만 하고 <b>스스로 상태를 빠져나오지 않는다</b>.
         /// 콤보 경로는 <see cref="ComboExecutor"/>가 끝난 뒤 Idle로 되돌려 주지만,
-        /// 실시간 경로(U키 카드 · ASDF 고유기)는 Executor를 거치지 않으므로 되돌릴 주체가 없다.
+        /// 실시간 경로(Z키 카드 · 고유기)는 Executor를 거치지 않으므로 되돌릴 주체가 없다.
         /// 그대로 두면 슈퍼아머(<c>CanBeInterrupted == false</c>)인 채로 남아
         /// 이 동료가 영영 <see cref="Entity.IsBusy"/>가 되고, 이후 카드가 전부 "이전 동작 중"으로 거부된다.
         /// </summary>
