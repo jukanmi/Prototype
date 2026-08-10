@@ -9,9 +9,9 @@ namespace Prototype.YG
         public const string MainMenu = "MainMenu";
 
         /// <summary>
-        /// 전투 씬. 씬 파일명은 아직 SampleScene 이지만 나중에 Battle 로 바뀔 가능성이 높아
-        /// 상수명은 용도 기준으로 둔다. 파일명이 바뀌면 이 한 줄만 고치면 된다.
+        /// 스테이지 진행 순서. <see cref="GameManager.CurrentStageIndex"/>가 이 배열의
+        /// 인덱스와 대응한다. 인덱스 0이 런 시작 지점이며, 마지막 인덱스를 넘어가면 런 클리어로 취급한다.
         /// </summary>
-        public const string Battle   = "SampleScene";
+        public static readonly string[] Stages = { "SampleScene", "Stage02" };
     }
 }

@@ -27,6 +27,7 @@ namespace Prototype.YG.EditorTools
         private const string BootPath  = SceneDir + "/Boot.unity";
         private const string MenuPath  = SceneDir + "/MainMenu.unity";
         private const string BattlePath = SceneDir + "/SampleScene.unity";
+        private const string Stage02Path = SceneDir + "/Stage02.unity";
 
         [MenuItem("Prototype/YG/메인화면 흐름 씬 만들기", priority = 20)]
         public static void Build()
@@ -55,6 +56,111 @@ namespace Prototype.YG.EditorTools
 
             Debug.Log("<b>[FlowSceneBuilder]</b> 완료 — Boot 씬을 열어 두었다. Play 를 누를 것.");
             ReportInputHandling();
+        }
+
+        // ── 스테이지 시스템 ──────────────────────────────
+
+        /// <summary>
+        /// SampleScene 오른쪽 끝(Wall_Right 안쪽)에 <see cref="StageExitTrigger"/>를 붙이고,
+        /// SampleScene을 복제해 테스트용 Stage02.unity를 만든다. Build Settings에도 등록한다.
+        /// 이미 붙어 있으면 건너뛴다 — 여러 번 눌러도 안전하다.
+        /// </summary>
+        [MenuItem("Prototype/YG/스테이지 시스템 만들기 (테스트 Stage02 포함)", priority = 21)]
+        public static void BuildStageSystem()
+        {
+            if (!File.Exists(BattlePath))
+            {
+                Debug.LogError($"[FlowSceneBuilder] {BattlePath} 가 없다. 먼저 '메인화면 흐름 씬 만들기'를 실행할 것.");
+                return;
+            }
+
+            if (!EditorUtility.DisplayDialog(
+                    "스테이지 시스템 만들기",
+                    "SampleScene 오른쪽 끝에 StageExitTrigger 를 추가하고,\n" +
+                    "SampleScene 을 복제해 테스트용 Stage02.unity 를 만든다.\n" +
+                    "Build Settings 에도 Stage02 를 등록한다.\n\n" +
+                    "계속할까?",
+                    "만들기", "취소"))
+                return;
+
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+
+            AddStageExitTrigger(BattlePath);
+            BuildStage02();
+            RegisterBuildSettings();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            EditorSceneManager.OpenScene(BootPath, OpenSceneMode.Single);
+
+            Debug.Log("<b>[FlowSceneBuilder]</b> 스테이지 시스템 완료 — " +
+                      "SampleScene 오른쪽 끝(Wall_Right 안쪽)으로 걸어가면 Stage02 로 전환된다. " +
+                      "Stage02 오른쪽 끝에 닿으면 마지막 스테이지 클리어로 처리돼 메인화면으로 돌아간다.");
+        }
+
+        /// <summary>
+        /// Wall_Right 안쪽에 트리거 콜라이더를 만든다. 벽(솔리드 콜라이더)보다 살짝 안쪽에 둬서
+        /// 플레이어가 벽에 막히기 전에 트리거를 먼저 지나가게 한다.
+        /// </summary>
+        private static void AddStageExitTrigger(string scenePath)
+        {
+            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+            if (GameObject.Find("StageExitTrigger") != null)
+            {
+                Debug.Log($"[FlowSceneBuilder] {scenePath} 에 StageExitTrigger 가 이미 있다. 건너뛴다.");
+                return;
+            }
+
+            GameObject wallRight = GameObject.Find("Wall_Right");
+            if (wallRight == null)
+            {
+                Debug.LogWarning($"[FlowSceneBuilder] {scenePath} 에 Wall_Right 가 없어 트리거를 만들지 못했다.");
+                return;
+            }
+
+            BoxCollider wallCollider = wallRight.GetComponent<BoxCollider>();
+            Vector3 size = wallCollider != null ? wallCollider.size : new Vector3(0.5f, 4f, 6f);
+
+            var go = new GameObject("StageExitTrigger");
+            go.transform.SetParent(wallRight.transform.parent, false);
+            go.transform.position = wallRight.transform.position - new Vector3(1f, 0f, 0f);
+
+            BoxCollider trigger = go.AddComponent<BoxCollider>();
+            trigger.isTrigger = true;
+            trigger.size = size;
+
+            go.AddComponent<StageExitTrigger>();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+
+            Debug.Log($"[FlowSceneBuilder] {scenePath} 에 StageExitTrigger 추가 완료.");
+        }
+
+        /// <summary>
+        /// SampleScene(트리거가 이미 붙은 상태)을 그대로 복제해 Stage02.unity 를 만든다.
+        /// 육안으로 구분되도록 바닥 색만 옅은 파랑으로 바꾼다.
+        /// </summary>
+        private static void BuildStage02()
+        {
+            Scene scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Single);
+            EditorSceneManager.SaveScene(scene, Stage02Path, saveAsCopy: true);
+
+            Scene stage02 = EditorSceneManager.OpenScene(Stage02Path, OpenSceneMode.Single);
+
+            GameObject floor = GameObject.Find("Floor");
+            SpriteRenderer floorRenderer = floor != null ? floor.GetComponent<SpriteRenderer>() : null;
+            if (floorRenderer != null)
+                floorRenderer.color = new Color(0.75f, 0.85f, 1f);
+            else
+                Debug.LogWarning("[FlowSceneBuilder] Stage02 에 Floor 를 찾지 못해 색을 바꾸지 못했다.");
+
+            EditorSceneManager.MarkSceneDirty(stage02);
+            EditorSceneManager.SaveScene(stage02);
+
+            Debug.Log($"[FlowSceneBuilder] {Stage02Path} 생성 완료.");
         }
 
         // ── Boot ─────────────────────────────────────────
@@ -323,6 +429,9 @@ namespace Prototype.YG.EditorTools
 
             if (File.Exists(BattlePath))
                 scenes.Add(new EditorBuildSettingsScene(BattlePath, true));
+
+            if (File.Exists(Stage02Path))
+                scenes.Add(new EditorBuildSettingsScene(Stage02Path, true));
 
             EditorBuildSettings.scenes = scenes.ToArray();
         }

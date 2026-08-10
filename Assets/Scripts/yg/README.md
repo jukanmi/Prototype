@@ -9,9 +9,16 @@
 앱 실행 → Boot (매니저 상주, 언로드 안 됨)
             └→ MainMenu Additive 로드
 
-MainMenu [시작]  → MainMenu 언로드 → SampleScene Additive 로드
-SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
+MainMenu [시작]     → MainMenu 언로드 → Stages[0] (SampleScene) Additive 로드
+Stages[i] 오른쪽 끝 → Stages[i] 언로드 → Stages[i+1] Additive 로드
+마지막 스테이지 클리어 → 메인화면으로 복귀
+Stages[i] [ESC]     → Stages[i] 언로드 → MainMenu Additive 로드
 ```
+
+`SceneNames.Stages`가 스테이지 순서(씬 이름 배열)를 들고 있고, `GameManager.CurrentStageIndex`가
+그 배열의 인덱스와 대응한다. 각 스테이지 씬 오른쪽 끝(Wall_Right 안쪽)에 `StageExitTrigger`를
+두면, 플레이어가 닿는 순간 `BattleSceneController.AdvanceToNextStage()`가 다음 인덱스의 씬으로
+갈아끼운다. 인덱스가 배열 끝을 넘어가면 런 클리어로 보고 메인화면으로 돌려보낸다.
 
 "처음부터 재생"은 리셋 코드 없이 **씬을 새로 로드하는 것만으로** 보장된다.
 씬 파일에 저장된 초기 배치가 그대로 복원되기 때문이다.
@@ -22,14 +29,15 @@ SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
 
 | 파일 | 역할 |
 |---|---|
-| `SceneNames.cs` | 씬 이름 상수. `Battle` = `"SampleScene"` |
+| `SceneNames.cs` | 씬 이름 상수. `Stages` = 스테이지 순서 배열 (`["SampleScene", "Stage02"]`) |
 | `SceneLoader.cs` | 씬의 **존재 자체**. Additive 로드/언로드 + 페이드 + `IsBusy` 잠금 |
 | `GameManager.cs` | 런 단위 데이터. 씬 오브젝트는 절대 참조하지 않는다 |
 | `AudioManager.cs` | BGM/SFX 골격. 클립이 비어도 예외 없이 넘어간다 |
 | `BootStrapper.cs` | Boot 씬에서 최초 1회 MainMenu 를 띄운다 |
 | `MainMenuController.cs` | 시작/종료 버튼 배선 |
-| `BattleSceneController.cs` | 배틀 씬 진행. 현재는 ESC 이탈 처리 |
-| `Editor/FlowSceneBuilder.cs` | Boot · MainMenu 씬 생성 + Build Settings 등록 |
+| `BattleSceneController.cs` | 배틀 씬 진행. ESC 이탈, 재시작, `AdvanceToNextStage()` |
+| `StageExitTrigger.cs` | 스테이지 오른쪽 끝 트리거. 플레이어가 닿으면 다음 스테이지로 전환 |
+| `Editor/FlowSceneBuilder.cs` | Boot · MainMenu 씬 생성 + 스테이지 시스템 조립 + Build Settings 등록 |
 
 ## 씬 조립 — 메뉴 한 번
 
@@ -41,6 +49,16 @@ SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
   `Btn_Start` · `Btn_Quit`, `MainMenuController` 배선
 - `SampleScene` 에 `BattleSceneController` 오브젝트 추가 (**다른 오브젝트는 손대지 않는다**)
 - Build Settings: `Boot`(0) → `MainMenu`(1) → `SampleScene`(2)
+
+이어서 **`Prototype ▸ YG ▸ 스테이지 시스템 만들기 (테스트 Stage02 포함)`** 를 누르면:
+
+- `SampleScene` 의 `Wall_Right` 안쪽에 `StageExitTrigger` 오브젝트 추가
+- `SampleScene` 을 그대로 복제해 `Assets/Scenes/Stage02.unity` 생성 (바닥 색만 옅은 파랑으로 바꿔 육안 구분)
+- Build Settings 에 `Stage02` 도 등록
+
+두 메뉴 모두 이미 되어 있는 부분은 건너뛰므로 여러 번 눌러도 안전하다. 스테이지를 더 늘리려면
+`SceneNames.Stages` 배열에 씬 이름을 추가하고, 그 씬에도 `StageExitTrigger` 를 (오른쪽 끝에)
+직접 배치하면 된다.
 
 ## 지켜야 할 제약
 
@@ -115,6 +133,9 @@ Screen Space - Overlay 라 카메라 없는 순간에도 정상 렌더링된다.
 | 10 | 콘솔 | 카메라 중복/누락 에러 없음 |
 | 11 | 3회 왕복 후 | 씬 목록에 잔여 씬이 쌓이지 않음 |
 | 12 | 불릿타임 중 ESC | 복귀 후 다음 런이 멈춘 채 시작하지 않음 |
+| 13 | SampleScene 오른쪽 끝(Wall_Right 안쪽)까지 이동 | 콘솔에 `[Battle] 다음 스테이지로 이동: Stage02`, Hierarchy 에 `Stage02` 만 남음 |
+| 14 | Stage02 오른쪽 끝까지 이동 | 콘솔에 `[Battle] 마지막 스테이지 클리어`, 메인화면 복귀 |
+| 15 | 스테이지 전환 중 연타(트리거 재진입 등) | 씬 중복 로드 없음 (`IsBusy` + `isAdvancing` 잠금) |
 
 ## 알려진 제약
 
@@ -127,7 +148,7 @@ Screen Space - Overlay 라 카메라 없는 순간에도 정상 렌더링된다.
 ## 다음 단계 (이번 범위 아님)
 
 1. ESC → 일시정지 패널 (재개 / 설정 / 메인으로)
-2. `StageData` ScriptableObject → 씬 재로드 대신 `BattleSceneController.LoadStage(data)`
+2. `StageData` ScriptableObject → `SceneNames.Stages` 문자열 배열 대신 스테이지별 메타데이터(스폰 위치, 등장 몬스터 등) 보유
 3. `DeckManager` + `CardView` 오브젝트 풀
 4. 보스 스테이지 컷씬 씬 Additive 로드
-5. `SampleScene` → `Battle` 로 이름 변경 (`SceneNames.cs` 한 줄만 수정)
+5. `SampleScene` → `Stage01` 로 이름 변경 (`SceneNames.cs` 의 `Stages` 배열 한 줄만 수정)

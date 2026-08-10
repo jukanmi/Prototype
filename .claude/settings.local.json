@@ -1,10 +1,14 @@
 {
-  "enabledMcpjsonServers": [
-    "unity"
-  ],
   "permissions": {
     "allow": [
-      "Bash(grep -v -E '\\\\.\\(meta\\)$')"
+      "Bash(grep -v -E '\\\\.\\(meta\\)$')",
+      "Bash(awk 'NR==2958,NR==3011' SampleScene.unity)",
+      "Bash(awk 'NR==2287,NR==2390' SampleScene.unity)",
+      "Bash(awk -F'&' '{print $2}')",
+      "Bash(awk '/&1744773988$/,/m_Father/' SampleScene.unity)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "unity"
+  ]
 }

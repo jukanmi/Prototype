@@ -36,7 +36,7 @@ namespace Prototype.YG
             // onComplete 는 배틀 씬 로드 완료 시점에 불린다. 그때 이 컴포넌트는 이미 파괴된 뒤다.
             // 그래서 콜백 안에서 this 의 필드를 참조하면 안 된다 — 싱글톤만 만진다.
             SceneLoader.Instance.SwapTo(
-                loadScene:   SceneNames.Battle,
+                loadScene:   SceneNames.Stages[0],
                 unloadScene: SceneNames.MainMenu,
                 onComplete:  () => AudioManager.Instance?.PlayBattleBgm());
         }

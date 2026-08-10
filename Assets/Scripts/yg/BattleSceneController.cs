@@ -14,6 +14,7 @@ namespace Prototype.YG
     {
         private bool isExiting;
         private bool isRestarting;
+        private bool isAdvancing;
 
         private void Start()
         {
@@ -41,8 +42,52 @@ namespace Prototype.YG
 
         private void Update()
         {
-            if (isExiting || isRestarting) return;
+            if (isExiting || isRestarting || isAdvancing) return;
             if (WasEscapePressed()) ExitToMainMenu();
+        }
+
+        /// <summary>
+        /// <see cref="StageExitTrigger"/>가 부른다. 다음 스테이지 씬으로 갈아끼운다.
+        /// 마지막 스테이지를 넘어가면 런 클리어로 보고 메인화면으로 돌려보낸다.
+        /// </summary>
+        public void AdvanceToNextStage()
+        {
+            if (isExiting || isRestarting || isAdvancing) return;
+            if (SceneLoader.Instance == null || SceneLoader.Instance.IsBusy) return;
+
+            if (GameManager.Instance == null)
+            {
+                Debug.LogWarning("[Battle] GameManager 없음 — 씬 단독 실행 모드에서는 스테이지 전환을 지원하지 않는다.");
+                return;
+            }
+
+            int nextIndex = GameManager.Instance.CurrentStageIndex + 1;
+            if (nextIndex >= SceneNames.Stages.Length)
+            {
+                Debug.Log("[Battle] 마지막 스테이지 클리어 — 메인화면으로 복귀");
+                ExitToMainMenu();
+                return;
+            }
+
+            isAdvancing = true;
+
+            CleanupStage();
+            GameManager.Instance.AdvanceStage();
+
+            // RestartStage와 같은 이유로 로드 전에 비운다 — 새 스테이지의 Entity가
+            // Start에서 스스로 등록하므로, 로드가 끝난 뒤에 비우면 갓 등록된 것까지 날아간다.
+            TimeControl.Reset();
+            BattleRegistry.Clear();
+
+            string currentScene = gameObject.scene.name;
+            string nextScene = SceneNames.Stages[nextIndex];
+
+            Debug.Log($"[Battle] 다음 스테이지로 이동: {nextScene}");
+
+            SceneLoader.Instance.SwapTo(
+                loadScene:   nextScene,
+                unloadScene: currentScene,
+                onComplete:  OnBattleReloaded);
         }
 
         /// <summary>
@@ -58,6 +103,8 @@ namespace Prototype.YG
             if (SceneLoader.Instance != null && SceneLoader.Instance.IsBusy) return;
 
             isRestarting = true;
+
+            string currentScene = gameObject.scene.name;
 
             CleanupStage();
 
@@ -83,8 +130,8 @@ namespace Prototype.YG
             GameManager.Instance?.StartNewRun();
 
             SceneLoader.Instance.SwapTo(
-                loadScene:   SceneNames.Battle,
-                unloadScene: SceneNames.Battle,
+                loadScene:   SceneNames.Stages[0],
+                unloadScene: currentScene,
                 onComplete:  OnBattleReloaded);
         }
 
@@ -96,6 +143,9 @@ namespace Prototype.YG
         private static void OnBattleReloaded()
         {
             AudioManager.Instance?.PlayBattleBgm();
+
+            // 새로 로드된 스테이지에서 카메라가 이전 위치부터 미끄러져 오지 않도록 즉시 붙인다.
+            FindAnyObjectByType<CameraFollow>()?.SnapToTarget();
         }
 
         /// <summary>
@@ -119,12 +169,14 @@ namespace Prototype.YG
 
             isExiting = true;
 
+            string currentScene = gameObject.scene.name;
+
             CleanupStage();
             GameManager.Instance?.EndRun();
 
             SceneLoader.Instance.SwapTo(
                 loadScene:   SceneNames.MainMenu,
-                unloadScene: SceneNames.Battle,
+                unloadScene: currentScene,
                 onComplete:  OnReturnedToMenu);
         }
 
