@@ -7,8 +7,53 @@ namespace Prototype
     /// <summary>광역 판정이 필요한 효과의 공통 헬퍼.</summary>
     public static class EffectUtil
     {
+        /// <summary>적중 이펙트가 터지는 몸통 높이 · 크기. <see cref="Attack"/>과 같은 값.</summary>
+        private const float ImpactHeight = 0.7f;
+        private const float ImpactRadius = 0.55f;
+
         private static readonly Collider[] Buffer = new Collider[64];
         private static readonly HashSet<Combat> Seen = new HashSet<Combat>();
+
+        /// <summary>
+        /// 기준점 반경을 한 번에 때린다. <b>스킬 타격의 유일한 광역 경로</b> —
+        /// 즉시 터지는 장판도, 투사체가 도착해 터지는 폭발도 전부 여기를 지난다.
+        ///
+        /// 넉백 방향과 Z 정렬은 시전자가 아니라 <paramref name="center"/> 기준으로 돈다.
+        /// 원거리는 멀리 서 있으므로 시전자 기준이면 적이 시전자 발밑으로 끌려간다.
+        /// </summary>
+        /// <param name="skip">이미 다른 경로로 맞은 대상. 투사체 직격이 여기 들어온다.</param>
+        public static int AreaStrike(Vector3 center, float radius, Combat attacker,
+                                     in HitData hit, in SkillVfx style, Combat skip = null)
+        {
+            if (attacker == null || radius <= 0f) return 0;
+
+            // in 파라미터는 람다에 캡처할 수 없으므로 미리 꺼내 둔다.
+            HitData blast = hit.WithOrigin(center);
+            SkillVfx vfx = style;
+            Combat skipped = skip;
+            Vector3 flat = new Vector3(center.x, 0f, center.z);
+
+            int hits = 0;
+
+            OverlapCombats(center, radius, attacker, c =>
+            {
+                if (c == skipped) return;
+
+                attacker.Attack(c, in blast);
+                hits++;
+
+                if (c.Physics == null) return;
+
+                // 파편이 중심에서 바깥으로 튀도록 방향을 준다(Attack.EmitImpact와 같은 규칙).
+                Vector3 ground = c.Physics.GroundPosition;
+                ground.y = 0f;
+
+                BattleVfx.Impact(ground, c.Physics.Height + ImpactHeight,
+                                 ground - flat, ImpactRadius, in vfx);
+            });
+
+            return hits;
+        }
 
         /// <summary>
         /// 중심 반경 안의 Combat을 모은다. 시전자 본인과 <b>같은 진영</b>은 제외한다.
@@ -44,7 +89,7 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 모으기. 찍은 지점으로 텔포한 <b>뒤의 시전자 위치</b>를 중심으로 반경 내 적을 끌어당긴다.
+    /// 모으기. <see cref="SkillContext.Origin"/>을 중심으로 반경 내 적을 끌어당긴다.
     /// 적을 개별 지정하지 않는다 — 좌표 하나만 받는다.
     /// </summary>
     [Serializable]
@@ -60,8 +105,9 @@ namespace Prototype
             Combat caster = ctx.CasterCombat;
             if (caster == null) return;
 
-            // 중심은 텔포가 끝난 시점의 시전자 위치.
-            Vector3 center = caster.transform.position;
+            // 중심은 조준한 좌표. 원거리 직업은 실시간에 텔포하지 않으므로
+            // 시전자 위치로 잡으면 범위가 발밑에 생긴다.
+            Vector3 center = ctx.Origin;
             float r = radius * ctx.RadiusScale;   // 차징으로 커진 만큼 넓어진다
 
             var hit = new HitData
@@ -74,7 +120,9 @@ namespace Prototype
                 hitStunDuration = hitStun,
                 // 벨트스크롤에서 Z가 어긋나면 후속 연계가 전부 빗나간다.
                 snapZ = true,
-            };
+            // 시전자가 아니라 중심으로 끌어당긴다 — 원거리는 멀리 서 있으므로
+            // 시전자 기준이면 적이 찍은 자리가 아니라 궁수 발밑으로 모인다.
+            }.WithOrigin(center);
 
             int caught = EffectUtil.OverlapCombats(center, r, caster, c => caster.Attack(c, in hit));
 
@@ -85,7 +133,7 @@ namespace Prototype
         }
     }
 
-    /// <summary>띄우기. 반경 내 적을 공중으로 올린다. 시동기의 실체.</summary>
+    /// <summary>띄우기. <see cref="SkillContext.Origin"/> 반경 내 적을 공중으로 올린다. 시동기의 실체.</summary>
     [Serializable]
     public class AirborneEffect : ISkillEffect
     {
@@ -99,6 +147,8 @@ namespace Prototype
             Combat caster = ctx.CasterCombat;
             if (caster == null) return;
 
+            Vector3 center = ctx.Origin;
+
             var hit = new HitData
             {
                 damageData = new DamageData(damage),
@@ -106,9 +156,9 @@ namespace Prototype
                 mode = KnockbackMode.Up,
                 launchForce = launchForce,
                 hitStunDuration = hitStun,
-            };
+            }.WithOrigin(center);
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius * ctx.RadiusScale, caster,
+            EffectUtil.OverlapCombats(center, radius * ctx.RadiusScale, caster,
                                       c => caster.Attack(c, in hit));
         }
     }
@@ -160,7 +210,7 @@ namespace Prototype
             Entity casterEntity = ctx.caster;
             if (caster == null || casterEntity == null) return;
 
-            EffectUtil.OverlapCombats(caster.transform.position, radius, caster, c =>
+            EffectUtil.OverlapCombats(ctx.Origin, radius, caster, c =>
             {
                 var ec = c.GetComponent<EnemyControl>();
                 if (ec != null) ec.SetTarget(casterEntity);
@@ -179,11 +229,12 @@ namespace Prototype
             Physics phys = ctx.CasterPhysics;
             if (phys == null) return;
 
+            // 방향 지정이면 그대로, 아니면 확정된 대상 쪽으로 파고든다.
             Vector3 dir = phys.Facing;
             if (ctx.targetInfo.type == TargetingType.Direction && ctx.targetInfo.direction.sqrMagnitude > 0.0001f)
                 dir = ctx.targetInfo.direction;
-            else if (ctx.targetInfo.type == TargetingType.EnemyUnit && ctx.targetInfo.unit != null)
-                dir = ctx.targetInfo.unit.transform.position - phys.Transform.position;
+            else if (ctx.target != null)
+                dir = ctx.target.Physics.GroundPosition - phys.GroundPosition;
 
             phys.Dash(dir, speed);
         }

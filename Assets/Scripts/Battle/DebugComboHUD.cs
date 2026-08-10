@@ -204,10 +204,6 @@ namespace Prototype
             sb.AppendLine($"  {targetSelector.Current.skillName} / {targetSelector.Current.targeting}");
             sb.AppendLine($"  좌표 {targetSelector.CursorPoint:F1}  반경 내 적 {targetSelector.EnemiesInRange}마리");
 
-            if (targetSelector.Current.targeting == TargetingType.EnemyUnit)
-                sb.AppendLine($"  대상 <b>{BattleLog.Name(targetSelector.HoveredUnit)}</b>" +
-                              (targetSelector.HoveredUnit == null ? " <color=#FF6B6B>(조준점 근처에 적 없음)</color>" : ""));
-
             if (targetSelector.WillWhiff)
                 sb.AppendLine("  <color=#FF6B6B>헛침 경고 — 반경 안에 적이 없다</color>");
 

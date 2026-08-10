@@ -110,32 +110,8 @@ namespace Prototype
                     continue;
                 }
 
-                // 대상이 이미 죽었으면 사망 위치 기준 최근접 적으로 재타겟한다(결정 로그 ⑧).
-                // 컷인 <b>앞</b>에서 확정해야 한다 — 재타겟 실패로 취소될 슬롯에 컷인부터 뜨면
-                // 화면을 0.55초 얼렸다가 아무 일도 없이 넘어가는 유령 연출이 된다.
-                // 차징 슬롯도 이 루프를 그대로 지나므로 동일하게 재타겟을 받는다.
-                if (slot.target.type == TargetingType.EnemyUnit &&
-                    (slot.target.unit == null || slot.target.unit.Combat.IsDead))
-                {
-                    Entity deadTarget = slot.target.unit;
-                    Vector3 deadPos = deadTarget != null ? deadTarget.transform.position : slot.target.point;
-                    Entity retargeted = Retarget(deadPos);
-
-                    if (retargeted == null)
-                    {
-                        BattleLog.Warn(LogCategory.Combo, $"재타겟 실패 — 살아 있는 적이 없다. {slot.Data.skillName} 취소", this);
-
-                        // 발동 못 해도 카드는 버린 더미로 보낸다. 안 그러면 덱에서 증발한다.
-                        OnSlotConsumed?.Invoke(slot.card);
-
-                        // 발동하지 않은 슬롯 때문에 콤보가 멈칫할 이유가 없어 slotGap은 건너뛴다.
-                        continue;
-                    }
-
-                    BattleLog.Log(LogCategory.Combo,
-                        $"대상 사망 → 최근접 재타겟: {BattleLog.Name(retargeted)} (사망 위치 {deadPos})", this);
-                    slot.target = TargetInfo.Unit(retargeted);
-                }
+                // 재타겟 경로는 사라졌다. 조준이 좌표만 남기므로 대상이 그사이 죽어도
+                // 시전 순간 SkillState.ResolveTarget이 그 좌표에서 다시 고른다(결정 로그 ⑧).
 
                 // 컷인은 스킬보다 먼저다. 여기서 시간이 멈추고, 끝나야 다시 흐른다.
                 IEnumerator intro = PlayCutin(in slot);
@@ -188,7 +164,6 @@ namespace Prototype
             {
                 data = data,
                 caster = caster,
-                target = slot.target.unit,
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
@@ -270,17 +245,13 @@ namespace Prototype
                 yield break;
             }
 
-            // 대상 확정(재타겟 포함)은 이제 호출자(Run 루프)가 컷인보다 먼저 끝낸다 —
-            // RunSlot에 들어온 시점에는 slot.target이 이미 살아 있는 대상을 가리킨다.
-            TargetInfo info = slot.target;
-            Entity target = info.unit;
-
+            // 조준은 좌표만 박아 두고, 상대는 시전 순간 SkillState가 그 좌표에서 다시 고른다.
+            // 그래서 대상이 그사이 죽어도 별도의 재타겟 경로가 필요 없다(결정 로그 ⑧).
             var ctx = new SkillContext
             {
                 data = data,
                 caster = caster,
-                target = target,
-                targetInfo = info,
+                targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
             };
@@ -310,12 +281,6 @@ namespace Prototype
 
             if (caster.StateMachine.CurState == state && !caster.Combat.IsDead)
                 caster.StateMachine.ForceChangeState(caster.IdleState);
-        }
-
-        /// <summary>사망 위치에서 가장 가까운 살아 있는 적을 새 대상으로 잡는다.</summary>
-        private Entity Retarget(Vector3 deadPos)
-        {
-            return BattleRegistry.NearestEnemy(deadPos);
         }
 
         private IEnumerator WaitScaled(float seconds)

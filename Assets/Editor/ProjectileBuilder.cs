@@ -115,8 +115,11 @@ namespace Prototype.EditorTools
         }
 
         /// <summary>
-        /// 궁수 · 마법사의 단일 대상 / 방향 스킬만 투사체로 본다.
-        /// 모으기와 지면 지정(GroundPoint)은 그 자리에서 터지는 광역이라 날아갈 게 없다.
+        /// 궁수 · 마법사 스킬 중 <b>장판이 아닌 것</b>만 투사체로 본다.
+        ///
+        /// 조준 방식으로는 더 이상 가를 수 없다 — 대상 지정이 전부 GroundPoint로 넘어와서
+        /// 연속 사격도, 중력장도 똑같이 GroundPoint다.
+        /// 실제 차이는 <b>기준점에서 터지는 광역 효과를 들고 있는지</b>다.
         /// </summary>
         private static int AssignToRangedSkills(Projectile prefab)
         {
@@ -131,7 +134,7 @@ namespace Prototype.EditorTools
 
                 bool ranged = (data.role == Role.Archer || data.role == Role.Wizard)
                            && data.attackType != AttackType.Gather
-                           && data.targeting != TargetingType.GroundPoint;
+                           && !IsGroundField(data);
 
                 if (!ranged || data.projectile != null) continue;
 
@@ -164,6 +167,17 @@ namespace Prototype.EditorTools
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// 기준점에서 터지는 장판인지. 끌어당기거나 띄우는 효과는 시전 좌표를 중심으로 돌기 때문에
+        /// 날아갈 투사체가 따로 없다.
+        /// </summary>
+        private static bool IsGroundField(SkillData data)
+        {
+            if (data.effects == null) return false;
+
+            return data.effects.Exists(e => e is PullEffect || e is AirborneEffect);
         }
 
         private static Sprite FindSprite(string name)

@@ -19,7 +19,7 @@ MonoBehaviour:
   attackType: 2
   requireState: 0
   resultState: 2
-  targeting: 2
+  targeting: 1
   radius: 3
   castTime: 0.15
   hitInterval: 0.15
@@ -38,9 +38,9 @@ MonoBehaviour:
     targetState: 0
     nextState: 2
     canOtg: 0
-    mode: 0
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0
@@ -49,9 +49,9 @@ MonoBehaviour:
     targetState: 0
     nextState: 2
     canOtg: 0
-    mode: 0
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0
@@ -60,9 +60,9 @@ MonoBehaviour:
     targetState: 0
     nextState: 2
     canOtg: 0
-    mode: 0
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 1.5
+    knockbackForce: 2
     launchForce: 0
     hitStunDuration: 0.35
     snapZ: 0

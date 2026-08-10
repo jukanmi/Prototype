@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uADF8\uBB3C\uC0AC\uACA9"
   icon: {fileID: 21300000, guid: 8a42a2e387134d6297ea8ace4f1f8ce5, type: 3}
-  description: "AR3A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uADF8\uBB3C\uC744 \uC3F4 \uC9C0\uC815 \uC9C0\uC810\uC758 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
+  description: "AR3A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uADF8\uBB3C\uC744 \uC3F4 \uC9C0\uC815
+    \uC9C0\uC810\uC758 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
   role: 2
   attackType: 0
   requireState: 0
@@ -31,6 +32,7 @@ MonoBehaviour:
   projectileSpeed: 24
   projectileRange: 12
   projectilePierce: 0
+  approachDistance: 0
   hitDataList:
   - damageData:
       damage: 4
@@ -39,7 +41,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 10
+    knockbackForce: 32
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
@@ -50,10 +52,11 @@ MonoBehaviour:
   animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
   vfx:
     custom: 0
-    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds:
@@ -61,6 +64,6 @@ MonoBehaviour:
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 4
-        force: 12
+        force: 32
         damage: 5
         hitStun: 0.4

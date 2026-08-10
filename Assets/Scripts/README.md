@@ -123,7 +123,10 @@ Physics Settings 의 Layer Collision Matrix 에서 상대 진영만 부딪히게
 `Create > Prototype > Skill Data` 로 만든다. **에셋 1개 = 스킬 1개.**
 
 - `requireState` = 선행 조건, `resultState` = 결과 상태 (예측 표시용)
-- `targeting` = 조준 방식. `GroundPoint` 면 유저가 좌표 하나만 찍는다
+- `targeting` = 조준 방식. `GroundPoint`(좌표 하나) · `Direction`(방향) · `None` 셋만 쓴다.
+  `EnemyUnit` 은 사용 중단 — 대상은 시전 순간 `SkillState.ResolveTarget` 이
+  좌표에서 최근접 적으로 다시 뽑는다
+- `radius` = `GroundPoint` 의 유효 반경. **최소 3** (`SkillTableBuilder` 검증이 잡는다)
 - `hitDataList` = 다단 히트. `hitInterval` 간격으로 순차 발동
 - `effects` = `PullEffect`, `AirborneEffect` 등을 조합. switch 분기 없음
 

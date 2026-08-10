@@ -10,12 +10,14 @@ namespace Prototype
     public static class CombatStateRules
     {
         // ── 공중 콤보 제한 ──────────────────────────────
+        // 무한 홀딩만 막고 연계는 넉넉히 허용한다. 값을 조이면 슬롯 간격(ComboExecutor.slotGap)
+        // 안에 대상이 먼저 착지해 콤보가 끊긴다.
         /// <summary>공중 피격 1회마다 붙는 중력 가중치.</summary>
-        public const float AirGravityStep = 0.35f;
+        public const float AirGravityStep = 0.15f;
         /// <summary>중력 가중치 상한. 이 이상 무거워지지 않는다.</summary>
-        public const float MaxAirGravityScale = 3.5f;
+        public const float MaxAirGravityScale = 2f;
         /// <summary>이 횟수를 넘기면 띄우기가 무시되고 그대로 낙하한다.</summary>
-        public const int MaxAirHit = 6;
+        public const int MaxAirHit = 10;
 
         /// <summary>
         /// 피격 시 다음 상태를 결정한다.

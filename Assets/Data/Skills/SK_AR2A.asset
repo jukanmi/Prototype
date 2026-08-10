@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC0C1\uC2B9 \uD654\uC0B4"
   icon: {fileID: 21300000, guid: 755ac700e4a9476f905429f4055c3568, type: 3}
-  description: "AR2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uD654\uC0B4\uB85C \uCCD0\uC62C\uB824 \uB744\uC6B4\uB2E4"
+  description: "AR2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uD654\uC0B4\uB85C \uCCD0\uC62C\uB824
+    \uB744\uC6B4\uB2E4"
   role: 2
   attackType: 1
   requireState: 1
@@ -27,10 +28,11 @@ MonoBehaviour:
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 0}
-  projectileSpeed: 14
-  projectileRange: 12
+  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 22
+  projectileRange: 10
   projectilePierce: 0
+  approachDistance: 0
   hitDataList:
   - damageData:
       damage: 6
@@ -45,14 +47,15 @@ MonoBehaviour:
     snapZ: 0
   effects: []
   cooldown: 5
-  manaCost: 20
+  manaCost: 30
   animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
   vfx:
     custom: 0
-    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds: []

@@ -208,7 +208,7 @@ namespace PrototypeEditor
                     new List<ISkillEffect> { new PullEffect() }, radius: 4.5f),
 
                 MakeSkill("SK_T2_방패올려치기", "방패 올려치기", Role.Tanker, AttackType.Launcher,
-                    CombatState.LightHit, CombatState.AerialHit, TargetingType.EnemyUnit,
+                    CombatState.LightHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>(),
                     new List<ISkillEffect> { new AirborneEffect() }),
 
@@ -233,7 +233,7 @@ namespace PrototypeEditor
                     new List<ISkillEffect> { new PullEffect() }, radius: 4f),
 
                 MakeSkill("SK_W2_올려베기", "올려베기", Role.Warrior, AttackType.Launcher,
-                    CombatState.LightHit, CombatState.AerialHit, TargetingType.EnemyUnit,
+                    CombatState.LightHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>(),
                     new List<ISkillEffect> { new AirborneEffect() }),
 
@@ -243,7 +243,7 @@ namespace PrototypeEditor
                     new List<ISkillEffect> { new ChargeEffect() }),
 
                 MakeSkill("SK_W4_연참", "연참", Role.Warrior, AttackType.Strike,
-                    CombatState.AerialHit, CombatState.AerialHit, TargetingType.EnemyUnit,
+                    CombatState.AerialHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>
                     {
                         Hit(6f, CombatState.AerialHit, KnockbackMode.Up, launch: 4f, stun: 0.35f),
@@ -256,7 +256,7 @@ namespace PrototypeEditor
             s.Combo[Role.Archer] = new List<SkillData>
             {
                 MakeSkill("SK_A1_연속사격", "연속 사격", Role.Archer, AttackType.Strike,
-                    CombatState.AerialHit, CombatState.AerialHit, TargetingType.EnemyUnit,
+                    CombatState.AerialHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>
                     {
                         Hit(5f, CombatState.AerialHit, KnockbackMode.Up, launch: 3f, stun: 0.3f),
@@ -266,7 +266,7 @@ namespace PrototypeEditor
                     }, null, hitInterval: 0.2f),
 
                 MakeSkill("SK_A2_강력사격", "강력 사격", Role.Archer, AttackType.Push,
-                    CombatState.AerialHit, CombatState.Knockback, TargetingType.EnemyUnit,
+                    CombatState.AerialHit, CombatState.Knockback, TargetingType.GroundPoint,
                     new List<HitData> { Hit(18f, CombatState.Knockback, KnockbackMode.AwayFromCaster, knockback: 22f, stun: 0.6f) },
                     null),
 
@@ -276,7 +276,7 @@ namespace PrototypeEditor
                     null, radius: 4f),
 
                 MakeSkill("SK_A4_사출화살", "사출 화살", Role.Archer, AttackType.Launcher,
-                    CombatState.LightHit, CombatState.AerialHit, TargetingType.EnemyUnit,
+                    CombatState.LightHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>(),
                     new List<ISkillEffect> { new AirborneEffect() }),
             };
@@ -300,7 +300,7 @@ namespace PrototypeEditor
                     null, radius: 4f),
 
                 MakeSkill("SK_M4_흡혈저주", "흡혈 저주", Role.Wizard, AttackType.Strike,
-                    CombatState.Neutral, CombatState.LightHit, TargetingType.EnemyUnit,
+                    CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
                     new List<HitData> { Hit(10f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 2f) },
                     new List<ISkillEffect> { new LifestealEffect() }),
             };
@@ -312,11 +312,11 @@ namespace PrototypeEditor
                 new List<HitData>(), new List<ISkillEffect> { new ShieldEffect() });
 
             s.Self[Role.Warrior] = MakeSkill("SS_W_횡베기", "횡 베기", Role.Warrior, AttackType.Strike,
-                CombatState.Neutral, CombatState.LightHit, TargetingType.EnemyUnit,
+                CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
                 new List<HitData> { Hit(12f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 4f) }, null);
 
             s.Self[Role.Archer] = MakeSkill("SS_A_관통사격", "관통 사격", Role.Archer, AttackType.Strike,
-                CombatState.Neutral, CombatState.LightHit, TargetingType.EnemyUnit,
+                CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
                 new List<HitData> { Hit(9f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 3f) }, null);
 
             s.Self[Role.Wizard] = MakeSkill("SS_M_냉기", "냉기", Role.Wizard, AttackType.Strike,

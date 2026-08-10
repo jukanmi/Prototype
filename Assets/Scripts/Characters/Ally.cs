@@ -93,22 +93,18 @@ namespace Prototype
         {
             if (!CanCastSelfSkill) return false;
 
-            Entity target = allyControl != null && allyControl.Target != null
-                ? allyControl.Target
-                : BattleRegistry.NearestEnemy(transform.position);
-
+            // 대상은 비워 둔다. AutoTarget이 박아 준 좌표에서 SkillState가 직접 뽑는다.
             var ctx = new SkillContext
             {
                 data = selfSkill,
                 caster = this,
-                target = target,
-                targetInfo = AutoTarget(selfSkill, target),
+                targetInfo = AutoTarget(selfSkill),
                 isBulletTime = false,
                 comboIndex = -1,
             };
 
             BattleLog.Log(LogCategory.Skill,
-                $"{name} 고유기: {selfSkill.skillName} (쿨 {selfSkill.cooldown:0.#}s) | 대상 {BattleLog.Name(target)}", this);
+                $"{name} 고유기: {selfSkill.skillName} (쿨 {selfSkill.cooldown:0.#}s)", this);
 
             IState state = selfSkill.CreateState(in ctx);
             StateMachine.ForceChangeState(state);
@@ -132,17 +128,12 @@ namespace Prototype
         {
             if (data == null || !CanCastCard) return false;
 
-            Entity target = info.unit != null
-                ? info.unit
-                : (allyControl != null && allyControl.Target != null
-                    ? allyControl.Target
-                    : BattleRegistry.NearestEnemy(transform.position));
-
+            // 대상은 비워 둔다. 찍은 좌표가 있으면 그쪽이 이겨야 하므로
+            // SkillState가 좌표에서 직접 뽑게 맡긴다.
             var ctx = new SkillContext
             {
                 data = data,
                 caster = this,
-                target = target,
                 targetInfo = info,
                 isBulletTime = false,
                 comboIndex = -1,
@@ -200,30 +191,32 @@ namespace Prototype
             releaseRoutine = null;
         }
 
-        /// <summary>유저 조준이 없을 때 쓰는 자동 조준. 가장 가까운 적을 기준으로 채운다.</summary>
+        /// <summary>
+        /// 이 동료가 겨눌 적. 지휘 대상이 잡혀 있으면 그쪽을, 없으면 최근접 적을 쓴다.
+        /// 자동 조준과 실시간 카드가 같은 기준을 쓰도록 한 곳에 모아 둔다.
+        /// </summary>
+        public Entity PreferredTarget
+            => allyControl != null && allyControl.Target != null && !allyControl.Target.Combat.IsDead
+                ? allyControl.Target
+                : BattleRegistry.NearestEnemy(transform.position);
+
+        /// <summary>
+        /// 유저 조준이 없을 때 쓰는 자동 조준. 대상의 <b>좌표</b>만 뽑아 담는다 —
+        /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 다시 고른다.
+        /// </summary>
         public TargetInfo AutoTarget(SkillData data)
         {
             if (data == null) return TargetInfo.None;
 
-            Entity target = allyControl != null && allyControl.Target != null
-                ? allyControl.Target
-                : BattleRegistry.NearestEnemy(transform.position);
+            Entity target = PreferredTarget;
 
-            return AutoTarget(data, target);
-        }
-
-        /// <summary>라이브 페이즈에서는 유저가 조준하지 않으므로 AI가 대신 채운다.</summary>
-        private TargetInfo AutoTarget(SkillData data, Entity target)
-        {
             switch (data.targeting)
             {
                 case TargetingType.GroundPoint:
                     return TargetInfo.Ground(target != null ? target.Physics.GroundPosition : Physics.GroundPosition);
-                case TargetingType.EnemyUnit:
-                    return TargetInfo.Unit(target);
                 case TargetingType.Direction:
                     return TargetInfo.Dir(target != null
-                        ? target.transform.position - transform.position
+                        ? target.Physics.GroundPosition - Physics.GroundPosition
                         : Physics.Facing);
                 default:
                     return TargetInfo.None;

@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
   icon: {fileID: 21300000, guid: 35cadde296c84405be5881257c465b7e, type: 3}
-  description: "TK1A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uBAB8\uC744 \uD68C\uC804\uC2DC\uCF1C \uC8FC\uBCC0 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
+  description: "TK1A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uBAB8\uC744 \uD68C\uC804\uC2DC\uCF1C
+    \uC8FC\uBCC0 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
   role: 0
   attackType: 0
   requireState: 0
@@ -31,6 +32,7 @@ MonoBehaviour:
   projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
+  approachDistance: 0
   hitDataList:
   - damageData:
       damage: 4
@@ -39,7 +41,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 10
+    knockbackForce: 28
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
@@ -48,6 +50,13 @@ MonoBehaviour:
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
+  vfx:
+    custom: 0
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds:
@@ -55,6 +64,6 @@ MonoBehaviour:
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 3.5
-        force: 12
+        force: 28
         damage: 4
         hitStun: 0.4

@@ -25,6 +25,16 @@ namespace Prototype
 
         [Header("중력")]
         [SerializeField] private float gravity = 30f;
+        [Tooltip("내려올 때만 곱하는 중력 배율. 1보다 작으면 정점에서 둥실 떠 있다가 천천히 떨어진다.\n" +
+                 "올라가는 속도는 건드리지 않으므로 launchForce 튜닝값이 그대로 유지된다.")]
+        [Range(0.1f, 2f)][SerializeField] private float fallGravityScale = 1f;
+
+        [Tooltip("정점에서 붙잡아 두는 시간(행맨타임). 0이면 사용하지 않는다.\n" +
+                 "체공에 그대로 더해지므로 띄운 높이를 키우지 않고 시간만 벌 수 있다 —\n" +
+                 "너무 높이 뜨면 후속타 히트박스가 닿지 않는다.")]
+        [SerializeField] private float apexHangTime = 0f;
+        [Tooltip("수직 속도가 이 값 이하이면 정점으로 본다.")]
+        [SerializeField] private float apexVelocityThreshold = 3f;
 
         [Tooltip("바라보는 방향으로 transform을 돌린다. 히트박스 방향이 여기 따라간다.")]
         [SerializeField] private bool rotateToFacing = true;
@@ -37,6 +47,8 @@ namespace Prototype
         private float verticalVelocity;
         private float baseGravity;
         private float gravityScale = 1f;
+        /// <summary>이번 체공에서 정점에 남은 체류 시간. 띄울 때 충전되고 착지하면 사라진다.</summary>
+        private float apexHangLeft;
 
         private Vector3 desiredMoveDir;
         private float desiredMoveSpeed;
@@ -69,6 +81,15 @@ namespace Prototype
         /// <summary>벽으로 볼 레이어. 투사체도 같은 기준으로 소멸한다.</summary>
         public LayerMask WallMask => wallMask;
         public float Gravity => gravity * gravityScale;
+
+        /// <summary>
+        /// 충격 감쇠 계수. <see cref="AddImpulse"/>는 지수감쇠라 총 이동거리가
+        /// <c>force / impulseDamping</c>로 정해진다 — 끌어당기는 쪽이 거리를 힘으로 환산할 때 쓴다.
+        /// </summary>
+        public float ImpulseDamping => impulseDamping;
+
+        /// <summary>거리 <paramref name="distance"/>만큼 밀려나게 하는 충격량.</summary>
+        public float ImpulseToTravel(float distance) => distance * impulseDamping;
         public float VerticalVelocity => verticalVelocity;
         public Vector3 Facing { get; private set; } = Vector3.right;
 
@@ -199,6 +220,8 @@ namespace Prototype
             if (force <= 0f) return;
             verticalVelocity = force;
             PhysicsState = PhysicsState.Aerial;
+            // 다시 띄울 때마다 정점 체류를 새로 채운다. 추가타마다 한 번씩 붕 뜬다.
+            apexHangLeft = apexHangTime;
 
             BattleLog.Log(LogCategory.Physics, $"{name} 띄우기 force={force:0.#}", this);
         }
@@ -231,6 +254,13 @@ namespace Prototype
             gravityScale = 1f;
         }
 
+        /// <summary>낙하 중 중력 배율. 1보다 작으면 천천히 내려온다.</summary>
+        public float FallGravityScale
+        {
+            get => fallGravityScale;
+            set => fallGravityScale = Mathf.Max(0.01f, value);
+        }
+
         /// <summary>중력 배율을 덧씌운다. AirHitCount 가중치가 이 경로로 들어온다.</summary>
         public void AddGravity(float scale)
         {
@@ -257,7 +287,20 @@ namespace Prototype
 
             if (PhysicsState == PhysicsState.Aerial || y > groundY + 0.001f)
             {
-                verticalVelocity -= Gravity * dt;
+                // 정점 근처에서 잠깐 붙잡아 둔다. 높이를 키우지 않고 체공만 늘리는 수단이라
+                // 후속타 히트박스가 닿는 범위를 유지할 수 있다.
+                if (apexHangLeft > 0f && Mathf.Abs(verticalVelocity) <= apexVelocityThreshold)
+                {
+                    apexHangLeft -= dt;
+                    verticalVelocity = 0f;
+                }
+                else
+                {
+                    // 내려올 때만 배율을 먹인다. 올라가는 구간은 그대로 둬야 띄운 높이가 안 변한다.
+                    float g = verticalVelocity < 0f ? Gravity * fallGravityScale : Gravity;
+                    verticalVelocity -= g * dt;
+                }
+
                 PhysicsState = PhysicsState.Aerial;
             }
 
@@ -269,6 +312,7 @@ namespace Prototype
                 Transform.position = p;
 
                 verticalVelocity = 0f;
+                apexHangLeft = 0f;
                 PhysicsState = PhysicsState.Ground;
                 OnLand?.Invoke();
             }
