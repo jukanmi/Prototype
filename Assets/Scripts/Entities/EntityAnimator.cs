@@ -92,15 +92,18 @@ namespace Prototype
         private bool HasState(string stateName)
             => animator.HasState(0, Animator.StringToHash(stateName));
 
-        /// <summary>스킬 클립을 Skill 슬롯에 꽂는다. 비어 있으면 기본 플레이스홀더가 그대로 돈다.</summary>
+        /// <summary>
+        /// 스킬 클립을 Skill 슬롯에 꽂는다. <c>data.animation</c>이 비어 있으면(null)
+        /// 오버라이드를 무조건 null로 덮어써 슬롯을 원래 클립(<see cref="SkillSlotClip"/>, 즉
+        /// 기본 플레이스홀더)로 되돌린다 — 이전 스킬의 클립이 남아있으면 안 된다.
+        /// </summary>
         private void SwapSkillClip(SkillData data)
         {
             if (overrides == null || data == null) return;
             if (currentSkill == data) return;
 
             currentSkill = data;
-            if (data.animation != null)
-                overrides[SkillSlotClip] = data.animation;
+            overrides[SkillSlotClip] = data.animation;
         }
     }
 }

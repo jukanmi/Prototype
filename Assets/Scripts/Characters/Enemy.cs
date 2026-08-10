@@ -21,6 +21,11 @@ namespace Prototype
             base.Awake();
             enemyControl = Control as EnemyControl;
             ApplyData(data);
+
+            // 상태 색은 모든 적에게 붙어야 한다. 프리팹이 두 형태로 갈려 있어
+            // 배선으로 보장하면 한쪽이 조용히 빠진다 — 코드로 붙인다.
+            if (GetComponent<EnemyStateTint>() == null)
+                gameObject.AddComponent<EnemyStateTint>();
         }
 
         protected override void Start()

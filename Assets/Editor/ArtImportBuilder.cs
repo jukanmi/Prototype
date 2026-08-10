@@ -41,7 +41,7 @@ namespace Prototype.EditorTools
         private const string AllyPrefabPath = "Assets/Prefabs/Ally.prefab";
 
         /// <summary>클립이 물리는 자식. <see cref="AnimationBuilder"/>와 같은 경로여야 한다.</summary>
-        private const string SpritePath = "Sprite";
+        private const string SpritePath = "View/Sprite";
 
         // ── 캐릭터 시트 규격 ────────────────────────────
         private const int CharW = 120;

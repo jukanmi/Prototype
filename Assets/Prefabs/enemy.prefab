@@ -39,8 +39,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2539846597733611993}
-  - {fileID: 2577717552074091696}
   - {fileID: 9030279768759049339}
+  - {fileID: 2322947510098090926}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &2389861037805214455
@@ -134,6 +134,12 @@ MonoBehaviour:
   damageCutRatio: 0
   downDuration: 1.2
   getupDuration: 0.4
+  wallRestitution: 1.5
+  wallMinBounce: 10
+  wallHardSpeed: 18
+  wallMinLaunch: 3
+  wallMaxLaunch: 15
+  wallBounceCooldown: 0.2
 --- !u!114 &6871329223107361119
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189,9 +195,12 @@ MonoBehaviour:
   brain: {fileID: 11400000, guid: 1c69808f3f8ad9f43abb9ff92dfe6970, type: 2}
   attackInterval: 1.5
   retargetInterval: 0.5
+  specialInterval: 4
   parameters:
     attackRange: 1.8
     leashRange: 0
+    preferredMinRange: 0
+    specialRange: 0
 --- !u!114 &6070326376275052667
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,9 +214,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BeltScrollView
   sprite: {fileID: 2577717552074091696}
+  depthRoot: {fileID: 2322947510098090926}
   shadow: {fileID: 9030279768759049339}
   depthToScreen: 0.9
-  spriteOffsetY: 0.5
+  depthScalePerUnit: 0.06
+  spriteOffsetY: 0
+  flipToFacing: 1
+  facingRenderer: {fileID: 7720110155626573987}
   shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
@@ -367,12 +380,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5592650655759333105}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5542959386118482184}
+  m_Father: {fileID: 2322947510098090926}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &7720110155626573987
 SpriteRenderer:
@@ -423,8 +436,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 75f5f34dc1b5347e0b8351032682f224, type: 3}
-  m_Color: {r: 1, g: 0, b: 0, a: 1}
+  m_Sprite: {fileID: 3204480812468917802, guid: e0f8723057d189b448ec92be461e8175, type: 3}
+  m_Color: {r: 0.9, g: 0.3, b: 0.28, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -576,3 +589,36 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0
     snapZ: 0
+  impactVfx: 1
+--- !u!1 &9033691744036946010
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2322947510098090926}
+  m_Layer: 0
+  m_Name: View
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2322947510098090926
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9033691744036946010}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2577717552074091696}
+  m_Father: {fileID: 5542959386118482184}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
