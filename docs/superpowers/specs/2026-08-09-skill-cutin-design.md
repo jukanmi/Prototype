@@ -70,13 +70,18 @@ public interface ISkillCutin
 
 | 구간 | 길이 | 내용 |
 |---|---|---|
-| In | 0.12s | 초상화가 대기 위치 → 등장 위치. ease-out (`1-(1-t)²`) |
-| Hold | 0.25s | 정지 |
-| Out | 0.12s | 등장 위치 → 대기 위치. ease-in (`t²`) |
+| In | 0.15s | 초상화가 대기 위치 → 등장 위치. ease-out (`1-(1-t)²`) |
+| Hold | 0.6s | 정지 |
+| Out | 0.15s | 등장 위치 → 대기 위치. ease-in (`t²`) |
 
-총 0.49s. 스킬명 라벨은 같은 타임라인을 **0.06s 늦게** 따라간다 — 두 요소가 층을 이뤄
-들어오고 나간다. 지연 때문에 라벨의 Out은 초상화보다 0.06s 늦게 끝나므로,
-전체 길이는 `0.49 + 0.06 = 0.55s`이다. Executor는 이 전체 길이를 기다린다.
+총 0.9s. 스킬명 라벨은 같은 타임라인을 **0.08s 늦게** 따라간다 — 두 요소가 층을 이뤄
+들어오고 나간다. 지연 때문에 라벨의 Out은 초상화보다 0.08s 늦게 끝나므로,
+전체 길이는 `0.9 + 0.08 = 0.98s`이다. Executor는 이 전체 길이를 기다린다.
+
+네 값은 전부 `[SerializeField]`라 **재생 중 인스펙터에서 조절한다.** 처음에는
+In 0.12 / Hold 0.25 / Out 0.12 / 지연 0.06(총 0.55s)으로 잡았는데 "읽기도 전에 사라진다"는
+피드백이 나와 위 값으로 올렸다. 슬롯 4개면 약 4초가 정지 시간으로 들어가므로,
+콤보가 늘어지면 Hold부터 내린다.
 
 **진행률 계산은 순수 함수로 분리한다.**
 
@@ -156,7 +161,7 @@ ResolveState.Enter
           └ 슬롯마다:
               ├ PlayCutin  → SkillCutinUI.Play(caster, data)
               │                ├ Scale = 0
-              │                ├ 0.55s 동안 unscaled 슬라이드
+              │                ├ Duration(기본 0.98s) 동안 unscaled 슬라이드
               │                └ Scale 복원
               └ RunSlot    → caster.StateMachine.ForceChangeState(SkillState)
 ```

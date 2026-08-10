@@ -10,48 +10,71 @@ namespace Prototype
     /// </summary>
     public class SkillCutinUI : MonoBehaviour, ISkillCutin
     {
-        /// <summary>화면 밖 → 제자리. ease-out.</summary>
-        public const float SlideIn = 0.12f;
+        [Header("타이밍 — 재생 중 인스펙터에서 조절한다")]
+        [Tooltip("화면 밖 → 제자리. ease-out.")]
+        [SerializeField] private float slideIn = 0.15f;
 
-        /// <summary>제자리에 머무는 시간. 스킬명을 읽을 여유.</summary>
-        public const float Hold = 0.25f;
+        [Tooltip("제자리에 머무는 시간. 스킬명을 읽을 여유 — 감이 안 맞으면 여기부터 만진다.")]
+        [SerializeField] private float hold = 0.6f;
 
-        /// <summary>제자리 → 화면 밖. ease-in.</summary>
-        public const float SlideOut = 0.12f;
+        [Tooltip("제자리 → 화면 밖. ease-in.")]
+        [SerializeField] private float slideOut = 0.15f;
 
-        /// <summary>스킬명 라벨이 초상화보다 늦게 들어오는 간격.</summary>
-        public const float LabelDelay = 0.06f;
+        [Tooltip("스킬명 라벨이 초상화보다 늦게 들어오는 간격. 두 요소가 층을 이뤄 들어온다.")]
+        [SerializeField] private float labelDelay = 0.08f;
+
+        public float SlideIn => slideIn;
+        public float Hold => hold;
+        public float SlideOut => slideOut;
+        public float LabelDelay => labelDelay;
 
         /// <summary>컷인 전체 길이. 늦게 나가는 라벨까지 기다린다.</summary>
-        public static float Duration => SlideIn + Hold + SlideOut + LabelDelay;
+        public float Duration => slideIn + hold + slideOut + labelDelay;
 
         /// <summary>
         /// 경과 시간을 0(화면 밖 대기 위치) ~ 1(등장 위치)로 접는다.
         /// <paramref name="delay"/>만큼 곡선 전체가 뒤로 밀린다 — 라벨이 초상화를 뒤따르게.
+        ///
+        /// 타이밍을 인자로 받는 static이다. 컴포넌트를 세우지 않고도 곡선 모양을 검증할 수 있고,
+        /// 인스펙터에서 값을 바꿔도 계산 자체는 그대로 쓰인다.
         /// </summary>
-        public static float SlideAmount(float elapsed, float delay)
+        public static float SlideAmount(float elapsed, float delay, float slideIn, float hold, float slideOut)
         {
             float t = elapsed - delay;
 
             if (t <= 0f) return 0f;
 
-            if (t < SlideIn)
+            // 구간 길이가 0이면 그 구간의 조건이 곧바로 거짓이 되어 건너뛴다 — 0으로 나누지 않는다.
+            if (t < slideIn)
             {
                 // ease-out: 빠르게 들어와 부드럽게 멈춘다.
-                float x = t / SlideIn;
+                float x = t / slideIn;
                 return 1f - (1f - x) * (1f - x);
             }
 
-            if (t < SlideIn + Hold) return 1f;
+            if (t < slideIn + hold) return 1f;
 
-            if (t < SlideIn + Hold + SlideOut)
+            if (t < slideIn + hold + slideOut)
             {
                 // ease-in: 천천히 떨어졌다 빠르게 빠진다.
-                float x = (t - SlideIn - Hold) / SlideOut;
+                float x = (t - slideIn - hold) / slideOut;
                 return 1f - x * x;
             }
 
             return 0f;
+        }
+
+        /// <summary>이 컴포넌트의 현재 타이밍으로 진행률을 낸다.</summary>
+        public float SlideAmount(float elapsed, float delay)
+            => SlideAmount(elapsed, delay, slideIn, hold, slideOut);
+
+        /// <summary>인스펙터에서 음수를 넣어도 곡선이 뒤집히지 않게 막는다.</summary>
+        private void OnValidate()
+        {
+            slideIn = Mathf.Max(0f, slideIn);
+            hold = Mathf.Max(0f, hold);
+            slideOut = Mathf.Max(0f, slideOut);
+            labelDelay = Mathf.Max(0f, labelDelay);
         }
 
         [Tooltip("초상화 패널 한 변의 길이(1920×1080 기준).")]
