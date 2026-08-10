@@ -48,7 +48,7 @@ namespace Prototype
         /// Owner를 지연 해석하는 것과 같은 이유다.
         /// </summary>
         public Energy Health => health != null ? health : health = new Energy(EnergyType.Health, maxHealth);
-        public Physics Physics => physics;
+        public Physics Physics => physics != null ? physics : physics = GetComponent<Physics>();
         public Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
         public int AirHitCount => airHitCount;
         public bool IsDead => CombatState == CombatState.Dead;
@@ -102,7 +102,11 @@ namespace Prototype
 
             CombatState prev = CombatState;
             CombatState next = CombatStateRules.OnStunEnd(prev);
-            if (next == prev) return;
+            if (next == prev)
+            {
+                ResolveStalledStun();
+                return;
+            }
 
             // 다운 → 기상 → 복귀는 각각 고유 지속시간을 갖는다.
             if (next == CombatState.Getup)
@@ -281,6 +285,27 @@ namespace Prototype
         }
 
         // ── 물리 이벤트 반응 ─────────────────────────────
+
+        /// <summary>
+        /// 경직이 끝났는데 전이표에 다음 상태가 없는 경우의 안전망.
+        ///
+        /// <see cref="CombatState.Knockback"/> · <see cref="CombatState.AerialHit"/> ·
+        /// <see cref="CombatState.WallBound"/>는 타이머가 아니라 <b>착지</b>로 빠져나가도록 설계돼 있다
+        /// (<see cref="CombatStateRules.OnStunEnd"/>가 이들을 그대로 돌려주는 이유).
+        /// 그런데 <c>launchForce</c>가 0인 히트는 대상을 띄우지 않으므로 <c>Physics.OnLand</c>가
+        /// 영영 오지 않는다 — 지상에 선 채로 넉백만 먹은 대상이 그렇다.
+        /// stunTimer는 이미 0이라 다음 프레임부터 <see cref="Tick"/>이 조기 반환하니 재평가 기회도 없고,
+        /// 결국 영구 경직으로 굳는다.
+        ///
+        /// 이미 바닥에 있다면 착지와 같은 처리를 여기서 대신 해 준다 —
+        /// launchForce가 실려 있었다면 나왔을 결과(다운 → 기상 → 복귀)와 같은 그림이다.
+        /// </summary>
+        private void ResolveStalledStun()
+        {
+            if (Physics == null || Physics.PhysicsState != PhysicsState.Ground) return;
+
+            HandleLand();
+        }
 
         private void HandleLand()
         {
