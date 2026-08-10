@@ -10,7 +10,7 @@ namespace Prototype
         public Command Command { get; protected set; } = Command.None;
         public Vector3 MoveDirection { get; protected set; }
 
-        /// <summary>스킬 명령일 때 몇 번 슬롯인지. 현재는 AI 경로에서만 쓴다.</summary>
+        /// <summary>스킬 명령일 때 몇 번 슬롯인지. 라이브 페이즈 고유기 ASDF 대응.</summary>
         public int SkillIndex { get; protected set; } = -1;
 
         protected Entity Owner { get; private set; }

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Prototype
 {
-    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · Z키 단발 사용 구간.</summary>
+    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · U키 단발 사용 구간.</summary>
     public class RealTimeState : TacticState
     {
         public RealTimeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
@@ -70,7 +70,7 @@ namespace Prototype
 
         public override bool AllowsCardEdit => true;
 
-        // 진입 · 해제 모두 Space. 두 요청이 같은 키로 올라와도 첫 전이 뒤엔 Resolve가 막는다.
+        // E와 Space 모두 해제 · 실행. E 토글 조작을 그대로 유지한다.
         public override bool OnBulletTimeKey() => GoResolve();
         public override bool OnExecuteKey() => GoResolve();
 

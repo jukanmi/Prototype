@@ -440,12 +440,12 @@ namespace Prototype
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
                 _hintText.text = _aimingIndex >= 0
                     ? "조준: 좌클릭 확정 / 우클릭 취소"
-                    : "손패 안에서 드래그 — 순서 교환 · 손패 밖으로 꺼내기 — 조준 · Space로 실행";
+                    : "손패 안에서 드래그 — 순서 교환 · 손패 밖으로 꺼내기 — 조준 · E 또는 Space로 실행";
             }
             else
             {
                 _titleText.text = $"손패  <color=#808080>덱 {_bulletTime.Deck.Count} · 버린 더미 {_bulletTime.Discard.Count}</color>";
-                _hintText.text = "Z — 맨 왼쪽 카드 사용 / Space — 불릿타임";
+                _hintText.text = "U — 맨 왼쪽 카드 사용 / E — 불릿타임";
             }
 
             for (int i = 0; i < Hand.Size; i++)
@@ -516,7 +516,7 @@ namespace Prototype
         {
             if (aiming) return "조준 중";
 
-            string head = index == 0 && !editable ? "Z" : $"{index + 1}";
+            string head = index == 0 && !editable ? "U" : $"{index + 1}";
             if (slot.aimed) head += " ◉";
 
             if (editable && predictor != null && index < predictor.Predicted.Count)

@@ -48,9 +48,22 @@ namespace Prototype
             if (playerControl.ExecutePressed)
                 bulletTime.Tactic.OnExecuteKey();
 
-            // Z — 손패 맨 왼쪽 카드 즉시 사용. RealTime 여부는 UseTopCard가 직접 본다.
+            // U — 손패 맨 왼쪽 카드 즉시 사용. RealTime 여부는 UseTopCard가 직접 본다.
             if (playerControl.CardUsePressed)
                 bulletTime.UseTopCard();
+
+            // 라이브 페이즈 고유기 — 동료 4명에게 각각 매핑.
+            // Resolve 중에는 막는다. 지휘받는 동료와 입력이 충돌한다.
+            if (bulletTime.Phase == TacticPhase.RealTime && playerControl.SelfSkillPressed >= 0)
+                CastSelfSkill(playerControl.SelfSkillPressed);
+        }
+
+        private void CastSelfSkill(int index)
+        {
+            if (index < 0 || index >= party.Length) return;
+
+            Ally ally = party[index];
+            if (ally != null) ally.CastSelfSkill();
         }
 
         private void OnDestroy()
