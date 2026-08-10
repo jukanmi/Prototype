@@ -32,6 +32,7 @@ MonoBehaviour:
   projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
+  approachDistance: 0
   hitDataList:
   - damageData:
       damage: 5
@@ -40,7 +41,7 @@ MonoBehaviour:
     canOtg: 0
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 10
+    knockbackForce: 32
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
@@ -49,6 +50,13 @@ MonoBehaviour:
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
+  vfx:
+    custom: 0
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds:
@@ -56,6 +64,6 @@ MonoBehaviour:
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
         radius: 4
-        force: 12
+        force: 32
         damage: 5
         hitStun: 0.4

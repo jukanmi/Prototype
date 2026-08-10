@@ -20,7 +20,7 @@ MonoBehaviour:
   attackType: 3
   requireState: 2
   resultState: 4
-  targeting: 2
+  targeting: 1
   radius: 3
   castTime: 0.3
   hitInterval: 0.3
@@ -32,6 +32,7 @@ MonoBehaviour:
   projectileSpeed: 20
   projectileRange: 12
   projectilePierce: 0
+  approachDistance: 0
   hitDataList:
   - damageData:
       damage: 13
@@ -40,20 +41,21 @@ MonoBehaviour:
     canOtg: 0
     mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 20
+    knockbackForce: 30
     launchForce: 0
     hitStunDuration: 0.5
     snapZ: 0
   effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: f265362c04ccca74d8a3e85f2c07b537, type: 2}
+  animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
   vfx:
     custom: 0
-    swing: {r: 0.95, g: 0.98, b: 1, a: 0.9}
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
     RefIds: []

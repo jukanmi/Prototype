@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -121,7 +120,8 @@ namespace Prototype
         {
             if (_openPile == Pile.None) return;
 
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            PlayerInputController input = PlayerInputController.Instance;
+            if (input != null && input.CancelPressed)
                 Close();
         }
 

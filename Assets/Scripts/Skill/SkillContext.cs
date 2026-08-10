@@ -4,7 +4,9 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 유저가 조준으로 확정한 값. 불릿타임 중에는 유저가, 라이브 페이즈에는 AI가 채운다.
+    /// 조준으로 확정한 값. <b>좌표와 방향만 담는다</b> —
+    /// 실제로 때릴 상대는 시전 순간에 <see cref="SkillState.ResolveTarget"/>이 좌표에서 다시 뽑는다.
+    /// 조준과 시전 사이에 대상이 죽거나 움직여도 알아서 맞는다.
     /// </summary>
     [Serializable]
     public struct TargetInfo
@@ -12,29 +14,16 @@ namespace Prototype
         public TargetingType type;
         /// <summary>GroundPoint — 텔레포트 · 장판 중심 좌표.</summary>
         public Vector3 point;
-        /// <summary>EnemyUnit — 지정 대상.</summary>
-        public Entity unit;
         /// <summary>Direction — 지정 방향.</summary>
         public Vector3 direction;
 
         public static TargetInfo None => new TargetInfo { type = TargetingType.None };
 
         public static TargetInfo Ground(Vector3 p) => new TargetInfo { type = TargetingType.GroundPoint, point = p };
-        public static TargetInfo Unit(Entity e) => new TargetInfo { type = TargetingType.EnemyUnit, unit = e, point = e != null ? e.transform.position : Vector3.zero };
         public static TargetInfo Dir(Vector3 d) => new TargetInfo { type = TargetingType.Direction, direction = d };
 
         public bool IsValid
-        {
-            get
-            {
-                switch (type)
-                {
-                    case TargetingType.EnemyUnit: return unit != null && !unit.Combat.IsDead;
-                    case TargetingType.Direction: return direction.sqrMagnitude > 0.0001f;
-                    default: return true;
-                }
-            }
-        }
+            => type != TargetingType.Direction || direction.sqrMagnitude > 0.0001f;
     }
 
     /// <summary>
@@ -44,6 +33,7 @@ namespace Prototype
     {
         public SkillData data;
         public Entity caster;
+        /// <summary>시전 순간에 확정되는 상대. 비어 있으면 <see cref="SkillState.ResolveTarget"/>이 채운다.</summary>
         public Entity target;
         public TargetInfo targetInfo;
         public bool isBulletTime;
@@ -70,12 +60,19 @@ namespace Prototype
         public Combat CasterCombat => caster != null ? caster.Combat : null;
         public Physics CasterPhysics => caster != null ? caster.Physics : null;
 
-        /// <summary>시전 기준점. 지정 좌표가 있으면 그것을, 없으면 시전자 위치를 쓴다.</summary>
+        /// <summary>
+        /// 시전 기준점. 광역 판정 · 광역 효과 · 시전 연출이 전부 이 한 점을 공유한다.
+        ///
+        /// 찍은 좌표가 있으면 그것을, 없으면 <b>확정된 대상 자리</b>를 쓴다.
+        /// 시전자 자리로 떨어뜨리면 방향 지정 스킬(충격파 등)이 조준과 무관하게
+        /// 자기 발밑에서 터진다 — 원거리는 이제 움직이지 않기 때문.
+        /// </summary>
         public Vector3 Origin
         {
             get
             {
                 if (targetInfo.type == TargetingType.GroundPoint) return targetInfo.point;
+                if (target != null && target.Physics != null) return target.Physics.GroundPosition;
                 if (caster != null) return caster.transform.position;
                 return Vector3.zero;
             }

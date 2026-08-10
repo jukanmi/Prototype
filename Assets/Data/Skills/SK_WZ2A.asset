@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC735\uAE30"
   icon: {fileID: 21300000, guid: 3def76580f8e4ceba81f6eb096e1c6f9, type: 3}
-  description: "WZ2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uC9C0\uBA74\uC744 \uC19F\uAD6C\uCCD0 \uB744\uC6B4\uB2E4"
+  description: "WZ2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uC9C0\uBA74\uC744 \uC19F\uAD6C\uCCD0
+    \uB744\uC6B4\uB2E4"
   role: 3
   attackType: 1
   requireState: 1
@@ -31,22 +32,27 @@ MonoBehaviour:
   projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
-  hitDataList:
-  - damageData:
-      damage: 7
-    targetState: 0
-    nextState: 2
-    canOtg: 0
-    mode: 3
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 0
-    launchForce: 12
-    hitStunDuration: 0.6
-    snapZ: 0
-  effects: []
+  approachDistance: 0
+  hitDataList: []
+  effects:
+  - rid: 7198291130188562610
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
+  vfx:
+    custom: 0
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7198291130188562610
+      type: {class: AirborneEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        radius: 4.5
+        launchForce: 12
+        damage: 7
+        hitStun: 0.6

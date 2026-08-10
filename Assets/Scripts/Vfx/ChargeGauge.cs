@@ -63,6 +63,14 @@ namespace Prototype
             return n;
         }
 
+        /// <summary>
+        /// 게이지가 놓일 자리. 뒤에 선 적은 몸이 줄어 머리도 내려오므로
+        /// 오프셋에도 같은 깊이 배율을 먹인다. 게이지 자체의 크기(width)는 안 건드린다 —
+        /// 어느 깊이에서나 같은 크기로 읽혀야 한다.
+        /// </summary>
+        public static Vector3 GaugePosition(Vector3 ground, float height, float headOffset)
+            => BeltScroll.ToView(ground, height + headOffset * BeltScroll.ScaleAt(ground.z));
+
         private void Draw(SpriteRenderer sr, Entity e, VfxClip clip, float ratio)
         {
             // 시트는 프레임 0이 가득 찬 상태다. 남은 양이 아니라 "채운 양"으로 뒤집어 읽는다.
@@ -72,7 +80,7 @@ namespace Prototype
             Physics phys = e.Physics;
             Vector3 ground = phys.GroundPosition;
 
-            sr.transform.position = BeltScroll.ToView(ground, phys.Height + headOffset);
+            sr.transform.position = GaugePosition(ground, phys.Height, headOffset);
             sr.transform.rotation = Quaternion.identity;
 
             float w = sr.sprite.bounds.size.x;

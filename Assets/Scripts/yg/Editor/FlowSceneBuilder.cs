@@ -438,12 +438,13 @@ namespace Prototype.YG.EditorTools
 
         private static void ReportInputHandling()
         {
-#if ENABLE_INPUT_SYSTEM && ENABLE_LEGACY_INPUT_MANAGER
-            Debug.Log("[FlowSceneBuilder] Active Input Handling = Both. ESC 는 Input System 경로로 읽는다.");
-#elif ENABLE_INPUT_SYSTEM
-            Debug.Log("[FlowSceneBuilder] Active Input Handling = Input System Package. ESC 는 Keyboard.current 로 읽는다.");
+#if ENABLE_INPUT_SYSTEM
+            Debug.Log("[FlowSceneBuilder] Active Input Handling 에 Input System 이 켜져 있다. " +
+                      "ESC 는 UI/Cancel 액션으로 읽는다.");
 #else
-            Debug.Log("[FlowSceneBuilder] Active Input Handling = Input Manager (Old). ESC 는 Input.GetKeyDown 으로 읽는다.");
+            // 입력 계층 전체가 Input System 위에 서 있다. 꺼져 있으면 컴파일은 되고 조작만 죽는다.
+            Debug.LogError("[FlowSceneBuilder] Active Input Handling 에 Input System 이 꺼져 있다. " +
+                           "PlayerInputController 가 동작하지 않아 조작이 전부 먹통이 된다.");
 #endif
         }
 

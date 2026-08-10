@@ -36,6 +36,12 @@ namespace Prototype
         protected ref SkillContext Context => ref ctx;
 
         /// <summary>
+        /// 이번 <see cref="Enter"/>에서 시전 위치를 잡을지.
+        /// 차징은 모으기 시작 시점에 이미 자리를 잡았으므로 터질 때 다시 옮기지 않는다.
+        /// </summary>
+        protected virtual bool PlaceOnEnter => true;
+
+        /// <summary>
         /// 타격 직전에 HitData를 손볼 마지막 기회. 차징이 배율을 여기서 태운다.
         /// 원본 에셋은 건드리지 않는다 — 값 복사본만 바뀐다.
         ///
@@ -60,13 +66,16 @@ namespace Prototype
             finished = false;
             nextHitTime = data.castTime;
 
+            // 조준은 좌표만 준다. 실제로 때릴 상대는 여기서 확정한다.
+            ResolveTarget();
+
             BattleLog.Log(LogCategory.Skill,
                 $"<b>{BattleLog.Name(ctx.caster)}</b> 시전: {data.skillName} | {data.attackType} | 선행 {data.requireState} → 결과 {data.resultState} | " +
-                $"조준 {ctx.targetInfo.type} | {(ctx.isBulletTime ? "불릿타임" : "라이브")} | 히트 {data.hitDataList.Count}단",
+                $"조준 {ctx.targetInfo.type} → 대상 {BattleLog.Name(ctx.target)} | {(ctx.isBulletTime ? "불릿타임" : "라이브")} | 히트 {data.hitDataList.Count}단",
                 ctx.caster);
 
-            // 순간이동 뒤라야 조준했던 좌표에 정확히 뜬다.
-            PlaceCaster();
+            // 자리를 먼저 잡아야 아래 연출과 효과가 전부 최종 위치를 기준으로 돈다.
+            if (PlaceOnEnter) PlaceCaster();
             EmitCastVfx();
             ApplyEffects();
 
@@ -110,11 +119,25 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 결정론적 가이드. <b>근거리 직업은 시전 위치로 순간이동한 뒤에 시작한다</b> —
-        /// 제자리에서 휘두르면 조준한 곳에 판정이 안 닿아 콤보가 통째로 헛돈다.
-        /// 원거리 직업은 사거리가 있으니 방향만 맞춘다.
+        /// 시전 대상을 확정한다. 조준은 <b>좌표</b>만 주므로 그 좌표에서 가장 가까운 적을 상대로 삼는다.
+        /// (<see cref="SkillContext.Origin"/> — GroundPoint면 찍은 자리, 아니면 시전자 자리)
+        ///
+        /// 조준 시점과 시전 시점 사이에 대상이 죽었어도 여기서 자동으로 다시 잡히므로
+        /// 별도의 재타겟 경로가 필요 없다.
         /// </summary>
-        private void PlaceCaster()
+        protected void ResolveTarget()
+        {
+            if (ctx.target != null && ctx.target.Combat != null && !ctx.target.Combat.IsDead) return;
+
+            ctx.target = BattleRegistry.NearestEnemy(ctx.Origin);
+        }
+
+        /// <summary>
+        /// 결정론적 가이드. <b>근거리 직업은 대상 옆으로 순간이동한 뒤에 시작한다</b> —
+        /// 제자리에서 휘두르면 조준한 곳에 판정이 안 닿아 콤보가 통째로 헛돈다.
+        /// 원거리 직업은 사거리가 있으니 움직이지 않고 방향만 맞춘다.
+        /// </summary>
+        protected void PlaceCaster()
         {
             Physics phys = ctx.CasterPhysics;
             if (phys == null) return;
@@ -138,31 +161,33 @@ namespace Prototype
         private bool IsMeleeCaster => data.role == Role.Tanker || data.role == Role.Warrior;
 
         /// <summary>
+        /// 장판인지 — 원거리 직업인데 날릴 투사체가 없는 스킬(융기 · 중력장 · 그물사격 …).
+        ///
+        /// 이런 스킬을 시전자 히트박스로 때리면 원거리는 제자리에 서 있으므로
+        /// <b>판정이 전부 자기 발밑에서 터진다</b>. 찍은 좌표에는 연출과 광역 효과만 가고
+        /// 데미지는 안 따라가는 상태가 된다. 그래서 기준점 반경으로 직접 때린다.
+        /// </summary>
+        private bool IsAreaCaster => data.IsAreaSkill;
+
+        /// <summary>
+        /// 타격 반경. 즉시 장판이든 투사체 도착 폭발이든 같은 값을 쓴다 —
+        /// 조준 링이 그리는 원이 곧 맞는 범위여야 한다.
+        /// </summary>
+        private float BlastRadius => data.radius * ctx.RadiusScale;
+
+        /// <summary>
         /// 시전을 시작할 자리. 옮길 필요가 없으면 false.
+        ///
+        /// 조준 방식과 무관하게 <b>대상 옆</b>이 답이다 — 찍은 좌표 위에 그대로 서면
+        /// 적과 겹치거나 사거리 밖에 떨어져 판정이 안 닿는다.
+        /// 원거리는 사거리가 있으므로 아예 움직이지 않는다.
         /// </summary>
         private bool TryGetCastSpot(Physics phys, out Vector3 spot)
         {
             spot = default;
-            Vector3 from = phys.GroundPosition;
+            if (!IsMeleeCaster) return false;
 
-            switch (ctx.targetInfo.type)
-            {
-                case TargetingType.GroundPoint:
-                    // 찍은 좌표가 곧 시전 위치다.
-                    // 원거리 직업은 불릿타임에 한해 옮긴다 — 기존 동작(위저드 장판 텔포)을 유지한다.
-                    if (!IsMeleeCaster && !ctx.isBulletTime) return false;
-
-                    spot = new Vector3(ctx.targetInfo.point.x, from.y, ctx.targetInfo.point.z);
-                    return true;
-
-                case TargetingType.EnemyUnit:
-                    return IsMeleeCaster && TryApproach(from, ctx.targetInfo.unit, out spot);
-
-                default:
-                    // 방향 지정 · 조준 없음에는 찍은 좌표가 없다.
-                    // 그래도 근거리면 붙어야 하므로 콤보가 잡아 둔 대상으로 간다.
-                    return IsMeleeCaster && TryApproach(from, ctx.target, out spot);
-            }
+            return TryApproach(phys.GroundPosition, ctx.target, out spot);
         }
 
         /// <summary>대상 옆에 서는 자리. 오던 쪽에 붙는다 — 대상을 관통해 넘어가지 않게.</summary>
@@ -185,36 +210,24 @@ namespace Prototype
             return d.sqrMagnitude > 0.04f;
         }
 
-        /// <summary>시전 후 바라볼 방향.</summary>
+        /// <summary>
+        /// 시전 후 바라볼 방향. 좌표가 아니라 <b>대상</b>을 본다 —
+        /// 근거리는 이미 그 좌표로 옮겨 온 뒤라 찍은 지점을 향하면 0벡터가 되어 방향이 안 잡힌다.
+        /// </summary>
         private Vector3 FaceDirection(Physics phys)
         {
+            if (ctx.targetInfo.type == TargetingType.Direction)
+                return ctx.targetInfo.direction;
+
             Vector3 from = phys.GroundPosition;
-
-            switch (ctx.targetInfo.type)
-            {
-                case TargetingType.Direction:
-                    return ctx.targetInfo.direction;
-
-                case TargetingType.EnemyUnit:
-                    if (ctx.targetInfo.unit != null)
-                        return ctx.targetInfo.unit.Physics.GroundPosition - from;
-                    break;
-
-                case TargetingType.GroundPoint:
-                    // 찍은 자리로 이미 옮겼다면 그 지점을 봐도 방향이 안 나온다. 대상 쪽을 본다.
-                    if (ctx.target != null)
-                        return ctx.target.Physics.GroundPosition - from;
-
-                    Vector3 toPoint = ctx.targetInfo.point - from;
-                    toPoint.y = 0f;
-                    if (toPoint.sqrMagnitude > 0.0001f) return toPoint;
-                    break;
-            }
 
             if (ctx.target != null)
                 return ctx.target.Physics.GroundPosition - from;
 
-            return phys.Facing;
+            // 살아 있는 적이 하나도 없을 때의 마지막 수단.
+            Vector3 toPoint = ctx.targetInfo.point - from;
+            toPoint.y = 0f;
+            return toPoint.sqrMagnitude > 0.0001f ? toPoint : phys.Facing;
         }
 
         /// <summary>
@@ -248,6 +261,7 @@ namespace Prototype
             HitData hit = ModifyHit(data.hitDataList[nextHitIndex]);
 
             if (data.IsRanged) LaunchProjectile(in hit);
+            else if (IsAreaCaster) FireArea(in hit);
             else FireMelee(in hit);
 
             BattleLog.Log(LogCategory.Skill,
@@ -255,6 +269,28 @@ namespace Prototype
 
             nextHitIndex++;
             nextHitTime = data.castTime + data.hitInterval * nextHitIndex;
+        }
+
+        /// <summary>
+        /// 장판 — 시전 기준점 반경 안의 적을 한 번에 때린다.
+        /// 반경은 <see cref="SkillData.radius"/>를 그대로 쓴다 —
+        /// 조준 링 · 헛침 경고 · 시전 연출이 전부 같은 값을 그리고 있으므로
+        /// 판정만 다른 기준을 쓰면 "보이는 곳과 맞는 곳"이 어긋난다.
+        /// </summary>
+        private void FireArea(in HitData hit)
+        {
+            Combat attacker = ctx.CasterCombat;
+            if (attacker == null) return;
+
+            SkillVfx style = data.vfx.AsSkill();
+            Vector3 center = ctx.Origin;
+            float r = BlastRadius;
+
+            int hits = EffectUtil.AreaStrike(center, r, attacker, in hit, in style);
+
+            if (hits == 0)
+                BattleLog.Log(LogCategory.Skill,
+                    $"  └ {data.skillName} 반경 {r:0.#} 안에 적 없음 — 헛침", ctx.caster);
         }
 
         /// <summary>근접 — 시전자에게 붙은 히트박스를 켠다. 기존 동작.</summary>
@@ -287,34 +323,60 @@ namespace Prototype
 
             SkillVfx style = data.vfx.AsSkill();
 
+            // 원거리는 이동하지 않으므로 대상이 사거리 밖이면 아무 일도 없이 소멸한다.
+            // 반경 기반 헛침 경고로는 안 잡히는 경우라 여기서 남긴다.
+            if (ctx.target != null)
+            {
+                Vector3 gap = ctx.target.Physics.GroundPosition - phys.GroundPosition;
+                gap.y = 0f;
+
+                if (gap.magnitude > data.projectileRange)
+                    BattleLog.Warn(LogCategory.Skill,
+                        $"  └ {data.skillName} 사거리 밖 — 대상까지 {gap.magnitude:0.#} > 사거리 {data.projectileRange:0.#}. 투사체가 도중에 사라진다",
+                        ctx.caster);
+            }
+
             shot.Launch(ctx.caster.Combat, in hit,
                         phys.GroundPosition, AimDirection(phys),
                         data.projectileSpeed, data.projectileRange, data.projectilePierce,
-                        phys.WallMask, layer, in style);
+                        phys.WallMask, layer, in style, AimHeight(), BlastRadius);
         }
 
-        /// <summary>조준값에서 발사 방향을 뽑는다. 없으면 바라보는 쪽.</summary>
+        /// <summary>
+        /// 발사 높이. 대상이 떠 있으면 그 높이로 쏜다.
+        ///
+        /// 투사체는 고정 높이(0.6)로 바닥을 긁고 지나간다. 적 몸통 캡슐이 높이 1이라
+        /// 띄운 뒤에는 겹치는 구간이 사라져 <b>공중 콤보의 마무리가 전부 빗나갔다</b> —
+        /// 아처 체인(그물사격 → 상승 화살 → 연속 사격 → 강력 사격)이 시동 직후 끊기던 원인.
+        ///
+        /// 지상 대상에는 음수를 돌려 프리팹 기본 높이를 그대로 쓴다.
+        /// </summary>
+        private float AimHeight()
+        {
+            if (ctx.target == null || ctx.target.Physics == null) return -1f;
+
+            float h = ctx.target.Physics.Height;
+            return h > 0.1f ? h : -1f;
+        }
+
+        /// <summary>
+        /// 발사 방향. 원거리는 제자리에서 쏘므로 <b>대상을 우선</b> 겨눈다 —
+        /// 찍은 좌표를 그대로 쏘면 그 사이에 적이 움직인 만큼 빗나간다.
+        /// </summary>
         private Vector3 AimDirection(Physics phys)
         {
+            if (ctx.targetInfo.type == TargetingType.Direction)
+                return ctx.targetInfo.direction;
+
             Vector3 from = phys.GroundPosition;
 
-            switch (ctx.targetInfo.type)
-            {
-                case TargetingType.Direction:
-                    return ctx.targetInfo.direction;
+            if (ctx.target != null)
+                return ctx.target.Physics.GroundPosition - from;
 
-                case TargetingType.GroundPoint:
-                    return ctx.targetInfo.point - from;
+            if (ctx.targetInfo.type == TargetingType.GroundPoint)
+                return ctx.targetInfo.point - from;
 
-                case TargetingType.EnemyUnit:
-                    if (ctx.targetInfo.unit != null)
-                        return ctx.targetInfo.unit.Physics.GroundPosition - from;
-                    break;
-            }
-
-            return ctx.target != null
-                ? ctx.target.Physics.GroundPosition - from
-                : phys.Facing;
+            return phys.Facing;
         }
     }
 }

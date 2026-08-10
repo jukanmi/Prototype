@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -30,6 +29,9 @@ namespace Prototype
         private const float ArtInset = 3f;
         private const float CardSpacing = 10f;
 
+        /// <summary>조준 시작점을 카드 위쪽 모서리에서 얼마나 더 띄울지. 카드 높이 대비 비율.</summary>
+        private const float AimStartGap = 0.5f;
+
         /// <summary>아트 영역이 시작하는 세로 비율. 그 아래는 상태 띠.</summary>
         private const float ArtBottom = StatusBarHeight / CardHeight;
         private const float TitleHeight = 26f;
@@ -40,6 +42,8 @@ namespace Prototype
         private static readonly Color NextCardColor = new Color(0.28f, 0.38f, 0.34f);
         private static readonly Color ChainedCardColor = new Color(0.24f, 0.42f, 0.26f);
         private static readonly Color AimingCardColor = new Color(0.45f, 0.35f, 0.15f);
+        private static readonly Color CursorCardColor = new Color(0.30f, 0.44f, 0.58f);
+        private static readonly Color GrabbedCardColor = new Color(0.52f, 0.44f, 0.20f);
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
         private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
@@ -55,6 +59,15 @@ namespace Prototype
 
         // 조준이 필요한 카드를 손패 밖으로 꺼낸 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
         private int _aimingIndex = -1;
+
+        /// <summary>키보드 커서가 짚고 있는 카드. 빈 손패면 -1.</summary>
+        private int _cursorIndex = -1;
+
+        /// <summary>키보드로 집은 카드. -1이면 안 집은 상태.</summary>
+        private int _grabbedIndex = -1;
+
+        /// <summary>RectTransform.GetWorldCorners용 재사용 버퍼.</summary>
+        private readonly Vector3[] _corners = new Vector3[4];
 
         private class CardWidgets
         {
@@ -139,8 +152,11 @@ namespace Prototype
             }
         }
 
-        /// <summary>불릿타임 Order 페이즈이고 조준 대기 중이 아닐 때만 조작을 받는다.</summary>
-        private bool CanEditNow => _bulletTime.AllowsCardEdit && _aimingIndex < 0;
+        /// <summary>
+        /// 마우스 드래그를 받아도 되는 때. 조준 중이거나 키보드로 카드를 집고 있으면 막는다 —
+        /// 두 입력 경로가 같은 손패를 동시에 밀면 어느 쪽이 이겼는지 화면으로 알 수 없다.
+        /// </summary>
+        private bool CanEditNow => _bulletTime.AllowsCardEdit && _aimingIndex < 0 && _grabbedIndex < 0;
 
         private void Awake()
         {
@@ -158,7 +174,7 @@ namespace Prototype
             BuildUI();
 
             _bulletTime.Hand.OnChanged += RefreshUI;
-            _bulletTime.OnEnter += RefreshUI;
+            _bulletTime.OnEnter += HandleEnter;
             _bulletTime.OnExit += HandleExit;
 
             RefreshUI();
@@ -169,48 +185,188 @@ namespace Prototype
             if (_bulletTime == null) return;
 
             if (_bulletTime.Hand != null) _bulletTime.Hand.OnChanged -= RefreshUI;
-            _bulletTime.OnEnter -= RefreshUI;
+            _bulletTime.OnEnter -= HandleEnter;
             _bulletTime.OnExit -= HandleExit;
         }
 
+        /// <summary>
+        /// 키보드 카드 조작. 세 상태가 <b>배타적</b>으로 하나만 돈다 —
+        /// 조준 확정(J)과 카드 놓기(J)가 기본값이 같아서, 한 프레임에 두 갈래가 돌면
+        /// 한 번 누른 J가 조준을 확정하고 그 카드를 놓는 것까지 해 버린다.
+        /// </summary>
         private void Update()
         {
-            if (_aimingIndex < 0) return;
-
-            // 불릿타임이 풀렸으면 조준 대기도 같이 접는다.
+            // 불릿타임이 풀렸으면 조준도 집기도 같이 접는다.
             if (!_bulletTime.AllowsCardEdit)
             {
-                CancelAiming();
+                if (_aimingIndex >= 0 || _grabbedIndex >= 0)
+                {
+                    CancelAiming();
+                    ReleaseGrab();
+                    RefreshUI();
+                }
+                return;
+            }
+
+            PlayerInputController input = PlayerInputController.Instance;
+            if (input == null) return;
+
+            if (_aimingIndex >= 0) HandleAimingInput(input);
+            else if (_grabbedIndex >= 0) HandleGrabbedInput(input);
+            else HandleBrowseInput(input);
+        }
+
+        // ── 상태 1. 커서 이동 ────────────────────────────
+
+        private void HandleBrowseInput(PlayerInputController input)
+        {
+            Vector2Int step = input.NavigateStep;
+
+            // 위를 먼저 본다. 대각선으로 눌리면 두 축이 함께 선다.
+            if (step.y > 0)
+            {
+                Grab(_cursorIndex);
+                return;
+            }
+
+            if (step.x == 0) return;
+
+            int next = NextOccupied(_cursorIndex, step.x);
+            if (next == _cursorIndex) return;
+
+            _cursorIndex = next;
+            RefreshUI();
+        }
+
+        // ── 상태 2. 카드를 집은 상태 ─────────────────────
+
+        private void HandleGrabbedInput(PlayerInputController input)
+        {
+            Vector2Int step = input.NavigateStep;
+
+            // 위 · 아래를 먼저 본다. 대각선으로 눌리면 두 축이 함께 서는데,
+            // 상태를 옮기는 쪽이 순서 변경보다 우선이다.
+            if (step.y > 0)
+            {
+                BeginAiming(_grabbedIndex);
+                return;
+            }
+
+            if (step.y < 0)
+            {
+                ReleaseGrab();
                 RefreshUI();
                 return;
             }
 
-            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            if (step.x != 0) MoveGrabbed(step.x);
+        }
+
+        /// <summary>집은 카드를 한 칸 민다. 손패 밖이나 빈자리로는 못 민다.</summary>
+        private void MoveGrabbed(int dx)
+        {
+            int to = _grabbedIndex + dx;
+            if (to < 0 || to >= Hand.Size) return;
+            if (_bulletTime.Hand.Get(to).IsEmpty) return;
+
+            // HandleSwap이 아니라 직접 부른다 — CanEditNow가 집은 상태를 막고 있다.
+            if (!_bulletTime.SwapHand(_grabbedIndex, to)) return;
+
+            _grabbedIndex = to;
+            _cursorIndex = to;
+            RefreshUI();
+        }
+
+        // ── 상태 3. 시전 위치 지정 ───────────────────────
+
+        private void HandleAimingInput(PlayerInputController input)
+        {
+            if (input.AimCancelPressed)
             {
                 CancelAiming();
                 RefreshUI();
                 return;
             }
 
-            // UI 위 클릭은 조준 확정으로 치지 않는다 — 게임 화면(월드)을 클릭했을 때만 확정.
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame &&
-                !EventSystem.current.IsPointerOverGameObject())
+            // "UI 위 클릭은 확정으로 안 친다"는 판정은 PlayerInputController가 한다 —
+            // 여기서 커서 위치만 보면 마우스를 손패 위에 올려 둔 채 키보드로 확정하는 것까지 막힌다.
+            if (!input.AimConfirmPressed) return;
+
+            TargetInfo info = targetSelector != null ? targetSelector.Confirm() : TargetInfo.None;
+
+            // 인덱스를 먼저 비운다 — SetHandTarget이 OnChanged로 RefreshUI를 부르므로
+            // 그 시점에 이미 조준이 끝난 상태로 보여야 한다.
+            int idx = _aimingIndex;
+            _aimingIndex = -1;
+
+            // 위치까지 찍었으면 그 카드는 볼일이 끝났다. 집은 채로 돌아가면
+            // 방금 확정한 카드를 다시 놓아 줘야 다음 카드로 넘어갈 수 있다.
+            // 반면 취소(K)는 집은 상태를 남긴다 — 조준만 무르고 다시 겨냥할 수 있어야 한다.
+            _cursorIndex = idx;
+            ReleaseGrab();
+
+            _bulletTime.SetHandTarget(idx, in info);
+            RefreshUI();
+        }
+
+        // ── 집기 · 놓기 ──────────────────────────────────
+
+        private void Grab(int index)
+        {
+            if (index < 0 || index >= Hand.Size) return;
+            if (_bulletTime.Hand.Get(index).IsEmpty) return;
+
+            _grabbedIndex = index;
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// 집기를 푼다. 바꾼 순서는 그대로 확정된다.
+        /// 되돌리기는 없다 — 잘못 옮겼으면 다시 집어서 되밀면 된다.
+        /// </summary>
+        private void ReleaseGrab()
+        {
+            _grabbedIndex = -1;
+        }
+
+        /// <summary>커서에서 dx 방향으로 가장 가까운 카드 자리. 없으면 제자리를 돌려준다.</summary>
+        private int NextOccupied(int from, int dx)
+        {
+            for (int i = from + dx; i >= 0 && i < Hand.Size; i += dx)
             {
-                TargetInfo info = targetSelector != null ? targetSelector.Confirm() : TargetInfo.None;
-
-                // 인덱스를 먼저 비운다 — SetHandTarget이 OnChanged로 RefreshUI를 부르므로
-                // 그 시점에 이미 조준이 끝난 상태로 보여야 한다.
-                int idx = _aimingIndex;
-                _aimingIndex = -1;
-
-                _bulletTime.SetHandTarget(idx, in info);
-                RefreshUI();
+                if (!_bulletTime.Hand.Get(i).IsEmpty) return i;
             }
+            return from;
+        }
+
+        /// <summary>손패가 바뀌어 커서가 빈자리를 짚고 있으면 가장 왼쪽 카드로 되돌린다.</summary>
+        private void EnsureCursorValid()
+        {
+            if (_cursorIndex >= 0 && _cursorIndex < Hand.Size &&
+                !_bulletTime.Hand.Get(_cursorIndex).IsEmpty)
+                return;
+
+            _cursorIndex = -1;
+            for (int i = 0; i < Hand.Size; i++)
+            {
+                if (_bulletTime.Hand.Get(i).IsEmpty) continue;
+                _cursorIndex = i;
+                return;
+            }
+        }
+
+        private void HandleEnter()
+        {
+            // 불릿타임에 들어올 때마다 커서를 맨 왼쪽 카드에서 시작한다.
+            _cursorIndex = -1;
+            EnsureCursorValid();
+            RefreshUI();
         }
 
         private void HandleExit()
         {
             CancelAiming();
+            ReleaseGrab();
             RefreshUI();
         }
 
@@ -404,19 +560,66 @@ namespace Prototype
         private void HandleCardPulledOut(int index)
         {
             if (!CanEditNow) return;
+            BeginAiming(index);
+        }
+
+        /// <summary>
+        /// 시전 위치 지정으로 들어간다. 드래그로 꺼냈을 때와 집은 카드에서 위를 눌렀을 때
+        /// 같은 길을 타야 한다 — 두 경로가 갈리면 조준 상태가 반쪽만 서는 조합이 생긴다.
+        /// </summary>
+        private bool BeginAiming(int index)
+        {
+            if (index < 0 || index >= Hand.Size) return false;
 
             SkillData data = _bulletTime.Hand.GetData(index);
-            if (data == null) return;
+            if (data == null) return false;
 
             if (data.targeting == TargetingType.None)
             {
                 BattleLog.Log(LogCategory.Predict, $"{data.skillName} — 조준이 필요 없는 스킬", this);
-                return;
+                return false;
             }
 
-            targetSelector?.Begin(data);
+            if (targetSelector != null)
+            {
+                // 그 카드 바로 위에서 시작한다. 기본값(가장 가까운 적)은 벨트스크롤 투영 탓에
+                // 방 안쪽 적이 화면 우측 상단으로 밀려 올라가 늘 같은 구석에서 시작하는 것처럼 보인다.
+                if (TryGetAimStartScreen(index, out Vector2 screen))
+                    targetSelector.Begin(data, targetSelector.ScreenToGround(screen));
+                else
+                    targetSelector.Begin(data);
+            }
+
             _aimingIndex = index;
             RefreshUI();
+            return true;
+        }
+
+        /// <summary>
+        /// 조준 시작점의 화면 좌표 — 카드 위쪽 모서리 중앙에서 조금 더 위.
+        /// 캔버스가 ScreenSpaceOverlay라 RectTransform의 월드 코너가 곧 화면 픽셀이다.
+        /// </summary>
+        private bool TryGetAimStartScreen(int index, out Vector2 screen)
+        {
+            screen = default;
+
+            if (_cards == null || index < 0 || index >= _cards.Length) return false;
+
+            CardWidgets w = _cards[index];
+            if (w == null || w.root == null || !w.root.activeInHierarchy) return false;
+
+            var rect = w.root.transform as RectTransform;
+            if (rect == null) return false;
+
+            rect.GetWorldCorners(_corners);
+
+            Vector2 bottomLeft = _corners[0];
+            Vector2 topLeft = _corners[1];
+            Vector2 topRight = _corners[2];
+
+            float height = topLeft.y - bottomLeft.y;
+            screen = (topLeft + topRight) * 0.5f + Vector2.up * (height * AimStartGap);
+            return true;
         }
 
         private void CancelAiming()
@@ -435,12 +638,19 @@ namespace Prototype
             ComboPredictor predictor = _bulletTime.Predictor;
             bool editable = _bulletTime.AllowsCardEdit;
 
+            // 손패가 줄어 커서가 빈자리를 짚고 있을 수 있다. 그리기 전에 잡는다.
+            if (editable) EnsureCursorValid();
+
             if (editable)
             {
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
-                _hintText.text = _aimingIndex >= 0
-                    ? "조준: 좌클릭 확정 / 우클릭 취소"
-                    : "손패 안에서 드래그 — 순서 교환 · 손패 밖으로 꺼내기 — 조준 · E 또는 Space로 실행";
+
+                if (_aimingIndex >= 0)
+                    _hintText.text = "조준: WASD 또는 마우스 이동 · J/좌클릭 확정 · K/우클릭 취소";
+                else if (_grabbedIndex >= 0)
+                    _hintText.text = "집은 상태: A/D 순서 변경 · W 조준 · S 놓기";
+                else
+                    _hintText.text = "A/D 카드 선택 · W 집기 · 드래그도 가능 · E 또는 Space로 실행";
             }
             else
             {
@@ -494,11 +704,15 @@ namespace Prototype
                 }
 
                 bool aiming = i == _aimingIndex;
+                bool grabbed = editable && i == _grabbedIndex;
+                bool cursor = editable && _grabbedIndex < 0 && _aimingIndex < 0 && i == _cursorIndex;
                 bool chained = editable && predictor != null && predictor.IsChained(hand.Slots, i);
 
-                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, editable, predictor);
+                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, grabbed, cursor, editable, predictor);
 
                 w.background.color = aiming ? AimingCardColor
+                                   : grabbed ? GrabbedCardColor
+                                   : cursor ? CursorCardColor
                                    : chained ? ChainedCardColor
                                    : i == 0 ? NextCardColor
                                    : CardColor;
@@ -512,11 +726,13 @@ namespace Prototype
 
         /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 예측 상태를 합친다.</summary>
         private static string BuildStatus(int index, in ComboSlot slot, SkillData data,
-            bool aiming, bool editable, ComboPredictor predictor)
+            bool aiming, bool grabbed, bool cursor, bool editable, ComboPredictor predictor)
         {
             if (aiming) return "조준 중";
+            if (grabbed) return "집음 — A/D 이동 · S 놓기";
 
             string head = index == 0 && !editable ? "U" : $"{index + 1}";
+            if (cursor) head = $"▸{head}";
             if (slot.aimed) head += " ◉";
 
             if (editable && predictor != null && index < predictor.Predicted.Count)

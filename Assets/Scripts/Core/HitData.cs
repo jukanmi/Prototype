@@ -39,8 +39,27 @@ namespace Prototype
         public float launchForce;
         public float hitStunDuration;
 
-        [Tooltip("모으기 계열에서 Z축을 시전자에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
+        [Tooltip("모으기 계열에서 Z축을 기준점에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
         public bool snapZ;
+
+        /// <summary>
+        /// 넉백 방향과 Z 정렬의 기준점. 비어 있으면 시전자 위치를 쓴다.
+        ///
+        /// 장판은 시전자와 <b>떨어진 좌표</b>에서 터진다 — 기준점을 안 넘기면
+        /// 그물사격이 찍은 자리가 아니라 궁수 발밑으로 적을 끌어모은다.
+        /// 에셋에 저장할 값이 아니라 시전 순간에만 실리는 값이라 직렬화하지 않는다.
+        /// </summary>
+        [NonSerialized] public Vector3 origin;
+        [NonSerialized] public bool hasOrigin;
+
+        /// <summary>기준점을 실은 복사본. 원본은 건드리지 않는다.</summary>
+        public HitData WithOrigin(Vector3 p)
+        {
+            HitData copy = this;
+            copy.origin = p;
+            copy.hasOrigin = true;
+            return copy;
+        }
 
         /// <summary>
         /// 넉백 방향을 <b>타격 순간에</b> 계산한다.

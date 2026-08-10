@@ -23,6 +23,10 @@ namespace Prototype
 
         private Attack hitbox;
 
+        // 프리팹에 구워진 원래 크기. 깊이 배율을 여기에 곱한다.
+        private Vector3 spriteBaseScale = Vector3.one;
+        private Vector3 shadowBaseScale = Vector3.one;
+
         private Vector3 logical;      // 논리 좌표. 바닥 기준 XZ + 높이는 flightHeight
         private Vector3 direction;
         private float speed;
@@ -31,17 +35,32 @@ namespace Prototype
         private LayerMask wallMask;
         private bool live;
 
+        private float blastRadius;    // 0이면 직격 하나만 맞는다
+        private SkillVfx blastStyle;
+
         private void Awake()
         {
             hitbox = GetComponent<Attack>();
+
+            // 깊이 배율은 매 프레임 곱해지므로 원본을 한 번만 잡아 둬야 한다.
+            // 갱신된 값을 다시 읽으면 배율이 누적돼 투사체가 점점 사라진다.
+            if (sprite != null) spriteBaseScale = sprite.localScale;
+            if (shadow != null) shadowBaseScale = shadow.localScale;
         }
 
         /// <summary>
         /// 발사. 시전자 · 판정 데이터 · 방향을 받아 살아난다.
+        ///
+        /// <paramref name="height"/>가 음수면 프리팹의 <see cref="flightHeight"/>를 쓴다.
+        /// 공중에 띄운 적을 노릴 때는 대상 높이를 넘겨야 한다 — 고정 높이로 쏘면
+        /// 바닥을 긁고 지나가 공중 콤보가 통째로 끊긴다.
+        ///
+        /// <paramref name="blast"/>가 양수면 <b>첫 적중 지점에서 그 반경만큼 터진다</b>.
+        /// 0이면 직격 하나만 맞는다 — 평타가 이쪽이다.
         /// </summary>
         public void Launch(Combat attacker, in HitData hit, Vector3 origin, Vector3 dir,
                            float speed, float range, int pierce, LayerMask wallMask, int layer,
-                           in SkillVfx vfx = default)
+                           in SkillVfx vfx = default, float height = -1f, float blast = 0f)
         {
             dir.y = 0f;
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
@@ -54,7 +73,10 @@ namespace Prototype
 
             origin.y = 0f;
             logical = origin + direction * spawnOffset;
-            logical.y = flightHeight;
+            logical.y = height >= 0f ? height : flightHeight;
+
+            blastRadius = Mathf.Max(0f, blast);
+            blastStyle = vfx;
 
             gameObject.layer = layer;
             transform.position = logical;
@@ -103,6 +125,8 @@ namespace Prototype
         {
             if (!live) return;
 
+            Detonate(victim);
+
             if (pierceLeft <= 0)
             {
                 Despawn();
@@ -112,22 +136,48 @@ namespace Prototype
             pierceLeft--;
         }
 
-        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환을 쓴다.</summary>
+        /// <summary>
+        /// 도착 지점 폭발. 히트박스에 직접 닿은 하나는 이미 맞았으므로 빼고,
+        /// 반경 안 나머지에게 같은 판정을 먹인다.
+        ///
+        /// 상승 화살이 한 명만 띄우던 걸 <b>반경 안 전부</b> 띄우게 만드는 지점이다.
+        /// </summary>
+        private void Detonate(Combat direct)
+        {
+            if (blastRadius <= 0f || hitbox == null || hitbox.Attacker == null) return;
+
+            Vector3 center = logical;
+            center.y = 0f;
+
+            HitData hit = hitbox.HitData;
+            int extra = EffectUtil.AreaStrike(center, blastRadius, hitbox.Attacker,
+                                              in hit, in blastStyle, direct);
+
+            BattleLog.Log(LogCategory.Skill,
+                $"  └ 투사체 폭발 중심 {center} 반경 {blastRadius:0.#} → 직격 1 + 추가 {extra}마리", this);
+        }
+
+        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환 · 같은 깊이 배율을 쓴다.</summary>
         private void UpdateView()
         {
             Vector3 ground = logical;
             ground.y = 0f;
 
+            // 캐릭터만 줄고 화염구는 안 줄면 뒤쪽 적에게 날아갈 때 눈에 띄게 어긋난다.
+            float scale = BeltScroll.ScaleAt(ground.z);
+
             if (sprite != null)
             {
                 sprite.position = BeltScroll.ToView(ground, logical.y);
                 sprite.rotation = Quaternion.identity;   // 빌보드
+                sprite.localScale = spriteBaseScale * scale;
             }
 
             if (shadow != null)
             {
                 shadow.position = BeltScroll.ToView(ground);
                 shadow.rotation = Quaternion.identity;
+                shadow.localScale = shadowBaseScale * scale;
             }
         }
 
