@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace Prototype
@@ -67,16 +68,16 @@ namespace Prototype
         /// <summary>이동 입력. x는 좌우, y는 깊이(월드 Z)로 읽는다.</summary>
         public Vector2 Move => moveAction.ReadValue<Vector2>();
 
-        public bool AttackPressed => attackAction.WasPressedThisFrame();
-        public bool JumpPressed => jumpAction.WasPressedThisFrame();
-        public bool DashPressed => dashAction.WasPressedThisFrame();
+        public bool AttackPressed => Pressed(attackAction);
+        public bool JumpPressed => Pressed(jumpAction);
+        public bool DashPressed => Pressed(dashAction);
 
         /// <summary>
         /// E · Space — 불릿타임 진입 · 실행 요청. 무엇을 할지는 전술 페이즈가 정한다.
         /// </summary>
-        public bool BulletTimePressed => bulletTimeAction.WasPressedThisFrame();
+        public bool BulletTimePressed => Pressed(bulletTimeAction);
         /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용.</summary>
-        public bool CardUsePressed => cardUseAction.WasPressedThisFrame();
+        public bool CardUsePressed => Pressed(cardUseAction);
 
         /// <summary>동료 고유기. 눌린 슬롯 0~3, 없으면 -1. 동시에 눌리면 낮은 번호가 이긴다.</summary>
         public int SkillPressed
@@ -85,7 +86,7 @@ namespace Prototype
             {
                 for (int i = 0; i < skillActions.Length; i++)
                 {
-                    if (skillActions[i].WasPressedThisFrame()) return i;
+                    if (Pressed(skillActions[i])) return i;
                 }
                 return -1;
             }
@@ -129,7 +130,13 @@ namespace Prototype
         public bool AimPointMovedThisFrame
             => aimDeltaAction.ReadValue<Vector2>().sqrMagnitude > AimPointMoveThresholdSqr;
 
-        public bool AimConfirmPressed => aimConfirmAction.WasPressedThisFrame();
+        /// <summary>조준 확정. UI 위 클릭은 세지 않는다 — 게임 화면을 찍었을 때만 확정이다.</summary>
+        public bool AimConfirmPressed => Pressed(aimConfirmAction);
+
+        /// <summary>
+        /// 조준 취소. 확정과 달리 UI 위에서도 받는다 —
+        /// 빠져나오는 길은 커서가 어디 있든 열려 있어야 한다.
+        /// </summary>
         public bool AimCancelPressed => aimCancelAction.WasPressedThisFrame();
 
         /// <summary>
@@ -315,6 +322,23 @@ namespace Prototype
                 now.y != 0 && now.y != lastNavigate.y ? now.y : 0);
 
             lastNavigate = now;
+        }
+
+        /// <summary>
+        /// 이번 프레임에 눌렸는가. 단, <b>마우스로 UI를 클릭한 것</b>은 세지 않는다.
+        ///
+        /// 손패 카드를 집으려고 클릭했을 뿐인데 평타가 나가는 걸 막는다.
+        /// 키보드로 눌렀을 때는 커서가 어디 있든 통과시킨다 — 마우스를 UI 위에 올려 둔 채
+        /// 키보드로 싸우는 것까지 막히면 안 된다. 그래서 "UI 위인가"가 아니라
+        /// "<b>포인터가</b> 발동시켰고 그 포인터가 UI 위인가"로 본다.
+        /// </summary>
+        private static bool Pressed(InputAction action)
+        {
+            if (!action.WasPressedThisFrame()) return false;
+
+            if (!(action.activeControl?.device is Pointer)) return true;
+
+            return EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject();
         }
 
         /// <summary>

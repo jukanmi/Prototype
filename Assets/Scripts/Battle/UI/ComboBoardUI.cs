@@ -288,10 +288,9 @@ namespace Prototype
                 return;
             }
 
-            // UI 위 클릭은 조준 확정으로 치지 않는다 — 게임 화면(월드)을 클릭했을 때만 확정.
-            // 키보드(J)는 커서 위치와 무관하므로 이 조건을 타지 않는다.
-            bool byPointer = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-            if (!input.AimConfirmPressed || byPointer) return;
+            // "UI 위 클릭은 확정으로 안 친다"는 판정은 PlayerInputController가 한다 —
+            // 여기서 커서 위치만 보면 마우스를 손패 위에 올려 둔 채 키보드로 확정하는 것까지 막힌다.
+            if (!input.AimConfirmPressed) return;
 
             TargetInfo info = targetSelector != null ? targetSelector.Confirm() : TargetInfo.None;
 

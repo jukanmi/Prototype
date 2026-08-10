@@ -450,6 +450,7 @@ MonoBehaviour:
   presets:
   - {fileID: 11400000, guid: 73212f08932eb41448c7b098ac434fac, type: 2}
   - {fileID: 11400000, guid: ddfc739a729e39e469bcd56186a33b4c, type: 2}
+  - {fileID: 11400000, guid: 2e2f46157b661834084e6acd9fc3e0d4, type: 2}
   fallbackActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
 --- !u!1 &874217974
 GameObject:

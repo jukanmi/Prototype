@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Prototype.EditorTools
 {
     /// <summary>
-    /// 예시 키 세팅 두 벌을 찍어낸다. 프리셋 표를 어떻게 채우는지 보여 주는 게 목적이다.
+    /// 키 세팅 세 벌을 찍어낸다 — 기본 · 방향키 · 마우스 + 키보드.
     ///
     /// 몇 번을 돌려도 같은 경로를 갱신할 뿐이지만, 손으로 고친 항목은 덮어쓴다.
     /// </summary>
@@ -59,10 +59,50 @@ namespace Prototype.EditorTools
 
             Write("Preset_Arrows", "방향키 프리셋", arrows.ToArray());
 
+            BuildMouseKeyboard();
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log($"[KeyBindingPresetBuilder] {Folder} 에 프리셋 2개 생성 완료");
+            Debug.Log($"[KeyBindingPresetBuilder] {Folder} 에 프리셋 3개 생성 완료");
+        }
+
+        /// <summary>
+        /// 왼손은 WASD에 두고 공격 · 대쉬를 마우스로 넘긴 배치.
+        ///
+        /// 이동 계열을 기본값과 같은 WASD로 <b>명시해서</b> 적는다. 안 적으면 액션 자산의
+        /// 기본값을 그대로 따라가는데, 나중에 그 기본값이 화살표로 바뀌면 이 프리셋이
+        /// 이름과 다른 배치가 된다.
+        /// </summary>
+        private static void BuildMouseKeyboard()
+        {
+            var mouse = new List<KeyBindingPreset.Entry>();
+
+            mouse.AddRange(MoveParts("Gameplay", "Move",
+                "<Keyboard>/w", "<Keyboard>/s", "<Keyboard>/a", "<Keyboard>/d"));
+            mouse.AddRange(MoveParts("BulletTime", "Navigate",
+                "<Keyboard>/w", "<Keyboard>/s", "<Keyboard>/a", "<Keyboard>/d"));
+            mouse.AddRange(MoveParts("BulletTimeSkillShot", "Aim",
+                "<Keyboard>/w", "<Keyboard>/s", "<Keyboard>/a", "<Keyboard>/d"));
+
+            // 평타와 대쉬를 마우스로 넘긴다. 조준 확정 · 취소가 이미 좌 · 우클릭을 쓰고 있지만
+            // 그쪽은 정지 중에만 살아 있고 평타 · 대쉬는 그때 IsFrozen에 막히므로 부딪히지 않는다.
+            mouse.Add(Single("Gameplay", "Attack", "<Mouse>/leftButton"));
+            mouse.Add(Single("Gameplay", "Dash", "<Mouse>/rightButton"));
+
+            mouse.Add(Single("Gameplay", "Jump", "<Keyboard>/space"));
+            mouse.Add(Single("Gameplay", "BulletTime", "<Keyboard>/e"));
+            mouse.Add(Single("Gameplay", "CardUse", "<Keyboard>/q"));
+
+            // 조준 확정 · 취소의 키보드 자리(J · K)도 클릭으로 덮는다.
+            // 좌 · 우클릭은 원래 이 액션의 두 번째 바인딩으로 늘 붙어 있어서 기능은 이미 되지만,
+            // 리바인드 목록에는 키보드 자리만 뜬다 — 덮지 않으면 화면에 "확정 J"라고 남아
+            // 마우스로 조준하는 배치인데 설명이 딴소리를 한다.
+            mouse.Add(Single("BulletTimeSkillShot", "Confirm", "<Mouse>/leftButton"));
+            mouse.Add(Single("BulletTimeSkillShot", "Cancel", "<Mouse>/rightButton"));
+
+            // 동료 고유기(ZXCV)는 손대지 않는다 — 이 배치가 정하려는 건 이동과 행동키다.
+            Write("Preset_MouseKeyboard", "마우스 + 키보드", mouse.ToArray());
         }
 
         private static KeyBindingPreset.Entry Single(string map, string action, string path)
