@@ -23,6 +23,10 @@ namespace Prototype
 
         private Attack hitbox;
 
+        // 프리팹에 구워진 원래 크기. 깊이 배율을 여기에 곱한다.
+        private Vector3 spriteBaseScale = Vector3.one;
+        private Vector3 shadowBaseScale = Vector3.one;
+
         private Vector3 logical;      // 논리 좌표. 바닥 기준 XZ + 높이는 flightHeight
         private Vector3 direction;
         private float speed;
@@ -34,6 +38,11 @@ namespace Prototype
         private void Awake()
         {
             hitbox = GetComponent<Attack>();
+
+            // 깊이 배율은 매 프레임 곱해지므로 원본을 한 번만 잡아 둬야 한다.
+            // 갱신된 값을 다시 읽으면 배율이 누적돼 투사체가 점점 사라진다.
+            if (sprite != null) spriteBaseScale = sprite.localScale;
+            if (shadow != null) shadowBaseScale = shadow.localScale;
         }
 
         /// <summary>
@@ -112,22 +121,27 @@ namespace Prototype
             pierceLeft--;
         }
 
-        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환을 쓴다.</summary>
+        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환 · 같은 깊이 배율을 쓴다.</summary>
         private void UpdateView()
         {
             Vector3 ground = logical;
             ground.y = 0f;
 
+            // 캐릭터만 줄고 화염구는 안 줄면 뒤쪽 적에게 날아갈 때 눈에 띄게 어긋난다.
+            float scale = BeltScroll.ScaleAt(ground.z);
+
             if (sprite != null)
             {
                 sprite.position = BeltScroll.ToView(ground, logical.y);
                 sprite.rotation = Quaternion.identity;   // 빌보드
+                sprite.localScale = spriteBaseScale * scale;
             }
 
             if (shadow != null)
             {
                 shadow.position = BeltScroll.ToView(ground);
                 shadow.rotation = Quaternion.identity;
+                shadow.localScale = shadowBaseScale * scale;
             }
         }
 

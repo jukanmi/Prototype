@@ -40,7 +40,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: Sprite
+    path: View/Sprite
   m_FloatCurves:
   - serializedVersion: 2
     curve:
@@ -68,7 +68,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Color.a
-    path: Sprite
+    path: View/Sprite
     classID: 212
     script: {fileID: 0}
     flags: 16
@@ -84,7 +84,7 @@ AnimationClip:
     - time: 0.375
       value: {fileID: 6615151302305398152, guid: 59f0f0137e81f834eabc5d71c750a5e3, type: 3}
     attribute: m_Sprite
-    path: Sprite
+    path: View/Sprite
     classID: 212
     script: {fileID: 0}
     flags: 2
@@ -96,7 +96,7 @@ AnimationClip:
   m_ClipBindingConstant:
     genericBindings:
     - serializedVersion: 2
-      path: 850496168
+      path: 3701061421
       attribute: 0
       script: {fileID: 0}
       typeID: 212
@@ -106,7 +106,7 @@ AnimationClip:
       isSerializeReferenceCurve: 0
       metaData: 0
     - serializedVersion: 2
-      path: 850496168
+      path: 3701061421
       attribute: 3
       script: {fileID: 0}
       typeID: 4
@@ -116,7 +116,7 @@ AnimationClip:
       isSerializeReferenceCurve: 0
       metaData: 0
     - serializedVersion: 2
-      path: 850496168
+      path: 3701061421
       attribute: 304273561
       script: {fileID: 0}
       typeID: 212
@@ -177,7 +177,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.x
-    path: Sprite
+    path: View/Sprite
     classID: 4
     script: {fileID: 0}
     flags: 16
@@ -207,7 +207,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalScale.y
-    path: Sprite
+    path: View/Sprite
     classID: 4
     script: {fileID: 0}
     flags: 16
@@ -237,7 +237,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_Color.a
-    path: Sprite
+    path: View/Sprite
     classID: 212
     script: {fileID: 0}
     flags: 16

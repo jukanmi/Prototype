@@ -69,9 +69,10 @@ namespace Prototype
 
             if (clip.rotateToFacing && hasFacing)
             {
-                // 깊이가 화면 세로로 접히므로 화면상의 각도도 같은 비율로 눌린다.
+                // 깊이가 화면 세로로 접히고 가로로도 밀리므로 화면상의 각도가 그만큼 기운다.
                 // 접기를 빼먹으면 대각선 방향 궤적이 캐릭터와 다른 각도로 뜬다.
-                float deg = Mathf.Atan2(facing.z * BeltScroll.DepthToScreen, facing.x) * Mathf.Rad2Deg;
+                float deg = Mathf.Atan2(facing.z * BeltScroll.DepthToScreen,
+                                        facing.x + facing.z * BeltScroll.DepthToScreenX) * Mathf.Rad2Deg;
                 transform.rotation = Quaternion.Euler(0f, 0f, deg);
             }
             else

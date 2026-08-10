@@ -16,6 +16,9 @@ namespace Prototype
         [Header("정체성")]
         [SerializeField] private Role role;
 
+        [Tooltip("컷인에 뜨는 얼굴. 비우면 직업 색 박스로 대체된다.")]
+        [SerializeField] private Sprite portrait;
+
         [Tooltip("라이브 페이즈 고유기. 단축키로 직접 발동한다.")]
         [SerializeField] private SkillData selfSkill;
 
@@ -33,6 +36,7 @@ namespace Prototype
         private Coroutine releaseRoutine;
 
         public Role Role => role;
+        public Sprite Portrait => portrait;
         public SkillData SelfSkill => selfSkill;
         public IReadOnlyList<ComboCard> Equipped => equipped;
         public AllyControl AllyControl => allyControl;
