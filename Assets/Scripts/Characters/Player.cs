@@ -12,6 +12,7 @@ namespace Prototype
         [SerializeField] private Ally[] party = new Ally[4];
 
         private PlayerControl playerControl;
+        private PlayerInputController input;
 
         public Ally[] Party => party;
 
@@ -19,6 +20,7 @@ namespace Prototype
         {
             base.Awake();
             playerControl = Control as PlayerControl;
+            input = GetComponent<PlayerInputController>();
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
         }
 
@@ -39,17 +41,18 @@ namespace Prototype
 
         private void HandleCommanderInput()
         {
-            if (playerControl == null || bulletTime == null) return;
+            if (playerControl == null || bulletTime == null || input == null) return;
 
-            // 키는 그대로 넘기고, 무엇을 할지는 전술 페이즈가 결정한다.
-            if (playerControl.BulletTimePressed)
+            // 지휘 입력은 시간이 멈춰 있어도 받아야 하므로 게이트를 거치지 않는다.
+            // 그래서 PlayerControl을 통하지 않고 컨트롤러에서 곧바로 읽는다.
+            //
+            // 진입과 실행이 한 키다(기본 E · Space). Order 페이즈에서 OnBulletTimeKey가
+            // 곧 실행이므로 따로 부를 것이 없다 — 무엇을 할지는 전술 페이즈가 결정한다.
+            if (input.BulletTimePressed)
                 bulletTime.Tactic.OnBulletTimeKey();
 
-            if (playerControl.ExecutePressed)
-                bulletTime.Tactic.OnExecuteKey();
-
             // U — 손패 맨 왼쪽 카드 즉시 사용. RealTime 여부는 UseTopCard가 직접 본다.
-            if (playerControl.CardUsePressed)
+            if (input.CardUsePressed)
                 bulletTime.UseTopCard();
 
             // 라이브 페이즈 고유기 — 동료 4명에게 각각 매핑.

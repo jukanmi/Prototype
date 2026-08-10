@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Prototype
 {
@@ -54,22 +53,51 @@ namespace Prototype
             }
         }
 
-        /// <summary>카드를 집었을 때 시작한다. targeting == None이면 곧바로 확정 가능하다.</summary>
-        public void Begin(SkillData data)
+        /// <summary>
+        /// 카드를 집었을 때 시작한다. targeting == None이면 곧바로 확정 가능하다.
+        ///
+        /// 시작점을 안 주면 가까운 적에서 시작한다. 다만 벨트스크롤 투영이 깊은 z를
+        /// 화면 위 · 오른쪽으로 밀어 올리므로(<see cref="BeltScroll.ToView"/>),
+        /// 방 안쪽 적에서 시작하면 커서가 늘 우측 상단에 뜬 것처럼 보인다.
+        /// 화면 기준으로 잡고 싶으면 <see cref="ScreenToGround"/>를 거쳐 넘겨라.
+        /// </summary>
+        public void Begin(SkillData data) => Begin(data, NearestStart());
+
+        /// <summary>시작점을 지정해 조준을 연다.</summary>
+        public void Begin(SkillData data, Vector3 startGround)
         {
             current = data;
             EnemiesInRange = 0;
 
-            // 커서를 매번 원점에서 시작하면 멀리서부터 끌고 와야 한다.
-            // 가까운 적이 있으면 거기서, 없으면 시전 기준점에서 시작한다.
-            Entity near = cursorOrigin != null ? BattleRegistry.NearestEnemy(cursorOrigin.position) : null;
-            Vector3 start = near != null ? near.transform.position
-                          : (cursorOrigin != null ? cursorOrigin.position : Vector3.zero);
-            start.y = groundY;
-            CursorPoint = start;
+            startGround.y = groundY;
+            CursorPoint = startGround;
 
             BattleLog.Log(LogCategory.Predict,
-                $"조준 시작: {(data != null ? data.skillName : "(null)")} | 방식 {(data != null ? data.targeting.ToString() : "?")}", this);
+                $"조준 시작: {(data != null ? data.skillName : "(null)")} | 방식 {(data != null ? data.targeting.ToString() : "?")} | 시작 {CursorPoint:F1}", this);
+        }
+
+        /// <summary>커서를 매번 원점에서 시작하면 멀리서부터 끌고 와야 한다. 가까운 적을 기본으로 둔다.</summary>
+        private Vector3 NearestStart()
+        {
+            Entity near = cursorOrigin != null ? BattleRegistry.NearestEnemy(cursorOrigin.position) : null;
+
+            return near != null ? near.transform.position
+                 : (cursorOrigin != null ? cursorOrigin.position : Vector3.zero);
+        }
+
+        /// <summary>
+        /// 화면 좌표 → 논리 바닥 좌표. 마우스 피킹과 조준 시작점이 같은 길을 타야
+        /// 시작 위치와 마우스로 집은 위치가 어긋나지 않는다.
+        /// </summary>
+        public Vector3 ScreenToGround(Vector2 screenPos)
+        {
+            if (cam == null) return Vector3.zero;
+
+            Vector3 screen = screenPos;
+            screen.z = Mathf.Abs(cam.transform.position.z);   // 직교 카메라라 깊이는 아무 값이나 무방
+
+            Vector3 view = cam.ScreenToWorldPoint(screen);
+            return BeltScroll.ToGround(view, groundY);
         }
 
         public void Cancel()
@@ -139,27 +167,23 @@ namespace Prototype
         /// </summary>
         private bool MoveByMouse()
         {
-            if (cam == null || Mouse.current == null) return false;
-            if (Mouse.current.delta.ReadValue().sqrMagnitude <= 0.01f) return false;
+            PlayerInputController input = PlayerInputController.Instance;
+            if (cam == null || input == null) return false;
+            if (!input.AimPointMovedThisFrame) return false;
 
-            Vector3 screen = Mouse.current.position.ReadValue();
-            screen.z = Mathf.Abs(cam.transform.position.z);   // 직교 카메라라 깊이는 아무 값이나 무방
-
-            Vector3 view = cam.ScreenToWorldPoint(screen);
-            CursorPoint = BeltScroll.ToGround(view, groundY);
+            CursorPoint = ScreenToGround(input.AimPoint);
             return true;
         }
 
-        /// <summary>WASD로 조준점을 민다. 시간이 멈춰 있으므로 unscaled로 돌린다.</summary>
+        /// <summary>Aim(기본 WASD)으로 조준점을 민다. 시간이 멈춰 있으므로 unscaled로 돌린다.</summary>
         private void MoveByKeyboard()
         {
-            Keyboard kb = Keyboard.current;
-            if (kb == null) return;
+            PlayerInputController input = PlayerInputController.Instance;
+            if (input == null) return;
 
-            float x = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-            float z = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
+            Vector2 aim = input.Aim;
 
-            var dir = new Vector3(x, 0f, z);
+            var dir = new Vector3(aim.x, 0f, aim.y);
             if (dir.sqrMagnitude <= 0.0001f) return;
 
             Vector3 p = CursorPoint + dir.normalized * cursorSpeed * TimeControl.UnscaledDeltaTime;

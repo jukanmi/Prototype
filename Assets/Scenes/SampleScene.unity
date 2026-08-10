@@ -2729,7 +2729,6 @@ MonoBehaviour:
   groundY: 0
   predictor: {fileID: 0}
   cursorSpeed: 9
-  snapRadius: 1.5
   cursorOrigin: {fileID: 0}
 --- !u!114 &1026486059
 MonoBehaviour:
@@ -2861,6 +2860,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6a25b33be7d90849b3605dc0463e9f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillCutinUI
+  slideIn: 0.15
+  hold: 0.6
+  slideOut: 0.15
+  labelDelay: 0.08
   portraitSize: 360
   portraitShownX: 48
   labelShownX: 300
@@ -4762,6 +4765,62 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &2022376806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1605910559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4fef0fbb248f9143b8bccb933bd681c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerInputController
+--- !u!114 &2022376807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1605910559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+  m_Actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
+--- !u!114 &2022376808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1605910559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04faab1f80029e4419c893ecda3ae048, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.InputMapSwitcher
+  bulletTime: {fileID: 0}
+  targetSelector: {fileID: 0}
 --- !u!1001 &2408822325939789554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4911,6 +4970,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2022376798}
+    - targetCorrespondingSourceObject: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2022376807}
+    - targetCorrespondingSourceObject: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2022376806}
+    - targetCorrespondingSourceObject: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2022376808}
     - targetCorrespondingSourceObject: {fileID: 353980075189935401, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 643710685}

@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c668db9ec7990ce43872332f1562f238, type: 3}
+  m_Name: Preset_Arrows
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.KeyBindingPreset
+  displayName: "\uBC29\uD5A5\uD0A4 \uD504\uB9AC\uC14B"
+  entries:
+  - map: Gameplay
+    action: Move
+    part: up
+    path: <Keyboard>/upArrow
+  - map: Gameplay
+    action: Move
+    part: down
+    path: <Keyboard>/downArrow
+  - map: Gameplay
+    action: Move
+    part: left
+    path: <Keyboard>/leftArrow
+  - map: Gameplay
+    action: Move
+    part: right
+    path: <Keyboard>/rightArrow
+  - map: BulletTime
+    action: Navigate
+    part: up
+    path: <Keyboard>/upArrow
+  - map: BulletTime
+    action: Navigate
+    part: down
+    path: <Keyboard>/downArrow
+  - map: BulletTime
+    action: Navigate
+    part: left
+    path: <Keyboard>/leftArrow
+  - map: BulletTime
+    action: Navigate
+    part: right
+    path: <Keyboard>/rightArrow
+  - map: BulletTimeSkillShot
+    action: Aim
+    part: up
+    path: <Keyboard>/upArrow
+  - map: BulletTimeSkillShot
+    action: Aim
+    part: down
+    path: <Keyboard>/downArrow
+  - map: BulletTimeSkillShot
+    action: Aim
+    part: left
+    path: <Keyboard>/leftArrow
+  - map: BulletTimeSkillShot
+    action: Aim
+    part: right
+    path: <Keyboard>/rightArrow
+  - map: Gameplay
+    action: Skill1
+    part: 
+    path: <Keyboard>/1
+  - map: Gameplay
+    action: Skill2
+    part: 
+    path: <Keyboard>/2
+  - map: Gameplay
+    action: Skill3
+    part: 
+    path: <Keyboard>/3
+  - map: Gameplay
+    action: Skill4
+    part: 
+    path: <Keyboard>/4
+  - map: Gameplay
+    action: Attack
+    part: 
+    path: <Keyboard>/z
+  - map: Gameplay
+    action: Jump
+    part: 
+    path: <Keyboard>/x
+  - map: Gameplay
+    action: Dash
+    part: 
+    path: <Keyboard>/c
+  - map: Gameplay
+    action: BulletTime
+    part: 
+    path: <Keyboard>/space
+  - map: Gameplay
+    action: CardUse
+    part: 
+    path: <Keyboard>/a
+  - map: BulletTimeSkillShot
+    action: Confirm
+    part: 
+    path: <Keyboard>/z
+  - map: BulletTimeSkillShot
+    action: Cancel
+    part: 
+    path: <Keyboard>/x

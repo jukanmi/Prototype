@@ -388,6 +388,7 @@ GameObject:
   - component: {fileID: 773120535}
   - component: {fileID: 773120534}
   - component: {fileID: 773120533}
+  - component: {fileID: 773120536}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -434,6 +435,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &773120536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 773120532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cce87deb7b9fde46ad13e4058f5439f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.RebindUI
+  presets:
+  - {fileID: 11400000, guid: 73212f08932eb41448c7b098ac434fac, type: 2}
+  - {fileID: 11400000, guid: ddfc739a729e39e469bcd56186a33b4c, type: 2}
+  fallbackActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
 --- !u!1 &874217974
 GameObject:
   m_ObjectHideFlags: 0

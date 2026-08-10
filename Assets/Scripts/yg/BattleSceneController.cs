@@ -1,8 +1,5 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 namespace Prototype.YG
 {
@@ -99,17 +96,16 @@ namespace Prototype.YG
         }
 
         /// <summary>
-        /// Active Input Handling 이 Input System Package 로 잡혀 있으면 레거시
-        /// <c>Input.GetKeyDown</c> 은 예외를 던진다. 양쪽 모두 대응해 둔다.
-        /// (현재 프로젝트 설정: activeInputHandler = 1, 즉 Input System 전용)
+        /// UI/Cancel 액션을 본다. 기본 바인딩은 ESC 지만 리바인드로 바뀔 수 있다.
+        ///
+        /// 플레이어가 죽어도 계속 먹어야 한다 — <see cref="PlayerInputController"/> 는
+        /// 비활성화될 때 UI 맵만은 끄지 않고, 사망은 오브젝트를 파괴하지 않으므로
+        /// <c>Instance</c> 도 살아 있다.
         /// </summary>
         private static bool WasEscapePressed()
         {
-#if ENABLE_INPUT_SYSTEM
-            return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-#else
-            return Input.GetKeyDown(KeyCode.Escape);
-#endif
+            PlayerInputController input = PlayerInputController.Instance;
+            return input != null && input.CancelPressed;
         }
 
         private void ExitToMainMenu()

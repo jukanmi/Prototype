@@ -1,72 +1,70 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Prototype
 {
     /// <summary>
     /// 커맨더 조작. 직접 콤보를 치지 않고 이동 · 평타 · 불릿타임 지휘를 담당한다.
+    ///
+    /// 입력을 직접 읽지 않는다 — <see cref="PlayerInputController"/>가 읽어 온 것을
+    /// 상태머신이 아는 <see cref="Command"/>로 옮기는 것만 한다.
+    /// 지휘키(E · Space · U)는 아무 조건 없이 통과하므로 여기를 거치지 않고
+    /// <see cref="Player"/>가 컨트롤러에서 곧바로 읽는다.
     /// </summary>
     public class PlayerControl : Control
     {
         [SerializeField] private float dashCooldown = 0.6f;
 
         private float dashTimer;
+        private PlayerInputController input;
 
-        /// <summary>E — 불릿타임 진입 · 해제 요청.</summary>
-        public bool BulletTimePressed { get; private set; }
-        /// <summary>Spacebar — 콤보 실행 요청.</summary>
-        public bool ExecutePressed { get; private set; }
-        /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용(실시간 전투).</summary>
-        public bool CardUsePressed { get; private set; }
-        /// <summary>Z X C V — 동료 고유기(실시간 전투). 없으면 -1.</summary>
+        /// <summary>
+        /// 동료 고유기 슬롯 0~3, 없으면 -1.
+        /// <b>게이트를 통과한 값</b>이다 — 정지 · 경직 · 행동 중에는 눌러도 -1이다.
+        /// <see cref="Player"/>가 동료에게 시전을 넘길 때도 이 값을 봐야 지휘가 겹치지 않는다.
+        /// </summary>
         public int SelfSkillPressed { get; private set; } = -1;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            input = GetComponent<PlayerInputController>();
+        }
 
         public override void Tick(float dt)
         {
             Clear();
-            BulletTimePressed = false;
-            ExecutePressed = false;
-            CardUsePressed = false;
             SelfSkillPressed = -1;
 
             if (dashTimer > 0f) dashTimer -= dt;
 
+            if (input == null) return;
             HandleInput();
         }
 
         private void HandleInput()
         {
-            Keyboard kb = Keyboard.current;
-            if (kb == null) return;
-
-            // 지휘 입력은 시간 정지 중에도 받아야 하므로 상태와 무관하게 먼저 읽는다.
-            BulletTimePressed = kb.eKey.wasPressedThisFrame;
-            ExecutePressed = kb.spaceKey.wasPressedThisFrame;
-            CardUsePressed = kb.uKey.wasPressedThisFrame;
-
             // 정지 중에는 이동 · 평타 입력을 받지 않는다.
-            // WASD는 TargetSelector가 조준용으로 직접 읽어 간다.
+            // 조준은 BulletTime 맵의 Aim이 따로 받는다.
             if (TimeControl.IsFrozen) return;
 
             if (Owner != null && Owner.IsBusy) return;
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState)) return;
 
             // 벨트스크롤 — 좌우는 X축, 위아래는 Z축(깊이).
-            float x = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-            float z = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
-            MoveDirection = new Vector3(x, 0f, z);
+            Vector2 move = input.Move;
+            MoveDirection = new Vector3(move.x, 0f, move.y);
 
-            SelfSkillPressed = ReadSelfSkillKey(kb);
+            SelfSkillPressed = input.SkillPressed;
 
-            if (kb.jKey.wasPressedThisFrame)
+            if (input.AttackPressed)
             {
                 Command = Command.Attack;
             }
-            else if (kb.kKey.wasPressedThisFrame)
+            else if (input.JumpPressed)
             {
                 Command = Command.Jump;
             }
-            else if (kb.leftShiftKey.wasPressedThisFrame && dashTimer <= 0f)
+            else if (input.DashPressed && dashTimer <= 0f)
             {
                 dashTimer = dashCooldown;
                 Command = Command.Dash;
@@ -80,20 +78,6 @@ namespace Prototype
             {
                 Command = Command.Move;
             }
-        }
-
-        /// <summary>
-        /// 실시간 전투 동료 고유기.
-        /// 기획서는 ASDF를 지정했지만 WASD 이동과 충돌한다.
-        /// YUIOP를 쓰다가 U를 카드 사용에 내주면서 ZXCV로 옮겼다.
-        /// </summary>
-        private static int ReadSelfSkillKey(Keyboard kb)
-        {
-            if (kb.zKey.wasPressedThisFrame) return 0;
-            if (kb.xKey.wasPressedThisFrame) return 1;
-            if (kb.cKey.wasPressedThisFrame) return 2;
-            if (kb.vKey.wasPressedThisFrame) return 3;
-            return -1;
         }
     }
 }
