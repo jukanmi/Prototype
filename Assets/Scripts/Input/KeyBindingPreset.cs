@@ -23,7 +23,7 @@ namespace Prototype
             [Tooltip("Gameplay · BulletTime · UI")]
             public string map;
 
-            [Tooltip("Move · Attack · Skill1 …")]
+            [Tooltip("Move · Attack · Swap …")]
             public string action;
 
             [Tooltip("2DVector 컴포지트의 파트(up · down · left · right). 단일 바인딩이면 비운다.")]

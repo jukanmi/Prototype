@@ -20,6 +20,16 @@ namespace Prototype
         [Tooltip("조준을 시작할 때 커서가 놓이는 기준. 비우면 Player를 찾는다.")]
         [SerializeField] private Transform cursorOrigin;
 
+        /// <summary>
+        /// 태그로 조작 대상이 바뀌면 조준 기준도 따라가야 한다.
+        /// 안 그러면 벤치에 앉은 몸의 좌표에서 커서가 시작하고,
+        /// <c>Direction</c> 스킬은 화면에 없는 몸을 기준으로 방향을 잡는다.
+        /// </summary>
+        public void SetCursorOrigin(Transform t)
+        {
+            if (t != null) cursorOrigin = t;
+        }
+
         private SkillData current;
 
         public bool IsSelecting => current != null;

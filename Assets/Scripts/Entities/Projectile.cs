@@ -21,6 +21,12 @@ namespace Prototype
         [Tooltip("날아가는 높이. 0이면 바닥을 긁는다.")]
         [SerializeField] private float flightHeight = 0.6f;
 
+        /// <summary>
+        /// 지상에서 쏠 때의 총구 높이. 공중에서 쏘는 쪽이 "발밑 기준 높이 + 이 값"으로
+        /// 자기 총구 위치를 계산한다.
+        /// </summary>
+        public float FlightHeight => flightHeight;
+
         private Attack hitbox;
 
         // 프리팹에 구워진 원래 크기. 깊이 배율을 여기에 곱한다.

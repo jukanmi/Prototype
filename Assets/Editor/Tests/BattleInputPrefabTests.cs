@@ -1,0 +1,146 @@
+using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace Prototype.Tests
+{
+    /// <summary>
+    /// 입력 배선을 본다. 손으로 붙이는 부분이라 컴파일러도 다른 테스트도 안 잡아 준다 —
+    /// 틀리면 씬을 켜 봐야 안다.
+    ///
+    /// 예전에는 이 배선이 Player 프리팹에 있었다. 태그 교대가 몸을
+    /// <c>SetActive(false)</c>로 내리면서 거기 있으면 안 되게 됐다 —
+    /// 교대하는 순간 되돌아올 키까지 함께 죽는다.
+    /// </summary>
+    public class BattleInputPrefabTests
+    {
+        private const string HostPath = "Assets/Prefabs/BattleInput.prefab";
+        private const string PlayerPath = "Assets/Prefabs/Player.prefab";
+        private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
+
+        private static GameObject Load(string path)
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            Assert.That(go, Is.Not.Null,
+                $"{path} 를 못 찾았다. 메뉴 'Prototype > 전투 - 입력 호스트 프리팹 만들기' 를 실행할 것.");
+            return go;
+        }
+
+        // ── 입력 호스트 ─────────────────────────────────────
+
+        [Test]
+        public void Host_HasPlayerInput()
+        {
+            // 자식에 붙이면 PlayerInputController 가 같은 오브젝트에서
+            // PlayerInput 을 못 찾아 Awake 에서 죽는다.
+            Assert.That(Load(HostPath).GetComponent<PlayerInput>(), Is.Not.Null,
+                "입력 호스트 최상단에 PlayerInput 이 없다.");
+        }
+
+        [Test]
+        public void Host_HasPlayerInputController()
+        {
+            Assert.That(Load(HostPath).GetComponent<PlayerInputController>(), Is.Not.Null,
+                "입력 호스트에 PlayerInputController 가 없다.");
+        }
+
+        [Test]
+        public void Host_HasInputMapSwitcher()
+        {
+            // 없으면 조준 맵이 켜진 채로 굳어 이동과 조준이 같은 WASD를 계속 물고 있다.
+            Assert.That(Load(HostPath).GetComponent<InputMapSwitcher>(), Is.Not.Null,
+                "입력 호스트에 InputMapSwitcher 가 없다.");
+        }
+
+        [Test]
+        public void Host_HasCommanderAndTagSwap()
+        {
+            GameObject host = Load(HostPath);
+
+            // 지휘키(E · U)와 교대키(F)를 읽는 주체. 몸에 두면 교대와 함께 죽는다.
+            Assert.That(host.GetComponent<BattleCommander>(), Is.Not.Null,
+                "입력 호스트에 BattleCommander 가 없다 — E · U · F 가 아무 데서도 안 읽힌다.");
+
+            Assert.That(host.GetComponent<TagSwapController>(), Is.Not.Null,
+                "입력 호스트에 TagSwapController 가 없다 — 교대가 일어나지 않는다.");
+        }
+
+        [Test]
+        public void PlayerInput_UsesProjectActionsAsset()
+        {
+            var playerInput = Load(HostPath).GetComponent<PlayerInput>();
+            Assert.That(playerInput, Is.Not.Null, "PlayerInput 이 없다.");
+            Assert.That(playerInput.actions, Is.Not.Null, "PlayerInput 의 Actions 칸이 비어 있다.");
+
+            var expected = AssetDatabase.LoadAssetAtPath<InputActionAsset>(ActionsPath);
+            Assert.That(playerInput.actions, Is.SameAs(expected),
+                $"PlayerInput 이 {ActionsPath} 가 아닌 다른 자산을 물고 있다.");
+        }
+
+        [Test]
+        public void PlayerInput_DefaultMapIsGameplay()
+        {
+            var playerInput = Load(HostPath).GetComponent<PlayerInput>();
+
+            // 비어 있으면 아무 맵도 자동으로 안 켜진다. PlayerInputController 가
+            // OnEnable 에서 직접 켜기는 하지만, 그 전에 도는 코드가 입력을 못 읽는다.
+            Assert.That(playerInput.defaultActionMap, Is.EqualTo(InputActionNames.Gameplay.Map),
+                "Default Map 이 Gameplay 가 아니다.");
+        }
+
+        [Test]
+        public void PlayerInput_UsesCSharpEvents()
+        {
+            var playerInput = Load(HostPath).GetComponent<PlayerInput>();
+
+            // 폴링으로 읽으므로 콜백은 아무도 안 받는다. SendMessage 로 두면
+            // 매 입력마다 리플렉션만 돌고 얻는 게 없다.
+            Assert.That(playerInput.notificationBehavior,
+                Is.EqualTo(PlayerNotifications.InvokeCSharpEvents),
+                "Behavior 가 Invoke C Sharp Events 가 아니다.");
+        }
+
+        // ── 몸에는 입력이 없어야 한다 ───────────────────────
+
+        [Test]
+        public void PlayerBody_HasNoInputComponents()
+        {
+            GameObject body = Load(PlayerPath);
+
+            Assert.That(body.GetComponent<PlayerInput>(), Is.Null,
+                "Player 프리팹에 PlayerInput 이 남아 있다 — 태그로 내려가면 입력이 통째로 죽는다.");
+            Assert.That(body.GetComponent<PlayerInputController>(), Is.Null,
+                "Player 프리팹에 PlayerInputController 가 남아 있다.");
+            Assert.That(body.GetComponent<InputMapSwitcher>(), Is.Null,
+                "Player 프리팹에 InputMapSwitcher 가 남아 있다.");
+        }
+
+        [Test]
+        public void PlayerBody_StillHasPlayerControl()
+        {
+            // 입력은 떼어 냈지만 조작 자체는 남는다. 상태머신은 여전히
+            // Control 의 Command / MoveDirection 을 읽는다.
+            Assert.That(Load(PlayerPath).GetComponent<PlayerControl>(), Is.Not.Null,
+                "PlayerControl 이 사라졌다. Entity 상태머신이 명령을 못 받는다.");
+        }
+
+        [Test]
+        public void AllyBody_HasBothControls()
+        {
+            // 동료도 태그로 조작 대상이 된다. PlayerControl 이 없으면 교대해도 안 움직이고,
+            // AllyControl 이 없으면 불릿타임에 불려 나와서 가만히 서 있는다.
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (go == null || go.GetComponent<Ally>() == null) continue;
+
+                Assert.That(go.GetComponent<PlayerControl>(), Is.Not.Null,
+                    $"{path} 에 PlayerControl 이 없다 — 교대해도 조작이 안 넘어간다.");
+                Assert.That(go.GetComponent<AllyControl>(), Is.Not.Null,
+                    $"{path} 에 AllyControl 이 없다.");
+            }
+        }
+    }
+}

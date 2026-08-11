@@ -150,20 +150,6 @@ namespace Prototype.EditorTools
                     added++;
                 }
 
-                // 고유기가 비어 있으면 공격기를 임시로 물려 둔다.
-                var so = new SerializedObject(ally);
-                SerializedProperty self = so.FindProperty("selfSkill");
-                if (self.objectReferenceValue == null)
-                {
-                    foreach (SkillData s in skills)
-                    {
-                        if (s.role != ally.Role || s.attackType != AttackType.Strike) continue;
-                        self.objectReferenceValue = s;
-                        break;
-                    }
-                    so.ApplyModifiedProperties();
-                }
-
                 EditorUtility.SetDirty(ally);
                 total += ally.Equipped.Count;
 

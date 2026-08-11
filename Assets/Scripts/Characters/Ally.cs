@@ -5,8 +5,7 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 동료 = 스킬의 주체.
-    /// 라이브 페이즈에는 고유기를, 불릿타임에는 장착한 콤보 카드를 쓴다.
+    /// 동료 = 스킬의 주체. 실시간에는 손패 카드를, 불릿타임에는 콤보 큐를 받아 시전한다.
     /// 실제 움직임과 타격은 전부 <see cref="SkillState"/>가 수행한다.
     /// </summary>
     public class Ally : Entity
@@ -19,9 +18,6 @@ namespace Prototype
         [Tooltip("컷인에 뜨는 얼굴. 비우면 직업 색 박스로 대체된다.")]
         [SerializeField] private Sprite portrait;
 
-        [Tooltip("라이브 페이즈 고유기. 단축키로 직접 발동한다.")]
-        [SerializeField] private SkillData selfSkill;
-
         [Tooltip("직업당 6종 중 4장. 덱 16장의 1/4을 이룬다.")]
         [SerializeField] private List<ComboCard> equipped = new List<ComboCard>(EquipSlots);
 
@@ -29,43 +25,47 @@ namespace Prototype
                  "ComboExecutor의 slotTimeout과 같은 역할.")]
         [SerializeField] private float realtimeSkillTimeout = 5f;
 
-        private AllyControl allyControl;
-        private float selfSkillCooldown;
-
         /// <summary>실시간으로 밀어넣은 스킬의 뒷정리 코루틴. 한 번에 하나만 돈다.</summary>
         private Coroutine releaseRoutine;
 
+        /// <summary>
+        /// 자율 전투 BT. 지금 이 몸을 몰고 있는지와 무관하게 붙어 있다 —
+        /// 조준 기준(<see cref="PreferredTarget"/>)을 여기서 얻기 때문이다.
+        /// </summary>
+        private AllyControl allyControl;
+
         public Role Role => role;
         public Sprite Portrait => portrait;
-        public SkillData SelfSkill => selfSkill;
         public IReadOnlyList<ComboCard> Equipped => equipped;
-        public AllyControl AllyControl => allyControl;
-
-        /// <summary>Executor가 상태머신을 강탈 중인지.</summary>
-        public bool IsCommanded
-        {
-            get => allyControl != null && allyControl.IsCommanded;
-            set { if (allyControl != null) allyControl.IsCommanded = value; }
-        }
+        public AllyControl AllyControl => allyControl != null ? allyControl : allyControl = GetComponent<AllyControl>();
 
         protected override void Awake()
         {
             base.Awake();
-            allyControl = Control as AllyControl;
+            allyControl = GetComponent<AllyControl>();
         }
 
-        protected override void Start()
+        /// <summary>
+        /// 등록이 <c>Start</c>가 아니라 여기인 이유는 <see cref="TagSwapController"/>가
+        /// 벤치에 앉은 몸을 <c>SetActive(false)</c>로 내리기 때문이다. Start에 두면
+        /// 꺼진 채 시작한 동료는 영영 등록되지 않는다.
+        /// </summary>
+        private void OnEnable()
         {
-            base.Start();
             BattleRegistry.RegisterAlly(this);
         }
 
-        protected override void Update()
+        /// <summary>
+        /// 내려가기 전 뒷정리. 등록을 빼지 않으면 적 AI가
+        /// <see cref="BattleRegistry.Allies"/>를 보고 화면에 없는 몸의 좌표로 걸어간다.
+        /// 나머지는 <see cref="Entity.ReleaseBody"/>가 한다.
+        /// </summary>
+        private void OnDisable()
         {
-            base.Update();
+            BattleRegistry.Unregister(this);
 
-            if (selfSkillCooldown > 0f)
-                selfSkillCooldown -= TimeControl.DeltaTime;
+            releaseRoutine = null;   // SetActive(false)가 이미 죽였다. 참조만 끊는다.
+            ReleaseBody();
         }
 
         // ── 덱 구성 (포스트 배틀 전용) ────────────────────
@@ -82,36 +82,6 @@ namespace Prototype
         public bool RemoveSkill(ComboCard card)
         {
             return equipped.Remove(card);
-        }
-
-        // ── 라이브 페이즈 고유기 ──────────────────────────
-
-        public bool CanCastSelfSkill => selfSkill != null && selfSkillCooldown <= 0f && !Combat.IsDead && !IsBusy;
-
-        /// <summary>ASDF 고유기. AI가 조준값을 채운다 — 유저 지정 없음.</summary>
-        public bool CastSelfSkill()
-        {
-            if (!CanCastSelfSkill) return false;
-
-            // 대상은 비워 둔다. AutoTarget이 박아 준 좌표에서 SkillState가 직접 뽑는다.
-            var ctx = new SkillContext
-            {
-                data = selfSkill,
-                caster = this,
-                targetInfo = AutoTarget(selfSkill),
-                isBulletTime = false,
-                comboIndex = -1,
-            };
-
-            BattleLog.Log(LogCategory.Skill,
-                $"{name} 고유기: {selfSkill.skillName} (쿨 {selfSkill.cooldown:0.#}s)", this);
-
-            IState state = selfSkill.CreateState(in ctx);
-            StateMachine.ForceChangeState(state);
-            BeginRelease(state);
-
-            selfSkillCooldown = selfSkill.cooldown;
-            return true;
         }
 
         // ── 콤보 카드 (실시간 U키 단발) ──────────────────
@@ -151,7 +121,7 @@ namespace Prototype
         /// <summary>
         /// <see cref="SkillState"/>는 후딜이 끝나도 <c>finished</c> 표시만 하고 <b>스스로 상태를 빠져나오지 않는다</b>.
         /// 콤보 경로는 <see cref="ComboExecutor"/>가 끝난 뒤 Idle로 되돌려 주지만,
-        /// 실시간 경로(U키 카드 · ASDF 고유기)는 Executor를 거치지 않으므로 되돌릴 주체가 없다.
+        /// 실시간 경로(U키 카드)는 Executor를 거치지 않으므로 되돌릴 주체가 없다.
         /// 그대로 두면 슈퍼아머(<c>CanBeInterrupted == false</c>)인 채로 남아
         /// 이 동료가 영영 <see cref="Entity.IsBusy"/>가 되고, 이후 카드가 전부 "이전 동작 중"으로 거부된다.
         /// </summary>
@@ -202,6 +172,7 @@ namespace Prototype
 
         /// <summary>
         /// 유저 조준이 없을 때 쓰는 자동 조준. 대상의 <b>좌표</b>만 뽑아 담는다 —
+        /// 손패 카드가 조준 없이 발동할 때 쓴다.
         /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 다시 고른다.
         /// </summary>
         public TargetInfo AutoTarget(SkillData data)
@@ -223,9 +194,5 @@ namespace Prototype
             }
         }
 
-        private void OnDestroy()
-        {
-            BattleRegistry.Unregister(this);
-        }
     }
 }

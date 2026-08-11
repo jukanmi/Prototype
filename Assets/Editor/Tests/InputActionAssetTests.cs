@@ -66,8 +66,8 @@ namespace Prototype.Tests
                 InputActionNames.Gameplay.Dash,
                 InputActionNames.Gameplay.BulletTime,
                 InputActionNames.Gameplay.CardUse,
+                InputActionNames.Gameplay.Swap,
             };
-            expected.AddRange(InputActionNames.Gameplay.Skills);
 
             Assert.That(Map(InputActionNames.Gameplay.Map).actions.Select(a => a.name),
                 Is.EquivalentTo(expected));
@@ -147,11 +147,16 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void SelfSkills_AreFourSeparateActions()
+        public void Swap_DoesNotCollideWithOtherGameplayKeys()
         {
-            // 액션 하나로는 몇 번째 고유기인지 알 수 없어 4개로 쪼갰다.
-            // Player.Party 가 4칸이라 이 숫자가 어긋나면 배열 밖을 짚는다.
-            Assert.That(InputActionNames.Gameplay.Skills.Length, Is.EqualTo(4));
+            // 교대는 정지 중에 막히는 Gameplay 액션이라 불릿타임 맵과는 안 겹친다.
+            // 같은 Gameplay 맵 안에서만 부딪히면 실시간에 한 키가 두 일을 한다.
+            InputAction swap = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Swap);
+
+            Assert.That(
+                InputRebindRules.TryFindConflict(asset, swap, 0, swap.bindings[0].effectivePath, out InputAction blocker, out _),
+                Is.False,
+                $"교대 키가 {(blocker != null ? blocker.name : "?")} 와 겹친다");
         }
 
         // ── 컴포지트 모양 ───────────────────────────────────
@@ -186,10 +191,7 @@ namespace Prototype.Tests
         [TestCase(InputActionNames.Gameplay.Dash, "<Keyboard>/leftShift")]
         [TestCase(InputActionNames.Gameplay.BulletTime, "<Keyboard>/e")]
         [TestCase(InputActionNames.Gameplay.CardUse, "<Keyboard>/u")]
-        [TestCase("Skill1", "<Keyboard>/z")]
-        [TestCase("Skill2", "<Keyboard>/x")]
-        [TestCase("Skill3", "<Keyboard>/c")]
-        [TestCase("Skill4", "<Keyboard>/v")]
+        [TestCase(InputActionNames.Gameplay.Swap, "<Keyboard>/f")]
         public void GameplayDefaultBinding_MatchesDocumentedKey(string actionName, string path)
         {
             InputAction action = Action(InputActionNames.Gameplay.Map, actionName);

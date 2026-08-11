@@ -18,9 +18,6 @@ namespace Prototype
             public const string Jump = "Jump";
             public const string Dash = "Dash";
 
-            /// <summary>동료 고유기 4개. 인덱스 0~3에 대응한다.</summary>
-            public static readonly string[] Skills = { "Skill1", "Skill2", "Skill3", "Skill4" };
-
             /// <summary>
             /// 불릿타임 진입 · 실행. 기본 E.
             ///
@@ -30,6 +27,15 @@ namespace Prototype
             public const string BulletTime = "BulletTime";
 
             public const string CardUse = "CardUse";
+
+            /// <summary>
+            /// 동료 교대. 실시간 전투에는 동료가 한 명만 서 있고 이 키가 다음 생존자로 돌린다.
+            ///
+            /// 지휘키가 <b>아니다</b> — 정지 중에는 안 먹어야 한다. 그래서
+            /// <c>InputRebindRules.CommanderActions</c>에 넣지 않는다. 넣으면 불릿타임 맵의
+            /// WASD와 겹친다고 잡힌다.
+            /// </summary>
+            public const string Swap = "Swap";
         }
 
         /// <summary>

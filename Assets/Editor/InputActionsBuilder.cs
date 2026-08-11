@@ -80,13 +80,6 @@ namespace Prototype.EditorTools
             map.AddAction(InputActionNames.Gameplay.Dash, InputActionType.Button,
                 "<Keyboard>/leftShift", groups: KeyboardMouse);
 
-            // 동료 고유기. 기획서는 ASDF였지만 WASD 이동과 겹쳐 ZXCV로 옮겼다.
-            // 액션 하나로는 몇 번째인지 알 수 없어 4개로 쪼갠다.
-            string[] skills = InputActionNames.Gameplay.Skills;
-            string[] skillKeys = { "<Keyboard>/z", "<Keyboard>/x", "<Keyboard>/c", "<Keyboard>/v" };
-            for (int i = 0; i < skills.Length; i++)
-                map.AddAction(skills[i], InputActionType.Button, skillKeys[i], groups: KeyboardMouse);
-
             // 진입과 실행이 한 액션 · 한 키다. Order 페이즈에서 이 키가 곧 실행이라
             // 예전의 Execute(Space)는 같은 일을 하는 두 번째 자리일 뿐이었다.
             map.AddAction(InputActionNames.Gameplay.BulletTime, InputActionType.Button,
@@ -94,6 +87,11 @@ namespace Prototype.EditorTools
 
             map.AddAction(InputActionNames.Gameplay.CardUse, InputActionType.Button,
                 "<Keyboard>/u", groups: KeyboardMouse);
+
+            // 동료 교대. F인 이유는 세 프리셋 어디에서도 안 쓰는 자리이기 때문이다 —
+            // Q는 마우스 프리셋이 CardUse로 가져가서 그 프리셋을 얹는 순간 충돌한다.
+            map.AddAction(InputActionNames.Gameplay.Swap, InputActionType.Button,
+                "<Keyboard>/f", groups: KeyboardMouse);
         }
 
         /// <summary>

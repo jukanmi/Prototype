@@ -112,10 +112,32 @@ namespace Prototype
 
             shot.Launch(Combat, in hit, from, dir,
                         basicProjectileSpeed, basicProjectileRange, basicProjectilePierce,
-                        Physics.WallMask, layer);
+                        Physics.WallMask, layer, height: BasicProjectileHeight(shot, target));
 
             // 쏘는 순간 방향을 맞춰 준다. 히트박스 자식과 스프라이트가 따라 돈다.
             Physics.Face(dir);
+        }
+
+        /// <summary>
+        /// 원거리 평타가 날아갈 높이. 음수면 <see cref="Projectile.FlightHeight"/>를 그대로 쓴다.
+        ///
+        /// <b>이 값을 안 넘기면 투사체가 늘 고정 높이로 나간다</b> — 점프해서 쏴도 화살이
+        /// 발밑 바닥에서 튀어나오는 게 그 증상이다. 스킬 쪽은 예전부터
+        /// <c>SkillState.AimHeight</c>로 이 값을 채우고 있었고, 평타 경로만 빠져 있었다.
+        ///
+        /// 쏘는 쪽과 대상 중 <b>높은 쪽</b>을 따른다. 공중에 띄운 적을 지상에서 쏠 때
+        /// 바닥을 긁고 지나가면 공중 콤보 마무리가 통째로 빗나가기 때문이다.
+        /// 거기에 총구 높이를 더해 가슴께에서 나가게 맞춘다.
+        /// </summary>
+        private float BasicProjectileHeight(Projectile shot, Entity target)
+        {
+            float self = Physics.Height;
+            float aim = target != null && target.Physics != null ? target.Physics.Height : 0f;
+
+            float h = Mathf.Max(self, aim);
+
+            // 둘 다 지상이면 프리팹 기본 높이가 정답이다.
+            return h > 0.1f ? h + shot.FlightHeight : -1f;
         }
 
         /// <summary>히트박스가 아군을 때리지 않게 거르는 기준. Enemy만 덮어쓴다.</summary>
@@ -131,7 +153,23 @@ namespace Prototype
         public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
         public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
 
+        /// <summary>
+        /// 지금 이 몸을 모는 것. <see cref="UseControl{T}"/>가 갈아 끼운다.
+        /// 아무도 안 몰면 null이다 — 태그로 내려간 몸과, 불릿타임에 불려 나왔지만
+        /// 조작 대상이 아닌 몸이 그렇다.
+        /// </summary>
         public Control Control { get; private set; }
+
+        /// <summary>
+        /// true면 <b>어떤 Control도 명령을 내지 않는다</b>. <see cref="ComboExecutor"/>가
+        /// 상태머신을 강탈하는 동안 켠다(결정 로그 ②).
+        ///
+        /// Control이 아니라 여기 있는 이유는 태그 교대 때문이다. 몸을 모는 주체가
+        /// PlayerControl ↔ AllyControl 로 바뀌는데, 지휘 플래그가 Control에 붙어 있으면
+        /// 갈아타는 순간 값이 통째로 사라진다.
+        /// </summary>
+        public bool IsCommanded { get; set; }
+
         public StateMachine StateMachine { get; private set; }
         public Stats Stats => stats;
         public Energies Energies => energies;
@@ -148,11 +186,19 @@ namespace Prototype
         public GetupState GetupState { get; private set; }
         public DeadState DeadState { get; private set; }
 
+        /// <summary>이 몸에 붙은 모든 Control. 태그 교대가 이 중 하나를 고른다.</summary>
+        private Control[] controls;
+
         protected virtual void Awake()
         {
             cachedPhysics = GetComponent<Physics>();
             cachedCombat = GetComponent<Combat>();
-            Control = GetComponent<Control>();
+
+            controls = GetComponents<Control>();
+            // 인스펙터에서 켜 둔 것을 그대로 존중한다. 씬을 그냥 돌렸을 때
+            // 태그 컨트롤러 없이도 예전처럼 움직이게 하기 위한 기본값이다.
+            Control = FirstEnabledControl();
+
             StateMachine = new StateMachine { OwnerName = name };
 
             if (basicAttack == null) basicAttack = GetComponentInChildren<Attack>(true);
@@ -251,5 +297,71 @@ namespace Prototype
 
         /// <summary>상태머신이 지금 중단 가능한지. AI · UI 판단용.</summary>
         public bool IsBusy => StateMachine.CurState != null && !StateMachine.CurState.CanBeInterrupted;
+
+        // ── 빙의 ────────────────────────────────────────────
+
+        /// <summary>
+        /// 이 몸을 <typeparamref name="T"/>가 몰게 한다. 나머지 Control은 꺼지고,
+        /// 꺼지는 쪽은 <see cref="Control.Consume"/>로 남은 명령을 비운다 —
+        /// 안 그러면 갈아탄 첫 프레임에 직전 주인이 남긴 평타가 한 번 더 나간다.
+        ///
+        /// 해당 Control이 없으면 <b>아무도 안 모는 상태</b>가 되고 null을 돌려준다.
+        /// 플레이어 몸에 <see cref="AllyControl"/>이 없는 게 정상이라 이 경로가 필요하다 —
+        /// 불릿타임에 불려 나온 플레이어 몸은 서 있기만 해야 한다.
+        /// </summary>
+        public T UseControl<T>() where T : Control
+        {
+            if (controls == null) controls = GetComponents<Control>();
+
+            T picked = null;
+
+            for (int i = 0; i < controls.Length; i++)
+            {
+                Control c = controls[i];
+                if (c == null) continue;
+
+                if (c is T match)
+                {
+                    picked = match;
+                    c.enabled = true;
+                    continue;
+                }
+
+                c.ClearIntent();
+                c.enabled = false;
+            }
+
+            Control = picked;
+            return picked;
+        }
+
+        /// <summary>
+        /// 태그로 내려갈 때의 공통 뒷정리. <b>두 가지를 반드시 되돌려야 한다.</b>
+        ///
+        /// <list type="number">
+        /// <item><see cref="IsCommanded"/> 해제 — Executor가 켠 채로 잘리면 다시 섰을 때
+        /// 어떤 Control도 명령을 못 낸다.</item>
+        /// <item>상태머신을 Idle로 — 코루틴은 <c>SetActive(false)</c>에 죽는다.
+        /// 스킬 상태 뒷정리가 중간에 잘리면 <c>CanBeInterrupted == false</c>인 채로 굳어,
+        /// 다시 섰을 때 이 몸이 영구히 <see cref="IsBusy"/>가 된다.</item>
+        /// </list>
+        ///
+        /// 사망 상태는 건드리지 않는다 — 시체를 Idle로 되돌리면 다시 섰을 때 되살아난다.
+        /// </summary>
+        protected void ReleaseBody()
+        {
+            IsCommanded = false;
+
+            if (StateMachine != null && !Combat.IsDead)
+                StateMachine.ForceChangeState(IdleState);
+        }
+
+        private Control FirstEnabledControl()
+        {
+            for (int i = 0; i < controls.Length; i++)
+                if (controls[i] != null && controls[i].enabled) return controls[i];
+
+            return null;
+        }
     }
 }

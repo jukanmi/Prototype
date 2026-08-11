@@ -10,9 +10,6 @@ namespace Prototype
         public Command Command { get; protected set; } = Command.None;
         public Vector3 MoveDirection { get; protected set; }
 
-        /// <summary>스킬 명령일 때 몇 번 슬롯인지. 라이브 페이즈 고유기 ASDF 대응.</summary>
-        public int SkillIndex { get; protected set; } = -1;
-
         protected Entity Owner { get; private set; }
 
         protected virtual void Awake()
@@ -30,9 +27,15 @@ namespace Prototype
         {
             Command = Command.None;
             MoveDirection = Vector3.zero;
-            SkillIndex = -1;
         }
 
         public void Consume() => Command = Command.None;
+
+        /// <summary>
+        /// 이 Control이 몸에서 손을 뗄 때. 남은 의도를 통째로 비운다.
+        /// <see cref="Consume"/>는 명령만 지우고 이동 방향은 남기므로 여기서는 못 쓴다 —
+        /// 태그로 내려간 몸이 마지막 이동 방향을 물고 있으면 다시 섰을 때 혼자 걸어간다.
+        /// </summary>
+        public void ClearIntent() => Clear();
     }
 }

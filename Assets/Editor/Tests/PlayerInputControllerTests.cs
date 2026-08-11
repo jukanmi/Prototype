@@ -164,9 +164,9 @@ namespace Prototype.Tests
         // ── 무입력 기본값 ───────────────────────────────────
 
         [Test]
-        public void NoInput_SkillPressedIsMinusOne()
+        public void NoInput_SwapIsNotPressed()
         {
-            Assert.That(controller.SkillPressed, Is.EqualTo(-1));
+            Assert.That(controller.SwapPressed, Is.False);
         }
 
         [Test]

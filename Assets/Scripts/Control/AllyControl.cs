@@ -3,7 +3,10 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 동료 제어. 라이브 페이즈에는 BT로 자율 전투하고,
+    /// 동료 자율 전투 BT. <b>조작 대상이 아닌 몸</b>이 이걸로 움직인다 —
+    /// 태그로 필드에 선 한 명은 <see cref="PlayerControl"/>이 몰고, 불릿타임에 불려 나온
+    /// 나머지가 여기에 해당한다.
+    ///
     /// 지휘 중에는 정지한다 — ComboExecutor가 상태머신을 직접 강탈하기 때문(결정 로그 ②).
     /// </summary>
     public class AllyControl : Control
@@ -18,9 +21,6 @@ namespace Prototype
         private float attackTimer;
         private float retargetTimer;
 
-        /// <summary>true면 BT를 완전히 정지한다. Executor가 켜고 끈다.</summary>
-        public bool IsCommanded { get; set; }
-
         public Entity Target => target;
 
         public override void Tick(float dt)
@@ -28,8 +28,8 @@ namespace Prototype
             Clear();
 
             // 지휘 중에는 어떤 명령도 내지 않는다. 상태머신은 Executor 소유.
-            if (IsCommanded) return;
-            if (Owner != null && (Owner.IsBusy || CombatStateRules.IsStunned(Owner.Combat.CombatState))) return;
+            if (Owner == null || Owner.IsCommanded) return;
+            if (Owner.IsBusy || CombatStateRules.IsStunned(Owner.Combat.CombatState)) return;
 
             attackTimer -= dt;
             retargetTimer -= dt;

@@ -9,9 +9,13 @@ namespace Prototype
     /// 직접 만지지 않는다.
     ///
     /// 콜백이 아니라 <b>폴링</b>이다. <see cref="PlayerControl.Tick"/>은 Entity.Update가 부르고
-    /// 지휘 입력은 <see cref="Player"/>가 그 뒤에 읽는데, 콜백으로 받으면 이 순서에 맞춰
+    /// 지휘 입력은 <see cref="BattleCommander"/>가 따로 읽는데, 콜백으로 받으면 이 순서에 맞춰
     /// "이번 프레임에 눌렸다"를 직접 래치해야 한다. <c>WasPressedThisFrame</c>은 프레임 내내
     /// 같은 답을 주므로 누가 몇 번을 읽든 상관없다.
+    ///
+    /// <b>몸에 붙이지 않는다.</b> 태그로 내려간 몸은 <c>SetActive(false)</c>가 되므로
+    /// 입력이 거기 있으면 교대하는 순간 되돌아올 키까지 죽는다. 상시 살아 있는
+    /// 오브젝트에 <see cref="BattleCommander"/>·<c>InputMapSwitcher</c>와 함께 둔다.
     ///
     /// <see cref="PlayerInput"/>은 자산 보유·디바이스·컨트롤 스킴 관리용으로만 쓴다.
     /// 액션은 반드시 <c>playerInput.actions</c>를 거쳐 잡는다 — 직렬화한 자산을 따로 들고 있으면
@@ -38,9 +42,9 @@ namespace Prototype
         private InputAction attackAction;
         private InputAction jumpAction;
         private InputAction dashAction;
-        private InputAction[] skillActions;
         private InputAction bulletTimeAction;
         private InputAction cardUseAction;
+        private InputAction swapAction;
 
         private InputActionMap skillShotMap;
 
@@ -79,18 +83,8 @@ namespace Prototype
         /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용.</summary>
         public bool CardUsePressed => Pressed(cardUseAction);
 
-        /// <summary>동료 고유기. 눌린 슬롯 0~3, 없으면 -1. 동시에 눌리면 낮은 번호가 이긴다.</summary>
-        public int SkillPressed
-        {
-            get
-            {
-                for (int i = 0; i < skillActions.Length; i++)
-                {
-                    if (Pressed(skillActions[i])) return i;
-                }
-                return -1;
-            }
-        }
+        /// <summary>F — 동료 교대. 실제로 바꿀지는 <see cref="TagSwapController"/>가 정한다.</summary>
+        public bool SwapPressed => Pressed(swapAction);
 
         // ── BulletTime — 손패 카드 조작 ──────────────────────
 
@@ -278,11 +272,7 @@ namespace Prototype
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
             cardUseAction = gameplayMap.FindAction(InputActionNames.Gameplay.CardUse, throwIfNotFound: true);
-
-            string[] names = InputActionNames.Gameplay.Skills;
-            skillActions = new InputAction[names.Length];
-            for (int i = 0; i < names.Length; i++)
-                skillActions[i] = gameplayMap.FindAction(names[i], throwIfNotFound: true);
+            swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: true);
 
             navigateAction = bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true);
 
