@@ -24,6 +24,12 @@ namespace Prototype.YG.EditorTools
     public static class FlowSceneBuilder
     {
         private const string SceneDir  = "Assets/Scenes";
+        private const string SoundDir  = "Assets/Sound";
+        private const string HitSfxPrefix = "타격음";
+
+        /// <summary>파일명을 강제하지 않으려고 후보를 여러 개 둔다. 앞에 있는 것이 우선.</summary>
+        private static readonly string[] BattleBgmPrefixes = { "전투", "배틀", "Battle" };
+        private static readonly string[] MenuBgmPrefixes   = { "메뉴", "메인", "Menu", "Main" };
         private const string BootPath  = SceneDir + "/Boot.unity";
         private const string MenuPath  = SceneDir + "/MainMenu.unity";
         private const string BattlePath = SceneDir + "/SampleScene.unity";
@@ -55,6 +61,26 @@ namespace Prototype.YG.EditorTools
 
             Debug.Log("<b>[FlowSceneBuilder]</b> 완료 — Boot 씬을 열어 두었다. Play 를 누를 것.");
             ReportInputHandling();
+        }
+
+        /// <summary>
+        /// 씬을 전부 다시 만들지 않고 사운드만 다시 문다.
+        /// Boot 씬을 열어 둔 상태에서 쓴다 — 소리 파일을 추가·교체했을 때의 경로.
+        /// </summary>
+        [MenuItem("Prototype/YG/사운드 다시 연결", priority = 21)]
+        public static void ReassignClips()
+        {
+            AudioManager manager = Object.FindAnyObjectByType<AudioManager>();
+            if (manager == null)
+            {
+                EditorUtility.DisplayDialog("사운드 다시 연결",
+                    "열려 있는 씬에서 AudioManager 를 찾지 못했다.\nBoot.unity 를 열고 다시 실행할 것.", "확인");
+                return;
+            }
+
+            AssignClips(manager);
+            EditorSceneManager.MarkSceneDirty(manager.gameObject.scene);
+            EditorSceneManager.SaveScene(manager.gameObject.scene);
         }
 
         // ── Boot ─────────────────────────────────────────
@@ -104,6 +130,67 @@ namespace Prototype.YG.EditorTools
 
             SetReference(manager, "bgmSource", bgm);
             SetReference(manager, "sfxSource", sfx);
+            AssignClips(manager);
+        }
+
+        /// <summary>Assets/Sound 안의 파일을 이름으로 찾아 AudioManager 에 물린다.</summary>
+        private static void AssignClips(AudioManager manager)
+        {
+            AssignHitSfx(manager);
+            AssignBgm(manager, "battleBgm", "전투 BGM", BattleBgmPrefixes);
+            AssignBgm(manager, "menuBgm",   "메뉴 BGM", MenuBgmPrefixes);
+        }
+
+        /// <summary>후보 접두어를 순서대로 훑어 처음 걸리는 클립 하나를 쓴다.</summary>
+        private static void AssignBgm(AudioManager manager, string fieldName, string label, string[] prefixes)
+        {
+            foreach (string prefix in prefixes)
+            {
+                AudioClip[] found = LoadClips(prefix);
+                if (found.Length == 0) continue;
+
+                SetReference(manager, fieldName, found[0]);
+                Debug.Log($"<b>[FlowSceneBuilder]</b> {label} 연결 — {found[0].name}");
+                return;
+            }
+
+            Debug.LogWarning($"[FlowSceneBuilder] {SoundDir} 에서 {label} 을 찾지 못했다 " +
+                             $"(찾은 이름: {string.Join(" / ", prefixes)}*). 해당 BGM 없이 진행한다.");
+        }
+
+        /// <summary>
+        /// Assets/Sound 의 "타격음*" 을 전부 물려 준다.
+        /// 파일을 늘리면 다시 돌리기만 하면 된다 — 코드는 개수를 모른다.
+        /// </summary>
+        private static void AssignHitSfx(AudioManager manager)
+        {
+            AudioClip[] clips = LoadClips(HitSfxPrefix);
+            SetReferences(manager, "hitSfx", clips);
+
+            if (clips.Length == 0)
+                Debug.LogWarning($"[FlowSceneBuilder] {SoundDir} 에서 \"{HitSfxPrefix}*\" 클립을 찾지 못했다. 타격음 없이 진행한다.");
+            else
+                Debug.Log($"<b>[FlowSceneBuilder]</b> 타격음 {clips.Length}개 연결 — {string.Join(", ", System.Array.ConvertAll(clips, c => c.name))}");
+        }
+
+        /// <summary>
+        /// 이름이 접두어로 시작하는 클립을 이름순으로 모은다.
+        /// FindAssets 의 검색어 대신 이름을 직접 거른다 — 한글 토크나이징에 기대지 않으려는 것.
+        /// </summary>
+        private static AudioClip[] LoadClips(string prefix)
+        {
+            if (!AssetDatabase.IsValidFolder(SoundDir)) return new AudioClip[0];
+
+            var clips = new List<AudioClip>();
+            foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { SoundDir }))
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(AssetDatabase.GUIDToAssetPath(guid));
+                if (clip != null && clip.name.StartsWith(prefix))
+                    clips.Add(clip);
+            }
+
+            clips.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return clips.ToArray();
         }
 
         /// <summary>
@@ -379,6 +466,24 @@ namespace Prototype.YG.EditorTools
             }
 
             prop.objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetReferences(Object target, string fieldName, Object[] values)
+        {
+            var so = new SerializedObject(target);
+            SerializedProperty prop = so.FindProperty(fieldName);
+
+            if (prop == null || !prop.isArray)
+            {
+                Debug.LogError($"[FlowSceneBuilder] {target.GetType().Name}.{fieldName} 배열 필드를 찾지 못했다.");
+                return;
+            }
+
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
     }
