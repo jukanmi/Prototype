@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyData
   enemyId: Enemy_Ranged
   enemyName: "\uAD81\uC218 \uACE0\uBE14\uB9B0"
-  hp: 26
-  atk: 4
+  hp: 30
+  atk: 10
   brain: {fileID: 11400000, guid: 829846ac215afa346866ac5c229ebd80, type: 2}
   moveSpeed: 3.4
   attackRange: 7.2
-  attackInterval: 1.8
+  attackInterval: 2.5
   retargetInterval: 0.5
   leashRange: 16
   preferredMinRange: 4
