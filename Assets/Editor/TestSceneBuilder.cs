@@ -139,7 +139,6 @@ namespace PrototypeEditor
         private class SkillSet
         {
             public readonly Dictionary<Role, List<SkillData>> Combo = new Dictionary<Role, List<SkillData>>();
-            public readonly Dictionary<Role, SkillData> Self = new Dictionary<Role, SkillData>();
         }
 
         private static SkillData MakeSkill(
@@ -305,25 +304,6 @@ namespace PrototypeEditor
                     new List<ISkillEffect> { new LifestealEffect() }),
             };
 
-            // ── 라이브 페이즈 고유기 (1~4 키) ─────────────
-            // 방어형 고유기. AttackType.DamageCut 제거 후 분류만 Strike로 옮겼다.
-            s.Self[Role.Tanker] = MakeSkill("SS_T_방패막기", "방패 막기", Role.Tanker, AttackType.Strike,
-                CombatState.Neutral, CombatState.Neutral, TargetingType.None,
-                new List<HitData>(), new List<ISkillEffect> { new ShieldEffect() });
-
-            s.Self[Role.Warrior] = MakeSkill("SS_W_횡베기", "횡 베기", Role.Warrior, AttackType.Strike,
-                CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                new List<HitData> { Hit(12f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 4f) }, null);
-
-            s.Self[Role.Archer] = MakeSkill("SS_A_관통사격", "관통 사격", Role.Archer, AttackType.Strike,
-                CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                new List<HitData> { Hit(9f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 3f) }, null);
-
-            s.Self[Role.Wizard] = MakeSkill("SS_M_냉기", "냉기", Role.Wizard, AttackType.Strike,
-                CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                new List<HitData> { Hit(8f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 2f) },
-                null, radius: 4f);
-
             return s;
         }
 
@@ -444,7 +424,11 @@ namespace PrototypeEditor
                 SetSerialized(root.GetComponent<Combat>(), so => so.FindProperty("maxHealth").floatValue = 100f);
 
                 var ally = root.AddComponent<Ally>();
+
+                // 태그 몸은 Control을 둘 다 달고 있고 TagSwapController가 하나를 고른다.
+                // 조작 대상이면 PlayerControl, 아니면 자율 BT다.
                 root.AddComponent<AllyControl>();
+                root.AddComponent<PlayerControl>();
 
                 List<SkillData> combo = skills.Combo[role];
                 SetSerialized(ally, so =>
@@ -452,7 +436,6 @@ namespace PrototypeEditor
                     so.FindProperty("basicAttack").objectReferenceValue = basic;
                     so.FindProperty("skillAttack").objectReferenceValue = skill;
                     so.FindProperty("role").enumValueIndex = (int)role;
-                    so.FindProperty("selfSkill").objectReferenceValue = skills.Self[role];
 
                     SerializedProperty equipped = so.FindProperty("equipped");
                     equipped.arraySize = combo.Count;

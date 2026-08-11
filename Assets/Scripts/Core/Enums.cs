@@ -28,7 +28,6 @@ namespace Prototype
         Jump,
         Attack,
         Dash,
-        Skill,
     }
 
     /// <summary>동료 직업. 덱은 직업별 4장 x 4직업 = 16장.</summary>

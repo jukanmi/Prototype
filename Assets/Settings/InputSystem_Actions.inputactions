@@ -43,42 +43,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Skill1",
-                    "type": "Button",
-                    "id": "b4267c8e-cd3d-4072-8135-c5058c640ec3",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Skill2",
-                    "type": "Button",
-                    "id": "7119e8ba-6ed3-4e81-9ca3-ab263f8a814c",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Skill3",
-                    "type": "Button",
-                    "id": "1c126b4d-d0db-42a3-a4a2-6f0158554219",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Skill4",
-                    "type": "Button",
-                    "id": "9453164c-5b8a-45f1-83fc-9a7c86b853ed",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "BulletTime",
                     "type": "Button",
                     "id": "db9b9614-3fc6-4a21-a5b0-eaa08c7fb8f8",
@@ -91,6 +55,15 @@
                     "name": "CardUse",
                     "type": "Button",
                     "id": "104bf55a-d9fe-403f-b038-67ef7aaadfa8",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Swap",
+                    "type": "Button",
+                    "id": "3f6c1e02-8a54-4d3b-9c17-2b0e5d7a91c4",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -188,50 +161,6 @@
                 },
                 {
                     "name": "",
-                    "id": "92851f8b-9897-4052-afbc-b9d5077f4031",
-                    "path": "<Keyboard>/z",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Skill1",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "5ca367dc-7e20-4424-82ac-341bb3d0009d",
-                    "path": "<Keyboard>/x",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Skill2",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "06f55690-fe19-43b4-843d-191248c40048",
-                    "path": "<Keyboard>/c",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Skill3",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "15678ad4-7c0f-4596-8ca2-eec030eac5df",
-                    "path": "<Keyboard>/v",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Skill4",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "f6bac079-2b53-4219-b798-5341f8672ace",
                     "path": "<Keyboard>/e",
                     "interactions": "",
@@ -249,6 +178,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "CardUse",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7d2a4b61-05ce-4f18-9b3a-c6e81f40d275",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Swap",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

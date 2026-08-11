@@ -24,10 +24,15 @@ namespace Prototype.YG.EditorTools
     public static class FlowSceneBuilder
     {
         private const string SceneDir  = "Assets/Scenes";
+        private const string SoundDir  = "Assets/Sound";
+        private const string HitSfxPrefix = "타격음";
+
+        /// <summary>파일명을 강제하지 않으려고 후보를 여러 개 둔다. 앞에 있는 것이 우선.</summary>
+        private static readonly string[] BattleBgmPrefixes = { "전투", "배틀", "Battle" };
+        private static readonly string[] MenuBgmPrefixes   = { "메뉴", "메인", "Menu", "Main" };
         private const string BootPath  = SceneDir + "/Boot.unity";
         private const string MenuPath  = SceneDir + "/MainMenu.unity";
         private const string BattlePath = SceneDir + "/SampleScene.unity";
-        private const string Stage02Path = SceneDir + "/Stage02.unity";
 
         [MenuItem("Prototype/YG/메인화면 흐름 씬 만들기", priority = 20)]
         public static void Build()
@@ -58,109 +63,24 @@ namespace Prototype.YG.EditorTools
             ReportInputHandling();
         }
 
-        // ── 스테이지 시스템 ──────────────────────────────
-
         /// <summary>
-        /// SampleScene 오른쪽 끝(Wall_Right 안쪽)에 <see cref="StageExitTrigger"/>를 붙이고,
-        /// SampleScene을 복제해 테스트용 Stage02.unity를 만든다. Build Settings에도 등록한다.
-        /// 이미 붙어 있으면 건너뛴다 — 여러 번 눌러도 안전하다.
+        /// 씬을 전부 다시 만들지 않고 사운드만 다시 문다.
+        /// Boot 씬을 열어 둔 상태에서 쓴다 — 소리 파일을 추가·교체했을 때의 경로.
         /// </summary>
-        [MenuItem("Prototype/YG/스테이지 시스템 만들기 (테스트 Stage02 포함)", priority = 21)]
-        public static void BuildStageSystem()
+        [MenuItem("Prototype/YG/사운드 다시 연결", priority = 21)]
+        public static void ReassignClips()
         {
-            if (!File.Exists(BattlePath))
+            AudioManager manager = Object.FindAnyObjectByType<AudioManager>();
+            if (manager == null)
             {
-                Debug.LogError($"[FlowSceneBuilder] {BattlePath} 가 없다. 먼저 '메인화면 흐름 씬 만들기'를 실행할 것.");
+                EditorUtility.DisplayDialog("사운드 다시 연결",
+                    "열려 있는 씬에서 AudioManager 를 찾지 못했다.\nBoot.unity 를 열고 다시 실행할 것.", "확인");
                 return;
             }
 
-            if (!EditorUtility.DisplayDialog(
-                    "스테이지 시스템 만들기",
-                    "SampleScene 오른쪽 끝에 StageExitTrigger 를 추가하고,\n" +
-                    "SampleScene 을 복제해 테스트용 Stage02.unity 를 만든다.\n" +
-                    "Build Settings 에도 Stage02 를 등록한다.\n\n" +
-                    "계속할까?",
-                    "만들기", "취소"))
-                return;
-
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-
-            AddStageExitTrigger(BattlePath);
-            BuildStage02();
-            RegisterBuildSettings();
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            EditorSceneManager.OpenScene(BootPath, OpenSceneMode.Single);
-
-            Debug.Log("<b>[FlowSceneBuilder]</b> 스테이지 시스템 완료 — " +
-                      "SampleScene 오른쪽 끝(Wall_Right 안쪽)으로 걸어가면 Stage02 로 전환된다. " +
-                      "Stage02 오른쪽 끝에 닿으면 마지막 스테이지 클리어로 처리돼 메인화면으로 돌아간다.");
-        }
-
-        /// <summary>
-        /// Wall_Right 안쪽에 트리거 콜라이더를 만든다. 벽(솔리드 콜라이더)보다 살짝 안쪽에 둬서
-        /// 플레이어가 벽에 막히기 전에 트리거를 먼저 지나가게 한다.
-        /// </summary>
-        private static void AddStageExitTrigger(string scenePath)
-        {
-            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
-
-            if (GameObject.Find("StageExitTrigger") != null)
-            {
-                Debug.Log($"[FlowSceneBuilder] {scenePath} 에 StageExitTrigger 가 이미 있다. 건너뛴다.");
-                return;
-            }
-
-            GameObject wallRight = GameObject.Find("Wall_Right");
-            if (wallRight == null)
-            {
-                Debug.LogWarning($"[FlowSceneBuilder] {scenePath} 에 Wall_Right 가 없어 트리거를 만들지 못했다.");
-                return;
-            }
-
-            BoxCollider wallCollider = wallRight.GetComponent<BoxCollider>();
-            Vector3 size = wallCollider != null ? wallCollider.size : new Vector3(0.5f, 4f, 6f);
-
-            var go = new GameObject("StageExitTrigger");
-            go.transform.SetParent(wallRight.transform.parent, false);
-            go.transform.position = wallRight.transform.position - new Vector3(1f, 0f, 0f);
-
-            BoxCollider trigger = go.AddComponent<BoxCollider>();
-            trigger.isTrigger = true;
-            trigger.size = size;
-
-            go.AddComponent<StageExitTrigger>();
-
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-
-            Debug.Log($"[FlowSceneBuilder] {scenePath} 에 StageExitTrigger 추가 완료.");
-        }
-
-        /// <summary>
-        /// SampleScene(트리거가 이미 붙은 상태)을 그대로 복제해 Stage02.unity 를 만든다.
-        /// 육안으로 구분되도록 바닥 색만 옅은 파랑으로 바꾼다.
-        /// </summary>
-        private static void BuildStage02()
-        {
-            Scene scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Single);
-            EditorSceneManager.SaveScene(scene, Stage02Path, saveAsCopy: true);
-
-            Scene stage02 = EditorSceneManager.OpenScene(Stage02Path, OpenSceneMode.Single);
-
-            GameObject floor = GameObject.Find("Floor");
-            SpriteRenderer floorRenderer = floor != null ? floor.GetComponent<SpriteRenderer>() : null;
-            if (floorRenderer != null)
-                floorRenderer.color = new Color(0.75f, 0.85f, 1f);
-            else
-                Debug.LogWarning("[FlowSceneBuilder] Stage02 에 Floor 를 찾지 못해 색을 바꾸지 못했다.");
-
-            EditorSceneManager.MarkSceneDirty(stage02);
-            EditorSceneManager.SaveScene(stage02);
-
-            Debug.Log($"[FlowSceneBuilder] {Stage02Path} 생성 완료.");
+            AssignClips(manager);
+            EditorSceneManager.MarkSceneDirty(manager.gameObject.scene);
+            EditorSceneManager.SaveScene(manager.gameObject.scene);
         }
 
         // ── Boot ─────────────────────────────────────────
@@ -210,6 +130,67 @@ namespace Prototype.YG.EditorTools
 
             SetReference(manager, "bgmSource", bgm);
             SetReference(manager, "sfxSource", sfx);
+            AssignClips(manager);
+        }
+
+        /// <summary>Assets/Sound 안의 파일을 이름으로 찾아 AudioManager 에 물린다.</summary>
+        private static void AssignClips(AudioManager manager)
+        {
+            AssignHitSfx(manager);
+            AssignBgm(manager, "battleBgm", "전투 BGM", BattleBgmPrefixes);
+            AssignBgm(manager, "menuBgm",   "메뉴 BGM", MenuBgmPrefixes);
+        }
+
+        /// <summary>후보 접두어를 순서대로 훑어 처음 걸리는 클립 하나를 쓴다.</summary>
+        private static void AssignBgm(AudioManager manager, string fieldName, string label, string[] prefixes)
+        {
+            foreach (string prefix in prefixes)
+            {
+                AudioClip[] found = LoadClips(prefix);
+                if (found.Length == 0) continue;
+
+                SetReference(manager, fieldName, found[0]);
+                Debug.Log($"<b>[FlowSceneBuilder]</b> {label} 연결 — {found[0].name}");
+                return;
+            }
+
+            Debug.LogWarning($"[FlowSceneBuilder] {SoundDir} 에서 {label} 을 찾지 못했다 " +
+                             $"(찾은 이름: {string.Join(" / ", prefixes)}*). 해당 BGM 없이 진행한다.");
+        }
+
+        /// <summary>
+        /// Assets/Sound 의 "타격음*" 을 전부 물려 준다.
+        /// 파일을 늘리면 다시 돌리기만 하면 된다 — 코드는 개수를 모른다.
+        /// </summary>
+        private static void AssignHitSfx(AudioManager manager)
+        {
+            AudioClip[] clips = LoadClips(HitSfxPrefix);
+            SetReferences(manager, "hitSfx", clips);
+
+            if (clips.Length == 0)
+                Debug.LogWarning($"[FlowSceneBuilder] {SoundDir} 에서 \"{HitSfxPrefix}*\" 클립을 찾지 못했다. 타격음 없이 진행한다.");
+            else
+                Debug.Log($"<b>[FlowSceneBuilder]</b> 타격음 {clips.Length}개 연결 — {string.Join(", ", System.Array.ConvertAll(clips, c => c.name))}");
+        }
+
+        /// <summary>
+        /// 이름이 접두어로 시작하는 클립을 이름순으로 모은다.
+        /// FindAssets 의 검색어 대신 이름을 직접 거른다 — 한글 토크나이징에 기대지 않으려는 것.
+        /// </summary>
+        private static AudioClip[] LoadClips(string prefix)
+        {
+            if (!AssetDatabase.IsValidFolder(SoundDir)) return new AudioClip[0];
+
+            var clips = new List<AudioClip>();
+            foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { SoundDir }))
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(AssetDatabase.GUIDToAssetPath(guid));
+                if (clip != null && clip.name.StartsWith(prefix))
+                    clips.Add(clip);
+            }
+
+            clips.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return clips.ToArray();
         }
 
         /// <summary>
@@ -430,9 +411,6 @@ namespace Prototype.YG.EditorTools
             if (File.Exists(BattlePath))
                 scenes.Add(new EditorBuildSettingsScene(BattlePath, true));
 
-            if (File.Exists(Stage02Path))
-                scenes.Add(new EditorBuildSettingsScene(Stage02Path, true));
-
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
@@ -488,6 +466,24 @@ namespace Prototype.YG.EditorTools
             }
 
             prop.objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetReferences(Object target, string fieldName, Object[] values)
+        {
+            var so = new SerializedObject(target);
+            SerializedProperty prop = so.FindProperty(fieldName);
+
+            if (prop == null || !prop.isArray)
+            {
+                Debug.LogError($"[FlowSceneBuilder] {target.GetType().Name}.{fieldName} 배열 필드를 찾지 못했다.");
+                return;
+            }
+
+            prop.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
     }

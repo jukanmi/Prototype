@@ -159,9 +159,9 @@ Physics Settings 의 Layer Collision Matrix 에서 상대 진영만 부딪히게
 | J         | `Attack`     | 평타                      |
 | K         | `Jump`       | 점프                      |
 | LeftShift | `Dash`       | 대쉬                      |
-| Z X C V   | `Skill1`~`4` | 동료 고유기 (라이브 페이즈)        |
 | E         | `BulletTime` | 불릿타임 진입 · 실행            |
 | U         | `CardUse`    | 손패 맨 왼쪽 카드 즉시 사용        |
+| F         | `Swap`       | 태그 교대 (다음 생존자)          |
 
 진입과 실행이 **한 액션 · 한 키**다. 예전에는 `Execute`(Space)가 따로 있었지만
 Order 페이즈에서 E 와 똑같이 Resolve 로 가는 같은 동작이라, 리바인드 화면에서
@@ -170,8 +170,32 @@ Order 페이즈에서 E 와 똑같이 Resolve 로 가는 같은 동작이라, �
 `BulletTimeController.Exit()` 는 `OnExecuteKey` 를 그대로 쓴다. 입력에서만 합쳤을 뿐
 전술 상태머신의 두 진입점은 남아 있다.
 
-기획서는 고유기를 ASDF 로 잡았지만 WASD 이동과 충돌한다. YUIOP 를 쓰다가
-U 를 카드 사용에 내주면서 ZXCV 로 옮겼다.
+**동료 고유기(ZXCV)는 제거됐다.** 태그 시스템으로 바뀌면서 조작 창구가
+교대(F) · 이동/평타/점프/대시 · 손패 카드(U)로 정리됐다.
+
+교대가 F 인 이유는 세 프리셋 어디에서도 안 쓰는 자리이기 때문이다 — Q 는 마우스 프리셋이
+`CardUse` 로 가져가서, 그 프리셋을 얹는 순간 한 키가 두 일을 한다.
+
+### 태그 교대
+
+로스터는 **플레이어(0번) + 동료 4명(1~4번)** 다섯 칸이다. 필드에는 언제나 한 명만 서 있고,
+**그 한 명을 유저가 직접 조작한다.** 나머지는 `SetActive(false)` 로 벤치에 앉는다.
+철권 태그 · 후레쉬맨 교대와 같은 구조다.
+
+몸마다 `PlayerControl` 과 `AllyControl` 을 둘 다 달아 두고, `Entity.UseControl<T>()` 로
+지금 누가 모는지를 고른다 — 조작 대상이면 `PlayerControl`, 아니면 자율 BT다.
+`TagSwapController` 가 그 스위치를 쥐고 있다.
+
+**입력은 몸에 붙이지 않는다.** 벤치에 앉는 몸에 `PlayerInput` 이 있으면 교대하는 순간
+되돌아올 키까지 함께 죽는다. `PlayerInput` · `PlayerInputController` · `InputMapSwitcher` ·
+`BattleCommander` · `TagSwapController` 는 전부 `BattleInput` 프리팹 한 곳에 모여 있고,
+그 프리팹은 메뉴 `Prototype > 전투 - 입력 호스트 프리팹 만들기` 로 만든다.
+
+불릿타임은 이 시스템을 거치지 않는다. 진입하면 로스터 전원이 등장해 지금까지처럼 콤보를
+시전하고, 실행이 끝나면 조작 중인 한 명만 남고 나머지는 다시 벤치로 간다.
+
+벤치에 앉은 몸은 **무적**이다 — 꺼진 오브젝트라 히트박스도 `Combat.Tick` 도 없다.
+파티 전멸은 조작 중인 몸이 연달아 죽는 형태로만 일어난다.
 
 ### BulletTime 맵 — Order 페이즈, 조준 중이 아닐 때
 
@@ -248,7 +272,7 @@ JSON 뭉치가 아니라 **항목 표**로 적는다 — 바인딩 순서가 바
 | 필드 | 값 |
 | --- | --- |
 | `map` | `Gameplay` · `BulletTime` · `UI` |
-| `action` | `Move` · `Attack` · `Skill1` … |
+| `action` | `Move` · `Attack` · `Swap` … |
 | `part` | 컴포지트 파트(`up`/`down`/`left`/`right`). 단일 바인딩이면 비운다 |
 | `path` | `<Keyboard>/upArrow` |
 

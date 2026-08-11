@@ -147,7 +147,9 @@ namespace Prototype
 
         private void Retarget()
         {
-            if (retargetTimer > 0f && target != null && !target.Combat.IsDead) return;
+            // 활성 검사가 필요한 이유는 동료가 교대로 내려가기 때문이다. 죽은 게 아니라
+            // 꺼진 것이라 IsDead로는 안 걸리고, 쿨이 돌 때까지 빈 좌표를 향해 걸어간다.
+            if (retargetTimer > 0f && target != null && target.isActiveAndEnabled && !target.Combat.IsDead) return;
 
             retargetTimer = retargetInterval;
             target = FindNearestAlly();

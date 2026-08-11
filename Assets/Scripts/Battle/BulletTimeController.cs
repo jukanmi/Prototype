@@ -21,6 +21,9 @@ namespace Prototype
         [SerializeField] private ComboPredictor predictor;
         [SerializeField] private TargetSelector targetSelector;
 
+        [Tooltip("비워도 된다. 없으면 U키가 벤치에 앉은 동료를 불러오지 못하고 예전처럼 거부한다.")]
+        [SerializeField] private TagSwapController swap;
+
         [Header("게이지")]
         [SerializeField] private float maxGauge = 100f;
         [Tooltip("초당 자연 충전량.")]
@@ -88,6 +91,7 @@ namespace Prototype
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
             if (predictor == null) predictor = GetComponentInChildren<ComboPredictor>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
+            if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
 
             tactic = new TacticStateMachine(this);
         }
@@ -209,6 +213,16 @@ namespace Prototype
             {
                 BattleLog.Warn(LogCategory.Combo,
                     $"{data.skillName} 사용 실패 — {data.role} 동료가 파티에 없거나 사망. 카드는 손패에 남는다", this);
+                return false;
+            }
+
+            // 시전자가 벤치에 있으면 끌어올린다. 안 그러면 그 직업 카드가 손패 맨 앞에 있는 동안
+            // U키가 통째로 먹통이 된다 — 유저는 왜 안 나가는지 알 길이 없다.
+            // 태그 시스템이라 끌어올린다는 건 곧 조작 대상이 그 동료로 바뀐다는 뜻이다.
+            if (swap != null && !swap.EnsureActive(caster))
+            {
+                BattleLog.Warn(LogCategory.Combo,
+                    $"{data.skillName} 사용 실패 — {BattleLog.Name(caster)}를 필드에 세우지 못했다", this);
                 return false;
             }
 

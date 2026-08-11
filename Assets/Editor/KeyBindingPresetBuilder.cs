@@ -36,11 +36,9 @@ namespace Prototype.EditorTools
                 "<Keyboard>/upArrow", "<Keyboard>/downArrow",
                 "<Keyboard>/leftArrow", "<Keyboard>/rightArrow"));
 
-            // WASD가 비었으니 고유기를 숫자열로 뺀다. 기획서 원안에 가까운 배치다.
-            arrows.Add(Single("Gameplay", "Skill1", "<Keyboard>/1"));
-            arrows.Add(Single("Gameplay", "Skill2", "<Keyboard>/2"));
-            arrows.Add(Single("Gameplay", "Skill3", "<Keyboard>/3"));
-            arrows.Add(Single("Gameplay", "Skill4", "<Keyboard>/4"));
+            // 이동이 화살표로 빠져 WASD가 비었다. 교대를 그중 S로 당긴다 —
+            // 기본값 F는 이 배치에서 오른손 혼자 남는 자리다.
+            arrows.Add(Single("Gameplay", "Swap", "<Keyboard>/s"));
 
             // 손이 화살표로 옮겨 가면 오른손 JKU는 너무 멀다. 행동키를 전부 왼손으로 당긴다 —
             // 이동만 옮기고 나머지를 두면 양손이 키보드 양 끝으로 벌어진다.

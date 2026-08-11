@@ -529,8 +529,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.YG.AudioManager
   bgmSource: {fileID: 3673599}
   sfxSource: {fileID: 38379368}
-  menuBgm: {fileID: 0}
-  battleBgm: {fileID: 0}
+  menuBgm: {fileID: 8300000, guid: 65845dd52fae34443a943097f74fd331, type: 3}
+  battleBgm: {fileID: 8300000, guid: bb73edc45b64e604bbc0b3ef3dcb0f7d, type: 3}
+  hitSfx:
+  - {fileID: 8300000, guid: c61e7afc47545b24f856fdc6e37987a9, type: 3}
+  - {fileID: 8300000, guid: 6126c29cc9dc14f44b39316d7a5ff90f, type: 3}
+  - {fileID: 8300000, guid: c7e57cf394396f24bbe475aa52bee26e, type: 3}
+  hitPitchRange: {x: 0.94, y: 1.06}
+  hitSfxInterval: 0.04
 --- !u!4 &903215123
 Transform:
   m_ObjectHideFlags: 0

@@ -15,6 +15,7 @@ namespace Prototype
         [SerializeField] private BulletTimeController bulletTime;
         [SerializeField] private TargetSelector targetSelector;
         [SerializeField] private Player player;
+        [SerializeField] private TagSwapController swap;
         [SerializeField] private bool show = true;
 
         private GUIStyle box;
@@ -25,6 +26,7 @@ namespace Prototype
             if (bulletTime == null) bulletTime = GetComponent<BulletTimeController>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
             if (player == null) player = FindAnyObjectByType<Player>();
+            if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
         }
 
         private static string PhaseTag(TacticPhase p)
@@ -214,21 +216,39 @@ namespace Prototype
         {
             if (player == null) return;
 
-            sb.AppendLine("<b>── 파티 ──</b>  <color=#808080>Z X C V 고유기</color>");
-            sb.AppendLine($"  {player.name}  HP {player.Combat.Health.CurValue:0}/{player.Combat.Health.MaxValue:0}  {player.Combat.CombatState}");
+            string cool = swap != null && swap.CooldownRemaining > 0f
+                ? $" <color=#FFD166>쿨 {swap.CooldownRemaining:0.0}s</color>"
+                : "";
 
-            for (int i = 0; i < player.Party.Length; i++)
+            sb.AppendLine($"<b>── 로스터 ──</b>  <color=#808080>F 교대</color>{cool}");
+
+            // 로스터는 플레이어가 0번, 동료가 1~4번이다. 태그 컨트롤러가 없으면
+            // 파티 배열만으로 대신 그린다 — 씬 배선이 덜 된 상태에서도 HUD는 떠야 한다.
+            int count = swap != null ? swap.Roster.Count : player.Party.Length + 1;
+
+            for (int i = 0; i < count; i++)
             {
-                Ally a = player.Party[i];
-                if (a == null)
+                Entity e = swap != null
+                    ? swap.Roster[i]
+                    : (i == 0 ? (Entity)player : player.Party[i - 1]);
+
+                if (e == null)
                 {
-                    sb.AppendLine($"  [{i + 1}] (없음)");
+                    sb.AppendLine($"  [{i}] (없음)");
                     continue;
                 }
 
-                string cmd = a.IsCommanded ? " <color=#8AFF80>지휘중</color>" : "";
-                sb.AppendLine($"  [{i + 1}] {a.name} <color=#808080>{a.Role}</color>  " +
-                              $"HP {a.Combat.Health.CurValue:0}  {a.Combat.CombatState}{cmd}");
+                // 조작 중 · 벤치 · 불려 나옴(불릿타임)을 갈라 준다. 벤치에 앉은 몸은 꺼져 있어
+                // 하이어라키를 안 보면 왜 안 싸우는지 알 수 없다.
+                string stand = swap != null && swap.CurrentIndex == i
+                    ? "<color=#00E5FF>▶</color>"
+                    : e.gameObject.activeSelf ? "<color=#8AFF80>·</color>" : "<color=#808080>×</color>";
+
+                string role = e is Ally ally ? $" <color=#808080>{ally.Role}</color>" : "";
+                string cmd = e.IsCommanded ? " <color=#8AFF80>지휘중</color>" : "";
+
+                sb.AppendLine($"  {stand} [{i}] {e.name}{role}  " +
+                              $"HP {e.Combat.Health.CurValue:0}  {e.Combat.CombatState}{cmd}");
             }
 
             sb.AppendLine();

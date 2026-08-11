@@ -18,7 +18,8 @@ namespace Prototype.Tests
         [SetUp]
         public void SetUp()
         {
-            // PlayerInputController 없이 세운다. Tick이 그걸 견디는지가 검사 대상 중 하나다.
+            // 입력 호스트 없이 세운다. Tick이 그걸 견디는지가 검사 대상 중 하나다 —
+            // PlayerControl은 이제 같은 오브젝트가 아니라 PlayerInputController.Instance를 본다.
             go = new GameObject("PlayerControlRig");
             control = go.AddComponent<PlayerControl>();
 
@@ -35,8 +36,8 @@ namespace Prototype.Tests
         [Test]
         public void WithoutInputController_TickDoesNotThrow()
         {
-            // 프리팹에 PlayerInputController를 안 붙인 채로 씬을 돌리면 여기서 터진다.
-            // 예외 대신 조용히 아무 명령도 안 내는 쪽이 맞다 — 배선 누락은 테스트가 잡는다.
+            // 씬에 입력 호스트가 없으면 Instance가 null이다. 예외 대신 조용히
+            // 아무 명령도 안 내는 쪽이 맞다 — 배선 누락은 BattleInputPrefabTests가 잡는다.
             Assert.DoesNotThrow(() => control.Tick(0.016f));
         }
 
@@ -47,8 +48,6 @@ namespace Prototype.Tests
 
             Assert.That(control.Command, Is.EqualTo(Command.None));
             Assert.That(control.MoveDirection, Is.EqualTo(Vector3.zero));
-            Assert.That(control.SkillIndex, Is.EqualTo(-1));
-            Assert.That(control.SelfSkillPressed, Is.EqualTo(-1));
         }
 
         [Test]
@@ -62,17 +61,6 @@ namespace Prototype.Tests
             // 정지 중 이동 · 평타가 새면 불릿타임에 카드를 놓는 동안 캐릭터가 움직인다.
             Assert.That(control.Command, Is.EqualTo(Command.None));
             Assert.That(control.MoveDirection, Is.EqualTo(Vector3.zero));
-        }
-
-        [Test]
-        public void WhileFrozen_SelfSkillIsBlocked()
-        {
-            TimeControl.Scale = 0f;
-            control.Tick(0.016f);
-
-            // Player가 동료 고유기를 넘길 때 이 값을 본다. 여기서 새면
-            // 정지 중에도 동료가 시전해 지휘 입력과 겹친다.
-            Assert.That(control.SelfSkillPressed, Is.EqualTo(-1));
         }
 
         [Test]

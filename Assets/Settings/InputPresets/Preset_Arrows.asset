@@ -63,21 +63,9 @@ MonoBehaviour:
     part: right
     path: <Keyboard>/rightArrow
   - map: Gameplay
-    action: Skill1
-    part: 
-    path: <Keyboard>/1
-  - map: Gameplay
-    action: Skill2
-    part: 
-    path: <Keyboard>/2
-  - map: Gameplay
-    action: Skill3
-    part: 
-    path: <Keyboard>/3
-  - map: Gameplay
-    action: Skill4
-    part: 
-    path: <Keyboard>/4
+    action: Swap
+    part:
+    path: <Keyboard>/s
   - map: Gameplay
     action: Attack
     part: 
