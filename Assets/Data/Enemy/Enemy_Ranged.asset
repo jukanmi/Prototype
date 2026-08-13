@@ -17,7 +17,7 @@ MonoBehaviour:
   hp: 26
   atk: 4
   brain: {fileID: 11400000, guid: 829846ac215afa346866ac5c229ebd80, type: 2}
-  moveSpeed: 3.4
+  moveSpeed: 1.9
   attackRange: 7.2
   attackInterval: 1.8
   retargetInterval: 0.5

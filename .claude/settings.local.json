@@ -14,10 +14,7 @@
       "Bash(awk ' *)",
       "Bash(python3)",
       "Bash(xargs -I{} echo {})",
-      "Bash(git status *)",
-      "Bash(grep -v \"ISkillEffect.cs$\")",
-      "Bash(awk '/--- !u!1001 &/{if\\(block!=\"\"\\) print block \"\\\\n=====\"; block=\"\"} {block=block\"\\\\n\"$0} END{print block}' Assets/Scenes/SampleScene.unity)",
-      "Bash(awk 'BEGIN{RS=\"=====\"} /d3fc084ae79b3dc4bbe08024a41c047a/')"
+      "Bash(git status *)"
     ]
   },
   "enabledMcpjsonServers": [

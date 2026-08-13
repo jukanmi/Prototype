@@ -176,6 +176,7 @@ namespace Prototype
             switch (cur)
             {
                 case CombatState.LightHit:
+                case CombatState.Knockback:
                     return CombatState.Neutral;
                 case CombatState.Down:
                     return CombatState.Getup;   // 다운 → 기상(무적)
