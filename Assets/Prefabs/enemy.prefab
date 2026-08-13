@@ -170,7 +170,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 3
     launchForce: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.1
     snapZ: 0
   skillAttack: {fileID: 0}
   basicProjectile: {fileID: 0}
@@ -179,7 +179,7 @@ MonoBehaviour:
   basicProjectilePierce: 0
   despawnDelay: 1
   despawnFade: 0.5
-  data: {fileID: 0}
+  data: {fileID: 11400000, guid: a1314a978c310524f8f6a1d66b150956, type: 2}
 --- !u!114 &4929676023059893460
 MonoBehaviour:
   m_ObjectHideFlags: 0

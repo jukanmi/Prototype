@@ -6,7 +6,15 @@
       "Bash(awk 'NR==2287,NR==2390' SampleScene.unity)",
       "Bash(awk -F'&' '{print $2}')",
       "Bash(awk '/&1744773988$/,/m_Father/' SampleScene.unity)",
-      "Bash(grep -v \"\\\\.meta$\")"
+      "Bash(grep -v \"\\\\.meta$\")",
+      "Bash(grep -rliE \"attack|기본공격\" --include=\"*.cs\" -not -path \"*/Library/*\" .)",
+      "Bash(grep -n \"m_Script: {fileID: 11500000, guid: dcb811218524748478d93baa1bee40f1\" -A0 Assets/Scripts/Characters/EnemyData.cs)",
+      "Bash(grep -n \"Prototype.Enemy$\" -B5 Assets/Prefabs/Enemy_Melee.prefab)",
+      "Bash(awk '/m_EditorClassIdentifier: Assembly-CSharp::Prototype.Enemy$/{print; f=NR+40} f && NR<=f{print NR\": \"$0}' Assets/Prefabs/Enemy_Melee.prefab)",
+      "Bash(awk ' *)",
+      "Bash(python3)",
+      "Bash(xargs -I{} echo {})",
+      "Bash(git status *)"
     ]
   },
   "enabledMcpjsonServers": [

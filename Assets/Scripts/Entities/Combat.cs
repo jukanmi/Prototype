@@ -95,9 +95,7 @@ namespace Prototype
         {
             if (wallBounceTimer > 0f) wallBounceTimer -= dt;
 
-            if (stunTimer <= 0f) return;
-
-            stunTimer -= dt;
+            if (stunTimer > 0f) stunTimer -= dt;
             if (stunTimer > 0f) return;
 
             CombatState prev = CombatState;

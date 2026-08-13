@@ -611,7 +611,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 3
     launchForce: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.1
     snapZ: 0
   skillAttack: {fileID: 0}
   basicProjectile: {fileID: 0}
@@ -670,7 +670,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 8
     launchForce: 0
-    hitStunDuration: 0.5
+    hitStunDuration: 0.3
     snapZ: 0
 --- !u!114 &1843587529696900597
 MonoBehaviour:

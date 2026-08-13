@@ -34,7 +34,7 @@ namespace Prototype
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
             knockbackForce = 8f,
-            hitStunDuration = 0.5f,
+            hitStunDuration = 0.3f,
         };
 
         private Entity owner;
