@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
   icon: {fileID: 21300000, guid: 35cadde296c84405be5881257c465b7e, type: 3}
-  description: "TK1A \u2014 \uBAA8\uC73C\uAE30 \u2014 \uBAB8\uC744 \uD68C\uC804\uC2DC\uCF1C
-    \uC8FC\uBCC0 \uC801\uC744 \uB04C\uC5B4\uBAA8\uC740\uB2E4"
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 10\uB9CC\uD07C \uC8FC\uACE0
+    \uC790\uC2E0\uC5D0\uAC8C \uB04C\uC5B4\uB2F9\uAE41\uB2C8\uB2E4."
   role: 0
   attackType: 0
   requireState: 0
   resultState: 1
   targeting: 0
-  radius: 3.5
+  radius: 3
   castTime: 0.2
   hitInterval: 0.3
   recoveryTime: 0.25
@@ -35,7 +35,7 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 4
+      damage: 10
     targetState: 0
     nextState: 1
     canOtg: 0
