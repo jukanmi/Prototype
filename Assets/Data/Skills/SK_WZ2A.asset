@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SK_WZ2A
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC735\uAE30"
-  icon: {fileID: 21300000, guid: 3def76580f8e4ceba81f6eb096e1c6f9, type: 3}
-  description: "WZ2A \u2014 \uC2DC\uB3D9\uAE30 \u2014 \uC9C0\uBA74\uC744 \uC19F\uAD6C\uCCD0
-    \uB744\uC6B4\uB2E4"
+  icon: {fileID: 915217575939305087, guid: fc6f147644781f54ca95bb49ad16b500, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 6\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uACF5\uC911\uC5D0 \uB744\uC6C1\uB2C8\uB2E4."
   role: 3
   attackType: 1
   requireState: 1
@@ -33,7 +33,18 @@ MonoBehaviour:
   projectileRange: 12
   projectilePierce: 0
   approachDistance: 0
-  hitDataList: []
+  hitDataList:
+  - damageData:
+      damage: 6
+    targetState: 0
+    nextState: 0
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 0
+    launchForce: 0
+    hitStunDuration: 0
+    snapZ: 0
   effects:
   - rid: 7198291130188562610
   cooldown: 5
