@@ -14,7 +14,8 @@
       "Bash(awk ' *)",
       "Bash(python3)",
       "Bash(xargs -I{} echo {})",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(grep -v \"ISkillEffect.cs$\")"
     ]
   },
   "enabledMcpjsonServers": [
