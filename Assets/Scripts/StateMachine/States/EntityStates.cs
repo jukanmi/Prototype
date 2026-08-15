@@ -42,6 +42,8 @@ namespace Prototype
                 case Command.Dash:
                     Control.Consume();
                     Physics.Dash(Control.MoveDirection, Entity.Stats.GetValue(StatType.DashSpeed, 18f));
+                    // 패링은 유저가 직접 민 대시에만 열린다. AI 대시까지 무적을 주면 난이도가 통째로 흔들린다.
+                    if (Control is PlayerControl) Combat.BeginParryWindow();
                     return true;
 
                 case Command.Move:

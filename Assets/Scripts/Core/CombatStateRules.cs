@@ -112,6 +112,27 @@ namespace Prototype
             }
         }
 
+        /// <summary>
+        /// 전방 판정. 정면(<paramref name="facing"/>)을 기준으로 좌우 <paramref name="angle"/>/2씩
+        /// 열린 부채꼴 안에 <paramref name="toAttacker"/>가 들어오면 참. 대시 패링이 이걸로 갈린다.
+        ///
+        /// <b>XZ 평면만 본다.</b> 벨트스크롤이라 높이는 방향의 의미가 없고,
+        /// 공중에서 내려찍는 공격이 각도를 흔들면 "정면에서 맞았는데 패링이 안 된다"가 된다.
+        ///
+        /// 방향을 모르면(둘 중 하나가 0벡터) 실패로 친다 — 판정 불능을 성공으로 주면
+        /// 주인 없는 타격이 전부 막힌다.
+        /// </summary>
+        public static bool IsFrontal(Vector3 facing, Vector3 toAttacker, float angle)
+        {
+            facing.y = 0f;
+            toAttacker.y = 0f;
+
+            if (facing.sqrMagnitude <= 0.0001f || toAttacker.sqrMagnitude <= 0.0001f)
+                return false;
+
+            return Vector3.Angle(facing, toAttacker) <= angle * 0.5f;
+        }
+
         /// <summary>공중 히트 누적에 따른 중력 배율. 맞을수록 무겁게 떨어진다.</summary>
         public static float AirGravityScale(int airHitCount)
             => Mathf.Min(1f + airHitCount * AirGravityStep, MaxAirGravityScale);

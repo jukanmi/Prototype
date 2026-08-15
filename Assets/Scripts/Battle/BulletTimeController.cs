@@ -30,6 +30,8 @@ namespace Prototype
         [SerializeField] private float gaugeRegen = 8f;
         [Tooltip("진입에 필요한 게이지 비율.")]
         [Range(0f, 1f)][SerializeField] private float requiredRatio = 1f;
+        [Tooltip("대시 패링 한 번의 게이지 보상. 위험을 감수한 대가를 전술 자원으로 돌려준다.")]
+        [SerializeField] private float parryGaugeReward = 12f;
 
         [Header("코스트 — 둘 다 구현해 두고 실험 후 결정(결정 로그 ⑤)")]
         [SerializeField] private float manaCost = 0f;
@@ -115,6 +117,7 @@ namespace Prototype
                 executor.OnExecuteFinished += HandleExecuteFinished;
             }
 
+            Combat.OnParried += HandleParried;
             SubscribeAllyDeaths();
         }
 
@@ -126,6 +129,7 @@ namespace Prototype
                 executor.OnExecuteFinished -= HandleExecuteFinished;
             }
 
+            Combat.OnParried -= HandleParried;
             UnsubscribeAllyDeaths();
         }
 
@@ -140,6 +144,22 @@ namespace Prototype
                 Gauge.Recover(gaugeRegen * dt);
 
             tactic.Tick(dt);
+        }
+
+        /// <summary>
+        /// 대시 패링 보상. 막은 쪽이 아군일 때만 준다 —
+        /// 적이 패링했는데 플레이어 게이지가 차면 안 된다.
+        /// </summary>
+        private void HandleParried(Combat defender, Combat attacker)
+        {
+            if (defender == null || defender.Owner == null) return;
+            if (defender.Owner.Faction != Faction.Ally) return;
+
+            Gauge.Recover(parryGaugeReward);
+
+            BattleLog.Log(LogCategory.Combo,
+                $"{BattleLog.Name(defender.Owner)} 패링 보상 — 게이지 +{parryGaugeReward:0.#} " +
+                $"({Gauge.Ratio * 100f:0}%)", this);
         }
 
         public bool CanEnter

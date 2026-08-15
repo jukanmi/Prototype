@@ -29,6 +29,19 @@ namespace Prototype
         [Tooltip("연속 재바운드 방지. 이 시간 안에는 다시 튕기지 않는다.")]
         [SerializeField] private float wallBounceCooldown = 0.2f;
 
+        [Header("대시 패링")]
+        [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간. 저스트 창이라 짧게 잡는다.")]
+        [SerializeField] private float parryWindow = 0.15f;
+        [Tooltip("전방으로 인정할 부채꼴의 전체 폭(도). 120이면 정면 기준 좌우 60도씩.")]
+        [SerializeField] private float parryAngle = 120f;
+        [Tooltip("패링에 성공하면 이 시간 동안 완전 무적이 된다. 다대일에서 동시에 들어오는 " +
+                 "나머지 타격까지 흘려 내는 구간이라, 이 값이 곧 '한 번의 패링으로 몇 대를 받아치는가'다.")]
+        [SerializeField] private float parrySuccessInvuln = 0.2f;
+        [Tooltip("패링당한 공격자가 먹는 경직.")]
+        [SerializeField] private float parryCounterStun = 0.6f;
+        [Tooltip("반격 밀치기. 0이면 제자리에서 경직만 먹는다.")]
+        [SerializeField] private float parryCounterKnockback = 4f;
+
         private Physics physics;
         private Entity owner;
         private Energy health;
@@ -37,6 +50,12 @@ namespace Prototype
         private float stunTimer;
         private float shield;
         private float wallBounceTimer;
+
+        /// <summary>패링 판정이 열려 있는 남은 시간. 대시가 연다.</summary>
+        private float parryTimer;
+
+        /// <summary>패링 성공으로 얻은 무적의 남은 시간. 이 구간은 방향을 보지 않는다.</summary>
+        private float parryInvulnTimer;
 
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
@@ -53,6 +72,12 @@ namespace Prototype
         public int AirHitCount => airHitCount;
         public bool IsDead => CombatState == CombatState.Dead;
 
+        /// <summary>패링 판정이 지금 열려 있는지.</summary>
+        public bool IsParrying => parryTimer > 0f;
+
+        /// <summary>패링 성공 직후의 무적 구간인지.</summary>
+        public bool IsParryInvulnerable => parryInvulnTimer > 0f;
+
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
 
@@ -60,11 +85,22 @@ namespace Prototype
         public static event Action<Combat, Combat> OnAnyHitLanded;
 
         /// <summary>
+        /// 대시 패링 성공. 인자는 (막은 쪽, 패링당한 공격자) 순이다.
+        /// 게이지 보상 · 연출 · 사운드가 전부 여기 붙는다 — Combat은 "막았다"만 알린다.
+        /// 공격자를 모르는 타격(장판 등)을 막으면 두 번째 인자가 null이다.
+        /// </summary>
+        public static event Action<Combat, Combat> OnParried;
+
+        /// <summary>
         /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
         /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => OnAnyHitLanded = null;
+        private static void ResetStatics()
+        {
+            OnAnyHitLanded = null;
+            OnParried = null;
+        }
 
         /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
         public event Action<HitData, CombatState> OnHitTaken;
@@ -94,6 +130,8 @@ namespace Prototype
         public void Tick(float dt)
         {
             if (wallBounceTimer > 0f) wallBounceTimer -= dt;
+            if (parryTimer > 0f) parryTimer -= dt;
+            if (parryInvulnTimer > 0f) parryInvulnTimer -= dt;
 
             // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
             // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
@@ -181,6 +219,21 @@ namespace Prototype
                 return false;
             }
 
+            // 패링 성공 후의 무적 구간 — 방향을 보지 않는다. 사방에서 동시에 들어오는
+            // 타격을 통째로 흘려 내는 게 이 구간의 존재 이유다.
+            if (IsParryInvulnerable)
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#4CC9F0>패링 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
+                    $"(남은 {parryInvulnTimer:0.##}s)", this);
+
+                CounterAttack(attacker);
+                return false;
+            }
+
+            // 대시 패링 — 데미지가 들어가기 전에 본다. 막았으면 맞지 않은 것으로 친다.
+            if (TryParry(in hit, attacker)) return false;
+
             TakeDamage(hit.damageData);
             if (IsDead) return true;
 
@@ -241,13 +294,33 @@ namespace Prototype
                 Die();
         }
 
+        /// <summary>
+        /// 이 타격이 <b>어디서 왔는지</b>. 장판은 시전자와 떨어진 좌표에서 터지므로 기준점을 따로 싣고 오고,
+        /// 없으면 시전자 위치를 쓴다 — 근접 히트박스와 투사체는 그게 맞다.
+        /// 넉백 방향과 패링 전방 판정이 같은 기준을 봐야 해서 한 곳에 모아 둔다.
+        /// </summary>
+        private bool TryResolveHitOrigin(in HitData hit, Combat attacker, out Vector3 origin)
+        {
+            if (hit.hasOrigin)
+            {
+                origin = hit.origin;
+                return true;
+            }
+
+            if (attacker != null)
+            {
+                origin = attacker.transform.position;
+                return true;
+            }
+
+            // 공격자도 기준점도 없다 — 방향을 알 수 없다.
+            origin = transform.position;
+            return false;
+        }
+
         private void ApplyKnockback(in HitData hit, Combat attacker)
         {
-            // 장판은 시전자와 떨어진 좌표에서 터지므로 기준점을 따로 싣고 온다.
-            // 없으면 예전대로 시전자 위치 — 근접 히트박스와 투사체는 그게 맞다.
-            Vector3 casterPos = hit.hasOrigin
-                ? hit.origin
-                : (attacker != null ? attacker.transform.position : transform.position);
+            TryResolveHitOrigin(in hit, attacker, out Vector3 casterPos);
             Vector3 casterFwd = attacker != null ? attacker.Physics.Facing : physics.Facing;
 
             // 관성 강제 초기화 — 연계 스킬이 빗나가는 오차를 차단한다.
@@ -282,6 +355,80 @@ namespace Prototype
             flat.y = 0f;
 
             return Mathf.Min(hit.knockbackForce, physics.ImpulseToTravel(flat.magnitude));
+        }
+
+        // ── 대시 패링 ───────────────────────────────────
+
+        /// <summary>
+        /// 패링 판정을 연다. 대시 명령을 처리하는 <see cref="EntityState"/>가 부른다.
+        ///
+        /// 대시는 상태가 아니라 <see cref="Physics.Dash"/> 한 번으로 끝나는 속도 덮어쓰기라
+        /// "대시 도중"이라는 시간이 코드에 없다. 그 시간을 여기 타이머로만 만든다 —
+        /// 상태머신도 대시 감각도 건드리지 않는다.
+        /// </summary>
+        public void BeginParryWindow()
+        {
+            if (IsDead) return;
+
+            parryTimer = parryWindow;
+            BattleLog.Log(LogCategory.Combat, $"{name} 패링 창 열림 ({parryWindow:0.##}s)", this);
+        }
+
+        /// <summary>
+        /// 전방에서 들어온 타격을 막았는가. 막았으면 <see cref="Hit"/>가 false를 돌려주고
+        /// 그 타격은 <b>없던 일이 된다</b> — 데미지 · 경직 · 흡혈 · 피격음까지 전부.
+        ///
+        /// <b>성립하는 건 첫 한 대뿐이고, 그 대가로 짧은 무적을 얻는다</b>(<see cref="parrySuccessInvuln"/>).
+        /// 개별 타격을 하나씩 지우는 방식이면 다대일에서 한 명분만 막고 나머지를 그대로 맞아
+        /// 패링이 사실상 무의미해진다. 뒤이어 들어오는 타격은 무적 구간이 받는다.
+        /// </summary>
+        private bool TryParry(in HitData hit, Combat attacker)
+        {
+            if (!IsParrying) return false;
+
+            // 어디서 온 타격인지 모르면 막을 수 없다.
+            if (!TryResolveHitOrigin(in hit, attacker, out Vector3 origin)) return false;
+
+            if (!CombatStateRules.IsFrontal(physics.Facing, origin - transform.position, parryAngle))
+                return false;
+
+            // 창을 닫고 무적으로 갈아탄다. 반격이 돌아와도 두 번 성립하지 않는다.
+            parryTimer = 0f;
+            parryInvulnTimer = parrySuccessInvuln;
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} <color=#4CC9F0><b>패링</b></color> — {BattleLog.Name(attacker)}의 공격을 흘렸다 " +
+                $"(무효 dmg {hit.damageData.damage:0.#} | 무적 {parrySuccessInvuln:0.##}s)", this);
+
+            CounterAttack(attacker);
+            OnParried?.Invoke(this, attacker);
+
+            return true;
+        }
+
+        /// <summary>
+        /// 패링당한 쪽에 되돌려 주는 경직. 데미지는 0이다 — 패링의 보상은 딜이 아니라 <b>기회</b>다.
+        ///
+        /// <see cref="Attack"/>이 아니라 <see cref="Hit"/>를 직접 부른다.
+        /// 흡혈 · 콤보 카운트 · 피격음이 반격에 붙으면 안 되기 때문이다.
+        /// 상대가 슈퍼아머면 기존 규칙대로 경직만 무시된다 — 그건 정상 동작이다.
+        /// </summary>
+        private void CounterAttack(Combat attacker)
+        {
+            if (attacker == null || attacker.IsDead) return;
+
+            var counter = new HitData
+            {
+                damageData = new DamageData(0f),
+                targetState = CombatState.Neutral,
+                nextState = CombatState.LightHit,
+                mode = KnockbackMode.AwayFromCaster,
+                knockbackForce = parryCounterKnockback,
+                launchForce = 0f,
+                hitStunDuration = parryCounterStun,
+            };
+
+            attacker.Hit(in counter, this);
         }
 
         private void Die()
@@ -367,6 +514,8 @@ namespace Prototype
 
             stunTimer = 0f;
             wallBounceTimer = 0f;
+            parryTimer = 0f;
+            parryInvulnTimer = 0f;
             airHitCount = 0;
             physics?.AddGravity(1f);
 
