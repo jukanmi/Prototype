@@ -344,6 +344,9 @@ namespace Prototype
         /// <item>상태머신을 Idle로 — 코루틴은 <c>SetActive(false)</c>에 죽는다.
         /// 스킬 상태 뒷정리가 중간에 잘리면 <c>CanBeInterrupted == false</c>인 채로 굳어,
         /// 다시 섰을 때 이 몸이 영구히 <see cref="IsBusy"/>가 된다.</item>
+        /// <item>경직 해제(<see cref="Combat.ClearHitStun"/>) — 꺼진 몸은 <c>Combat.Tick</c>도
+        /// 멈춘다. 맞고 뜬 채로 내려가면 그 상태가 얼어붙고, 다시 설 때
+        /// <c>Physics.Teleport</c>가 착지 이벤트 없이 지면에 세우므로 경직이 안 풀린 채 남는다.</item>
         /// </list>
         ///
         /// 사망 상태는 건드리지 않는다 — 시체를 Idle로 되돌리면 다시 섰을 때 되살아난다.
@@ -352,8 +355,10 @@ namespace Prototype
         {
             IsCommanded = false;
 
-            if (StateMachine != null && !Combat.IsDead)
-                StateMachine.ForceChangeState(IdleState);
+            if (Combat.IsDead) return;
+
+            Combat.ClearHitStun();
+            StateMachine?.ForceChangeState(IdleState);
         }
 
         private Control FirstEnabledControl()

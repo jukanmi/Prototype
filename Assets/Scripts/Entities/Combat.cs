@@ -95,14 +95,28 @@ namespace Prototype
         {
             if (wallBounceTimer > 0f) wallBounceTimer -= dt;
 
-            if (stunTimer <= 0f) return;
-
-            stunTimer -= dt;
-            if (stunTimer > 0f) return;
+            // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
+            // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
+            // 여기서 끊으면 복구 검사가 다시는 돌지 않아 경직이 영구히 남는다.
+            if (stunTimer > 0f)
+            {
+                stunTimer -= dt;
+                if (stunTimer > 0f) return;
+            }
 
             CombatState prev = CombatState;
             CombatState next = CombatStateRules.OnStunEnd(prev);
-            if (next == prev) return;
+            if (next == prev)
+            {
+                // 넉백 · 공중피격 계열은 착지로만 풀린다. 그런데 OnLand 없이 지면에 서는
+                // 경로가 둘 있다 — launchForce 없는 넉백(애초에 뜨질 않는다)과
+                // Physics.Teleport(교대 복귀 · 불릿타임 배치). 그대로 두면 경직이 고착되므로
+                // 지면에 있으면 착지와 같게 처리해 다운 흐름에 합류시킨다.
+                if (physics.PhysicsState == PhysicsState.Ground &&
+                    CombatStateRules.OnGroundContact(prev) != prev)
+                    HandleLand();
+                return;
+            }
 
             // 다운 → 기상 → 복귀는 각각 고유 지속시간을 갖는다.
             if (next == CombatState.Getup)
@@ -333,6 +347,30 @@ namespace Prototype
 
             // 방향은 벽 바깥쪽 — 파편이 벽에서 튀어나오는 것처럼 읽힌다.
             BattleVfx.WallBounce(ground, height, wall.normal, Mathf.Lerp(0.5f, 1.3f, force));
+        }
+
+        /// <summary>
+        /// 경직을 통째로 지우고 중립으로 되돌린다. <b>태그로 내려가는 몸</b>이 쓴다
+        /// (<see cref="Entity.ReleaseBody"/>).
+        ///
+        /// 내려가는 몸은 <c>SetActive(false)</c>로 꺼져 <see cref="Tick"/>이 멈춘다 —
+        /// 경직을 물고 내려가면 그 상태가 그대로 얼어붙고, 다시 설 때
+        /// <see cref="Physics.Teleport"/>가 착지 이벤트 없이 지면에 세우기 때문에
+        /// 착지로만 풀리는 상태(넉백 · 공중피격)가 영영 안 풀린다.
+        /// 필드에서 뺀 몸에 경직을 남길 이유도 없다.
+        ///
+        /// 사망은 건드리지 않는다 — 시체를 중립으로 되돌리면 다시 섰을 때 되살아난다.
+        /// </summary>
+        public void ClearHitStun()
+        {
+            if (IsDead) return;
+
+            stunTimer = 0f;
+            wallBounceTimer = 0f;
+            airHitCount = 0;
+            physics?.AddGravity(1f);
+
+            SetCombatState(CombatState.Neutral);
         }
 
         /// <summary>기상 완료. 공중 콤보 카운트와 중력 보정을 여기서만 되돌린다(결정 로그 ⑦).</summary>
