@@ -10,26 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WR3B
+  m_Name: "SK_TK\uB300\uC9C0\uAC15\uD0C0"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC0AC\uC2AC \uAC10\uC544\uCE58\uAE30"
-  icon: {fileID: 21300000, guid: bf411261d6bf4e94b93ffd6662cc0bf0, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 12\uB9CC\uD07C \uC90D\uB2C8\uB2E4.
-    \uCDA9\uC804 \uC2DC\uAC04\uC5D0 \uBE44\uB840\uD574 \uBC94\uC704\uC640 \uD53C\uD574\uB7C9\uC774
-    \uC99D\uAC00\uD558\uBA70, \uCDA9\uC804 \uD6C4 \uBD88\uB9BF \uD0C0\uC784\uC774
-    \uC885\uB8CC\uB420 \uB54C \uBC1C\uB3D9\uD569\uB2C8\uB2E4."
-  role: 1
-  attackType: 4
+  skillName: "\uB300\uC9C0 \uAC15\uD0C0"
+  icon: {fileID: 21300000, guid: a8f0405a06a24f3581100aeadedea1e4, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uBC00\uBA70 \uC774\uB3D9\uD569\uB2C8\uB2E4."
+  role: 0
+  attackType: 3
   requireState: 0
-  resultState: 2
-  targeting: 0
-  radius: 5
-  castTime: 0.15
+  resultState: 3
+  targeting: 3
+  radius: 3
+  castTime: 0.2
   hitInterval: 0.3
-  recoveryTime: 0.4
-  maxChargeTime: 3
-  maxChargeDamageMul: 3
-  maxChargeRadiusMul: 2
+  recoveryTime: 0.3
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
   projectile: {fileID: 0}
   projectileSpeed: 14
   projectileRange: 12
@@ -39,16 +37,16 @@ MonoBehaviour:
   - damageData:
       damage: 14
     targetState: 0
-    nextState: 2
+    nextState: 3
     canOtg: 0
-    mode: 3
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 10
-    hitStunDuration: 0.6
+    knockbackForce: 30
+    launchForce: 0
+    hitStunDuration: 0.5
     snapZ: 0
   effects:
-  - rid: 7198291130188562563
+  - rid: 7198291130188562556
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
@@ -62,10 +60,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7198291130188562563
-      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
+    - rid: 7198291130188562556
+      type: {class: ChargeEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
-        radius: 4
-        force: 32
-        damage: 5
-        hitStun: 0.4
+        speed: 20

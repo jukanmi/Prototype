@@ -10,68 +10,45 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WR1B
+  m_Name: "SK_AR\uC0C1\uC2B9\uD654\uC0B4"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC62C\uB824\uBCA0\uAE30"
-  icon: {fileID: 3272272688383436387, guid: 9cd07c1e72074fd58aee94d96bb1d090, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C 2\uBC88 \uC900
-    \uD6C4, \uCD94\uAC00\uB85C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uBA70 \uACF5\uC911\uC5D0
-    \uB744\uC6C1\uB2C8\uB2E4."
-  role: 1
+  skillName: "\uC0C1\uC2B9 \uD654\uC0B4"
+  icon: {fileID: 21300000, guid: 755ac700e4a9476f905429f4055c3568, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uACF5\uC911\uC5D0 \uB744\uC6C1\uB2C8\uB2E4."
+  role: 2
   attackType: 1
   requireState: 1
   resultState: 2
-  targeting: 0
-  radius: 3
-  castTime: 0.12
-  hitInterval: 0.18
+  targeting: 1
+  radius: 4
+  castTime: 0.3
+  hitInterval: 0.3
   recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 0}
-  projectileSpeed: 14
-  projectileRange: 12
+  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 22
+  projectileRange: 10
   projectilePierce: 0
   approachDistance: 0
   hitDataList:
-  - damageData:
-      damage: 11
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 2
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 4
-    launchForce: 0
-    hitStunDuration: 0.2
-    snapZ: 0
-  - damageData:
-      damage: 11
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 2
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 4
-    launchForce: 0
-    hitStunDuration: 0.2
-    snapZ: 0
   - damageData:
       damage: 14
     targetState: 0
     nextState: 2
     canOtg: 0
     mode: 3
-    fixedDir: {x: 0, y: 0, z: 0}
+    fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 0
     launchForce: 12
     hitStunDuration: 0.6
     snapZ: 0
   effects: []
   cooldown: 5
-  manaCost: 20
-  animation: {fileID: 0}
+  manaCost: 30
+  animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}

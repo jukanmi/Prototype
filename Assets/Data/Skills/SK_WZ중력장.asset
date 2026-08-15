@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WZ2A
+  m_Name: "SK_WZ\uC911\uB825\uC7A5"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC735\uAE30"
-  icon: {fileID: 915217575939305087, guid: fc6f147644781f54ca95bb49ad16b500, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 13\uB9CC\uD07C \uC8FC\uACE0
-    \uC801\uB4E4\uC744 \uACF5\uC911\uC5D0 \uB744\uC6C1\uB2C8\uB2E4."
+  skillName: "\uC911\uB825\uC7A5"
+  icon: {fileID: 21300000, guid: e8425f46a0f04514a61b901a68829b31, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 15\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uD55C\uACF3\uC73C\uB85C \uBAA8\uC74D\uB2C8\uB2E4."
   role: 3
-  attackType: 1
-  requireState: 1
-  resultState: 2
+  attackType: 0
+  requireState: 0
+  resultState: 1
   targeting: 1
-  radius: 4.5
+  radius: 5
   castTime: 0.35
   hitInterval: 0.3
-  recoveryTime: 0.3
+  recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -35,18 +35,18 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 12
+      damage: 15
     targetState: 0
-    nextState: 0
+    nextState: 1
     canOtg: 0
-    mode: 0
+    mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
+    knockbackForce: 32
     launchForce: 0
-    hitStunDuration: 0
-    snapZ: 0
+    hitStunDuration: 0.4
+    snapZ: 1
   effects:
-  - rid: 7198291130188562610
+  - rid: 7198291130188562566
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
@@ -60,10 +60,10 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7198291130188562610
-      type: {class: AirborneEffect, ns: Prototype, asm: Assembly-CSharp}
+    - rid: 7198291130188562566
+      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
-        radius: 4.5
-        launchForce: 12
-        damage: 13
-        hitStun: 0.6
+        radius: 4
+        force: 32
+        damage: 12
+        hitStun: 0.4

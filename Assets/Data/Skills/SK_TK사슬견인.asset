@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_TK1A
+  m_Name: "SK_TK\uC0AC\uC2AC\uACAC\uC778"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
-  icon: {fileID: 21300000, guid: 35cadde296c84405be5881257c465b7e, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 12\uB9CC\uD07C \uC8FC\uACE0
-    \uC790\uC2E0\uC5D0\uAC8C \uB04C\uC5B4\uB2F9\uAE41\uB2C8\uB2E4."
+  skillName: "\uC0AC\uC2AC \uACAC\uC778"
+  icon: {fileID: 21300000, guid: 3aa7140f3eff4ccb8c6b3464b1f46080, type: 3}
+  description: "\uB113\uC740 \uBC94\uC704\uC758 \uC801\uC5D0\uAC8C \uD53C\uD574\uB97C
+    11\uB9CC\uD07C \uC8FC\uACE0 \uC790\uC2E0\uC5D0\uAC8C \uB04C\uC5B4\uB2F9\uAE41\uB2C8\uB2E4."
   role: 0
   attackType: 0
   requireState: 0
   resultState: 1
-  targeting: 0
-  radius: 3
-  castTime: 0.2
+  targeting: 1
+  radius: 5
+  castTime: 0.25
   hitInterval: 0.3
   recoveryTime: 0.25
   maxChargeTime: 2.5
@@ -35,18 +35,18 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 12
+      damage: 11
     targetState: 0
-    nextState: 1
-    canOtg: 0
+    nextState: 2
+    canOtg: 1
     mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 28
+    knockbackForce: 32
     launchForce: 0
     hitStunDuration: 0.4
     snapZ: 1
   effects:
-  - rid: 7198291130188562602
+  - rid: 7198291130188562557
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
@@ -60,10 +60,10 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7198291130188562602
+    - rid: 7198291130188562557
       type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
       data:
-        radius: 3.5
-        force: 28
-        damage: 14
+        radius: 4
+        force: 32
+        damage: 13
         hitStun: 0.4

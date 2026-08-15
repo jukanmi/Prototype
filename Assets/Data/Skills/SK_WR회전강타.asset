@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_TK1B
+  m_Name: "SK_WR\uD68C\uC804\uAC15\uD0C0"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uB300\uC9C0 \uAC15\uD0C0"
-  icon: {fileID: 21300000, guid: a8f0405a06a24f3581100aeadedea1e4, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uACE0
-    \uC801\uB4E4\uC744 \uBC00\uBA70 \uC774\uB3D9\uD569\uB2C8\uB2E4."
-  role: 0
+  skillName: "\uD68C\uC804 \uAC15\uD0C0"
+  icon: {fileID: 21300000, guid: c7a46118db0a4fa5874d56c6279dfe9a, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uBC00\uCCD0\uB0C5\uB2C8\uB2E4."
+  role: 1
   attackType: 3
-  requireState: 0
-  resultState: 3
-  targeting: 3
+  requireState: 2
+  resultState: 4
+  targeting: 1
   radius: 3
-  castTime: 0.2
+  castTime: 0.25
   hitInterval: 0.3
   recoveryTime: 0.3
   maxChargeTime: 2.5
@@ -35,7 +35,7 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 14
+      damage: 11
     targetState: 0
     nextState: 3
     canOtg: 0
@@ -45,22 +45,17 @@ MonoBehaviour:
     launchForce: 0
     hitStunDuration: 0.5
     snapZ: 0
-  effects:
-  - rid: 7198291130188562556
+  effects: []
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
-    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    shock: {r: 0.10569749, g: 0.047169685, b: 1, a: 0.75}
     scale: 1
     castClip: {fileID: 0}
     hitClip: {fileID: 0}
   references:
     version: 2
-    RefIds:
-    - rid: 7198291130188562556
-      type: {class: ChargeEffect, ns: Prototype, asm: Assembly-CSharp}
-      data:
-        speed: 20
+    RefIds: []

@@ -10,46 +10,45 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_TK2A
+  m_Name: "SK_AR\uAC15\uB825\uC0AC\uACA9"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC0AC\uC2AC \uACAC\uC778"
-  icon: {fileID: 21300000, guid: 3aa7140f3eff4ccb8c6b3464b1f46080, type: 3}
-  description: "\uB113\uC740 \uBC94\uC704\uC758 \uC801\uC5D0\uAC8C \uD53C\uD574\uB97C
-    11\uB9CC\uD07C \uC8FC\uACE0 \uC790\uC2E0\uC5D0\uAC8C \uB04C\uC5B4\uB2F9\uAE41\uB2C8\uB2E4."
-  role: 0
-  attackType: 0
-  requireState: 0
-  resultState: 1
+  skillName: "\uAC15\uB825 \uC0AC\uACA9"
+  icon: {fileID: 21300000, guid: 6cd955a84eec4371b5ff507fe46c78ed, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 15\uB9CC\uD07C \uC8FC\uACE0
+    \uC801\uB4E4\uC744 \uBC00\uCCD0\uB0C5\uB2C8\uB2E4."
+  role: 2
+  attackType: 3
+  requireState: 2
+  resultState: 4
   targeting: 1
-  radius: 5
-  castTime: 0.25
+  radius: 3
+  castTime: 0.3
   hitInterval: 0.3
-  recoveryTime: 0.25
+  recoveryTime: 0.3
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 0}
-  projectileSpeed: 14
+  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 20
   projectileRange: 12
   projectilePierce: 0
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 11
+      damage: 15
     targetState: 0
-    nextState: 2
-    canOtg: 1
-    mode: 1
+    nextState: 3
+    canOtg: 0
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 32
+    knockbackForce: 30
     launchForce: 0
-    hitStunDuration: 0.4
-    snapZ: 1
-  effects:
-  - rid: 7198291130188562557
+    hitStunDuration: 0.5
+    snapZ: 0
+  effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
@@ -59,11 +58,4 @@ MonoBehaviour:
     hitClip: {fileID: 0}
   references:
     version: 2
-    RefIds:
-    - rid: 7198291130188562557
-      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
-      data:
-        radius: 4
-        force: 32
-        damage: 13
-        hitStun: 0.4
+    RefIds: []

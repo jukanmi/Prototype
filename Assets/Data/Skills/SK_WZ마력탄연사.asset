@@ -10,45 +10,55 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_AR2B
+  m_Name: "SK_WZ\uB9C8\uB825\uD0C4\uC5F0\uC0AC"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uAC15\uB825 \uC0AC\uACA9"
-  icon: {fileID: 21300000, guid: 6cd955a84eec4371b5ff507fe46c78ed, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 15\uB9CC\uD07C \uC8FC\uACE0
-    \uC801\uB4E4\uC744 \uBC00\uCCD0\uB0C5\uB2C8\uB2E4."
-  role: 2
-  attackType: 3
-  requireState: 2
-  resultState: 4
-  targeting: 1
+  skillName: "\uB9C8\uB825\uD0C4 \uC5F0\uC0AC"
+  icon: {fileID: 21300000, guid: 5ddf33b4bffa4a258d0ebd7c6c54f632, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 37\uB9CC\uD07C 2\uBC88 \uC90D\uB2C8\uB2E4."
+  role: 3
+  attackType: 2
+  requireState: 0
+  resultState: 1
+  targeting: 3
   radius: 3
-  castTime: 0.3
+  castTime: 0.15
   hitInterval: 0.3
-  recoveryTime: 0.3
+  recoveryTime: 0.2
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
   projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
-  projectileSpeed: 20
+  projectileSpeed: 24
   projectileRange: 12
   projectilePierce: 0
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 15
+      damage: 37
     targetState: 0
-    nextState: 3
+    nextState: 1
     canOtg: 0
     mode: 2
-    fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 30
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 4
     launchForce: 0
-    hitStunDuration: 0.5
+    hitStunDuration: 0.3
+    snapZ: 0
+  - damageData:
+      damage: 37
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 2
+    fixedDir: {x: 0, y: 0, z: 1}
+    knockbackForce: 4
+    launchForce: 0
+    hitStunDuration: 0.3
     snapZ: 0
   effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 7400000, guid: 2c6ff87de5f3b9d4686763bfa5948c3b, type: 2}
+  animation: {fileID: 0}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}

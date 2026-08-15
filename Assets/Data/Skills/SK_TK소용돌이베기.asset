@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WR3A
+  m_Name: "SK_TK\uC18C\uC6A9\uB3CC\uC774\uBCA0\uAE30"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uD68C\uC804 \uAC15\uD0C0"
-  icon: {fileID: 21300000, guid: c7a46118db0a4fa5874d56c6279dfe9a, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C \uC8FC\uACE0
-    \uC801\uB4E4\uC744 \uBC00\uCCD0\uB0C5\uB2C8\uB2E4."
-  role: 1
-  attackType: 3
-  requireState: 2
-  resultState: 4
-  targeting: 1
+  skillName: "\uC18C\uC6A9\uB3CC\uC774 \uBCA0\uAE30"
+  icon: {fileID: 21300000, guid: 35cadde296c84405be5881257c465b7e, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 12\uB9CC\uD07C \uC8FC\uACE0
+    \uC790\uC2E0\uC5D0\uAC8C \uB04C\uC5B4\uB2F9\uAE41\uB2C8\uB2E4."
+  role: 0
+  attackType: 0
+  requireState: 0
+  resultState: 1
+  targeting: 0
   radius: 3
-  castTime: 0.25
+  castTime: 0.2
   hitInterval: 0.3
-  recoveryTime: 0.3
+  recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -35,27 +35,35 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 11
+      damage: 12
     targetState: 0
-    nextState: 3
+    nextState: 1
     canOtg: 0
-    mode: 2
+    mode: 1
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 30
+    knockbackForce: 28
     launchForce: 0
-    hitStunDuration: 0.5
-    snapZ: 0
-  effects: []
+    hitStunDuration: 0.4
+    snapZ: 1
+  effects:
+  - rid: 7198291130188562602
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
-    shock: {r: 0.10569749, g: 0.047169685, b: 1, a: 0.75}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
     castClip: {fileID: 0}
     hitClip: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7198291130188562602
+      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        radius: 3.5
+        force: 28
+        damage: 14
+        hitStun: 0.4

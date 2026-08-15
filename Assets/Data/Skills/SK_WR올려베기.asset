@@ -10,31 +10,33 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: SK_WZ1A
+  m_Name: "SK_WR\uC62C\uB824\uBCA0\uAE30"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uB9C8\uB825\uD0C4 \uC5F0\uC0AC"
-  icon: {fileID: 21300000, guid: 5ddf33b4bffa4a258d0ebd7c6c54f632, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 37\uB9CC\uD07C 2\uBC88 \uC90D\uB2C8\uB2E4."
-  role: 3
-  attackType: 2
-  requireState: 0
-  resultState: 1
-  targeting: 3
+  skillName: "\uC62C\uB824\uBCA0\uAE30"
+  icon: {fileID: 3272272688383436387, guid: 9cd07c1e72074fd58aee94d96bb1d090, type: 3}
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C 2\uBC88 \uC900
+    \uD6C4, \uCD94\uAC00\uB85C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uBA70 \uACF5\uC911\uC5D0
+    \uB744\uC6C1\uB2C8\uB2E4."
+  role: 1
+  attackType: 1
+  requireState: 1
+  resultState: 2
+  targeting: 0
   radius: 3
-  castTime: 0.15
-  hitInterval: 0.3
-  recoveryTime: 0.2
+  castTime: 0.12
+  hitInterval: 0.18
+  recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
-  projectileSpeed: 24
+  projectile: {fileID: 0}
+  projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 37
+      damage: 11
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -42,10 +44,10 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 4
     launchForce: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.2
     snapZ: 0
   - damageData:
-      damage: 37
+      damage: 11
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -53,7 +55,18 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 4
     launchForce: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.2
+    snapZ: 0
+  - damageData:
+      damage: 14
+    targetState: 0
+    nextState: 2
+    canOtg: 0
+    mode: 3
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 0
+    launchForce: 12
+    hitStunDuration: 0.6
     snapZ: 0
   effects: []
   cooldown: 5
