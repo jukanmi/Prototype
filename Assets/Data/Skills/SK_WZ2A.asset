@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC735\uAE30"
   icon: {fileID: 915217575939305087, guid: fc6f147644781f54ca95bb49ad16b500, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 6\uB9CC\uD07C \uC8FC\uACE0
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 13\uB9CC\uD07C \uC8FC\uACE0
     \uC801\uB4E4\uC744 \uACF5\uC911\uC5D0 \uB744\uC6C1\uB2C8\uB2E4."
   role: 3
   attackType: 1
@@ -35,7 +35,7 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 6
+      damage: 12
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -65,5 +65,5 @@ MonoBehaviour:
       data:
         radius: 4.5
         launchForce: 12
-        damage: 7
+        damage: 13
         hitStun: 0.6

@@ -129,7 +129,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41eb2c7735c47b145955ae88d028e077, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.Combat
-  maxHealth: 100
+  maxHealth: 45
   lifestealRatio: 0
   damageCutRatio: 0
   downDuration: 1.2
@@ -217,6 +217,7 @@ MonoBehaviour:
   depthRoot: {fileID: 2322947510098090926}
   shadow: {fileID: 9030279768759049339}
   depthToScreen: 0.9
+  depthToScreenX: 0.45
   depthScalePerUnit: 0.06
   spriteOffsetY: 0
   flipToFacing: 1
