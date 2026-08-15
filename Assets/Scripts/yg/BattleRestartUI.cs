@@ -1,9 +1,5 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem.UI;
-#endif
 
 namespace Prototype.YG
 {
@@ -14,12 +10,12 @@ namespace Prototype.YG
     /// 초기화 자체는 여기서 하지 않는다. 확인 버튼은
     /// <see cref="BattleSceneController.RestartStage"/> 로만 넘긴다.
     ///
-    /// TMP 대신 레거시 Text 를 쓰는 이유 — TMP Essential Resources 가 임포트돼 있지 않으면
-    /// 런타임에 글자가 아예 안 나온다. 배틀 씬의 다른 런타임 UI(ComboBoardUI)와도 같은 방식이다.
+    /// "처음부터"는 <b>런 전체</b>를 뜻한다 — 첫 스테이지로 돌아간다.
+    /// 진 스테이지만 다시 하는 것은 <see cref="StageResultUI"/> 의 [이 스테이지 재시작] 쪽이다.
     /// </summary>
     public class BattleRestartUI : MonoBehaviour
     {
-        /// <summary>ComboBoardUI 캔버스(0)보다 위, SceneLoader 의 FadeCanvas(999)보다 아래.</summary>
+        /// <summary>ComboBoardUI 캔버스(0)보다 위, StageResultUI(200)보다 아래.</summary>
         private const int SortingOrder = 100;
 
         private const float ButtonWidth = 150f;
@@ -31,6 +27,7 @@ namespace Prototype.YG
         private static readonly Color CancelColor  = new Color(0.25f, 0.27f, 0.32f);
         private static readonly Color PanelColor   = new Color(0.10f, 0.10f, 0.12f, 0.97f);
         private static readonly Color DimColor     = new Color(0f, 0f, 0f, 0.65f);
+        private static readonly Color NoteColor    = new Color(0.75f, 0.75f, 0.78f);
 
         private BattleSceneController controller;
 
@@ -38,6 +35,9 @@ namespace Prototype.YG
         private Button restartButton;
         private Button confirmButton;
         private Button cancelButton;
+
+        /// <summary>결과 패널이 떠 있는 동안에는 통째로 숨는다.</summary>
+        private bool hidden;
 
         /// <summary>
         /// 배틀 씬에 UI 를 띄운다. 씬과 함께 언로드되도록 컨트롤러의 자식으로 붙인다.
@@ -58,7 +58,7 @@ namespace Prototype.YG
         // controller 는 AddComponent 직후에 채워지므로 Awake 에서는 아직 비어 있다. Start 에서 짓는다.
         private void Start()
         {
-            EnsureEventSystem();
+            SimpleUI.EnsureEventSystem();
             BuildUI();
             SetConfirmVisible(false);
         }
@@ -71,36 +71,22 @@ namespace Prototype.YG
         }
 
         /// <summary>
-        /// Boot 씬을 거쳐 들어오면 EventSystem 이 이미 있다. 배틀 씬만 단독으로 Play 했을 때를 위한 보험.
-        /// 중복 생성되면 UI 입력이 불안정해지므로 없을 때만 만든다.
+        /// 승패가 갈리면 결과 패널이 화면을 덮는다. 그 위에 [처음부터] 버튼이 겹쳐 있으면
+        /// 같은 화면에 재시작 버튼이 둘이 되어 어느 쪽이 무엇인지 읽히지 않는다.
         /// </summary>
-        private static void EnsureEventSystem()
+        public void SetVisible(bool value)
         {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
+            hidden = !value;
 
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-#if ENABLE_INPUT_SYSTEM
-            go.AddComponent<InputSystemUIInputModule>();
-#else
-            go.AddComponent<StandaloneInputModule>();
-#endif
+            if (confirmRoot != null && hidden) confirmRoot.SetActive(false);
+            if (restartButton != null) restartButton.gameObject.SetActive(value);
         }
 
         // ── UI 빌드 ──────────────────────────────────────
 
         private void BuildUI()
         {
-            Canvas canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-
-            CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            gameObject.AddComponent<GraphicRaycaster>();
+            SimpleUI.BuildCanvas(gameObject, SortingOrder);
 
             BuildRestartButton();
             BuildConfirmPanel();
@@ -108,12 +94,12 @@ namespace Prototype.YG
 
         private void BuildRestartButton()
         {
-            restartButton = CreateButton(transform, "Btn_Restart", "처음부터", RestartColor,
-                                         new Vector2(ButtonWidth, ButtonHeight), 22);
+            restartButton = SimpleUI.CreateButton(transform, "Btn_Restart", "처음부터", RestartColor,
+                                                  new Vector2(ButtonWidth, ButtonHeight), 22);
 
-            var rect = (RectTransform)restartButton.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-ScreenMargin, -ScreenMargin);
+            SimpleUI.Place(restartButton, new Vector2(1f, 1f),
+                           new Vector2(-ScreenMargin, -ScreenMargin),
+                           new Vector2(ButtonWidth, ButtonHeight));
 
             restartButton.onClick.AddListener(OnRestartClicked);
         }
@@ -124,44 +110,28 @@ namespace Prototype.YG
         /// </summary>
         private void BuildConfirmPanel()
         {
-            confirmRoot = CreateImage(transform, "ConfirmDim", DimColor);
-            Stretch((RectTransform)confirmRoot.transform);
+            confirmRoot = SimpleUI.CreateImage(transform, "ConfirmDim", DimColor);
+            SimpleUI.Stretch((RectTransform)confirmRoot.transform);
 
-            GameObject panel = CreateImage(confirmRoot.transform, "Panel", PanelColor);
-            var panelRect = (RectTransform)panel.transform;
-            panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(560f, 240f);
-            panelRect.anchoredPosition = Vector2.zero;
+            GameObject panel = SimpleUI.CreateImage(confirmRoot.transform, "Panel", PanelColor);
+            SimpleUI.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 240f));
 
-            Text title = CreateText(panel.transform, "Title", "전투를 처음부터 다시 시작할까?", 26, Color.white);
-            var titleRect = (RectTransform)title.transform;
-            titleRect.anchorMin = titleRect.anchorMax = titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(520f, 60f);
-            titleRect.anchoredPosition = new Vector2(0f, -46f);
+            Text title = SimpleUI.CreateText(panel.transform, "Title", "런을 처음부터 다시 시작할까?", 26, Color.white);
+            SimpleUI.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(520f, 60f));
 
-            Text note = CreateText(panel.transform, "Note", "진행 중인 전투 상황은 모두 사라진다.", 17,
-                                   new Color(0.75f, 0.75f, 0.78f));
-            var noteRect = (RectTransform)note.transform;
-            noteRect.anchorMin = noteRect.anchorMax = noteRect.pivot = new Vector2(0.5f, 1f);
-            noteRect.sizeDelta = new Vector2(520f, 30f);
-            noteRect.anchoredPosition = new Vector2(0f, -96f);
+            Text note = SimpleUI.CreateText(panel.transform, "Note",
+                                            "첫 스테이지로 돌아가며 진행 상황은 모두 사라진다.", 17, NoteColor);
+            SimpleUI.Place(note, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(520f, 30f));
 
-            confirmButton = CreateButton(panel.transform, "Btn_Confirm", "재시작", ConfirmColor,
-                                         new Vector2(180f, 56f), 22);
-            PlaceInPanel(confirmButton, new Vector2(-100f, 52f));
+            confirmButton = SimpleUI.CreateButton(panel.transform, "Btn_Confirm", "재시작", ConfirmColor,
+                                                  new Vector2(180f, 56f), 22);
+            SimpleUI.Place(confirmButton, new Vector2(0.5f, 0f), new Vector2(-100f, 52f), new Vector2(180f, 56f));
             confirmButton.onClick.AddListener(OnConfirmClicked);
 
-            cancelButton = CreateButton(panel.transform, "Btn_Cancel", "취소", CancelColor,
-                                        new Vector2(180f, 56f), 22);
-            PlaceInPanel(cancelButton, new Vector2(100f, 52f));
+            cancelButton = SimpleUI.CreateButton(panel.transform, "Btn_Cancel", "취소", CancelColor,
+                                                 new Vector2(180f, 56f), 22);
+            SimpleUI.Place(cancelButton, new Vector2(0.5f, 0f), new Vector2(100f, 52f), new Vector2(180f, 56f));
             cancelButton.onClick.AddListener(OnCancelClicked);
-        }
-
-        private static void PlaceInPanel(Button button, Vector2 offsetFromBottom)
-        {
-            var rect = (RectTransform)button.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = offsetFromBottom;
         }
 
         // ── 입력 ─────────────────────────────────────────
@@ -181,6 +151,8 @@ namespace Prototype.YG
 
         private void SetConfirmVisible(bool visible)
         {
+            if (hidden) return;
+
             if (confirmRoot != null) confirmRoot.SetActive(visible);
             if (restartButton != null) restartButton.gameObject.SetActive(!visible);
         }
@@ -190,57 +162,6 @@ namespace Prototype.YG
             if (restartButton != null) restartButton.interactable = value;
             if (confirmButton != null) confirmButton.interactable = value;
             if (cancelButton  != null) cancelButton.interactable  = value;
-        }
-
-        // ── 공용 ─────────────────────────────────────────
-
-        private static Button CreateButton(Transform parent, string name, string label, Color color,
-                                           Vector2 size, int fontSize)
-        {
-            GameObject go = CreateImage(parent, name, color);
-            ((RectTransform)go.transform).sizeDelta = size;
-
-            Button button = go.AddComponent<Button>();
-            button.targetGraphic = go.GetComponent<Image>();
-
-            Text text = CreateText(go.transform, "Label", label, fontSize, Color.white);
-            Stretch((RectTransform)text.transform);
-
-            return button;
-        }
-
-        private static GameObject CreateImage(Transform parent, string name, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
-
-            return go;
-        }
-
-        private static Text CreateText(Transform parent, string name, string content, int fontSize, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-
-            Text text = go.GetComponent<Text>();
-            text.text = content;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = color;
-            text.raycastTarget = false;   // 버튼 클릭을 라벨이 가로채지 않도록
-
-            return text;
-        }
-
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Prototype
         [Header("타이머")]
         [SerializeField] private float attackInterval = 1.5f;
         [SerializeField] private float retargetInterval = 0.5f;
-        [Tooltip("특수 행동(돌진) 쿨. 평타 쿨과 따로 돈다.")]
+        [Tooltip("특수 행동 기본 쿨. 평타 쿨과 따로 돈다. 브레인이 쿨을 실어 보내면 그쪽이 우선한다.")]
         [SerializeField] private float specialInterval = 4f;
 
         [Header("브레인 파라미터")]
@@ -28,10 +28,13 @@ namespace Prototype
         private Entity target;
         private float attackTimer;
         private float retargetTimer;
-        private float specialTimer;
         private bool active = true;
 
-        private EnemyChargeAction chargeAction;
+        /// <summary>특수 행동 실행기. Entity 하나에 하나만 붙는다(<see cref="IEnemySpecialAction"/>).</summary>
+        private IEnemySpecialAction special;
+
+        /// <summary>패턴별 남은 쿨. 크기는 실행기가 가진 패턴 수와 같다.</summary>
+        private float[] specialTimers;
 
         public Entity Target => target;
 
@@ -39,12 +42,39 @@ namespace Prototype
         public EnemyBrainAsset Brain => brain;
 
         /// <summary>지금 특수 행동을 실행 중인지. 디버그 HUD가 읽는다.</summary>
-        public bool IsRunningSpecial => chargeAction != null && chargeAction.IsRunning;
+        public bool IsRunningSpecial => special != null && special.IsRunning;
 
         protected override void Awake()
         {
             base.Awake();
-            chargeAction = GetComponent<EnemyChargeAction>();
+
+            special = GetComponent<IEnemySpecialAction>();
+
+            // 패턴이 MaxSpecials를 넘으면 비트마스크로 준비 상태를 못 전한다.
+            // 잘라 쓰면 뒤쪽 패턴이 영영 안 나오므로 조용히 넘기지 않는다.
+            int count = special != null ? Mathf.Max(0, special.Count) : 0;
+            if (count > EnemyBrainContext.MaxSpecials)
+            {
+                BattleLog.Warn(LogCategory.State,
+                    $"{name}: 특수 행동이 {count}개다. {EnemyBrainContext.MaxSpecials}개까지만 쓸 수 있다.", this);
+                count = EnemyBrainContext.MaxSpecials;
+            }
+
+            specialTimers = new float[count];
+        }
+
+        /// <summary>
+        /// 평타 쿨을 배율로 줄인다. 격노처럼 <b>영구히</b> 빨라지는 버프가 쓴다.
+        ///
+        /// 되돌리는 경로는 없다 — 이 배율을 쓰는 패턴이 1회성이고, 전투가 끝나면
+        /// 씬이 통째로 다시 올라오므로 원복할 자리가 없다.
+        /// </summary>
+        public void ScaleAttackInterval(float scale)
+        {
+            if (scale <= 0f || Mathf.Approximately(scale, 1f)) return;
+
+            attackInterval *= scale;
+            BattleLog.Log(LogCategory.State, $"{name} 평타 쿨 {scale:0.##}배 → {attackInterval:0.##}초", this);
         }
 
         /// <summary>도발 등으로 타겟을 강제 지정한다.</summary>
@@ -60,7 +90,7 @@ namespace Prototype
             if (!active)
             {
                 Clear();
-                if (chargeAction != null) chargeAction.Cancel();
+                if (special != null) special.Cancel();
             }
         }
 
@@ -104,19 +134,21 @@ namespace Prototype
 
             attackTimer -= dt;
             retargetTimer -= dt;
-            specialTimer -= dt;
 
-            // 경직·사망 중에는 돌진이 이어지면 안 된다. 무적 관통처럼 보인다.
+            for (int i = 0; i < specialTimers.Length; i++)
+                specialTimers[i] -= dt;
+
+            // 경직·사망 중에는 특수 행동이 이어지면 안 된다. 무적 관통처럼 보인다.
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))
             {
-                if (chargeAction != null) chargeAction.Cancel();
+                if (special != null) special.Cancel();
                 return;
             }
 
-            // 실행 중인 특수 행동이 우선. 새 판단을 받으면 돌진이 매 프레임 다시 시작된다.
-            if (chargeAction != null && chargeAction.IsRunning)
+            // 실행 중인 특수 행동이 우선. 새 판단을 받으면 매 프레임 다시 시작된다.
+            if (special != null && special.IsRunning)
             {
-                chargeAction.Tick(dt);
+                special.Tick(dt);
                 return;
             }
 
@@ -126,14 +158,9 @@ namespace Prototype
 
             EnemyIntent intent = brain.Decide(BuildContext(dt));
 
-            if (intent.kind == EnemyActionKind.Charge)
+            if (intent.kind == EnemyActionKind.Special)
             {
-                // 쿨은 실제로 시작됐을 때만 태운다.
-                if (chargeAction != null && chargeAction.TryStart(target))
-                {
-                    specialTimer = specialInterval;
-                    chargeAction.Tick(dt);
-                }
+                StartSpecial(in intent, dt);
                 return;
             }
 
@@ -143,6 +170,28 @@ namespace Prototype
             // 쿨 소모는 여기서 판단한다. 브레인이 별도 플래그를 돌려주면 항상 이 조건과 같은 값이 되어 중복이다.
             if (intent.command == Command.Attack)
                 attackTimer = attackInterval;
+        }
+
+        /// <summary>
+        /// 브레인이 지목한 패턴을 실행기에 넘긴다.
+        /// 쿨은 <b>실제로 시작됐을 때만</b> 태운다 — 1회성 패턴이 거절해도 다른 패턴이 막히지 않게.
+        /// </summary>
+        private void StartSpecial(in EnemyIntent intent, float dt)
+        {
+            if (special == null) return;
+
+            int i = intent.specialIndex;
+            if (i < 0 || i >= specialTimers.Length)
+            {
+                BattleLog.Warn(LogCategory.State,
+                    $"{name}: 브레인이 없는 특수 행동 {i}번을 지목했다. 실행기는 {specialTimers.Length}개를 갖고 있다.", this);
+                return;
+            }
+
+            if (!special.TryStart(i, target)) return;
+
+            specialTimers[i] = intent.specialCooldown > 0f ? intent.specialCooldown : specialInterval;
+            special.Tick(dt);
         }
 
         private void Retarget()
@@ -173,6 +222,8 @@ namespace Prototype
             // 원거리 평타를 든 적은 근접 사거리 대신 투사체 사거리를 따른다.
             if (Owner != null && Owner.BasicIsRanged) p.attackRange = Owner.BasicAttackReach;
 
+            int readyMask = SpecialReadyMask();
+
             return new EnemyBrainContext
             {
                 self = Owner,
@@ -180,10 +231,36 @@ namespace Prototype
                 toTarget = toTarget,
                 distance = distance,
                 attackReady = attackTimer <= 0f,
-                specialReady = specialTimer <= 0f && chargeAction != null,
+                specialReady = (readyMask & 1) != 0,
+                specialReadyMask = readyMask,
+                healthRatio = HealthRatio(),
                 p = p,
                 dt = dt,
             };
+        }
+
+        /// <summary>쿨이 끝난 패턴의 비트를 세운다. 실행기가 없으면 0 — 아무 특수도 못 쓴다.</summary>
+        private int SpecialReadyMask()
+        {
+            if (special == null) return 0;
+
+            int mask = 0;
+            for (int i = 0; i < specialTimers.Length; i++)
+                if (specialTimers[i] <= 0f) mask |= 1 << i;
+
+            return mask;
+        }
+
+        /// <summary>
+        /// 남은 체력 비율. 체력이 아직 안 잡힌 순간에는 1(만피)로 본다 —
+        /// 0으로 떨어지면 첫 프레임에 빈사 전용 패턴이 터진다.
+        /// </summary>
+        private float HealthRatio()
+        {
+            if (Owner == null || Owner.Combat == null) return 1f;
+
+            Energy hp = Owner.Combat.Health;
+            return hp == null || hp.MaxValue <= 0f ? 1f : hp.Ratio;
         }
 
         private Entity FindNearestAlly()

@@ -56,6 +56,9 @@ namespace Prototype.Tests
                 distance = distance,
                 attackReady = attackReady,
                 specialReady = specialReady,
+                // 이 적들은 특수가 0번 하나뿐이다. 마스크도 같은 값으로 맞춰 둔다.
+                specialReadyMask = specialReady ? 1 : 0,
+                healthRatio = 1f,
                 p = p,
                 dt = 0.02f,
             };
@@ -139,7 +142,7 @@ namespace Prototype.Tests
         {
             EnemyIntent intent = charger.Decide(Ctx(3f, ChargerParams));
 
-            Assert.That(intent.kind, Is.EqualTo(EnemyActionKind.Charge));
+            Assert.That(intent.kind, Is.EqualTo(EnemyActionKind.Special));
             Assert.That(intent.moveDirection.x, Is.GreaterThan(0f));
         }
 
@@ -148,7 +151,16 @@ namespace Prototype.Tests
         {
             EnemyIntent intent = charger.Decide(Ctx(7f, ChargerParams));
 
-            Assert.That(intent.kind, Is.EqualTo(EnemyActionKind.Charge));
+            Assert.That(intent.kind, Is.EqualTo(EnemyActionKind.Special));
+        }
+
+        /// <summary>돌진 실행기는 패턴이 하나뿐이다. 0번 말고 다른 번호를 지목하면 아무것도 안 나간다.</summary>
+        [Test]
+        public void Charger_ChargeIntent_TargetsSlotZero()
+        {
+            EnemyIntent intent = charger.Decide(Ctx(5f, ChargerParams));
+
+            Assert.That(intent.specialIndex, Is.EqualTo(0));
         }
 
         [Test]

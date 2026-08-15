@@ -4,25 +4,54 @@ using UnityEngine.SceneManagement;
 namespace Prototype.YG
 {
     /// <summary>
-    /// 배틀 씬의 지휘자. 지금 단계에서는 ESC 감지와 이탈 처리, 그리고 씬 초기화가 주 역할이다.
+    /// 배틀 씬의 지휘자. ESC 이탈, 씬 초기화, 그리고 <b>승패 판정</b>을 맡는다.
     /// 씬 자체가 통째로 언로드되므로 오브젝트 리셋 코드는 필요 없다.
+    ///
+    /// 판정은 여기서 하고 <b>전환은 <see cref="GameManager"/>가 한다.</b> 승패는 전투 상황을
+    /// 봐야 알 수 있어서 씬 안에 있어야 하고, "다음이 어디인가"는 씬이 바뀌어도 남아야 해서
+    /// Boot 씬에 있어야 한다.
+    ///
+    /// 그래서 <b>GameManager 없이 스테이지 씬만 단독으로 Play 하면 승패 기능이 아예 돌지 않는다.</b>
+    /// 배치와 전투 감각만 확인하는 용도다.
     /// </summary>
     public class BattleSceneController : MonoBehaviour
     {
+        [Tooltip("이 X좌표를 넘으면 다음 스테이지로 넘어간다. 방 오른쪽 벽이 x = 6이고 " +
+                 "몸통 반지름 때문에 실제로는 5.5 근처에서 막힌다.")]
+        [SerializeField] private float exitX = 5f;
+
         private bool isExiting;
         private bool isRestarting;
+
+        /// <summary>승패 기능이 도는가. GameManager 가 있어야 켜진다.</summary>
+        private bool flowEnabled;
+
+        /// <summary>양쪽이 등록을 마쳐 판정을 시작했는가. 한 번 켜지면 내려가지 않는다.</summary>
+        private bool judging;
+
+        private StageOutcome outcome = StageOutcome.Undecided;
+
+        private BattleRestartUI restartUI;
+        private StageResultUI resultUI;
+
+        /// <summary>지금 떠 있는 이 씬의 이름. 전환할 때 "무엇을 내릴지"가 된다.</summary>
+        private string SceneName => gameObject.scene.name;
 
         private void Start()
         {
             // 초기화 UI 는 씬 단독 실행에서도 필요하다. GameManager 체크보다 먼저 띄운다.
-            BattleRestartUI.Create(this);
+            restartUI = BattleRestartUI.Create(this);
 
             // 씬 단독 실행 대응 — Boot 씬 없이 배틀 씬만 Play 했을 때
             if (GameManager.Instance == null)
             {
-                Debug.LogWarning("[Battle] GameManager 없음. 씬 단독 실행 모드로 진행합니다.");
+                Debug.LogWarning(
+                    "[Battle] GameManager 없음. 씬 단독 실행 모드로 진행합니다 — 승리·패배 판정이 돌지 않습니다.");
                 return;
             }
+
+            flowEnabled = true;
+            resultUI = StageResultUI.Create(this);
 
             BeginStage();
         }
@@ -31,19 +60,148 @@ namespace Prototype.YG
         {
             TimeControl.Reset();
 
-            Debug.Log($"[Battle] 스테이지 시작 (index {GameManager.Instance.CurrentStageIndex})");
-
-            // TODO: 턴 매니저 시작, 손패 드로우 등은 이후 단계에서 여기에 연결
+            GameManager gm = GameManager.Instance;
+            Debug.Log($"[Battle] 스테이지 시작 {gm.CurrentStageNumber}/{gm.StageCount} ({SceneName})");
         }
 
         private void Update()
         {
             if (isExiting || isRestarting) return;
-            if (WasEscapePressed()) ExitToMainMenu();
+
+            if (WasEscapePressed())
+            {
+                ExitToMainMenu();
+                return;
+            }
+
+            if (flowEnabled) TickOutcome();
+        }
+
+        // ── 승패 판정 ────────────────────────────────────
+
+        private void TickOutcome()
+        {
+            if (outcome == StageOutcome.Undecided)
+            {
+                Judge();
+                return;
+            }
+
+            // 이긴 뒤에는 출구만 본다. 진 뒤에는 버튼이 다음 행동을 정한다.
+            if (outcome == StageOutcome.Victory && GameManager.Instance.HasNextStage && ExitReached())
+                GoToNextStage();
+        }
+
+        private void Judge()
+        {
+            // Entity 는 Start 에서 스스로 등록한다. 그 전에 판정하면 적 0명 = 승리이면서
+            // 산 아군 0명 = 패배라, 씬이 뜨자마자 결과 화면이 나온다.
+            if (!judging)
+            {
+                if (!StageOutcomeRules.CanJudge(BattleRegistry.Enemies.Count, BattleRegistry.Allies.Count))
+                    return;
+
+                judging = true;
+            }
+
+            StageOutcome next = StageOutcomeRules.Evaluate(
+                BattleRegistry.AliveEnemyCount(), BattleRegistry.AllAlliesDead());
+
+            if (next == StageOutcome.Undecided) return;
+
+            outcome = next;
+
+            if (next == StageOutcome.Victory) HandleVictory();
+            else HandleDefeat();
         }
 
         /// <summary>
-        /// 인게임 씬을 처음부터 다시 시작한다. <see cref="BattleRestartUI"/> 의 확인 버튼이 부른다.
+        /// 조작 중인 몸이 출구선을 넘었는가.
+        ///
+        /// 교대로 내려간 동료는 <c>SetActive(false)</c> 상태라 좌표가 벤치에 있던 자리 그대로다.
+        /// 활성 여부를 같이 보지 않으면 내려간 동료의 옛 좌표로 스테이지가 넘어간다.
+        /// </summary>
+        private bool ExitReached()
+        {
+            foreach (Entity e in BattleRegistry.Allies)
+            {
+                if (e == null || !e.isActiveAndEnabled || e.Combat.IsDead) continue;
+                if (StageOutcomeRules.ReachedExit(e.transform.position.x, exitX)) return true;
+            }
+
+            return false;
+        }
+
+        private void HandleVictory()
+        {
+            // 불릿타임 중에 마지막 적이 죽으면 Scale 이 0 인 채로 남아 출구까지 걸어갈 수가 없다.
+            TimeControl.Reset();
+
+            GameManager gm = GameManager.Instance;
+            Debug.Log($"[Battle] 스테이지 {gm.CurrentStageNumber} 클리어");
+
+            if (gm.HasNextStage)
+            {
+                // 안내만 띄우고 조작은 막지 않는다. 걸어가야 넘어가는 방식이다.
+                resultUI?.ShowExitArrow($"다음: {gm.NextStageScene}");
+                return;
+            }
+
+            restartUI?.SetVisible(false);
+            resultUI?.ShowAllClear(ExitToMainMenu);
+        }
+
+        private void HandleDefeat()
+        {
+            TimeControl.Reset();
+            StopAllEnemies();
+
+            Debug.Log($"[Battle] 스테이지 {GameManager.Instance.CurrentStageNumber} 패배");
+
+            restartUI?.SetVisible(false);
+            resultUI?.ShowDefeat(RetryStage, ExitToMainMenu);
+        }
+
+        /// <summary>진 뒤에도 적이 시체를 계속 두들기지 않게 한다.</summary>
+        private static void StopAllEnemies()
+        {
+            foreach (Entity e in BattleRegistry.Enemies)
+                if (e is Enemy enemy) enemy.StopAI();
+        }
+
+        // ── 전환 ────────────────────────────────────────
+
+        /// <summary>
+        /// 전환은 <b>먼저 접수시키고 그다음에 치운다.</b>
+        ///
+        /// 순서를 뒤집으면 안 된다 — SceneLoader 가 다른 전환 중이라 요청을 거절했을 때
+        /// <see cref="BattleRegistry"/>만 비워진 채로 이 씬이 계속 돌아, 아무도 서로를 못 찾는
+        /// 유령 전투가 된다. 접수된 뒤에 비우는 것은 안전하다: SwapTo 는 페이드부터 시작하므로
+        /// 실제 언로드는 몇 프레임 뒤다.
+        /// </summary>
+        private void GoToNextStage()
+        {
+            if (isExiting || isRestarting) return;
+            if (!GameManager.Instance.GoToNextStage(SceneName, OnBattleReloaded)) return;
+
+            isExiting = true;   // 전환이 끝날 때까지 이 씬의 판정을 멈춘다
+            CleanupStage();
+            ClearStatics();
+        }
+
+        /// <summary>패배 후 [이 스테이지 재시작]. 스테이지 번호는 유지된다.</summary>
+        private void RetryStage()
+        {
+            if (isExiting || isRestarting) return;
+            if (!GameManager.Instance.RestartCurrentStage(SceneName, OnBattleReloaded)) return;
+
+            isRestarting = true;
+            CleanupStage();
+            ClearStatics();
+        }
+
+        /// <summary>
+        /// 런을 처음부터 다시 시작한다. <see cref="BattleRestartUI"/> 의 확인 버튼이 부른다.
         ///
         /// 오브젝트를 하나씩 초기값으로 되돌리는 대신 씬을 통째로 내렸다 다시 올린다 —
         /// 리셋 누락이 원천적으로 생길 수 없는 방식이고, 이 프로젝트는 이미 ESC 이탈에서
@@ -54,35 +212,50 @@ namespace Prototype.YG
             if (isExiting || isRestarting) return;
             if (SceneLoader.Instance != null && SceneLoader.Instance.IsBusy) return;
 
-            isRestarting = true;
-
-            CleanupStage();
-
-            // 씬 경계를 넘어 살아남는 static 은 반드시 <b>지금</b> 비운다.
-            // 새 씬의 Entity 는 Start 에서 스스로 등록하므로, 로드가 끝난 뒤에 비우면
-            // 갓 등록된 새 Entity 까지 날아가 타게팅이 통째로 죽는다.
-            // 지금 비워도 곧 파괴될 옛 Entity 의 OnDestroy → Unregister 는 빈 목록에 대한
-            // no-op 이라 안전하다.
-            TimeControl.Reset();
-            BattleRegistry.Clear();
-
             // ── 씬 단독 실행 모드: SceneLoader 가 없으니 현재 씬을 직접 다시 로드한다.
-            if (SceneLoader.Instance == null)
+            if (SceneLoader.Instance == null || GameManager.Instance == null)
             {
                 Debug.Log("[Battle] 씬 단독 실행 모드 — 현재 씬을 다시 로드한다.");
-                SceneManager.LoadScene(gameObject.scene.name);
+
+                isRestarting = true;
+                CleanupStage();
+                ClearStatics();
+
+                SceneManager.LoadScene(SceneName);
                 return;
             }
 
-            Debug.Log("[Battle] 스테이지 초기화 — 씬을 다시 올린다.");
+            if (!GameManager.Instance.RestartRun(SceneName, OnBattleReloaded)) return;
 
-            // 런 데이터도 초기값으로 되돌린다. "처음부터"이므로 스테이지 · 경험치가 남으면 안 된다.
-            GameManager.Instance?.StartNewRun();
+            Debug.Log("[Battle] 런 초기화 — 첫 스테이지를 다시 올린다.");
 
-            SceneLoader.Instance.SwapTo(
-                loadScene:   SceneNames.Battle,
-                unloadScene: SceneNames.Battle,
-                onComplete:  OnBattleReloaded);
+            isRestarting = true;
+            CleanupStage();
+            ClearStatics();
+        }
+
+        private void ExitToMainMenu()
+        {
+            if (isExiting || isRestarting) return;
+            if (GameManager.Instance == null) return;
+            if (!GameManager.Instance.ReturnToMainMenu(SceneName, OnReturnedToMenu)) return;
+
+            isExiting = true;
+            CleanupStage();
+            ClearStatics();
+        }
+
+        /// <summary>
+        /// 씬 경계를 넘어 살아남는 static 은 반드시 <b>지금</b> 비운다.
+        ///
+        /// 새 씬의 Entity 는 Start 에서 스스로 등록하므로, 로드가 끝난 뒤에 비우면
+        /// 갓 등록된 새 Entity 까지 날아가 타게팅이 통째로 죽는다. 지금 비워도 곧 파괴될
+        /// 옛 Entity 의 OnDestroy → Unregister 는 빈 목록에 대한 no-op 이라 안전하다.
+        /// </summary>
+        private static void ClearStatics()
+        {
+            TimeControl.Reset();
+            BattleRegistry.Clear();
         }
 
         /// <summary>
@@ -106,22 +279,6 @@ namespace Prototype.YG
         {
             PlayerInputController input = PlayerInputController.Instance;
             return input != null && input.CancelPressed;
-        }
-
-        private void ExitToMainMenu()
-        {
-            if (SceneLoader.Instance == null) return;
-            if (SceneLoader.Instance.IsBusy) return;
-
-            isExiting = true;
-
-            CleanupStage();
-            GameManager.Instance?.EndRun();
-
-            SceneLoader.Instance.SwapTo(
-                loadScene:   SceneNames.MainMenu,
-                unloadScene: SceneNames.Battle,
-                onComplete:  OnReturnedToMenu);
         }
 
         /// <summary>

@@ -22,8 +22,10 @@ namespace Prototype
             if (ctx.distance <= ctx.p.attackRange)
                 return ctx.attackReady ? EnemyIntent.Attack(dir) : EnemyIntent.None;
 
+            // 돌진은 실행기가 가진 유일한 패턴이라 0번이다.
+            // 쿨은 안 실어 보낸다 — EnemyControl의 specialInterval을 그대로 쓴다.
             if (ctx.specialReady && ctx.p.specialRange > 0f && ctx.distance <= ctx.p.specialRange)
-                return EnemyIntent.Charge(dir);
+                return EnemyIntent.Special(0, dir);
 
             return EnemyIntent.Move(dir);
         }
