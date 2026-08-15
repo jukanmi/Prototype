@@ -58,6 +58,21 @@ namespace Prototype
             if (animator != null) animator.speed = TimeControl.Scale;
         }
 
+        /// <summary>
+        /// 상태머신을 거치지 않고 클립을 직접 지정한다.
+        ///
+        /// 보스 패턴(<see cref="BossPatternAction"/>)이 쓴다. 특수 행동은 IState가 아니라
+        /// 실행기가 돌리는 것이라 상태 전이가 일어나지 않고, 그래서 <see cref="Apply"/>가
+        /// 불리지 않는다 — 가만히 두면 예고·발동 내내 Idle 클립이 돈다.
+        ///
+        /// 없는 상태 이름은 조용히 무시된다. 아트가 아직 없는 패턴도 동작해야 한다.
+        /// </summary>
+        public void PlayState(string stateName)
+        {
+            if (animator == null || string.IsNullOrEmpty(stateName)) return;
+            Play(stateName);
+        }
+
         private void HandleStateChanged(IState prev, IState next) => Apply(next);
 
         private void Apply(IState state)

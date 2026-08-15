@@ -134,9 +134,16 @@ namespace Prototype
         private IEnumerator ReleaseWhenFinished(IState state)
         {
             var skillState = state as SkillState;
+
+            // 차징은 게이지가 찰 때까지 제자리에 서 있는 게 정상 동작이다. 모으는 시간까지
+            // 같은 예산에 넣으면 maxChargeTime이 긴 스킬이 터지기도 전에 잘린다.
+            float timeout = realtimeSkillTimeout;
+            if (state is IChargeState && skillState != null && skillState.Data != null)
+                timeout += skillState.Data.maxChargeTime;
+
             float elapsed = 0f;
 
-            while (elapsed < realtimeSkillTimeout)
+            while (elapsed < timeout)
             {
                 if (Combat.IsDead) break;
                 // 사망 등으로 관통당했거나 다른 상태로 넘어갔으면 이 코루틴이 할 일은 없다.
@@ -151,9 +158,9 @@ namespace Prototype
                 yield return null;
             }
 
-            if (elapsed >= realtimeSkillTimeout)
+            if (elapsed >= timeout)
                 BattleLog.Warn(LogCategory.Combo,
-                    $"{BattleLog.Name(this)} 실시간 스킬 타임아웃 {realtimeSkillTimeout:0.#}s — 강제로 Idle", this);
+                    $"{BattleLog.Name(this)} 실시간 스킬 타임아웃 {timeout:0.#}s — 강제로 Idle", this);
 
             if (StateMachine.CurState == state && !Combat.IsDead && !IsCommanded)
                 StateMachine.ForceChangeState(IdleState);

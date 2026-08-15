@@ -20,6 +20,10 @@ namespace Prototype
     /// 뒤 슬롯이 전부 끝난 뒤 <see cref="Release"/>로 터진다.
     /// 그래서 차징기를 앞에 놓을수록 오래 모이고 세진다 — 슬롯 배치가 곧 위력이다.
     ///
+    /// <b>실시간(U키 단발)은 다르다.</b> 큐가 없어 <see cref="Release"/>를 불러 줄 주체가 없으므로
+    /// 머리 위 게이지(<see cref="ChargeGauge"/>)가 가득 차면 스스로 터진다.
+    /// 실시간에서 최대 위력이 보장되는 대신, 모으는 시간만큼 발동이 늦는 게 대가다.
+    ///
     /// 피격당해도 유지된다(슈퍼아머). 사망만 관통한다.
     /// </summary>
     public class ChargeSkillState : SkillState, IChargeState
@@ -79,7 +83,16 @@ namespace Prototype
 
             // 상한을 넘겨도 더 세지지 않는다. 콤보가 길다고 무한히 강해지면 안 된다.
             chargeTimer = Mathf.Min(chargeTimer + dt, Data.maxChargeTime);
+
+            // 실시간(U키 단발)에는 해제해 줄 주체가 없다 — 큐가 없으니 ComboExecutor도 없다.
+            // 머리 위 게이지가 가득 찬 순간이 곧 발동 시점이다. 그대로 두면 만충인 채로
+            // 서 있다가 Ally.realtimeSkillTimeout에 잘려 아무것도 안 터진다.
+            if (!Context.isBulletTime && IsFullyCharged)
+                Release();
         }
+
+        /// <summary>게이지가 가득 찼는지. 실시간 자동 발동의 기준이다.</summary>
+        public bool IsFullyCharged => chargeTimer >= Data.maxChargeTime;
 
         public void Release()
         {

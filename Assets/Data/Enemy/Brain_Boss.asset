@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b83af488a9fc374f904d00fc7551a9e, type: 3}
+  m_Name: Brain_Boss
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BossBrainAsset
+  patterns:
+  - label: "\uACA9\uB178"
+    index: 0
+    minRange: 0
+    maxRange: 6
+    cooldown: 999
+    maxHealthRatio: 0.5
+  - label: "\uB300\uC9C0\uAC00\uB974\uAE30"
+    index: 1
+    minRange: 0
+    maxRange: 4.5
+    cooldown: 6
+    maxHealthRatio: 0
+  - label: "\uB3CC\uC9C4\uBCA0\uAE30"
+    index: 2
+    minRange: 3
+    maxRange: 9
+    cooldown: 5
+    maxHealthRatio: 0
+  - label: "\uC0BC\uC5F0\uCC38"
+    index: 3
+    minRange: 0
+    maxRange: 3.2
+    cooldown: 3.5
+    maxHealthRatio: 0

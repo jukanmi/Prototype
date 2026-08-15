@@ -3,12 +3,14 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 돌진의 <b>실행</b>. 단계는 <see cref="EnemyChargeSequence"/>가 세고, 여기서는
+    /// 돌진의 <b>실행</b>. 단계는 <see cref="EnemySpecialSequence"/>가 세고, 여기서는
     /// 회전 · 대쉬 · 히트박스처럼 인스턴스가 있어야 되는 일만 한다.
     /// 브레인은 무상태여야 하므로 이 컴포넌트가 프리팹에 붙는다.
+    ///
+    /// 패턴이 하나뿐인 실행기다. 여럿을 쓰는 보스는 <see cref="BossPatternAction"/>을 붙인다.
     /// </summary>
     [RequireComponent(typeof(Entity))]
-    public class EnemyChargeAction : MonoBehaviour
+    public class EnemyChargeAction : MonoBehaviour, IEnemySpecialAction
     {
         [Header("타이밍")]
         [Tooltip("예고. 이 동안 제자리에서 타겟을 노려본다.")]
@@ -38,12 +40,15 @@ namespace Prototype
         };
 
         private Entity owner;
-        private EnemyChargeSequence sequence;
+        private EnemySpecialSequence sequence;
         private Entity target;
         private bool wired;
 
-        public EnemyChargePhase Phase => sequence != null ? sequence.Phase : EnemyChargePhase.Idle;
+        public EnemySpecialPhase Phase => sequence != null ? sequence.Phase : EnemySpecialPhase.Idle;
         public bool IsRunning => sequence != null && sequence.IsRunning;
+
+        /// <summary>돌진 하나뿐이다. 브레인은 언제나 0번을 지목한다.</summary>
+        public int Count => 1;
 
         /// <summary>돌진 전용 히트박스. 프리팹 배선 검사용 읽기 전용 창구.</summary>
         public Attack ChargeHitbox => chargeHitbox;
@@ -62,12 +67,13 @@ namespace Prototype
         private void Awake()
         {
             owner = GetComponent<Entity>();
-            sequence = new EnemyChargeSequence(telegraphDuration, chargeDuration, recoveryDuration);
+            sequence = new EnemySpecialSequence(telegraphDuration, chargeDuration, recoveryDuration);
         }
 
         /// <summary>돌진 시작. 이미 돌고 있으면 거절한다 — 쿨 소모는 성공했을 때만이다.</summary>
-        public bool TryStart(Entity chargeTarget)
+        public bool TryStart(int index, Entity chargeTarget)
         {
+            if (index != 0) return false;
             if (sequence == null || sequence.IsRunning) return false;
             if (chargeTarget == null) return false;
 
@@ -83,21 +89,21 @@ namespace Prototype
         {
             if (sequence == null || !sequence.IsRunning) return;
 
-            EnemyChargePhase before = sequence.Phase;
+            EnemySpecialPhase before = sequence.Phase;
             sequence.Tick(dt, AimDirection());
-            EnemyChargePhase after = sequence.Phase;
+            EnemySpecialPhase after = sequence.Phase;
 
             if (before != after) HandleTransition(after);
 
             switch (after)
             {
-                case EnemyChargePhase.Telegraph:
+                case EnemySpecialPhase.Telegraph:
                     // 예고 중에는 계속 따라 돈다. 여기까지가 유도다.
                     owner.Physics.Face(AimDirection());
                     owner.Physics.Move(Vector3.zero, 0f);
                     break;
 
-                case EnemyChargePhase.Charging:
+                case EnemySpecialPhase.Active:
                     // Dash는 속도를 매 프레임 덮어쓴다. 감속에 먹히지 않게 계속 밀어 준다.
                     owner.Physics.Dash(sequence.LockedDirection, chargeSpeed);
                     break;
@@ -115,22 +121,22 @@ namespace Prototype
             BattleLog.Log(LogCategory.State, $"{name} 돌진 취소", this);
         }
 
-        private void HandleTransition(EnemyChargePhase next)
+        private void HandleTransition(EnemySpecialPhase next)
         {
             switch (next)
             {
-                case EnemyChargePhase.Charging:
+                case EnemySpecialPhase.Active:
                     Wire();
                     Hitbox?.Begin(BuildChargeHit());
                     break;
 
-                case EnemyChargePhase.Recovery:
+                case EnemySpecialPhase.Recovery:
                     Teardown();
                     owner.Physics.ResetInertia();
                     owner.Physics.Move(Vector3.zero, 0f);
                     break;
 
-                case EnemyChargePhase.Idle:
+                case EnemySpecialPhase.Idle:
                     Teardown();
                     target = null;
                     break;

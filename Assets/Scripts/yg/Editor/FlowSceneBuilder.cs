@@ -399,7 +399,14 @@ namespace Prototype.YG.EditorTools
 
         // ── Build Settings ───────────────────────────────
 
-        /// <summary>인덱스 0 이 시작 씬이 되므로 순서가 중요하다.</summary>
+        /// <summary>
+        /// 인덱스 0 이 시작 씬이 되므로 순서가 중요하다. Boot 와 MainMenu 를 앞에 세우고
+        /// 나머지는 <b>지우지 않고</b> 뒤에 그대로 남긴다.
+        ///
+        /// 예전에는 목록을 세 줄로 통째 덮어썼는데, 그러면
+        /// <see cref="Prototype.EditorTools.StageSceneBuilder"/> 가 등록해 둔 스테이지 씬이
+        /// 조용히 빠진다 — <c>LoadSceneAsync</c> 는 이름으로 찾으므로 미등록 씬은 못 연다.
+        /// </summary>
         private static void RegisterBuildSettings()
         {
             var scenes = new List<EditorBuildSettingsScene>
@@ -408,10 +415,38 @@ namespace Prototype.YG.EditorTools
                 new EditorBuildSettingsScene(MenuPath, true),
             };
 
-            if (File.Exists(BattlePath))
-                scenes.Add(new EditorBuildSettingsScene(BattlePath, true));
+            // 스테이지 목록은 GameManager 가 들고 있다. 여기 순서를 따로 적지 않는다.
+            foreach (string sceneName in GameManager.DefaultStages)
+                AddIfMissing(scenes, FindScenePath(sceneName));
+
+            // 이 빌더가 모르는 씬(테스트 씬 등)도 등록돼 있었다면 남긴다.
+            foreach (EditorBuildSettingsScene existing in EditorBuildSettings.scenes)
+                AddIfMissing(scenes, existing.path);
 
             EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        private static void AddIfMissing(List<EditorBuildSettingsScene> scenes, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+            if (!File.Exists(path)) return;
+            if (scenes.Exists(s => s.path == path)) return;
+
+            scenes.Add(new EditorBuildSettingsScene(path, true));
+        }
+
+        /// <summary>씬 이름으로 애셋 경로를 찾는다. 스테이지 씬은 하위 폴더에 있어 경로를 못 박는다.</summary>
+        private static string FindScenePath(string sceneName)
+        {
+            foreach (string guid in AssetDatabase.FindAssets($"t:SceneAsset {sceneName}"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(path) == sceneName) return path;
+            }
+
+            Debug.LogWarning($"[FlowSceneBuilder] 스테이지 씬을 못 찾았다: {sceneName}. " +
+                             "'Prototype ▸ 스테이지 - 미니·보스 씬 만들기'를 먼저 돌릴 것.");
+            return null;
         }
 
         private static void ReportInputHandling()
