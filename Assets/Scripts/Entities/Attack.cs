@@ -55,6 +55,11 @@ namespace Prototype
             hitData = data;
             style = vfx;
             alreadyHit.Clear();
+
+            // 콜라이더가 이미 켜진 채로 대상과 계속 겹쳐 있으면(다단히트 콤보)
+            // enabled = true를 다시 대입해도 OnTriggerEnter가 재발화하지 않는다.
+            // 껐다 켜서 강제로 새 진입으로 인식시킨다.
+            box.enabled = false;
             box.enabled = true;
 
             // 휘두름 궤적은 없다. 시전자 스프라이트 시트가 이미 휘두르는 그림을 들고 있어서

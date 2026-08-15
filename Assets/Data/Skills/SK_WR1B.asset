@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC62C\uB824\uBCA0\uAE30"
   icon: {fileID: 3272272688383436387, guid: 9cd07c1e72074fd58aee94d96bb1d090, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 5\uB9CC\uD07C 2\uBC88 \uC900
-    \uD6C4, \uCD94\uAC00\uB85C \uD53C\uD574\uB97C 9\uB9CC\uD07C \uC8FC\uBA70 \uACF5\uC911\uC5D0
+  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C 2\uBC88 \uC900
+    \uD6C4, \uCD94\uAC00\uB85C \uD53C\uD574\uB97C 14\uB9CC\uD07C \uC8FC\uBA70 \uACF5\uC911\uC5D0
     \uB744\uC6C1\uB2C8\uB2E4."
   role: 1
   attackType: 1
@@ -36,7 +36,7 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 5
+      damage: 11
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -47,7 +47,7 @@ MonoBehaviour:
     hitStunDuration: 0.2
     snapZ: 0
   - damageData:
-      damage: 5
+      damage: 11
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -58,7 +58,7 @@ MonoBehaviour:
     hitStunDuration: 0.2
     snapZ: 0
   - damageData:
-      damage: 9
+      damage: 14
     targetState: 0
     nextState: 2
     canOtg: 0
