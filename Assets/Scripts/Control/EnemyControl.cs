@@ -18,6 +18,7 @@ namespace Prototype
         [Tooltip("특수 행동 기본 쿨. 평타 쿨과 따로 돈다. 브레인이 쿨을 실어 보내면 그쪽이 우선한다.")]
         [SerializeField] private float specialInterval = 4f;
 
+
         [Header("브레인 파라미터")]
         [SerializeField] private EnemyBrainParams parameters = new EnemyBrainParams
         {
@@ -91,6 +92,7 @@ namespace Prototype
             {
                 Clear();
                 if (special != null) special.Cancel();
+                if (Owner != null) Owner.SetTelegraph(false);
             }
         }
 
@@ -142,6 +144,7 @@ namespace Prototype
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))
             {
                 if (special != null) special.Cancel();
+                Owner.SetTelegraph(false);   // 맞은 순간 예고는 없던 일이 된다
                 return;
             }
 
@@ -156,7 +159,10 @@ namespace Prototype
 
             Retarget();
 
-            EnemyIntent intent = brain.Decide(BuildContext(dt));
+            EnemyBrainContext ctx = BuildContext(dt);
+            UpdateAttackTelegraph(in ctx);
+
+            EnemyIntent intent = brain.Decide(ctx);
 
             if (intent.kind == EnemyActionKind.Special)
             {
@@ -170,6 +176,27 @@ namespace Prototype
             // 쿨 소모는 여기서 판단한다. 브레인이 별도 플래그를 돌려주면 항상 이 조건과 같은 값이 되어 중복이다.
             if (intent.command == Command.Attack)
                 attackTimer = attackInterval;
+        }
+
+        /// <summary>
+        /// 평타 예고. <b>남은 쿨이 선딜보다 짧아지면</b> 켠다.
+        ///
+        /// 선딜(<see cref="Entity.BasicAttackWindup"/>)만 쓰면 공격 모션과 동시에 켜져
+        /// 예고가 아니라 통보가 된다. 쿨 끝자락 선딜만큼을 미리 얹어, 총 선딜 두 배 동안 번쩍인다 —
+        /// 유저가 !를 보고 대시를 누를 시간이 그만큼 생긴다.
+        ///
+        /// 특수 행동은 자기 예고 단계(<see cref="EnemySpecialPhase.Telegraph"/>)를 따로 갖고 있어
+        /// 여기까지 오지 않는다 — 위쪽에서 이미 return한다.
+        /// </summary>
+        private void UpdateAttackTelegraph(in EnemyBrainContext ctx)
+        {
+            if (Owner == null) return;
+
+            // 이미 휘두르는 중이면 AttackState가 예고를 쥐고 있다. 여기서 건드리면 선딜 표시가 끊긴다.
+            if (Owner.StateMachine != null && Owner.StateMachine.CurState == Owner.AttackState) return;
+
+            bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange;
+            Owner.SetTelegraph(inRange && attackTimer <= Owner.BasicAttackWindup);
         }
 
         /// <summary>

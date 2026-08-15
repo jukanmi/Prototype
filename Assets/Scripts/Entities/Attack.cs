@@ -41,6 +41,25 @@ namespace Prototype
             box.isTrigger = true;
             if (attacker == null) attacker = GetComponentInParent<Combat>();
             box.enabled = false;
+
+            WarnIfDuplicated();
+        }
+
+        /// <summary>
+        /// 한 오브젝트에 Attack이 둘 이상이면 <b>같은 콜라이더를 공유</b>한다.
+        /// 그러면 켠 적 없는 쪽까지 <c>OnTriggerEnter</c>를 받아, 비어 있는 hitData(데미지 0)로
+        /// 먼저 때리고 <see cref="alreadyHit"/>에 대상을 선점한다 — 맞은 판정은 나는데 데미지가 0이 된다.
+        ///
+        /// 씬에서 실수로 컴포넌트를 하나 더 붙이면 생기고, 증상이 "가끔 안 아프다"라 추적이 어렵다.
+        /// </summary>
+        private void WarnIfDuplicated()
+        {
+            int count = GetComponents<Attack>().Length;
+            if (count < 2) return;
+
+            BattleLog.Warn(LogCategory.Combat,
+                $"{name}: Attack 컴포넌트가 {count}개다. 같은 콜라이더를 공유해 데미지 0짜리 타격이 " +
+                "먼저 소비된다 — 하나만 남길 것.", this);
         }
 
         /// <summary>히트박스 활성화. 한 번 켜는 동안 같은 대상은 1회만 맞는다.</summary>

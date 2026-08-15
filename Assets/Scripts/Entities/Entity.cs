@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Prototype
@@ -170,6 +171,28 @@ namespace Prototype
         /// </summary>
         public bool IsCommanded { get; set; }
 
+        /// <summary>
+        /// 공격 예고(선딜) 중인가. <b>맞기 전에 읽을 수 있는 유일한 신호</b>다.
+        ///
+        /// 평타는 선딜(<see cref="BasicAttackWindup"/>), 보스 · 돌진은
+        /// <see cref="EnemySpecialPhase.Telegraph"/> 구간이 여기 해당한다.
+        /// 화면 표현(<see cref="EnemyStateTint"/>)이 이 값을 보고 몸을 하얗게 번쩍인다 —
+        /// 대시 패링은 이 신호를 보고 누르는 것이라, 신호가 없으면 패링은 운이 된다.
+        /// </summary>
+        public bool IsTelegraphing { get; private set; }
+
+        /// <summary>예고가 켜지고 꺼질 때. 표현 쪽이 매 프레임 폴링하지 않게 이벤트로 알린다.</summary>
+        public event Action<bool> OnTelegraphChanged;
+
+        /// <summary>예고 표시를 켜고 끈다. 같은 값이면 아무 일도 하지 않는다.</summary>
+        public void SetTelegraph(bool on)
+        {
+            if (IsTelegraphing == on) return;
+
+            IsTelegraphing = on;
+            OnTelegraphChanged?.Invoke(on);
+        }
+
         public StateMachine StateMachine { get; private set; }
         public Stats Stats => stats;
         public Energies Energies => energies;
@@ -216,6 +239,13 @@ namespace Prototype
                 this);
 
             StateMachine.ForceChangeState(IdleState);
+
+            // 선딜이 전체 길이보다 길면 AttackState가 히트박스를 켜기 전에 끝난다 —
+            // 공격이 조용히 사라지고 모션만 남는다. 예고를 길게 잡다가 밟기 쉬운 함정이라 경고한다.
+            if (basicAttackWindup >= basicAttackTotal)
+                BattleLog.Warn(LogCategory.Combat,
+                    $"{name}: 평타 선딜({basicAttackWindup:0.##}s)이 전체 길이({basicAttackTotal:0.##}s) 이상이다. " +
+                    "히트박스가 켜지지 않는다 — windup < activeEnd < total 순서를 지킬 것.", this);
         }
 
         /// <summary>
@@ -292,6 +322,7 @@ namespace Prototype
         /// <summary>사망은 슈퍼아머를 관통한다(결정 로그 ②③).</summary>
         public void ForceDead()
         {
+            SetTelegraph(false);
             StateMachine.ForceChangeState(DeadState);
         }
 
@@ -354,6 +385,7 @@ namespace Prototype
         protected void ReleaseBody()
         {
             IsCommanded = false;
+            SetTelegraph(false);
 
             if (Combat.IsDead) return;
 

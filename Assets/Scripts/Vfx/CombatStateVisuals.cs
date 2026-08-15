@@ -19,6 +19,14 @@ namespace Prototype
         /// </summary>
         public const float TintStrength = 0.8f;
 
+        /// <summary>
+        /// 예고(선딜) 표시의 세기. 경직(0.8)보다 <b>세게</b> 덮어 완전한 흰색으로 번쩍인다.
+        ///
+        /// 경직도 흰색 계열이라 세기까지 같으면 "때렸다"와 "맞기 직전이다"가 구분되지 않는다.
+        /// 예고는 고유색을 지워 버릴 만큼 하얗고, 경직은 적 색이 비쳐 보인다.
+        /// </summary>
+        public const float TelegraphStrength = 1f;
+
         // 색과 글자를 함께 쓴다. 색만으로는 색약자가 구분하지 못하고,
         // 글자만으로는 난전에서 안 읽힌다.
         private static readonly Color LightHitColor = new Color(1f, 1f, 1f);           // #FFFFFF
@@ -27,6 +35,12 @@ namespace Prototype
         private static readonly Color WallBoundColor = new Color(0.886f, 0.290f, 1f);  // #E24AFF
         private static readonly Color DownColor = new Color(0.478f, 0.478f, 0.522f);   // #7A7A85
         private static readonly Color GetupColor = new Color(1f, 0.820f, 0.400f);      // #FFD166
+
+        /// <summary>공격 예고. 이 색으로 번쩍이는 순간이 곧 "지금 대시하면 패링된다"는 신호다.</summary>
+        private static readonly Color TelegraphColor = new Color(1f, 1f, 1f);          // #FFFFFF
+
+        /// <summary>예고 중에 머리 위에 띄울 글자. 색만으로는 색약자가 구분하지 못한다.</summary>
+        public const string TelegraphLabel = "!";
 
         /// <summary>화면에 드러낼 상태인지. 평상시(Neutral)와 사망은 표시하지 않는다.</summary>
         public static bool ShouldShow(CombatState state)
@@ -69,10 +83,30 @@ namespace Prototype
         /// 여기서 덮으면 죽는 연출이 도중에 끊긴다.
         /// </summary>
         public static Color Tint(Color baseColor, CombatState state)
-        {
-            if (!ShouldShow(state)) return baseColor;
+            => Tint(baseColor, state, telegraphing: false);
 
-            Color mixed = Color.Lerp(baseColor, StateColor(state), TintStrength);
+        /// <summary>
+        /// 예고까지 반영한 색. <b>전투 상태가 예고를 이긴다</b> —
+        /// 예고 중에 맞으면 특수 행동이 취소되므로(EnemyControl), 그 순간 화면도 피격을 보여야 한다.
+        /// </summary>
+        public static Color Tint(Color baseColor, CombatState state, bool telegraphing)
+        {
+            if (ShouldShow(state))
+                return Mix(baseColor, StateColor(state), TintStrength);
+
+            if (telegraphing && state != CombatState.Dead)
+                return Mix(baseColor, TelegraphColor, TelegraphStrength);
+
+            return baseColor;
+        }
+
+        /// <summary>
+        /// 알파는 항상 기본 색의 것을 쓴다 — 사망 페이드가 알파를 깎는데
+        /// 여기서 덮으면 죽는 연출이 도중에 끊긴다.
+        /// </summary>
+        private static Color Mix(Color baseColor, Color target, float strength)
+        {
+            Color mixed = Color.Lerp(baseColor, target, strength);
             mixed.a = baseColor.a;
             return mixed;
         }

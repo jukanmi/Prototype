@@ -148,6 +148,9 @@ namespace Prototype
             Physics.Move(Vector3.zero, 0f);
             if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
                 Physics.Face(Control.MoveDirection);
+
+            // 예고는 여기서 켜지 않는다 — 켤 시점은 Tick이 "타격까지 남은 시간"으로 판단한다.
+            // 쿨 구간에서 이미 켜 뒀으면 그대로 이어진다.
         }
 
         public override void Tick(float dt)
@@ -156,6 +159,10 @@ namespace Prototype
             timer += dt;
 
             bool windup = prev < Entity.BasicAttackWindup && timer >= Entity.BasicAttackWindup;
+
+            // 선딜 동안 번쩍인다. 쿨 끝자락에서 이미 켜져 있고 여기서 이어받는다.
+            // 히트박스가 켜지는 순간 꺼진다 — 그 뒤는 피할 수 없는 구간이라 신호를 주면 거짓말이 된다.
+            Entity.SetTelegraph(timer < Entity.BasicAttackWindup);
 
             // 원거리 평타는 선딜 끝에 투사체를 하나 쏘고 끝. 켜고 끌 히트박스가 없다.
             if (Entity.BasicIsRanged)
@@ -187,6 +194,8 @@ namespace Prototype
 
         public override void Exit()
         {
+            // 선딜 도중 경직으로 끊기면 예고가 켜진 채로 굳는다.
+            Entity.SetTelegraph(false);
             Entity.BasicAttack?.End();
         }
     }

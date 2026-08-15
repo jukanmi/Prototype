@@ -24,6 +24,15 @@ namespace Prototype
         private AnimatorOverrideController overrides;
         private SkillData currentSkill;
 
+        /// <summary>
+        /// 지금 상태의 클립 재생 배율. 클립 길이를 <b>코드가 정한 상태 길이</b>에 맞춘다.
+        ///
+        /// 이게 없으면 모션과 판정이 따로 논다 — 평타 클립이 0.36초인데 선딜이 0.5초면
+        /// 휘두르는 그림이 다 끝난 뒤에 히트박스가 켜지고, 남은 시간은 마지막 프레임으로 얼어 있다.
+        /// 타이밍의 주인이 코드라는 원칙을 지키려면 그림 쪽을 늘리고 줄여야 한다.
+        /// </summary>
+        private float stateSpeed = 1f;
+
         private void Awake()
         {
             entity = GetComponent<Entity>();
@@ -55,7 +64,7 @@ namespace Prototype
         private void Update()
         {
             // 불릿타임에 같이 멈춘다. Time.timeScale은 건드리지 않는다.
-            if (animator != null) animator.speed = TimeControl.Scale;
+            if (animator != null) animator.speed = TimeControl.Scale * stateSpeed;
         }
 
         /// <summary>
@@ -82,11 +91,67 @@ namespace Prototype
             if (state is SkillState skill)
             {
                 SwapSkillClip(skill.Data);
+                stateSpeed = SpeedFor("Skill", skill.Data != null ? skill.Data.TotalDuration : 0f);
                 Play("Skill");
                 return;
             }
 
-            Play(StateToClip(state));
+            string clip = StateToClip(state);
+            stateSpeed = SpeedFor(clip, DurationOf(state));
+            Play(clip);
+        }
+
+        /// <summary>
+        /// 이 상태가 <b>코드상 몇 초짜리인지</b>. 0이면 길이를 맞추지 않는다(그대로 재생).
+        ///
+        /// 경직 · 다운처럼 지속이 피격마다 달라지는 상태는 맞추지 않는다 —
+        /// 매번 재생 속도가 흔들리면 같은 동작이 다른 동작으로 보인다.
+        /// </summary>
+        private float DurationOf(IState state)
+        {
+            if (entity == null) return 0f;
+
+            bool isAttack = ReferenceEquals(state, entity.AttackState) ||
+                            ReferenceEquals(state, entity.AerialAttackState);
+
+            return isAttack ? entity.BasicAttackTotal : 0f;
+        }
+
+        /// <summary>
+        /// 클립을 <paramref name="duration"/>초에 걸쳐 재생할 배율.
+        /// 클립을 못 찾거나 길이가 없으면 1 — 아트가 아직 없는 상태도 동작해야 한다.
+        /// </summary>
+        private float SpeedFor(string stateName, float duration)
+        {
+            if (duration <= 0f) return 1f;
+
+            float length = ClipLength(stateName);
+            return length > 0f ? length / duration : 1f;
+        }
+
+        /// <summary>
+        /// Animator 상태 이름으로 클립 길이를 찾는다.
+        ///
+        /// 클립 이름은 <c>{직업}_{상태}</c> 규칙이라(Ally_Attack) 접미사로 맞춘다.
+        /// 런타임 API만 쓴다 — AnimatorController는 에디터 전용이라 빌드에서 못 읽는다.
+        /// </summary>
+        private float ClipLength(string stateName)
+        {
+            RuntimeAnimatorController rac = animator.runtimeAnimatorController;
+            if (rac == null) return 0f;
+
+            AnimationClip[] clips = rac.animationClips;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                AnimationClip c = clips[i];
+                if (c == null) continue;
+
+                // "Ally_AerialAttack"이 "_Attack"에 걸리지 않게 구분자를 포함해서 본다.
+                if (c.name == stateName || c.name.EndsWith("_" + stateName))
+                    return c.length;
+            }
+
+            return 0f;
         }
 
         /// <summary>IdleState → "Idle". 상태 클래스 이름이 곧 Animator 상태 이름이다.</summary>

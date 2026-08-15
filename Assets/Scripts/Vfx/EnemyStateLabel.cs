@@ -68,22 +68,33 @@ namespace Prototype
                 if (e == null || e.Combat == null) continue;
 
                 CombatState state = e.Combat.CombatState;
-                if (!CombatStateVisuals.ShouldShow(state)) continue;
 
-                Draw(Take(n), e, state);
-                n++;
+                if (CombatStateVisuals.ShouldShow(state))
+                {
+                    Draw(Take(n), e, CombatStateVisuals.Label(state), CombatStateVisuals.StateColor(state));
+                    n++;
+                    continue;
+                }
+
+                // 예고는 상태가 아니라 행동이라 CombatState에 없다. 맞기 전에 읽을 수 있는
+                // 유일한 신호라서 몸 색(EnemyStateTint)과 같이 글자로도 띄운다.
+                if (e.IsTelegraphing && !e.Combat.IsDead)
+                {
+                    Draw(Take(n), e, CombatStateVisuals.TelegraphLabel, Color.white);
+                    n++;
+                }
             }
 
             return n;
         }
 
-        private void Draw(Slot slot, Entity e, CombatState state)
+        private void Draw(Slot slot, Entity e, string label, Color color)
         {
             Physics phys = e.Physics;
             Vector3 ground = phys.GroundPosition;
 
-            slot.text.text = CombatStateVisuals.Label(state);
-            slot.text.color = CombatStateVisuals.StateColor(state);
+            slot.text.text = label;
+            slot.text.color = color;
 
             slot.text.transform.position = LabelPosition(ground, phys.Height, headOffset);
             slot.text.transform.rotation = Quaternion.identity;   // 빌보드

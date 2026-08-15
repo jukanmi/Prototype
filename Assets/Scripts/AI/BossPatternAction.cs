@@ -141,6 +141,7 @@ namespace Prototype
 
             sequence.Begin(p.telegraph, p.active, p.recovery);
             PlayClip(p.telegraphClip);
+            owner.SetTelegraph(sequence.ShouldShowTelegraph);
 
             BattleLog.Log(LogCategory.State,
                 $"{name} 패턴 '{Label(index)}' 예고 시작 → {patternTarget.name}", this);
@@ -156,6 +157,10 @@ namespace Prototype
             EnemySpecialPhase after = sequence.Phase;
 
             if (before != after) HandleTransition(after);
+
+            // 발동 TelegraphLead초 전부터만 번쩍인다. 예고 단계 전체를 켜면 패턴마다
+            // "!에서 타격까지"가 달라져 패링 타이밍을 익힐 수 없다.
+            owner.SetTelegraph(sequence.ShouldShowTelegraph);
 
             // 단계가 바뀌면 sequence의 타이머가 0으로 되감긴다. 문턱 판정이 쓰는 시각도
             // 같은 값을 봐야 하므로 매 프레임 여기서 받아 온다.
@@ -181,6 +186,7 @@ namespace Prototype
 
             sequence.Cancel();
             Teardown();
+            owner.SetTelegraph(false);
             current = -1;
             target = null;
 

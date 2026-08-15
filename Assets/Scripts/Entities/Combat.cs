@@ -30,13 +30,16 @@ namespace Prototype
         [SerializeField] private float wallBounceCooldown = 0.2f;
 
         [Header("대시 패링")]
-        [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간. 저스트 창이라 짧게 잡는다.")]
-        [SerializeField] private float parryWindow = 0.15f;
-        [Tooltip("전방으로 인정할 부채꼴의 전체 폭(도). 120이면 정면 기준 좌우 60도씩.")]
-        [SerializeField] private float parryAngle = 120f;
+        [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간.\n\n" +
+                 "예고(!)가 basicAttackWindup의 두 배 동안 떠 있으므로, 그 안에 누른 대시가 " +
+                 "타격까지 살아 있으려면 이 값이 넉넉해야 한다.\n" +
+                 "PlayerControl.dashCooldown(0.6)보다 크면 사실상 상시 무적이 되니 그보다는 작게 둘 것.")]
+        [SerializeField] private float parryWindow = 0.45f;
+        [Tooltip("전방으로 인정할 부채꼴의 전체 폭(도). 180이면 옆구리까지 막고 등 뒤만 통과한다.")]
+        [SerializeField] private float parryAngle = 180f;
         [Tooltip("패링에 성공하면 이 시간 동안 완전 무적이 된다. 다대일에서 동시에 들어오는 " +
                  "나머지 타격까지 흘려 내는 구간이라, 이 값이 곧 '한 번의 패링으로 몇 대를 받아치는가'다.")]
-        [SerializeField] private float parrySuccessInvuln = 0.2f;
+        [SerializeField] private float parrySuccessInvuln = 0.3f;
         [Tooltip("패링당한 공격자가 먹는 경직.")]
         [SerializeField] private float parryCounterStun = 0.6f;
         [Tooltip("반격 밀치기. 0이면 제자리에서 경직만 먹는다.")]
@@ -74,6 +77,9 @@ namespace Prototype
 
         /// <summary>패링 판정이 지금 열려 있는지.</summary>
         public bool IsParrying => parryTimer > 0f;
+
+        /// <summary>패링 창 길이. <see cref="CombatStateRules.TelegraphLead"/>와 짝이 맞는지 보는 쪽이 읽는다.</summary>
+        public float ParryWindow => parryWindow;
 
         /// <summary>패링 성공 직후의 무적 구간인지.</summary>
         public bool IsParryInvulnerable => parryInvulnTimer > 0f;

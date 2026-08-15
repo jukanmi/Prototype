@@ -46,6 +46,9 @@ namespace Prototype
         /// <summary>현재 단계에서 흐른 시간. 연출 보간과 다단히트 간격에 쓴다.</summary>
         public float PhaseTime => timer;
 
+        /// <summary>예고 표시(!)를 켤 구간인가. 특수 행동은 예고 단계가 곧 예고다.</summary>
+        public bool ShouldShowTelegraph => Phase == EnemySpecialPhase.Telegraph;
+
         public float TelegraphDuration => telegraphDuration;
         public float ActiveDuration => activeDuration;
         public float RecoveryDuration => recoveryDuration;
