@@ -176,7 +176,10 @@ namespace Prototype
             if (caster == null) return;
 
             caster.AddShield(amount);
-            EffectRunner.Instance.Schedule(duration, () => caster.ClearShield());
+
+            // 지속시간을 Combat이 들고 있어야 머리 위 게이지가 남은 시간을 그린다.
+            // EffectRunner에 맡기면 걸린 사실이 익명 콜백 안에만 남는다.
+            caster.Statuses.Apply(StatusKind.Shield, duration, () => caster.ClearShield());
         }
     }
 
@@ -193,7 +196,7 @@ namespace Prototype
             if (caster == null) return;
 
             caster.SetDamageCut(ratio);
-            EffectRunner.Instance.Schedule(duration, () => caster.SetDamageCut(0f));
+            caster.Statuses.Apply(StatusKind.DamageCut, duration, () => caster.SetDamageCut(0f));
         }
     }
 
@@ -253,7 +256,7 @@ namespace Prototype
             if (caster == null) return;
 
             caster.SetLifesteal(ratio);
-            EffectRunner.Instance.Schedule(duration, () => caster.SetLifesteal(0f));
+            caster.Statuses.Apply(StatusKind.Lifesteal, duration, () => caster.SetLifesteal(0f));
         }
     }
 }
