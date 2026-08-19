@@ -18,6 +18,7 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "unity"
+    "unity",
+    "code-review-graph"
   ]
 }

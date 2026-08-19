@@ -4,9 +4,20 @@
       "command": "${USERPROFILE}\\.unity\\relay\\relay_win.exe",
       "args": [
         "--mcp",
-        "--name", "CapstoneBeltScroll",
-        "--project-path", "C:\\github\\캡디\\Prototype"
+        "--name",
+        "CapstoneBeltScroll",
+        "--project-path",
+        "C:\\github\\\ucea1\ub514\\Prototype"
       ]
+    },
+    "code-review-graph": {
+      "command": "uvx",
+      "args": [
+        "code-review-graph",
+        "serve"
+      ],
+      "cwd": "C:\\github\\\ucea1\ub514\\Prototype",
+      "type": "stdio"
     }
   }
 }
