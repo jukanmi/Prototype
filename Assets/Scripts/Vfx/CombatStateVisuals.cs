@@ -3,6 +3,19 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
+    /// <see cref="CombatState"/> 위에 겹쳐 그리는 표시. 상태가 아니라 <b>행동</b>이라
+    /// 전이표에 넣을 수 없는 것들이다.
+    /// </summary>
+    public enum CombatOverlay
+    {
+        None,
+        /// <summary>공격 예고(선딜). 맞기 전에 읽을 수 있는 유일한 신호.</summary>
+        Telegraph,
+        /// <summary>보스 슈퍼아머. 때려도 밀리지 않는 구간.</summary>
+        SuperArmor,
+    }
+
+    /// <summary>
     /// 전투 상태를 화면 표현(색 · 글자)으로 옮기는 표. <b>한 벌만</b> 유지한다.
     ///
     /// <see cref="EnemyStateTint"/>(몸 색)와 <see cref="EnemyStateLabel"/>(머리 위 글자)이
@@ -39,8 +52,21 @@ namespace Prototype
         /// <summary>공격 예고. 이 색으로 번쩍이는 순간이 곧 "지금 대시하면 패링된다"는 신호다.</summary>
         private static readonly Color TelegraphColor = new Color(1f, 1f, 1f);          // #FFFFFF
 
+        /// <summary>슈퍼아머. 로그가 쓰던 색과 같게 둔다 — 화면과 콘솔이 같은 것을 가리켜야 한다.</summary>
+        private static readonly Color SuperArmorColor = new Color(1f, 0.820f, 0.400f); // #FFD166
+
         /// <summary>예고 중에 머리 위에 띄울 글자. 색만으로는 색약자가 구분하지 못한다.</summary>
         public const string TelegraphLabel = "!";
+
+        /// <summary>슈퍼아머 중에 띄울 글자.</summary>
+        public const string SuperArmorLabel = "아머";
+
+        /// <summary>
+        /// 가드브레이크 중에 띄울 글자. <b>색은 주지 않는다</b> —
+        /// 그 구간은 경직 · 공중 · 다운 상태색이 계속 바뀌는 게 피드백인데
+        /// 위에 색을 덮으면 콤보가 먹히는지 안 먹히는지 안 보인다.
+        /// </summary>
+        public const string GuardBreakLabel = "브레이크";
 
         /// <summary>화면에 드러낼 상태인지. 평상시(Neutral)와 사망은 표시하지 않는다.</summary>
         public static bool ShouldShow(CombatState state)
@@ -83,21 +109,30 @@ namespace Prototype
         /// 여기서 덮으면 죽는 연출이 도중에 끊긴다.
         /// </summary>
         public static Color Tint(Color baseColor, CombatState state)
-            => Tint(baseColor, state, telegraphing: false);
+            => Tint(baseColor, state, CombatOverlay.None);
 
         /// <summary>
-        /// 예고까지 반영한 색. <b>전투 상태가 예고를 이긴다</b> —
-        /// 예고 중에 맞으면 특수 행동이 취소되므로(EnemyControl), 그 순간 화면도 피격을 보여야 한다.
+        /// 겹침 표시까지 반영한 색. 우선순위는 <b>전투 상태 &gt; 아머 &gt; 예고 &gt; 기본</b>이다.
+        ///
+        /// 전투 상태가 가장 위인 이유: 예고 중에 맞으면 특수 행동이 취소되므로(EnemyControl)
+        /// 그 순간 화면도 피격을 보여야 한다. 아머 중에는 애초에 경직이 안 걸려 충돌이 드물다.
         /// </summary>
-        public static Color Tint(Color baseColor, CombatState state, bool telegraphing)
+        public static Color Tint(Color baseColor, CombatState state, CombatOverlay overlay)
         {
             if (ShouldShow(state))
                 return Mix(baseColor, StateColor(state), TintStrength);
 
-            if (telegraphing && state != CombatState.Dead)
-                return Mix(baseColor, TelegraphColor, TelegraphStrength);
+            if (state == CombatState.Dead) return baseColor;
 
-            return baseColor;
+            switch (overlay)
+            {
+                case CombatOverlay.SuperArmor:
+                    return Mix(baseColor, SuperArmorColor, TintStrength);
+                case CombatOverlay.Telegraph:
+                    return Mix(baseColor, TelegraphColor, TelegraphStrength);
+                default:
+                    return baseColor;
+            }
         }
 
         /// <summary>

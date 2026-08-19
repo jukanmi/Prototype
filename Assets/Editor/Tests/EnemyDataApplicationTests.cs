@@ -40,6 +40,26 @@ namespace Prototype.Tests
             Assert.That(entity.BasicIsRanged, Is.False);
         }
 
+        /// <summary>
+        /// 주입한 최대치가 <see cref="Combat"/>의 Awake에 덮이지 않는지.
+        ///
+        /// 컴포넌트 간 Awake 순서는 보장되지 않아, Enemy.Awake가 먼저 돌면
+        /// ApplyData가 넣은 HP를 Combat.Awake가 프리팹 값으로 되돌린다 —
+        /// 보스 HP 400이 100으로 돌아가 가드가 깨지기 전에 죽던 버그가 그것이다.
+        /// </summary>
+        [Test]
+        public void InjectedMaxHealth_SurvivesLateAwake()
+        {
+            entity.Combat.SetMaxHealth(400f);
+            Assert.That(entity.Combat.Health.MaxValue, Is.EqualTo(400f).Within(0.001f));
+
+            entityObject.SetActive(false);
+            entityObject.SetActive(true);   // OnEnable/Awake 재진입 경로
+
+            Assert.That(entity.Combat.Health.MaxValue, Is.EqualTo(400f).Within(0.001f),
+                        "Awake가 이미 만들어진 Energy를 새로 만들면 주입값이 날아간다");
+        }
+
         [Test]
         public void Configure_MakesBasicAttackRanged()
         {

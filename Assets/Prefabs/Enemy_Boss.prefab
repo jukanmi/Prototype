@@ -358,6 +358,11 @@ MonoBehaviour:
   wallMinLaunch: 3
   wallMaxLaunch: 15
   wallBounceCooldown: 0.2
+  maxGuard: 10
+  defaultGuardDamage: 1
+  guardBreakDuration: 4
+  guardRegenDelay: 3
+  guardRegen: 2
 --- !u!114 &143802035022428292
 MonoBehaviour:
   m_ObjectHideFlags: 0

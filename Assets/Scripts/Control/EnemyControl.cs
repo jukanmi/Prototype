@@ -140,6 +140,15 @@ namespace Prototype
             for (int i = 0; i < specialTimers.Length; i++)
                 specialTimers[i] -= dt;
 
+            // 가드브레이크는 완전 무방비다. 경직만으로는 부족하다 —
+            // 경직이 풀리는 순간 다시 휘두르면 무방비 구간이 아니게 된다.
+            if (Owner != null && Owner.Combat.IsGuardBroken)
+            {
+                if (special != null) special.Cancel();
+                Owner.SetTelegraph(false);
+                return;
+            }
+
             // 경직·사망 중에는 특수 행동이 이어지면 안 된다. 무적 관통처럼 보인다.
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))
             {

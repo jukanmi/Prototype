@@ -226,6 +226,12 @@ namespace Prototype.EditorTools
                                                 "여기는 Knockback으로 둘 것.");
                         if (s.hitDataList[0].knockbackForce <= 0f)
                             problems += Warn(s, $"{tag}: 밀치기인데 knockbackForce가 0이다. 벽까지 못 간다.");
+
+                        // 밀치기는 보스 가드를 허무는 역할을 맡는다. 값을 비워 두면
+                        // 평타와 같은 한 대분만 깎아 "가드 브레이커"라는 정체성이 사라진다.
+                        if (s.hitDataList[0].guardDamage <= 0f)
+                            problems += Warn(s, $"{tag}: 밀치기인데 guardDamage가 0이다. " +
+                                                "보스 가드를 평타와 같은 한 대분만 깎는다 — 몇 대분인지 채울 것.");
                         break;
 
                     case AttackType.Gather:

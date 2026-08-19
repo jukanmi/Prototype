@@ -30,7 +30,7 @@ namespace Prototype.Tests
         {
             var identity = new Color(0.9f, 0.3f, 0.28f, 1f);
 
-            Color tinted = CombatStateVisuals.Tint(identity, CombatState.Neutral, telegraphing: true);
+            Color tinted = CombatStateVisuals.Tint(identity, CombatState.Neutral, CombatOverlay.Telegraph);
 
             Assert.That(tinted.r, Is.EqualTo(1f).Within(0.001f));
             Assert.That(tinted.g, Is.EqualTo(1f).Within(0.001f));
@@ -42,8 +42,8 @@ namespace Prototype.Tests
         {
             var identity = new Color(0.9f, 0.3f, 0.28f, 1f);
 
-            Color stun = CombatStateVisuals.Tint(identity, CombatState.LightHit, telegraphing: false);
-            Color telegraph = CombatStateVisuals.Tint(identity, CombatState.Neutral, telegraphing: true);
+            Color stun = CombatStateVisuals.Tint(identity, CombatState.LightHit, CombatOverlay.None);
+            Color telegraph = CombatStateVisuals.Tint(identity, CombatState.Neutral, CombatOverlay.Telegraph);
 
             Assert.That(telegraph.g, Is.GreaterThan(stun.g),
                         "둘 다 흰색 계열이라 세기로 갈린다 — 예고가 더 하얗다");
@@ -54,7 +54,7 @@ namespace Prototype.Tests
         {
             var identity = new Color(0.9f, 0.3f, 0.28f, 1f);
 
-            Color both = CombatStateVisuals.Tint(identity, CombatState.Knockback, telegraphing: true);
+            Color both = CombatStateVisuals.Tint(identity, CombatState.Knockback, CombatOverlay.Telegraph);
 
             Assert.That(both, Is.EqualTo(CombatStateVisuals.Tint(identity, CombatState.Knockback)),
                         "예고 중에 맞으면 특수 행동이 취소된다 — 화면도 피격을 보여야 한다");
@@ -65,7 +65,7 @@ namespace Prototype.Tests
         {
             var identity = new Color(0.9f, 0.3f, 0.28f, 1f);
 
-            Assert.That(CombatStateVisuals.Tint(identity, CombatState.Dead, telegraphing: true),
+            Assert.That(CombatStateVisuals.Tint(identity, CombatState.Dead, CombatOverlay.Telegraph),
                         Is.EqualTo(identity), "시체는 예고하지 않는다");
         }
 
@@ -74,7 +74,7 @@ namespace Prototype.Tests
         {
             var faded = new Color(0.9f, 0.3f, 0.28f, 0.5f);
 
-            Color tinted = CombatStateVisuals.Tint(faded, CombatState.Neutral, telegraphing: true);
+            Color tinted = CombatStateVisuals.Tint(faded, CombatState.Neutral, CombatOverlay.Telegraph);
 
             Assert.That(tinted.a, Is.EqualTo(0.5f).Within(0.0001f));
         }

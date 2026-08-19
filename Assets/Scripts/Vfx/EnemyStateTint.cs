@@ -34,19 +34,36 @@ namespace Prototype
 
         private void OnEnable()
         {
-            if (combat != null) combat.OnCombatStateChanged += HandleStateChanged;
-            if (owner != null) owner.OnTelegraphChanged += HandleTelegraphChanged;
+            if (combat != null)
+            {
+                combat.OnCombatStateChanged += HandleStateChanged;
+                combat.OnGuardBreakChanged += HandleOverlayChanged;
+            }
+
+            if (owner != null) owner.OnTelegraphChanged += HandleOverlayChanged;
         }
 
         private void OnDisable()
         {
-            if (combat != null) combat.OnCombatStateChanged -= HandleStateChanged;
-            if (owner != null) owner.OnTelegraphChanged -= HandleTelegraphChanged;
+            if (combat != null)
+            {
+                combat.OnCombatStateChanged -= HandleStateChanged;
+                combat.OnGuardBreakChanged -= HandleOverlayChanged;
+            }
+
+            if (owner != null) owner.OnTelegraphChanged -= HandleOverlayChanged;
         }
+
+        /// <summary>
+        /// 아머는 <b>기본 상태</b>라 이벤트가 뜨지 않는다 — 보스는 첫 프레임부터 금색이어야 한다.
+        /// 상태 변경만 기다리면 가드가 한 번 깨질 때까지 색이 안 붙는다.
+        /// </summary>
+        private void Start() => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
 
         private void HandleStateChanged(CombatState prev, CombatState next) => Apply(next);
 
-        private void HandleTelegraphChanged(bool on)
+        /// <summary>예고 · 가드브레이크는 둘 다 겹침 표시라 같은 계산을 다시 돌리면 된다.</summary>
+        private void HandleOverlayChanged(bool on)
             => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
 
         /// <summary>
@@ -58,8 +75,21 @@ namespace Prototype
         {
             if (body == null) return;
 
-            bool telegraphing = owner != null && owner.IsTelegraphing;
-            body.color = CombatStateVisuals.Tint(BaseColor, state, telegraphing);
+            body.color = CombatStateVisuals.Tint(BaseColor, state, ResolveOverlay());
+        }
+
+        /// <summary>
+        /// 겹쳐 그릴 표시. 아머가 예고를 이긴다 — 아머 중에는 어차피 못 끊으므로
+        /// "지금 패링하면 된다"는 신호를 주면 거짓말이 된다.
+        ///
+        /// 가드브레이크는 색을 주지 않는다(<see cref="CombatStateVisuals.GuardBreakLabel"/> 참고).
+        /// </summary>
+        private CombatOverlay ResolveOverlay()
+        {
+            if (combat != null && combat.IsSuperArmored) return CombatOverlay.SuperArmor;
+            if (owner != null && owner.IsTelegraphing) return CombatOverlay.Telegraph;
+
+            return CombatOverlay.None;
         }
 
         /// <summary>

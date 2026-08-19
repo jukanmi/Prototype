@@ -92,6 +92,8 @@ namespace Prototype
         Health,
         Mana,
         BulletTimeGauge,
+        /// <summary>보스의 가드. 0이 되면 가드브레이크 — 슈퍼아머가 풀린다.</summary>
+        Guard,
     }
 
     /// <summary>진영. 히트박스가 아군을 때리지 않도록 거르는 기준.</summary>
