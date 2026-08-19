@@ -20,9 +20,20 @@ namespace Prototype
         [Tooltip("상태 전환 시 섞는 시간(초). 0이면 즉시 끊어 바꾼다.")]
         [SerializeField] private float crossFade = 0.05f;
 
+        /// <summary>평타 연타가 클립을 갈아끼우는 자리. Animator 상태 이름이다.</summary>
+        private const string AttackState = "Attack";
+
         private Entity entity;
         private AnimatorOverrideController overrides;
         private SkillData currentSkill;
+
+        /// <summary>
+        /// <see cref="AttackState"/>에 원래 물려 있던 클립. 연타가 이 자리를 갈아끼우므로
+        /// <b>오버라이드를 씌우기 전에</b> 잡아 둬야 한다 — 씌운 뒤에 읽으면 이미 바뀐 값이 나온다.
+        /// 이게 오버라이드 사전의 키이자, 1타로 되돌릴 때의 원상복구 값이다.
+        /// </summary>
+        private AnimationClip baseAttackClip;
+        private AnimationClip currentAttackClip;
 
         /// <summary>
         /// 지금 상태의 클립 재생 배율. 클립 길이를 <b>코드가 정한 상태 길이</b>에 맞춘다.
@@ -39,6 +50,8 @@ namespace Prototype
             if (animator == null) animator = GetComponentInChildren<Animator>();
 
             if (animator == null || animator.runtimeAnimatorController == null) return;
+
+            baseAttackClip = FindClip(animator.runtimeAnimatorController, AttackState);
 
             // 스킬마다 클립을 갈아끼우려면 오버라이드 컨트롤러가 필요하다.
             overrides = new AnimatorOverrideController(animator.runtimeAnimatorController);
@@ -82,11 +95,53 @@ namespace Prototype
             Play(stateName);
         }
 
+        /// <summary>
+        /// 평타 <paramref name="stage"/>타째 모션을 튼다. 상태는 하나(<see cref="AttackState"/>)로 두고
+        /// 거기 물린 <b>클립만</b> 갈아끼운다 — 컨트롤러에 상태를 늘리면
+        /// 같은 컨트롤러를 공유하는 잡몹 · 보스까지 저작 부담이 번진다.
+        ///
+        /// 배율을 여기서 같이 맞추는 게 핵심이다. <see cref="PlayState"/>는 speed를 안 건드려서
+        /// 10프레임짜리 마무리가 1타 길이로 우겨넣어진 채 배속으로 보인다.
+        /// </summary>
+        public void PlayBasicAttackStage(int stage, float duration)
+        {
+            if (animator == null) return;
+
+            AnimationClip clip = entity != null ? entity.GetBasicStageClip(stage) : null;
+            SwapAttackClip(clip);
+
+            float length = clip != null ? clip.length : ClipLength(AttackState);
+            stateSpeed = duration > 0f && length > 0f ? length / duration : 1f;
+
+            Play(AttackState);
+        }
+
+        /// <summary>
+        /// 평타 슬롯의 클립을 바꾼다. null이면 원본으로 되돌린다 —
+        /// 1타이거나 아트를 아직 안 채운 단계가 그렇다.
+        /// </summary>
+        private void SwapAttackClip(AnimationClip clip)
+        {
+            if (overrides == null || baseAttackClip == null) return;
+            if (currentAttackClip == clip) return;
+
+            currentAttackClip = clip;
+            overrides[baseAttackClip] = clip;
+        }
+
         private void HandleStateChanged(IState prev, IState next) => Apply(next);
 
         private void Apply(IState state)
         {
             if (animator == null || state == null) return;
+
+            // 평타는 단계마다 클립이 다르다. 상태에 들어오는 건 언제나 1타(Enter가 0으로 리셋한다) —
+            // 2·3타는 상태 전이 없이 AttackState가 직접 PlayBasicAttackStage를 부른다.
+            if (entity != null && ReferenceEquals(state, entity.AttackState))
+            {
+                PlayBasicAttackStage(entity.AttackState.Stage, entity.ActiveAttackTotal);
+                return;
+            }
 
             if (state is SkillState skill)
             {
@@ -111,10 +166,8 @@ namespace Prototype
         {
             if (entity == null) return 0f;
 
-            bool isAttack = ReferenceEquals(state, entity.AttackState) ||
-                            ReferenceEquals(state, entity.AerialAttackState);
-
-            return isAttack ? entity.BasicAttackTotal : 0f;
+            // 지상 평타는 여기 안 온다 — 단계마다 길이가 달라 Apply가 따로 처리한다.
+            return ReferenceEquals(state, entity.AerialAttackState) ? entity.BasicAttackTotal : 0f;
         }
 
         /// <summary>
@@ -137,8 +190,14 @@ namespace Prototype
         /// </summary>
         private float ClipLength(string stateName)
         {
-            RuntimeAnimatorController rac = animator.runtimeAnimatorController;
-            if (rac == null) return 0f;
+            AnimationClip c = animator != null ? FindClip(animator.runtimeAnimatorController, stateName) : null;
+            return c != null ? c.length : 0f;
+        }
+
+        /// <summary>상태 이름에 해당하는 클립을 컨트롤러에서 찾는다. 없으면 null.</summary>
+        private static AnimationClip FindClip(RuntimeAnimatorController rac, string stateName)
+        {
+            if (rac == null || string.IsNullOrEmpty(stateName)) return null;
 
             AnimationClip[] clips = rac.animationClips;
             for (int i = 0; i < clips.Length; i++)
@@ -148,10 +207,10 @@ namespace Prototype
 
                 // "Ally_AerialAttack"이 "_Attack"에 걸리지 않게 구분자를 포함해서 본다.
                 if (c.name == stateName || c.name.EndsWith("_" + stateName))
-                    return c.length;
+                    return c;
             }
 
-            return 0f;
+            return null;
         }
 
         /// <summary>IdleState → "Idle". 상태 클래스 이름이 곧 Animator 상태 이름이다.</summary>

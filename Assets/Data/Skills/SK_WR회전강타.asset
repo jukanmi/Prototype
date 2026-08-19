@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "SK_WR\uD68C\uC804\uAC15\uD0C0"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uD68C\uC804 \uAC15\uD0C0"
-  icon: {fileID: 21300000, guid: c7a46118db0a4fa5874d56c6279dfe9a, type: 3}
+  icon: {fileID: 7315356492721747158, guid: c7a46118db0a4fa5874d56c6279dfe9a, type: 3}
   description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 11\uB9CC\uD07C \uC8FC\uACE0
     \uC801\uB4E4\uC744 \uBC00\uCCD0\uB0C5\uB2C8\uB2E4."
   role: 1
@@ -44,6 +44,7 @@ MonoBehaviour:
     knockbackForce: 30
     launchForce: 0
     hitStunDuration: 0.5
+    guardDamage: 0
     snapZ: 0
   effects: []
   cooldown: 5

@@ -32,6 +32,11 @@ namespace Prototype
             hitStunDuration = 0.3f,
         };
 
+        [Tooltip("평타 연타 단계. 비워 두면 지금까지의 단발 평타 그대로다 — 적 · 자율 동료가 그렇다.\n\n" +
+                 "채우면 유저가 모는 몸(PlayerControl)만 버튼을 반복해 이어 칠 수 있다.\n" +
+                 "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
+        [SerializeField] private BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
+
         [Tooltip("스킬 전용 히트박스. 비우면 평타 히트박스를 재사용한다.")]
         [SerializeField] private Attack skillAttack;
 
@@ -83,11 +88,60 @@ namespace Prototype
         public float BasicAttackTotal => basicAttackTotal;
 
         /// <summary>평타 HitData에 현재 공격력을 실어 새로 만든다. 원본은 건드리지 않는다.</summary>
-        public HitData BuildBasicHit()
+        public HitData BuildBasicHit() => BuildBasicHit(0);
+
+        /// <summary>
+        /// 연타 <paramref name="stage"/>타째의 타격. 단계가 없으면 기본 평타와 같다 —
+        /// 무인자 버전이 여기로 위임하므로 원거리 · 공중 평타 호출부는 손댈 필요가 없다.
+        /// </summary>
+        public HitData BuildBasicHit(int stage)
         {
             HitData h = basicHit;
             h.damageData.damage = stats.GetValue(StatType.AttackPower, h.damageData.damage);
-            return h;
+
+            if (!HasComboStage(stage)) return h;
+
+            return BasicComboRules.BuildStageHit(in h, in basicComboStages[stage]);
+        }
+
+        // ── 평타 연타 ────────────────────────────────────
+
+        /// <summary>연타 단계 수. 저작하지 않았으면 1 — 단발이라는 뜻이다.</summary>
+        public int BasicComboStageCount => basicComboStages != null && basicComboStages.Length > 0
+            ? basicComboStages.Length
+            : 1;
+
+        /// <summary>연타를 저작한 몸인지.</summary>
+        public bool HasBasicCombo => BasicComboStageCount > 1;
+
+        private bool HasComboStage(int stage)
+            => basicComboStages != null && stage >= 0 && stage < basicComboStages.Length;
+
+        /// <summary>이 단계에 재생할 클립. 비워 뒀으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
+        public AnimationClip GetBasicStageClip(int stage)
+            => HasComboStage(stage) ? basicComboStages[stage].clip : null;
+
+        /// <summary>단계 타이밍. 0으로 비워 둔 값은 기본 평타 값으로 접어서 돌려준다.</summary>
+        public BasicAttackTiming GetBasicStageTiming(int stage)
+        {
+            BasicAttackStage s = HasComboStage(stage) ? basicComboStages[stage] : default;
+            return BasicComboRules.ResolveTiming(in s, basicAttackWindup, basicAttackActiveEnd, basicAttackTotal);
+        }
+
+        /// <summary>
+        /// 지금 도는 평타 한 타의 길이. <see cref="EntityAnimator"/>가 클립 속도를 여기에 맞춘다 —
+        /// 고정 <see cref="BasicAttackTotal"/>을 보면 10프레임짜리 마무리가 1타 길이에 우겨넣어져 배속으로 보인다.
+        /// </summary>
+        public float ActiveAttackTotal { get; private set; }
+
+        /// <summary>지금 도는 단계. 애니메이터가 클립을 고를 때 본다.</summary>
+        public int ActiveAttackStage { get; private set; }
+
+        /// <summary><see cref="AttackState"/>만 부른다. 단계에 들어갈 때 한 번.</summary>
+        public void SetActiveAttackStage(int stage, float total)
+        {
+            ActiveAttackStage = stage;
+            ActiveAttackTotal = total > 0f ? total : basicAttackTotal;
         }
 
         /// <summary>
@@ -153,6 +207,16 @@ namespace Prototype
         /// </summary>
         public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
         public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
+
+        private EntityAnimator cachedAnimator;
+
+        /// <summary>
+        /// 스프라이트 애니메이터. 없는 몸도 있으므로(생성기 · 테스트) 항상 null 검사를 하고 쓴다.
+        /// <see cref="Physics"/>와 같은 이유로 지연 해석한다.
+        /// </summary>
+        public EntityAnimator Animator => cachedAnimator != null
+            ? cachedAnimator
+            : cachedAnimator = GetComponentInChildren<EntityAnimator>(true);
 
         /// <summary>
         /// 지금 이 몸을 모는 것. <see cref="UseControl{T}"/>가 갈아 끼운다.
@@ -275,6 +339,18 @@ namespace Prototype
                 BattleLog.Warn(LogCategory.Combat,
                     $"{name}: 평타 선딜({basicAttackWindup:0.##}s)이 전체 길이({basicAttackTotal:0.##}s) 이상이다. " +
                     "히트박스가 켜지지 않는다 — windup < activeEnd < total 순서를 지킬 것.", this);
+
+            // 연타는 단계마다 같은 함정을 밟을 수 있다. 폴백을 먹인 뒤의 값으로 본다.
+            for (int i = 0; i < BasicComboStageCount && HasBasicCombo; i++)
+            {
+                BasicAttackTiming t = GetBasicStageTiming(i);
+                if (t.windup < t.activeEnd && t.activeEnd <= t.total) continue;
+
+                BattleLog.Warn(LogCategory.Combat,
+                    $"{name}: 평타 {i + 1}타 타이밍이 어긋났다 " +
+                    $"(선딜 {t.windup:0.##} / 판정끝 {t.activeEnd:0.##} / 전체 {t.total:0.##}). " +
+                    "windup < activeEnd <= total 순서를 지킬 것.", this);
+            }
         }
 
         /// <summary>

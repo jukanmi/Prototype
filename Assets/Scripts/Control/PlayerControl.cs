@@ -20,6 +20,11 @@ namespace Prototype
     {
         [SerializeField] private float dashCooldown = 0.6f;
 
+        [Tooltip("평타 선입력이 살아 있는 시간. 공격 모션 중에 누른 입력을 이만큼 기억했다가 다음 타로 이어 준다.\n\n" +
+                 "너무 짧으면 프레임을 맞춰야 연타가 되고, 너무 길면 한 번 누른 게 두 타로 샌다.\n" +
+                 "1타 캔슬 시점(cancelStart)보다 확실히 길게 잡을 것.")]
+        [SerializeField] private float attackBufferWindow = 0.25f;
+
         private float dashTimer;
 
         /// <summary>
@@ -32,6 +37,10 @@ namespace Prototype
         public override void Tick(float dt)
         {
             Clear();
+
+            // 선입력 창은 이 아래의 어떤 return보다 먼저 흘러야 한다 —
+            // 지휘 · 정지 · 경직으로 빠져나가는 동안 창이 얼면 풀리는 순간 묵은 입력이 터진다.
+            TickAttackBuffer(dt);
 
             if (dashTimer > 0f) dashTimer -= dt;
 
@@ -65,6 +74,11 @@ namespace Prototype
             if (input.AttackPressed)
             {
                 Command = Command.Attack;
+
+                // 같은 누름을 두 곳에 넣는다. Command는 Idle · Move가 읽어 공격에 들어가는 데 쓰고,
+                // 버퍼는 AttackState가 읽어 다음 타로 잇는 데 쓴다.
+                // 공격 중에는 Command를 아무도 안 읽으므로 버퍼가 유일한 통로다.
+                BufferAttack(attackBufferWindow);
             }
             else if (input.JumpPressed)
             {

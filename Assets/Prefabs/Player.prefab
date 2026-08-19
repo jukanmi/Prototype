@@ -625,6 +625,46 @@ MonoBehaviour:
     hitStunDuration: 0.3
     guardDamage: 0
     snapZ: 0
+  basicComboStages:
+  - label: "\uC57D"
+    clip: {fileID: 7400000, guid: bfe234f40cc3fa04996361a4e08d0bfb, type: 2}
+    windup: 0.1
+    activeEnd: 0.2
+    total: 0.32
+    cancelStart: 0.2
+    damageMultiplier: 0.9
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    knockbackForce: 0
+    launchForce: 0
+    hitStunDuration: 0
+  - label: "\uC911"
+    clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
+    windup: 0.12
+    activeEnd: 0.24
+    total: 0.4
+    cancelStart: 0.24
+    damageMultiplier: 1.1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    knockbackForce: 0
+    launchForce: 0
+    hitStunDuration: 0
+  - label: "\uAC15"
+    clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
+    windup: 0.18
+    activeEnd: 0.34
+    total: 0.7
+    cancelStart: 0
+    damageMultiplier: 1.8
+    overrideReaction: 1
+    nextState: 2
+    mode: 2
+    knockbackForce: 4.5
+    launchForce: 6
+    hitStunDuration: 0.5
   skillAttack: {fileID: 7850888382636613912}
   basicProjectile: {fileID: 0}
   basicProjectileSpeed: 16
@@ -650,6 +690,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerControl
   dashCooldown: 0.6
+  attackBufferWindow: 0.25
 --- !u!114 &2347727313910848887
 MonoBehaviour:
   m_ObjectHideFlags: 0

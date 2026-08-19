@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "SK_WZ\uB9C8\uB825\uD0C4\uC5F0\uC0AC"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uB9C8\uB825\uD0C4 \uC5F0\uC0AC"
-  icon: {fileID: 21300000, guid: 5ddf33b4bffa4a258d0ebd7c6c54f632, type: 3}
+  icon: {fileID: -372281747312399792, guid: 5ddf33b4bffa4a258d0ebd7c6c54f632, type: 3}
   description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 37\uB9CC\uD07C 2\uBC88 \uC90D\uB2C8\uB2E4."
   role: 3
   attackType: 2
@@ -43,6 +43,7 @@ MonoBehaviour:
     knockbackForce: 4
     launchForce: 0
     hitStunDuration: 0.3
+    guardDamage: 0
     snapZ: 0
   - damageData:
       damage: 37
@@ -54,6 +55,7 @@ MonoBehaviour:
     knockbackForce: 4
     launchForce: 0
     hitStunDuration: 0.3
+    guardDamage: 0
     snapZ: 0
   effects: []
   cooldown: 5

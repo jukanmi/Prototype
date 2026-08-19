@@ -132,22 +132,40 @@ namespace Prototype
         }
     }
 
-    /// <summary>평타. 선딜 → 히트박스 → 후딜.</summary>
+    /// <summary>
+    /// 평타. 선딜 → 히트박스 → 후딜.
+    ///
+    /// 단계(<see cref="BasicAttackStage"/>)를 저작한 몸은 여기서 <b>연타</b>가 된다.
+    /// 상태를 새로 만들지 않고 안에서 인덱스를 올리는 이유는 두 가지다 —
+    /// <see cref="StateMachine.TryChangeState"/>가 같은 상태로의 재진입을 거부하고,
+    /// <see cref="Exit"/>이 히트박스를 닫아 버리기 때문이다.
+    /// </summary>
     public class AttackState : EntityState
     {
         private float timer;
+        private int stage;
 
         public AttackState(Entity entity) : base(entity) { }
 
         // 평타는 중단 가능. 슈퍼아머는 SkillState 전용.
         public override bool CanBeInterrupted => true;
 
+        /// <summary>지금 몇 타째인가(0-base). 애니메이터가 클립을 고를 때 읽는다.</summary>
+        public int Stage => stage;
+
         public override void Enter()
         {
             timer = 0f;
+            stage = 0;
+            Entity.SetActiveAttackStage(0, Entity.GetBasicStageTiming(0).total);
+
             Physics.Move(Vector3.zero, 0f);
             if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
                 Physics.Face(Control.MoveDirection);
+
+            // 이 상태로 들어온 그 입력을 버린다. 안 버리면 같은 한 번의 입력이
+            // 여기 들어오게 만들고 곧바로 2타 예약까지 해서, 한 번 눌렀는데 두 대가 나간다.
+            Control?.ClearAttackBuffer();
 
             // 예고는 여기서 켜지 않는다 — 켤 시점은 Tick이 "타격까지 남은 시간"으로 판단한다.
             // 쿨 구간에서 이미 켜 뒀으면 그대로 이어진다.
@@ -155,41 +173,83 @@ namespace Prototype
 
         public override void Tick(float dt)
         {
+            BasicAttackTiming t = Entity.GetBasicStageTiming(stage);
+
             float prev = timer;
             timer += dt;
 
-            bool windup = prev < Entity.BasicAttackWindup && timer >= Entity.BasicAttackWindup;
+            bool windup = prev < t.windup && timer >= t.windup;
 
             // 선딜 동안 번쩍인다. 쿨 끝자락에서 이미 켜져 있고 여기서 이어받는다.
             // 히트박스가 켜지는 순간 꺼진다 — 그 뒤는 피할 수 없는 구간이라 신호를 주면 거짓말이 된다.
-            Entity.SetTelegraph(timer < Entity.BasicAttackWindup);
+            Entity.SetTelegraph(timer < t.windup);
 
             // 원거리 평타는 선딜 끝에 투사체를 하나 쏘고 끝. 켜고 끌 히트박스가 없다.
+            // 연타 대상도 아니다 — 쏘는 손맛은 캔슬이 아니라 사거리에서 온다.
             if (Entity.BasicIsRanged)
             {
                 if (windup) Entity.FireBasicProjectile();
 
-                if (timer >= Entity.BasicAttackTotal)
+                if (timer >= t.total)
                     Entity.StateMachine.TryChangeState(Entity.IdleState);
                 return;
             }
 
             Attack box = Entity.BasicAttack;
-            if (box == null)
+
+            if (box != null)
             {
-                if (timer >= Entity.BasicAttackTotal)
-                    Entity.StateMachine.TryChangeState(Entity.IdleState);
-                return;
+                if (windup) box.Begin(Entity.BuildBasicHit(stage));
+                if (prev < t.activeEnd && timer >= t.activeEnd) box.End();
             }
 
-            if (windup)
-                box.Begin(Entity.BuildBasicHit());
+            // 판정은 전부 순수 규칙에 맡긴다 — 우선순위를 여기 흩어 두면
+            // "마지막 프레임에 Finish가 Advance를 이겨 콤보가 한 타에서 멈추는" 실수를 눈으로 잡아야 한다.
+            // 들여다보기만 한다. 매 틱 소비하면 캔슬 시점 전에 누른 입력이 그 자리에서 증발한다 —
+            // 실제로 쓰는 순간에만 비운다.
+            bool buffered = Control != null && Control.HasAttackBuffer;
 
-            if (prev < Entity.BasicAttackActiveEnd && timer >= Entity.BasicAttackActiveEnd)
-                box.End();
+            switch (BasicComboRules.Decide(timer, in t, stage, Entity.BasicComboStageCount, buffered))
+            {
+                case BasicComboStep.Advance:
+                    Control?.ClearAttackBuffer();
+                    GoToStage(stage + 1);
+                    break;
 
-            if (timer >= Entity.BasicAttackTotal)
-                Entity.StateMachine.TryChangeState(Entity.IdleState);
+                case BasicComboStep.Restart:
+                    Control?.ClearAttackBuffer();
+                    GoToStage(0);
+                    break;
+
+                case BasicComboStep.Finish:
+                    Entity.StateMachine.TryChangeState(Entity.IdleState);
+                    break;
+            }
+        }
+
+        /// <summary>다음 타로 넘어간다. 상태를 벗어나지 않으므로 히트박스를 손으로 닫아야 한다.</summary>
+        private void GoToStage(int next)
+        {
+            // 아직 열려 있으면 닫는다. Attack이 Begin/End 양쪽에서 alreadyHit을 비우므로
+            // 같은 적이 1·2·3타를 전부 맞는다.
+            Entity.BasicAttack?.End();
+
+            stage = next;
+            timer = 0f;
+
+            BasicAttackTiming t = Entity.GetBasicStageTiming(stage);
+            Entity.SetActiveAttackStage(stage, t.total);
+
+            // 타마다 다시 조준할 수 있게 한다. 벨트스크롤에서 1타 뒤에 옆 적으로 못 돌면
+            // 콤보가 보상이 아니라 벌이 된다.
+            Physics.Move(Vector3.zero, 0f);
+            if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
+                Physics.Face(Control.MoveDirection);
+
+            Entity.Animator?.PlayBasicAttackStage(stage, t.total);
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{Entity.name} 평타 {stage + 1}/{Entity.BasicComboStageCount}타", Entity);
         }
 
         public override void Exit()
@@ -197,6 +257,10 @@ namespace Prototype
             // 선딜 도중 경직으로 끊기면 예고가 켜진 채로 굳는다.
             Entity.SetTelegraph(false);
             Entity.BasicAttack?.End();
+
+            // 상태를 벗어나면 콤보는 끊긴다. 별도의 콤보 타임아웃이 필요 없는 이유가 이것이다 —
+            // 피격 · 이동 · 대시로 빠지면 다음 Enter가 1타부터 다시 시작한다.
+            stage = 0;
         }
     }
 
