@@ -130,6 +130,16 @@ namespace Prototype
         public event Action<bool> OnGuardBreakChanged;
 
         /// <summary>
+        /// 가드가 깎였다. 인자는 이번에 깎인 양(= 몇 대분).
+        ///
+        /// <see cref="OnHitTaken"/>으로는 대신할 수 없다 — 슈퍼아머인 동안은
+        /// <see cref="Hit"/>가 그 이벤트를 발화하기 <b>전에</b> 돌아간다. 그런데 가드를 가진 개체는
+        /// 평소가 슈퍼아머라, "맞았다"를 알 유일한 경로가 여기다.
+        /// 보스 차징을 뒤로 미는 <see cref="BossPatternAction"/>이 구독한다.
+        /// </summary>
+        public event Action<float> OnGuardDrained;
+
+        /// <summary>
         /// 가드 수치를 외부 테이블(EnemyData 등)로 덮어쓴다.
         /// <see cref="SetMaxHealth"/>와 같은 자리의 창구다 — private [SerializeField]를 밖에서 만지지 않게.
         /// </summary>
@@ -495,6 +505,8 @@ namespace Prototype
 
             Guard.Lose(loss);
             guardIdleTimer = guardRegenDelay;
+
+            OnGuardDrained?.Invoke(loss);
 
             if (Guard.IsEmpty) BreakGuard();
         }

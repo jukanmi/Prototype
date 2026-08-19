@@ -54,7 +54,9 @@ namespace Prototype
                 Entity e = list[i];
                 if (e == null || e.Combat == null || e.Combat.IsDead) continue;
 
-                if (!(e.StateMachine?.CurState is IChargeState charge) || !charge.IsCharging) continue;
+                // 동료 스킬(상태머신)이든 보스 패턴(컴포넌트)이든 Entity가 한 창구로 합쳐 준다.
+                IChargeState charge = e.ChargeState;
+                if (charge == null || !charge.IsCharging) continue;
 
                 Draw(Take(start + n), e, clip, charge.ChargeRatio);
                 n++;

@@ -45,6 +45,12 @@ namespace Prototype
         /// <summary>지금 특수 행동을 실행 중인지. 디버그 HUD가 읽는다.</summary>
         public bool IsRunningSpecial => special != null && special.IsRunning;
 
+        /// <summary>
+        /// 특수 행동 실행기. 읽기 전용 창구다 —
+        /// 바닥 범위 표시(<see cref="AttackRangeIndicator"/>)가 매 프레임 GetComponent를 돌지 않게.
+        /// </summary>
+        public IEnemySpecialAction Special => special;
+
         protected override void Awake()
         {
             base.Awake();

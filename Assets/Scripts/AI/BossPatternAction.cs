@@ -13,6 +13,17 @@ namespace Prototype
         [Tooltip("인스펙터와 로그에서 이 패턴을 부르는 이름.")]
         public string label;
 
+        [Header("차징")]
+        [Tooltip("힘을 모으는 시간. 0이면 차징 패턴이 아니다 — 예고부터 시작한다.\n\n" +
+                 "이 구간에는 예고(!)를 켜지 않는다. 머리 위 게이지가 대신 알린다.")]
+        public float chargeTime;
+        [Tooltip("가드를 한 대분 깎을 때마다 차징을 뒤로 미는 초.\n\n" +
+                 "때려서 늦추고, 가드를 다 깎으면(가드브레이크) 통째로 무산된다 — " +
+                 "몰아칠 이유를 만드는 값이다.")]
+        public float chargeHitDelay;
+        [Tooltip("차징 중 재생할 Animator 상태 이름. 비우면 예고 클립을 그대로 쓴다.")]
+        public string chargeClip;
+
         [Header("타이밍")]
         [Tooltip("예고. 제자리에서 타겟을 노려본다 — 플레이어가 피할 창.")]
         public float telegraph;
@@ -65,7 +76,7 @@ namespace Prototype
     /// 인스펙터의 컴포넌트 순서가 패턴 번호가 되면 순서를 바꾸는 것만으로 기술이 뒤바뀐다.
     /// </summary>
     [RequireComponent(typeof(Entity))]
-    public class BossPatternAction : MonoBehaviour, IEnemySpecialAction
+    public class BossPatternAction : MonoBehaviour, IEnemySpecialAction, IChargeState
     {
         [SerializeField] private BossPattern[] patterns;
 
@@ -95,6 +106,20 @@ namespace Prototype
 
         /// <summary>지금 돌고 있는 패턴 번호. 없으면 -1. 디버그 HUD가 읽는다.</summary>
         public int CurrentIndex => IsRunning ? current : -1;
+
+        // ── 차징 (IChargeState) ─────────────────────────
+        // 플레이어의 ChargeSkillState와 같은 계약을 구현한다. 머리 위 게이지(ChargeGauge)가
+        // 두 경로를 구분하지 않고 같은 방식으로 그리게 하려는 것 — 모으는 건 모으는 거다.
+
+        public bool IsCharging => Phase == EnemySpecialPhase.Charge;
+
+        public float ChargeRatio => sequence != null ? sequence.ChargeProgress : 0f;
+
+        /// <summary>모으기를 즉시 끝내고 예고로 넘긴다.</summary>
+        public void Release()
+        {
+            sequence?.ReleaseCharge();
+        }
 
         /// <summary>패턴 표. 프리팹 배선 검사용 읽기 전용 창구.</summary>
         public BossPattern[] Patterns => patterns;
@@ -139,14 +164,21 @@ namespace Prototype
             hitboxOpen = false;
             phaseTime = 0f;
 
-            sequence.Begin(p.telegraph, p.active, p.recovery);
-            PlayClip(p.telegraphClip);
+            sequence.Begin(p.chargeTime, p.telegraph, p.active, p.recovery);
+            PlayClip(sequence.Phase == EnemySpecialPhase.Charge ? ChargeClipOf(p) : p.telegraphClip);
             owner.SetTelegraph(sequence.ShouldShowTelegraph);
 
             BattleLog.Log(LogCategory.State,
-                $"{name} 패턴 '{Label(index)}' 예고 시작 → {patternTarget.name}", this);
+                sequence.Phase == EnemySpecialPhase.Charge
+                    ? $"{name} 패턴 '{Label(index)}' <color=#FFD166>차징 시작</color> " +
+                      $"({p.chargeTime:0.##}s, 한 대당 {p.chargeHitDelay:0.##}s 지연) → {patternTarget.name}"
+                    : $"{name} 패턴 '{Label(index)}' 예고 시작 → {patternTarget.name}", this);
             return true;
         }
+
+        /// <summary>차징 중 재생할 상태. 비어 있으면 예고 클립을 쓴다 — 둘 다 정지 자세라 그대로 쓸 수 있다.</summary>
+        private static string ChargeClipOf(in BossPattern p)
+            => string.IsNullOrEmpty(p.chargeClip) ? p.telegraphClip : p.chargeClip;
 
         public void Tick(float dt)
         {
@@ -168,8 +200,9 @@ namespace Prototype
 
             switch (after)
             {
+                case EnemySpecialPhase.Charge:
                 case EnemySpecialPhase.Telegraph:
-                    // 예고 중에는 계속 따라 돈다. 여기까지가 유도다.
+                    // 모으는 동안에도 계속 따라 돈다. 여기까지가 유도다.
                     owner.Physics.Face(AimDirection());
                     owner.Physics.Move(Vector3.zero, 0f);
                     break;
@@ -184,13 +217,75 @@ namespace Prototype
         {
             if (sequence == null || !sequence.IsRunning) return;
 
+            // 모으던 도중이면 아무것도 터지지 않는다. 끊는 데 성공한 쪽이 그걸 알아야 한다.
+            bool wasCharging = IsCharging;
+            string label = current >= 0 && current < Count ? Label(current) : "?";
+
             sequence.Cancel();
             Teardown();
             owner.SetTelegraph(false);
             current = -1;
             target = null;
 
-            BattleLog.Log(LogCategory.State, $"{name} 패턴 취소", this);
+            BattleLog.Log(LogCategory.State,
+                wasCharging
+                    ? $"{name} '{label}' <color=#4CC9F0><b>차징 무산</b></color> — 아무것도 터지지 않는다"
+                    : $"{name} 패턴 취소", this);
+        }
+
+        // ── 범위 표시 ───────────────────────────────────
+
+        /// <summary>
+        /// 곧 때릴 자리. 차징 · 예고 중에만 내놓는다.
+        ///
+        /// 전진 패턴은 상자가 쓸고 지나갈 거리(<c>advanceSpeed × active</c>)까지 더한다 —
+        /// 돌진베기를 발밑 상자만 그려 주면 "표시 밖인데 맞았다"가 된다.
+        /// </summary>
+        public bool TryGetRange(out AttackRangePreview range)
+        {
+            range = default;
+
+            if (sequence == null || current < 0 || current >= Count) return false;
+            if (Phase != EnemySpecialPhase.Charge && Phase != EnemySpecialPhase.Telegraph) return false;
+            if (owner == null || owner.Physics == null) return false;
+
+            BossPattern p = patterns[current];
+            Attack box = Hitbox(p);
+
+            // 둘레 판정이 먼저다. 구는 방향을 안 타므로 정면·전진 계산이 통째로 필요 없다.
+            if (AttackRangePreview.TryReadSphere(box, out Vector3 sphereCenter, out float sphereRadius))
+            {
+                range = AttackRangePreview.FromCircle(sphereCenter, sphereRadius, WindupProgress());
+                return true;
+            }
+
+            if (!AttackRangePreview.TryReadBox(box, owner.transform,
+                                               out Vector3 localOffset, out Vector3 size))
+                return false;
+
+            range = AttackRangePreview.FromBox(
+                owner.Physics.GroundPosition, owner.Physics.Facing,
+                localOffset, size,
+                p.advanceSpeed * p.active,
+                WindupProgress());
+
+            return true;
+        }
+
+        /// <summary>
+        /// 타격까지의 진행도. 차징과 예고를 <b>이어서</b> 센다 —
+        /// 표시가 진해지는 속도가 단계 경계에서 튀면 "언제 오는지"를 눈으로 읽을 수 없다.
+        /// </summary>
+        private float WindupProgress()
+        {
+            float total = sequence.ChargeDuration + sequence.TelegraphDuration;
+            if (total <= 0f) return 1f;
+
+            float elapsed = Phase == EnemySpecialPhase.Charge
+                ? sequence.PhaseTime
+                : sequence.ChargeDuration + sequence.PhaseTime;
+
+            return Mathf.Clamp01(elapsed / total);
         }
 
         // ── 발동 구간 ───────────────────────────────────
@@ -242,6 +337,13 @@ namespace Prototype
 
             switch (next)
             {
+                case EnemySpecialPhase.Telegraph:
+                    // 차징을 거쳐 왔을 때만 여기 온다. 모으던 자세에서 내려치기 직전 자세로.
+                    PlayClip(p.telegraphClip);
+                    BattleLog.Log(LogCategory.State,
+                        $"{name} '{Label(current)}' 차징 완료 — 예고 {p.telegraph:0.##}s 뒤 발동", this);
+                    break;
+
                 case EnemySpecialPhase.Active:
                     if (p.cancelOnContact) Wire(p);
                     ApplyBuffs(p);
@@ -348,8 +450,41 @@ namespace Prototype
         private void HandleHit(Combat victim) => sequence.HitOrWall();
         private void HandleWall(Physics.WallHit wall) => sequence.HitOrWall();
 
+        // ── 차징 방해 ───────────────────────────────────
+
+        /// <summary>
+        /// 가드가 깎일 때마다 차징을 뒤로 민다.
+        ///
+        /// <see cref="Combat.OnHitTaken"/>이 아니라 <see cref="Combat.OnGuardDrained"/>를 듣는 이유:
+        /// 보스는 평소가 슈퍼아머라 전자가 발화하지 않는다. 게다가 가드 소모량을 그대로 쓰면
+        /// "차징을 늦추는 것"과 "가드를 깎는 것"이 한 가지 행동이 되어 배울 규칙이 하나로 준다 —
+        /// 계속 몰아치면 늦추다 못해 가드브레이크로 통째로 무산시킨다.
+        /// (무산은 EnemyControl이 IsGuardBroken을 보고 Cancel을 부른다. 여기서 할 일이 없다.)
+        /// </summary>
+        private void HandleGuardDrained(float loss)
+        {
+            if (!IsCharging || current < 0 || current >= Count) return;
+
+            float delay = patterns[current].chargeHitDelay * loss;
+            if (delay <= 0f) return;
+
+            sequence.Delay(delay);
+
+            BattleLog.Log(LogCategory.State,
+                $"{name} 차징 <color=#4CC9F0>지연</color> {delay:0.##}s — 남은 진행 {ChargeRatio * 100f:0}%", this);
+        }
+
+        private void OnEnable()
+        {
+            if (owner != null && owner.Combat != null)
+                owner.Combat.OnGuardDrained += HandleGuardDrained;
+        }
+
         private void OnDisable()
         {
+            if (owner != null && owner.Combat != null)
+                owner.Combat.OnGuardDrained -= HandleGuardDrained;
+
             Cancel();
         }
     }

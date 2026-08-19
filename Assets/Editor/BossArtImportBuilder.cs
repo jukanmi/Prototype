@@ -219,7 +219,7 @@ namespace Prototype.EditorTools
         }
 
         /// <summary>
-        /// 패턴마다 상태가 둘이다.
+        /// 패턴마다 상태가 둘이다(차징기는 셋).
         ///
         /// <b>예고</b>는 첫 프레임을 붙들고 루프한다 — 칼을 치켜든 자세로 멈춰 있는 것이
         /// "지금 뭔가 온다"는 신호가 된다. 예고 길이는 패턴마다 다른데 클립 하나로 다 덮으려면
@@ -233,6 +233,12 @@ namespace Prototype.EditorTools
             {
                 AddState(sm, new ClipSpec(e.windupState, e.sheet, 8f, true, 0, 0));
                 AddState(sm, new ClipSpec(e.state, e.sheet, e.ActiveFps, false, 1, -1));
+
+                // 차징기는 상태가 하나 더 있다. 예고와 같은 정지 자세 루프다 —
+                // 모으는 시간은 패턴마다 다르고 밀리기까지 하므로 클립 하나로 덮으려면
+                // 길이를 타지 않아야 한다. 예고와 나눠 두는 이유는 연출을 따로 손보기 위해서다.
+                if (!string.IsNullOrEmpty(e.chargeState))
+                    AddState(sm, new ClipSpec(e.chargeState, e.sheet, 8f, true, 0, 0));
             }
         }
 

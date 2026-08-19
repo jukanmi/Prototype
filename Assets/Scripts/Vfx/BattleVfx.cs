@@ -164,6 +164,7 @@ namespace Prototype
                 instance = go.AddComponent<VfxRunner>();
                 go.AddComponent<RangeIndicator>();
                 go.AddComponent<ChargeGauge>();
+                go.AddComponent<AttackRangeIndicator>();
                 // 이 러너는 첫 연출이 터질 때 만들어진다. 라벨이 필요한 시점은
                 // 적이 맞은 뒤인데 타격은 항상 Impact 연출을 동반하므로 순서가 어긋나지 않는다.
                 go.AddComponent<EnemyStateLabel>();
