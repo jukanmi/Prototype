@@ -77,6 +77,19 @@ namespace Prototype
 
         public float FreezeDuration => freezeDuration;
 
+        // ── UI가 읽는 값 ─────────────────────────────────
+        // 게이지 막대가 "얼마나 찼나"만으로는 못 그린다. 어디까지 차야 쓸 수 있는지,
+        // 지금 쿨타임인지까지 보여야 유저가 E를 눌러도 되는 때를 안다.
+
+        /// <summary>진입에 필요한 게이지 비율. 막대 위 임계 눈금이 여기 선다.</summary>
+        public float RequiredRatio => requiredRatio;
+
+        /// <summary>남은 쿨타임(초). 0이면 쿨타임 아님.</summary>
+        public float CooldownRemaining => Mathf.Max(0f, cooldownTimer);
+
+        /// <summary>게이지만 놓고 봤을 때 진입선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
+        public bool IsGaugeReady => Gauge != null && Gauge.Ratio >= requiredRatio;
+
         public Deck Deck => deck;
         public Hand Hand => hand;
         public Discard Discard => discard;
