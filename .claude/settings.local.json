@@ -17,7 +17,9 @@
       "Bash(git status *)",
       "Bash(grep -v \"ISkillEffect.cs$\")",
       "Bash(awk '/--- !u!1001 &/{if\\(block!=\"\"\\) print block \"\\\\n=====\"; block=\"\"} {block=block\"\\\\n\"$0} END{print block}' Assets/Scenes/SampleScene.unity)",
-      "Bash(awk 'BEGIN{RS=\"=====\"} /d3fc084ae79b3dc4bbe08024a41c047a/')"
+      "Bash(awk 'BEGIN{RS=\"=====\"} /d3fc084ae79b3dc4bbe08024a41c047a/')",
+      "Bash(awk '/^--- !u!1 &470951158$/{print NR\": \"$0; f=1} f && /^--- !u!/ && NR>1 && !/&470951158|&470951159|&470951160|&470951161/{print NR\": \"$0; exit}' Assets/Scenes/Stage02.unity)",
+      "Bash(grep -n \"^--- !u!4 &1744773988$\" Assets/Scenes/Stage02.unity)"
     ]
   },
   "enabledMcpjsonServers": [
