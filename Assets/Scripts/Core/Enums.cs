@@ -96,6 +96,19 @@ namespace Prototype
         Guard,
     }
 
+    /// <summary>
+    /// 지속시간을 갖고 걸렸다 풀리는 상태. <see cref="StatusEffects"/>가 목록으로 들고 있다.
+    ///
+    /// 경직 계열은 여기 없다 — 그건 <see cref="CombatState"/>가 이미 갖고 있고,
+    /// 두 벌로 갈리면 머리 위 글자와 게이지가 서로 다른 이름을 부르게 된다.
+    /// </summary>
+    public enum StatusKind
+    {
+        Shield,
+        DamageCut,
+        Lifesteal,
+    }
+
     /// <summary>진영. 히트박스가 아군을 때리지 않도록 거르는 기준.</summary>
     public enum Faction
     {

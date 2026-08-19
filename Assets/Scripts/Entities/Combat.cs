@@ -85,6 +85,9 @@ namespace Prototype
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
 
+        /// <summary>지속시간이 있는 상태(보호막 · 피해감소 · 흡혈). 지속시간과 원복을 한 곳에서 든다.</summary>
+        private readonly StatusEffects statuses = new StatusEffects();
+
         public CombatState CombatState { get; private set; } = CombatState.Neutral;
 
         /// <summary>
@@ -152,6 +155,20 @@ namespace Prototype
             guardIdleTimer = 0f;
             Guard.SetMax(maxGuard, refill: true);
         }
+        /// <summary>지금 걸려 있는 지속 상태. 화면 표시(<see cref="StatusEffectBar"/>)와 스킬 효과가 같이 본다.</summary>
+        public StatusEffects Statuses => statuses;
+
+        /// <summary>남은 경직 시간. 다운 · 기상도 같은 타이머를 쓴다.</summary>
+        public float StunRemaining => Mathf.Max(0f, stunTimer);
+
+        /// <summary>지금 걸린 경직의 전체 길이. 게이지가 남은 비율을 그릴 때 분모다.</summary>
+        public float StunDuration => hitStunDuration;
+
+        /// <summary>패링 무적의 남은 시간.</summary>
+        public float ParryInvulnRemaining => Mathf.Max(0f, parryInvulnTimer);
+
+        /// <summary>패링 무적의 전체 길이.</summary>
+        public float ParryInvulnDuration => parrySuccessInvuln;
 
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
@@ -214,6 +231,9 @@ namespace Prototype
             if (parryInvulnTimer > 0f) parryInvulnTimer -= dt;
 
             TickGuard(dt);
+            // 경직 복구가 아래에서 early return을 타므로 그 전에 굴린다 —
+            // 뒤에 두면 경직 중인 캐릭터의 버프만 시간이 안 간다.
+            statuses.Tick(dt);
 
             // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
             // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
@@ -243,7 +263,7 @@ namespace Prototype
             {
                 SetCombatState(next);
                 owner?.RequestHitReaction(next);
-                stunTimer = getupDuration;
+                SetStunTimer(getupDuration);
                 return;
             }
 
@@ -347,8 +367,7 @@ namespace Prototype
             CombatState before = CombatState;
             SetCombatState(next);
 
-            hitStunDuration = hit.hitStunDuration;
-            stunTimer = hitStunDuration;
+            SetStunTimer(hit.hitStunDuration);
 
             if (next == CombatState.AerialHit)
             {
@@ -380,6 +399,10 @@ namespace Prototype
                 shield -= absorbed;
                 dmg -= absorbed;
                 BattleLog.Log(LogCategory.Combat, $"{name} 보호막 흡수 {absorbed:0.#} (잔여 {shield:0.#})", this);
+
+                // 시간이 아니라 다 닳아서 끝나는 경우. 여기서 안 풀면 게이지에
+                // 이미 사라진 보호막이 계속 떠 있다.
+                if (shield <= 0f) statuses.Cancel(StatusKind.Shield);
             }
 
             if (dmg > 0f)
@@ -622,6 +645,7 @@ namespace Prototype
         {
             BattleLog.Log(LogCategory.Combat, $"<b>{name} 사망</b> — ForceChangeState로 관통", this);
             SetCombatState(CombatState.Dead);
+            statuses.CancelAll();
             stunTimer = 0f;
             physics.ResetInertia();
             owner?.ForceDead();
@@ -641,7 +665,7 @@ namespace Prototype
             owner?.RequestHitReaction(next);
             if (next == CombatState.Down)
             {
-                stunTimer = downDuration;
+                SetStunTimer(downDuration);
                 physics.ResetInertia();
             }
         }
@@ -720,6 +744,17 @@ namespace Prototype
             SetCombatState(CombatState.Neutral);
             if (owner != null)
                 owner.StateMachine.TryChangeState(owner.IdleState);
+        }
+
+        /// <summary>
+        /// 경직 타이머를 건다. 남은 시간과 <b>전체 길이를 같이</b> 세운다 —
+        /// 머리 위 게이지가 남은 비율을 그리려면 분모가 지금 걸린 경직의 것이어야 한다.
+        /// 다운 · 기상도 같은 타이머를 쓰므로 여기 한 곳으로 모은다.
+        /// </summary>
+        private void SetStunTimer(float duration)
+        {
+            hitStunDuration = duration;
+            stunTimer = duration;
         }
 
         private void SetCombatState(CombatState next)
