@@ -32,6 +32,9 @@ namespace Prototype
 
         private SkillData current;
 
+        /// <summary>조준 기준이 되는 몸. 근접 스킬 프리뷰가 "어디서 시전하는가"를 이걸로 잡는다.</summary>
+        public Transform CursorOrigin => cursorOrigin;
+
         public bool IsSelecting => current != null;
         public SkillData Current => current;
 

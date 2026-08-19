@@ -185,12 +185,10 @@ namespace Prototype
             if (target == null || target.Physics == null) return false;
             if (target.Combat != null && target.Combat.IsDead) return false;
 
-            Vector3 t = target.Physics.GroundPosition;
-            float side = from.x >= t.x ? 1f : -1f;
-
             // 벨트스크롤에서 Z가 어긋나면 후속타가 전부 빗나간다(Physics.SnapZ와 같은 이유).
             // X만 띄우고 깊이는 대상과 같은 레인에 맞춘다.
-            spot = new Vector3(t.x + side * data.ApproachDistance, from.y, t.z);
+            // 계산은 KnockbackPreview가 들고 있다 — 프리뷰와 실전이 같은 자리를 잡아야 화살표가 맞는다.
+            spot = KnockbackPreview.ApproachSpot(from, target.Physics.GroundPosition, data.ApproachDistance);
 
             // 이미 그 자리면 옮기지 않는다. 매 타격마다 미세하게 튀는 걸 막는다.
             Vector3 d = spot - from;

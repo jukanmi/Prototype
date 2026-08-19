@@ -173,6 +173,7 @@ MonoBehaviour:
     knockbackForce: 0
     launchForce: 0
     hitStunDuration: 0
+    guardDamage: 0
     snapZ: 0
   impactVfx: 1
 --- !u!1 &6734300126761519738
@@ -216,6 +217,7 @@ Transform:
   - {fileID: 4869655705139622662}
   - {fileID: 8695398512408841438}
   - {fileID: 4573506378757142131}
+  - {fileID: 2128424366299694759}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &3385342337939849835
@@ -288,6 +290,9 @@ MonoBehaviour:
   deceleration: 80
   impulseDamping: 8
   gravity: 30
+  fallGravityScale: 1
+  apexHangTime: 0
+  apexVelocityThreshold: 3
   rotateToFacing: 1
 --- !u!114 &6178053980423428800
 MonoBehaviour:
@@ -312,6 +317,16 @@ MonoBehaviour:
   wallMinLaunch: 3
   wallMaxLaunch: 15
   wallBounceCooldown: 0.2
+  parryWindow: 0.45
+  parryAngle: 180
+  parrySuccessInvuln: 0.3
+  parryCounterStun: 0.6
+  parryCounterKnockback: 4
+  maxGuard: 0
+  defaultGuardDamage: 1
+  guardBreakDuration: 4
+  guardRegenDelay: 3
+  guardRegen: 2
 --- !u!114 &9215232113246201951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,8 +358,9 @@ MonoBehaviour:
     knockbackForce: 3
     launchForce: 0
     hitStunDuration: 0.3
+    guardDamage: 0
     snapZ: 0
-  skillAttack: {fileID: 0}
+  skillAttack: {fileID: 4654731296532544185}
   basicProjectile: {fileID: 0}
   basicProjectileSpeed: 16
   basicProjectileRange: 9
@@ -352,7 +368,7 @@ MonoBehaviour:
   despawnDelay: 1
   despawnFade: 0.5
   role: 0
-  selfSkill: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
+  portrait: {fileID: 0}
   equipped:
   - data: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
     drawWeight: 1
@@ -395,6 +411,7 @@ MonoBehaviour:
   depthRoot: {fileID: 4573506378757142131}
   shadow: {fileID: 8695398512408841438}
   depthToScreen: 0.9
+  depthToScreenX: 0.45
   depthScalePerUnit: 0.06
   spriteOffsetY: 0
   flipToFacing: 1
@@ -441,6 +458,87 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 8329762577736369492}
   crossFade: 0.05
+--- !u!1 &7230559412293541981
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2128424366299694759}
+  - component: {fileID: 590837550008288524}
+  - component: {fileID: 4654731296532544185}
+  m_Layer: 12
+  m_Name: SkillHitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2128424366299694759
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7230559412293541981}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8163877768535530770}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &590837550008288524
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7230559412293541981}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.4, y: 2, z: 2.4}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4654731296532544185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7230559412293541981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d68ae93b93bd43041858cf1a2aca09b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Attack
+  attacker: {fileID: 6178053980423428800}
+  hitData:
+    damageData:
+      damage: 0
+    targetState: 0
+    nextState: 0
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 0
+    launchForce: 0
+    hitStunDuration: 0
+    guardDamage: 0
+    snapZ: 0
+  impactVfx: 1
 --- !u!1 &8506031913381445796
 GameObject:
   m_ObjectHideFlags: 0

@@ -163,6 +163,8 @@ namespace Prototype
                 DontDestroyOnLoad(go);
                 instance = go.AddComponent<VfxRunner>();
                 go.AddComponent<RangeIndicator>();
+                // 사거리 원 옆에 "어디로 밀려나는가"를 같이 그린다. 둘 다 조준 중에만 켜진다.
+                go.AddComponent<KnockbackIndicator>();
                 go.AddComponent<ChargeGauge>();
                 go.AddComponent<AttackRangeIndicator>();
                 // 이 러너는 첫 연출이 터질 때 만들어진다. 라벨이 필요한 시점은

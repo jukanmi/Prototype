@@ -1703,6 +1703,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 137b1c003874b7a48b8115425ef36405, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboPredictor
+  executor: {fileID: 0}
 --- !u!114 &1026486062
 MonoBehaviour:
   m_ObjectHideFlags: 0

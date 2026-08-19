@@ -46,7 +46,6 @@ namespace Prototype
 
         private float verticalVelocity;
         private float baseGravity;
-        private float gravityScale = 1f;
         /// <summary>이번 체공에서 정점에 남은 체류 시간. 띄울 때 충전되고 착지하면 사라진다.</summary>
         private float apexHangLeft;
 
@@ -80,7 +79,7 @@ namespace Prototype
         public float GroundY => groundY;
         /// <summary>벽으로 볼 레이어. 투사체도 같은 기준으로 소멸한다.</summary>
         public LayerMask WallMask => wallMask;
-        public float Gravity => gravity * gravityScale;
+        public float Gravity => gravity;
 
         /// <summary>
         /// 충격 감쇠 계수. <see cref="AddImpulse"/>는 지수감쇠라 총 이동거리가
@@ -90,6 +89,13 @@ namespace Prototype
 
         /// <summary>거리 <paramref name="distance"/>만큼 밀려나게 하는 충격량.</summary>
         public float ImpulseToTravel(float distance) => distance * impulseDamping;
+
+        /// <summary>
+        /// <see cref="ImpulseToTravel"/>의 역함수. 충격량 <paramref name="force"/>가 만들어 낼 이동 거리.
+        /// 프리뷰가 "어디까지 밀려나는가"를 그릴 때 쓴다 — 실전과 같은 상수를 봐야 거짓말을 안 한다.
+        /// </summary>
+        public float TravelForImpulse(float force) => impulseDamping > 0.0001f ? force / impulseDamping : 0f;
+
         public float VerticalVelocity => verticalVelocity;
         public Vector3 Facing { get; private set; } = Vector3.right;
 
@@ -246,12 +252,11 @@ namespace Prototype
 
         // ── 중력 보정 (전투 시스템 연계) ──────────────────
 
-        /// <summary>중력 원본값을 설정한다. 보정 초기화에 쓰인다.</summary>
+        /// <summary>중력 원본값을 설정한다. 점프 계산이 되돌릴 기준이다.</summary>
         public void SetGravity(float value)
         {
             baseGravity = value;
             gravity = value;
-            gravityScale = 1f;
         }
 
         /// <summary>낙하 중 중력 배율. 1보다 작으면 천천히 내려온다.</summary>
@@ -259,13 +264,6 @@ namespace Prototype
         {
             get => fallGravityScale;
             set => fallGravityScale = Mathf.Max(0.01f, value);
-        }
-
-        /// <summary>중력 배율을 덧씌운다. AirHitCount 가중치가 이 경로로 들어온다.</summary>
-        public void AddGravity(float scale)
-        {
-            gravityScale = Mathf.Max(0f, scale);
-            gravity = baseGravity;
         }
 
         // ── 내부 처리 ───────────────────────────────────

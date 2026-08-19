@@ -372,11 +372,10 @@ namespace Prototype
             if (next == CombatState.AerialHit)
             {
                 airHitCount++;
-                // 맞을수록 무겁게 떨어진다. 무한 홀딩 차단.
-                float g = CombatStateRules.AirGravityScale(airHitCount);
-                physics.AddGravity(g);
+                // 맞을수록 무겁게 떨어뜨리던 가중치는 걷어냈다 — 조기 착지가 다운을 부르고
+                // 그 뒤 슬롯이 통째로 무적에 흘렀다. 무한 홀딩은 MaxAirHit이 막는다.
                 BattleLog.Log(LogCategory.Combat,
-                    $"{name} 공중히트 {airHitCount}/{CombatStateRules.MaxAirHit} → 중력 x{g:0.00}", this);
+                    $"{name} 공중히트 {airHitCount}/{CombatStateRules.MaxAirHit}", this);
             }
 
             BattleLog.Log(LogCategory.Combat,
@@ -728,19 +727,17 @@ namespace Prototype
             parryTimer = 0f;
             parryInvulnTimer = 0f;
             airHitCount = 0;
-            physics?.AddGravity(1f);
 
             SetCombatState(CombatState.Neutral);
         }
 
-        /// <summary>기상 완료. 공중 콤보 카운트와 중력 보정을 여기서만 되돌린다(결정 로그 ⑦).</summary>
+        /// <summary>기상 완료. 공중 콤보 카운트를 여기서만 되돌린다(결정 로그 ⑦).</summary>
         public void OnGetupComplete()
         {
             BattleLog.Log(LogCategory.Combat,
-                $"{name} 기상 완료 — airHitCount {airHitCount} → 0, 중력 보정 해제", this);
+                $"{name} 기상 완료 — airHitCount {airHitCount} → 0", this);
 
             airHitCount = 0;
-            physics.AddGravity(1f);
             SetCombatState(CombatState.Neutral);
             if (owner != null)
                 owner.StateMachine.TryChangeState(owner.IdleState);

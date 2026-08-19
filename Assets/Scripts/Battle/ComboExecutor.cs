@@ -32,6 +32,12 @@ namespace Prototype
 
         public bool IsRunning => running != null;
 
+        /// <summary>
+        /// 슬롯 사이 여유. 예측기가 체공 시간을 셀 때 같은 값을 봐야
+        /// "예측은 공중인데 실제로는 이미 다운"이 안 생긴다.
+        /// </summary>
+        public float SlotGap => slotGap;
+
         public event Action OnExecuteStarted;
         public event Action OnExecuteFinished;
         /// <summary>실행이 끝난 카드. Discard로 옮기는 쪽이 구독한다.</summary>

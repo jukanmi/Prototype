@@ -47,12 +47,30 @@ namespace Prototype
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
         private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
+        private static readonly Color DownColor = new Color(1f, 0.5f, 0.5f);
+
+        // ── 카드 확대 · 상세 패널 ─────────────────────────
+        /// <summary>커서 · 집힘 · 조준 카드가 커지는 배율.</summary>
+        private const float FocusScale = 1.18f;
+        /// <summary>확대가 따라붙는 속도(1/s). 시간이 멈춰 있으므로 unscaled로 돈다.</summary>
+        private const float ScaleLerpSpeed = 12f;
+        private const float DetailWidth = 420f;
+        /// <summary>줄 높이(28+18+46+18+18) + 간격 16 + 패딩 20.</summary>
+        private const float DetailHeight = 164f;
+        /// <summary>손패 판과 상세 패널 사이 여백.</summary>
+        private const float DetailGap = 12f;
 
         private BulletTimeController _bulletTime;
         private GameObject _canvasRoot;
         private Text _titleText;
         private Text _hintText;
         private CardWidgets[] _cards;
+
+        /// <summary>커서가 짚은 카드의 상세. 짚은 카드가 없으면 꺼진다.</summary>
+        private GameObject _detailPanel;
+        private RectTransform _detailRect;
+        private Text _detailName;
+        private Text[] _detailRows;
 
         /// <summary>손패 판. 카드를 이 밖으로 꺼냈는지 판정하는 기준이다.</summary>
         private RectTransform _handPanelRect;
@@ -72,6 +90,16 @@ namespace Prototype
         private class CardWidgets
         {
             public GameObject root;
+            /// <summary>확대에 쓴다. 매 프레임 GetComponent를 피하려고 들고 있는다.</summary>
+            public RectTransform rect;
+            /// <summary>목표 배율. RefreshUI가 정하고 Update가 여기로 따라간다.</summary>
+            public float targetScale = 1f;
+            /// <summary>
+            /// 확대한 카드를 이웃 <b>위</b>로 올리는 데 쓴다.
+            /// SetAsLastSibling은 못 쓴다 — HorizontalLayoutGroup이 형제 순서로 자리를 잡으므로
+            /// 카드가 오른쪽 끝으로 튄다.
+            /// </summary>
+            public Canvas sorting;
             /// <summary>카드 전체를 덮는 판. 아트 바깥 테두리 · 하단 상태 띠가 이 색으로 보인다.</summary>
             public Image background;
             /// <summary>SkillData.icon. 없으면 꺼지고 이름 · 직업 텍스트가 대신 나온다.</summary>
@@ -196,6 +224,9 @@ namespace Prototype
         /// </summary>
         private void Update()
         {
+            // 확대는 입력과 무관하게 매 프레임 따라간다 — 불릿타임이 풀리는 순간에도 부드럽게 돌아와야 한다.
+            AnimateCardScale();
+
             // 불릿타임이 풀렸으면 조준도 집기도 같이 접는다.
             if (!_bulletTime.AllowsCardEdit)
             {
@@ -423,6 +454,76 @@ namespace Prototype
             _hintText = BuildText(panel.transform, "Hint", rowWidth, HintHeight, 14, HintColor, FontStyle.Normal);
 
             BuildCardRow(panel.transform);
+            BuildDetailPanel(canvasGo.transform);
+        }
+
+        /// <summary>
+        /// 짚은 카드의 상세. 카드 아트(140×208)에 그려진 글자는 그 크기에서 읽히지 않는다 —
+        /// 이름 · 설명 · 코스트는 <see cref="SkillData"/>에만 있고 화면에 한 번도 안 나왔다.
+        /// 손패 판 <b>위</b>에 형제로 띄운다.
+        /// </summary>
+        private void BuildDetailPanel(Transform canvasRoot)
+        {
+            _detailPanel = CreatePanel(canvasRoot, "DetailPanel", PanelColor);
+            _detailRect = _detailPanel.GetComponent<RectTransform>();
+            _detailRect.anchorMin = new Vector2(0.5f, 0f);
+            _detailRect.anchorMax = new Vector2(0.5f, 0f);
+            _detailRect.pivot = new Vector2(0.5f, 0f);
+            _detailRect.sizeDelta = new Vector2(DetailWidth, DetailHeight);
+
+            // 이 판은 읽으라고 띄운 것이지 누르라고 띄운 게 아니다.
+            // 레이캐스트를 남겨 두면 PlayerInputController.Pressed가 조준 클릭을
+            // "UI 위 클릭"으로 판정해 삼킨다 — 판이 조준 영역을 덮고 있어 확정이 아예 안 먹혔다.
+            _detailPanel.GetComponent<Image>().raycastTarget = false;
+
+            var block = _detailPanel.AddComponent<CanvasGroup>();
+            block.blocksRaycasts = false;
+            block.interactable = false;
+
+            var layout = _detailPanel.AddComponent<VerticalLayoutGroup>();
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.spacing = 4;
+            layout.padding = new RectOffset(14, 14, 10, 10);
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+
+            _detailName = BuildDetailText(_detailPanel.transform, "Name", 28f, 22, Color.white, FontStyle.Bold);
+            _detailRows = new[]
+            {
+                BuildDetailText(_detailPanel.transform, "Kind", 18f, 13, SubColor, FontStyle.Normal),
+                BuildDetailText(_detailPanel.transform, "Desc", 46f, 15, Color.white, FontStyle.Normal),
+                BuildDetailText(_detailPanel.transform, "Chain", 18f, 13, HintColor, FontStyle.Bold),
+                BuildDetailText(_detailPanel.transform, "Cost", 18f, 13, SubColor, FontStyle.Normal),
+            };
+
+            // 설명만 여러 줄로 흐른다. 나머지는 한 줄이다.
+            _detailRows[1].horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            _detailPanel.SetActive(false);
+        }
+
+        /// <summary>
+        /// 상세 패널의 한 줄. 배경이 어두워도 밝아도 읽히도록 <see cref="Outline"/>을 붙인다 —
+        /// 컷인(<see cref="SkillCutinUI"/>)과 같은 값이다. "글자가 안 보인다"의 실제 해결책이 이것이다.
+        /// </summary>
+        private static Text BuildDetailText(Transform parent, string name, float height,
+            int fontSize, Color color, FontStyle style)
+        {
+            Text t = BuildText(parent, name, DetailWidth, height, fontSize, color, style);
+            t.alignment = TextAnchor.UpperLeft;
+
+            // 세로 배치가 높이를 정한다. 줄마다 자리를 못 박아 두면 설명 길이에 따라 판이 요동친다.
+            var element = t.gameObject.AddComponent<LayoutElement>();
+            element.preferredHeight = height;
+            element.flexibleHeight = 0f;
+
+            var outline = t.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            return t;
         }
 
         private void BuildCardRow(Transform parent)
@@ -446,11 +547,17 @@ namespace Prototype
         {
             var go = new GameObject($"Card_{index}", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(CardWidth, CardHeight);
+
+            var cardRect = go.GetComponent<RectTransform>();
+            cardRect.sizeDelta = new Vector2(CardWidth, CardHeight);
+
+            // 아래를 축으로 커진다. 손패가 화면 맨 아래라 위로 자라야 잘리지 않는다.
+            cardRect.pivot = new Vector2(0.5f, 0f);
 
             var w = new CardWidgets
             {
                 root = go,
+                rect = cardRect,
                 background = go.GetComponent<Image>(),
                 group = go.AddComponent<CanvasGroup>(),
             };
@@ -479,6 +586,12 @@ namespace Prototype
             // 하단 상태 띠 — 순번 · U · 조준 여부 · 예측 상태.
             w.statusLabel = BuildAnchored(go.transform, "Status", new Vector2(0f, 0f), new Vector2(1f, ArtBottom),
                 11, HintColor, FontStyle.Bold);
+
+            // 그리는 순서만 바꾸는 중첩 캔버스. 자체 레이캐스터가 있어야 드래그가 계속 먹는다.
+            w.sorting = go.AddComponent<Canvas>();
+            w.sorting.overrideSorting = true;
+            w.sorting.sortingOrder = 0;
+            go.AddComponent<GraphicRaycaster>();
 
             var handler = go.AddComponent<CardHandler>();
             handler.Index = index;
@@ -632,6 +745,101 @@ namespace Prototype
 
         // ── 갱신 ─────────────────────────────────────────
 
+        /// <summary>
+        /// 목표 배율로 부드럽게 따라간다. 시간이 멈춘 동안 돌아가므로 <see cref="TimeControl.UnscaledDeltaTime"/>를 쓴다.
+        /// <see cref="HorizontalLayoutGroup"/>은 localScale을 보지 않으므로 레이아웃은 흔들리지 않는다.
+        /// </summary>
+        private void AnimateCardScale()
+        {
+            if (_cards == null) return;
+
+            float t = 1f - Mathf.Exp(-ScaleLerpSpeed * TimeControl.UnscaledDeltaTime);
+
+            for (int i = 0; i < _cards.Length; i++)
+            {
+                CardWidgets w = _cards[i];
+                if (w == null || w.rect == null) continue;
+
+                float cur = w.rect.localScale.x;
+                float next = Mathf.Lerp(cur, w.targetScale, t);
+                if (Mathf.Abs(next - w.targetScale) < 0.001f) next = w.targetScale;
+
+                w.rect.localScale = new Vector3(next, next, 1f);
+            }
+        }
+
+        /// <summary>지금 초점이 가 있는 카드. 조준 &gt; 집힘 &gt; 커서 순. 없으면 -1.</summary>
+        private int FocusedIndex(bool editable)
+        {
+            if (_aimingIndex >= 0) return _aimingIndex;
+            if (!editable) return -1;
+            if (_grabbedIndex >= 0) return _grabbedIndex;
+            return _cursorIndex;
+        }
+
+        /// <summary>짚은 카드의 상세를 채운다. 짚은 게 없으면 판을 접는다.</summary>
+        private void RefreshDetail(Hand hand, ComboPredictor predictor, int focus, bool editable)
+        {
+            if (_detailPanel == null) return;
+
+            SkillData data = focus >= 0 && focus < Hand.Size ? hand.Get(focus).Data : null;
+            if (data == null)
+            {
+                _detailPanel.SetActive(false);
+                return;
+            }
+
+            _detailPanel.SetActive(true);
+
+            // 손패 판 바로 위. 판 높이는 카드 수 · 힌트 길이에 따라 변하므로 매번 다시 잰다.
+            if (_handPanelRect != null)
+                _detailRect.anchoredPosition = new Vector2(
+                    _handPanelRect.anchoredPosition.x,
+                    _handPanelRect.anchoredPosition.y + _handPanelRect.rect.height + DetailGap);
+
+            bool chained = editable && predictor != null && predictor.IsChained(hand.Slots, focus);
+            bool down = editable && predictor != null && predictor.IsBlockedByDown(focus);
+
+            _detailName.text = data.skillName;
+
+            string[] rows = DetailRows(data, chained, down);
+            for (int i = 0; i < _detailRows.Length && i < rows.Length; i++)
+                _detailRows[i].text = rows[i];
+
+            _detailRows[2].color = down ? DownColor : HintColor;
+        }
+
+        /// <summary>
+        /// 상세 패널 본문 네 줄 — 분류 · 설명 · 연계 · 코스트.
+        /// 화면과 테스트가 같은 함수를 본다.
+        /// </summary>
+        public static string[] DetailRows(SkillData data, bool chained, bool willBeDown)
+        {
+            if (data == null) return new[] { string.Empty, string.Empty, string.Empty, string.Empty };
+
+            string chain = willBeDown
+                ? "다운 — 무효 (한 대도 안 들어간다)"
+                : $"{data.requireState} → {data.resultState}   [{(chained ? "강화" : "기본")}]";
+
+            return new[]
+            {
+                $"{data.role} · {data.attackType}",
+                string.IsNullOrWhiteSpace(data.description) ? "(설명 없음)" : data.description,
+                chain,
+                $"마나 {data.manaCost:0} · 쿨 {data.cooldown:0.#}초",
+            };
+        }
+
+        /// <summary>상세 패널에 실제로 뜨는 글자 전부. 검증용 단일 창구다.</summary>
+        public static string DetailLines(SkillData data, bool chained, bool willBeDown)
+        {
+            if (data == null) return string.Empty;
+
+            string[] rows = DetailRows(data, chained, willBeDown);
+            return data.skillName + System.Environment.NewLine +
+                   string.Join(System.Environment.NewLine, rows);
+        }
+
         private void RefreshUI()
         {
             Hand hand = _bulletTime.Hand;
@@ -665,6 +873,7 @@ namespace Prototype
 
                 if (slot.IsEmpty)
                 {
+                    w.targetScale = 1f;
                     w.root.SetActive(false);
                     continue;
                 }
@@ -684,6 +893,7 @@ namespace Prototype
                     w.background.color = EmptyCardColor;
                     w.group.alpha = 1f;
                     w.group.blocksRaycasts = true;
+                    w.targetScale = 1f;
                     continue;
                 }
 
@@ -717,11 +927,18 @@ namespace Prototype
                                    : i == 0 ? NextCardColor
                                    : CardColor;
 
+                // 짚은 카드는 커진다. 아래를 축으로 자라므로 손패 줄이 밀리지 않는다.
+                bool focused = aiming || grabbed || cursor;
+                w.targetScale = focused ? FocusScale : 1f;
+                if (w.sorting != null) w.sorting.sortingOrder = focused ? 1 : 0;
+
                 // 조준 대기 중에는 다른 카드를 흐리게 해서 초점을 남긴다.
                 bool dim = _aimingIndex >= 0 && !aiming;
                 w.group.alpha = dim ? 0.45f : 1f;
                 w.group.blocksRaycasts = !dim;
             }
+
+            RefreshDetail(hand, predictor, FocusedIndex(editable), editable);
         }
 
         /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 예측 상태를 합친다.</summary>
@@ -736,7 +953,14 @@ namespace Prototype
             if (slot.aimed) head += " ◉";
 
             if (editable && predictor != null && index < predictor.Predicted.Count)
+            {
+                // 다운 무적에 흘리는 슬롯은 상태만 보면 "AerialHit → Down"이라 멀쩡해 보인다.
+                // 한 대도 안 들어간다는 걸 글자로 못 박는다.
+                if (predictor.IsBlockedByDown(index))
+                    return $"{head}  <color=#FF8080>다운 — 무효</color>";
+
                 return $"{head}  → {predictor.Predicted[index]}";
+            }
 
             // 실시간에는 예측 대신 조준 방식을 알려 준다.
             return data.targeting == TargetingType.None ? head : $"{head}  {data.targeting}";

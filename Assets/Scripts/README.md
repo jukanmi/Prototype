@@ -388,7 +388,7 @@ bool enhanced = predictor.IsChained(board.Slots, slotIndex);
 | 카테고리 | 색 | 찍히는 것 |
 |---|---|---|
 | `State` | 하늘 | 상태머신 전이, 슈퍼아머 **거부**, 사망 **관통** |
-| `Combat` | 빨강 | 적중 / 피격 / 무적으로 흘림 / 보호막 흡수 / 흡혈 / airHitCount·중력배율 / 사망 / 기상 완료 |
+| `Combat` | 빨강 | 적중 / 피격 / 무적으로 흘림 / 보호막 흡수 / 흡혈 / airHitCount / 사망 / 기상 완료 |
 | `Physics` | 회색 | 점프 G 계산, 대쉬, 넉백, 띄우기, 착지, 벽 접촉, Z 정렬, 텔레포트 |
 | `Skill` | 노랑 | 스킬 시전 헤더, 효과 적용, n/m타 발동, 종료, PullEffect 흡입 마릿수 |
 | `Deck` | 보라 | 드로우 목록, 덱 소진 재셔플, 미사용 손패 소멸, 덱 구성 |
