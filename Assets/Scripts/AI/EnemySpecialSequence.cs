@@ -6,6 +6,12 @@ namespace Prototype
     public enum EnemySpecialPhase
     {
         Idle,
+        /// <summary>
+        /// 차징. 제자리에서 힘을 모은다 — 머리 위 게이지가 그 양을 보여 준다.
+        /// 예고와 달리 <b>길고, 밀 수 있다</b>(<see cref="EnemySpecialSequence.Delay"/>).
+        /// 차징 길이가 0인 패턴은 이 단계를 아예 건너뛴다.
+        /// </summary>
+        Charge,
         /// <summary>예고. 제자리에서 타겟을 계속 노려본다 — 플레이어가 피할 창.</summary>
         Telegraph,
         /// <summary>발동. 예고가 끝난 순간의 방향으로 판정이 나간다.</summary>
@@ -24,6 +30,7 @@ namespace Prototype
     /// </summary>
     public class EnemySpecialSequence
     {
+        private float chargeDuration;
         private float telegraphDuration;
         private float activeDuration;
         private float recoveryDuration;
@@ -35,7 +42,7 @@ namespace Prototype
 
         public EnemySpecialSequence(float telegraph, float active, float recovery)
         {
-            SetDurations(telegraph, active, recovery);
+            SetDurations(0f, telegraph, active, recovery);
         }
 
         public EnemySpecialPhase Phase { get; private set; } = EnemySpecialPhase.Idle;
@@ -46,9 +53,24 @@ namespace Prototype
         /// <summary>현재 단계에서 흐른 시간. 연출 보간과 다단히트 간격에 쓴다.</summary>
         public float PhaseTime => timer;
 
-        /// <summary>예고 표시(!)를 켤 구간인가. 특수 행동은 예고 단계가 곧 예고다.</summary>
+        /// <summary>
+        /// 예고 표시(!)를 켤 구간인가. 특수 행동은 예고 단계가 곧 예고다.
+        ///
+        /// <b>차징 단계는 켜지 않는다.</b> "!"는 "지금 피해라"라는 뜻으로 고정해 둬야
+        /// <see cref="CombatStateRules.TelegraphLead"/>에 맞춘 패링 타이밍을 익힐 수 있다.
+        /// 차징을 알리는 건 머리 위 게이지다.
+        /// </summary>
         public bool ShouldShowTelegraph => Phase == EnemySpecialPhase.Telegraph;
 
+        /// <summary>
+        /// 차징 진행도 0~1. 차징 중이 아니면 0이다 —
+        /// 게이지가 이 값을 보고 그릴지 말지를 정하므로 예고로 넘어간 뒤엔 사라져야 한다.
+        /// </summary>
+        public float ChargeProgress => Phase == EnemySpecialPhase.Charge && chargeDuration > 0f
+            ? Mathf.Clamp01(timer / chargeDuration)
+            : 0f;
+
+        public float ChargeDuration => chargeDuration;
         public float TelegraphDuration => telegraphDuration;
         public float ActiveDuration => activeDuration;
         public float RecoveryDuration => recoveryDuration;
@@ -65,9 +87,13 @@ namespace Prototype
             }
         }
 
+        /// <summary>
+        /// 차징 길이가 0이면 예고부터 시작한다 — 차징을 안 쓰는 패턴은
+        /// 이 클래스가 생기기 전과 똑같은 경로를 탄다.
+        /// </summary>
         public void Begin()
         {
-            Phase = EnemySpecialPhase.Telegraph;
+            Phase = chargeDuration > 0f ? EnemySpecialPhase.Charge : EnemySpecialPhase.Telegraph;
             timer = 0f;
             LockedDirection = Vector3.zero;
         }
@@ -75,7 +101,13 @@ namespace Prototype
         /// <summary>이번에 쓸 길이를 실어 시작한다. 패턴마다 타이밍이 다를 때.</summary>
         public void Begin(float telegraph, float active, float recovery)
         {
-            SetDurations(telegraph, active, recovery);
+            Begin(0f, telegraph, active, recovery);
+        }
+
+        /// <summary>차징까지 실어 시작한다.</summary>
+        public void Begin(float charge, float telegraph, float active, float recovery)
+        {
+            SetDurations(charge, telegraph, active, recovery);
             Begin();
         }
 
@@ -91,6 +123,10 @@ namespace Prototype
 
             switch (Phase)
             {
+                case EnemySpecialPhase.Charge:
+                    if (timer >= chargeDuration) Enter(EnemySpecialPhase.Telegraph);
+                    return;
+
                 case EnemySpecialPhase.Telegraph:
                     if (timer < telegraphDuration) return;
 
@@ -118,14 +154,37 @@ namespace Prototype
             Enter(EnemySpecialPhase.Recovery);
         }
 
+        /// <summary>
+        /// 모으던 것을 뒤로 민다. <b>차징 단계에서만</b> 듣는다 —
+        /// 예고·발동을 밀면 "!"를 보고 맞춘 회피·패링 타이밍이 매번 달라진다.
+        ///
+        /// 되감기는 0까지다. 계속 얻어맞으면 차징이 영영 안 끝나는데, 그게 의도다:
+        /// 몰아치는 쪽이 이긴다.
+        /// </summary>
+        public void Delay(float seconds)
+        {
+            if (Phase != EnemySpecialPhase.Charge || seconds <= 0f) return;
+
+            timer = Mathf.Max(0f, timer - seconds);
+        }
+
+        /// <summary>차징을 즉시 끝내고 예고로 넘긴다. 외부에서 강제로 터뜨릴 때.</summary>
+        public void ReleaseCharge()
+        {
+            if (Phase != EnemySpecialPhase.Charge) return;
+
+            Enter(EnemySpecialPhase.Telegraph);
+        }
+
         /// <summary>피격·사망·AI 정지. 어느 단계든 즉시 끝낸다.</summary>
         public void Cancel()
         {
             Enter(EnemySpecialPhase.Idle);
         }
 
-        private void SetDurations(float telegraph, float active, float recovery)
+        private void SetDurations(float charge, float telegraph, float active, float recovery)
         {
+            chargeDuration = Mathf.Max(0f, charge);
             telegraphDuration = Mathf.Max(0f, telegraph);
             activeDuration = Mathf.Max(0f, active);
             recoveryDuration = Mathf.Max(0f, recovery);
@@ -135,6 +194,7 @@ namespace Prototype
         {
             switch (Phase)
             {
+                case EnemySpecialPhase.Charge: return chargeDuration;
                 case EnemySpecialPhase.Telegraph: return telegraphDuration;
                 case EnemySpecialPhase.Active: return activeDuration;
                 case EnemySpecialPhase.Recovery: return recoveryDuration;

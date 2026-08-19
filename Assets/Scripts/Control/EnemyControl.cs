@@ -45,6 +45,12 @@ namespace Prototype
         /// <summary>지금 특수 행동을 실행 중인지. 디버그 HUD가 읽는다.</summary>
         public bool IsRunningSpecial => special != null && special.IsRunning;
 
+        /// <summary>
+        /// 특수 행동 실행기. 읽기 전용 창구다 —
+        /// 바닥 범위 표시(<see cref="AttackRangeIndicator"/>)가 매 프레임 GetComponent를 돌지 않게.
+        /// </summary>
+        public IEnemySpecialAction Special => special;
+
         protected override void Awake()
         {
             base.Awake();
@@ -139,6 +145,15 @@ namespace Prototype
 
             for (int i = 0; i < specialTimers.Length; i++)
                 specialTimers[i] -= dt;
+
+            // 가드브레이크는 완전 무방비다. 경직만으로는 부족하다 —
+            // 경직이 풀리는 순간 다시 휘두르면 무방비 구간이 아니게 된다.
+            if (Owner != null && Owner.Combat.IsGuardBroken)
+            {
+                if (special != null) special.Cancel();
+                Owner.SetTelegraph(false);
+                return;
+            }
 
             // 경직·사망 중에는 특수 행동이 이어지면 안 된다. 무적 관통처럼 보인다.
             if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))

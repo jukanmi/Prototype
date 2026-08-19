@@ -127,6 +127,30 @@ namespace Prototype
             BattleLog.Log(LogCategory.State, $"{name} 돌진 취소", this);
         }
 
+        /// <summary>
+        /// 돌진이 쓸고 갈 자리. 예고 중에만 내놓는다 — 돌진은 전부 전진이라
+        /// 발밑 상자만 그리면 표시 밖에서 맞는다.
+        /// </summary>
+        public bool TryGetRange(out AttackRangePreview range)
+        {
+            range = default;
+
+            if (Phase != EnemySpecialPhase.Telegraph) return false;
+            if (owner == null || owner.Physics == null) return false;
+
+            if (!AttackRangePreview.TryReadBox(Hitbox, owner.transform,
+                                               out Vector3 localOffset, out Vector3 size))
+                return false;
+
+            range = AttackRangePreview.FromBox(
+                owner.Physics.GroundPosition, owner.Physics.Facing,
+                localOffset, size,
+                chargeSpeed * chargeDuration,
+                sequence.PhaseProgress);
+
+            return true;
+        }
+
         private void HandleTransition(EnemySpecialPhase next)
         {
             switch (next)

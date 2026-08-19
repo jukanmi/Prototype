@@ -1,5 +1,86 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1082728197986764551
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2969216353375529346}
+  - component: {fileID: 1151692722329106538}
+  - component: {fileID: 6619083006190313644}
+  m_Layer: 13
+  m_Name: RadialHitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2969216353375529346
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1082728197986764551}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.025, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2472837118664560790}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &1151692722329106538
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1082728197986764551}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 3.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6619083006190313644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1082728197986764551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d68ae93b93bd43041858cf1a2aca09b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Attack
+  attacker: {fileID: 2437516089896359482}
+  hitData:
+    damageData:
+      damage: 0
+    targetState: 0
+    nextState: 0
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 0}
+    knockbackForce: 0
+    launchForce: 0
+    hitStunDuration: 0
+    guardDamage: 0
+    snapZ: 0
+  impactVfx: 1
 --- !u!1 &3500105496342807525
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,6 +340,7 @@ Transform:
   - {fileID: 4330967145874189840}
   - {fileID: 1168727317581208050}
   - {fileID: 2217581906556098633}
+  - {fileID: 2969216353375529346}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1387644438055683537
@@ -358,6 +440,16 @@ MonoBehaviour:
   wallMinLaunch: 3
   wallMaxLaunch: 15
   wallBounceCooldown: 0.2
+  parryWindow: 0.45
+  parryAngle: 180
+  parrySuccessInvuln: 0.3
+  parryCounterStun: 0.6
+  parryCounterKnockback: 4
+  maxGuard: 0
+  defaultGuardDamage: 6
+  guardBreakDuration: 4
+  guardRegenDelay: 3
+  guardRegen: 12
 --- !u!114 &143802035022428292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -375,9 +467,9 @@ MonoBehaviour:
   energies:
     energies: []
   basicAttack: {fileID: 3345747072517173204}
-  basicAttackWindup: 0.5
-  basicAttackActiveEnd: 0.65
-  basicAttackTotal: 0.95
+  basicAttackWindup: 0.18
+  basicAttackActiveEnd: 0.36
+  basicAttackTotal: 0.55
   basicHit:
     damageData:
       damage: 10
@@ -388,7 +480,8 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 3
     launchForce: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.1
+    guardDamage: 0
     snapZ: 0
   skillAttack: {fileID: 0}
   basicProjectile: {fileID: 0}
@@ -496,6 +589,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BossPatternAction
   patterns:
   - label: "\uACA9\uB178"
+    chargeTime: 0
+    chargeHitDelay: 0
+    chargeClip: 
     telegraph: 0.6
     active: 0.4
     recovery: 0.6
@@ -514,6 +610,7 @@ MonoBehaviour:
       knockbackForce: 10
       launchForce: 4
       hitStunDuration: 0.55
+      guardDamage: 0
       snapZ: 0
     advanceSpeed: 0
     cancelOnContact: 0
@@ -523,7 +620,42 @@ MonoBehaviour:
     moveSpeedScale: 1.2
     attackIntervalScale: 0.7
     once: 1
+  - label: "\uD6A1\uBCA0\uAE30"
+    chargeTime: 2.4
+    chargeHitDelay: 0.35
+    chargeClip: Pattern_Sweep_Hold
+    telegraph: 0.35
+    active: 0.35
+    recovery: 1.1
+    hitCount: 1
+    hitDuration: 0.24
+    damageScale: 3.5
+    hitbox: {fileID: 6619083006190313644}
+    hit:
+      damageData:
+        damage: 10
+      targetState: 0
+      nextState: 3
+      canOtg: 0
+      mode: 2
+      fixedDir: {x: 0, y: 0, z: 1}
+      knockbackForce: 10
+      launchForce: 4
+      hitStunDuration: 0.55
+      guardDamage: 0
+      snapZ: 0
+    advanceSpeed: 0
+    cancelOnContact: 0
+    telegraphClip: Pattern_Sweep_Windup
+    activeClip: Pattern_Sweep
+    attackPowerScale: 0
+    moveSpeedScale: 0
+    attackIntervalScale: 0
+    once: 0
   - label: "\uB300\uC9C0\uAC00\uB974\uAE30"
+    chargeTime: 0
+    chargeHitDelay: 0
+    chargeClip: 
     telegraph: 0.75
     active: 0.3
     recovery: 0.85
@@ -542,6 +674,7 @@ MonoBehaviour:
       knockbackForce: 10
       launchForce: 4
       hitStunDuration: 0.55
+      guardDamage: 0
       snapZ: 0
     advanceSpeed: 0
     cancelOnContact: 0
@@ -552,6 +685,9 @@ MonoBehaviour:
     attackIntervalScale: 0
     once: 0
   - label: "\uB3CC\uC9C4\uBCA0\uAE30"
+    chargeTime: 0
+    chargeHitDelay: 0
+    chargeClip: 
     telegraph: 0.55
     active: 0.45
     recovery: 0.7
@@ -570,6 +706,7 @@ MonoBehaviour:
       knockbackForce: 10
       launchForce: 0
       hitStunDuration: 0.55
+      guardDamage: 0
       snapZ: 0
     advanceSpeed: 15
     cancelOnContact: 1
@@ -580,6 +717,9 @@ MonoBehaviour:
     attackIntervalScale: 0
     once: 0
   - label: "\uC0BC\uC5F0\uCC38"
+    chargeTime: 0
+    chargeHitDelay: 0
+    chargeClip: 
     telegraph: 0.35
     active: 0.6
     recovery: 0.55
@@ -598,6 +738,7 @@ MonoBehaviour:
       knockbackForce: 3
       launchForce: 0
       hitStunDuration: 0.22
+      guardDamage: 0
       snapZ: 0
     advanceSpeed: 0
     cancelOnContact: 0
@@ -664,6 +805,7 @@ MonoBehaviour:
     knockbackForce: 0
     launchForce: 0
     hitStunDuration: 0
+    guardDamage: 0
     snapZ: 0
   impactVfx: 1
 --- !u!65 &6695194397872494815
@@ -765,5 +907,6 @@ MonoBehaviour:
     knockbackForce: 0
     launchForce: 0
     hitStunDuration: 0
+    guardDamage: 0
     snapZ: 0
   impactVfx: 1
