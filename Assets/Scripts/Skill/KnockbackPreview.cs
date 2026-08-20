@@ -62,8 +62,11 @@ namespace Prototype
                 if (hit.knockbackForce > 0f)
                 {
                     moves = true;
-                    Vector3 dir = hit.ResolveDirection(castOrigin, casterFacing, pos);
-                    pos += dir * Travel(in hit, victim, castOrigin, pos);
+
+                    // 실전(Combat.ApplyKnockback)과 같은 오버로드를 쓴다 — 밀치기는 벽이 방향을 정하므로
+                    // 벽 레이어를 안 넘기면 화살표만 시전자 반대쪽을 가리킨다.
+                    Vector3 dir = hit.ResolveDirection(castOrigin, casterFacing, pos, victim.WallMask);
+                    pos += dir * Travel(in hit, victim, castOrigin, pos, dir);
                 }
 
                 if (hit.launchForce > 0f)
@@ -79,8 +82,8 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>이 타격 하나가 만들어 내는 이동 거리. 모으기는 중심을 지나치지 않게 자른다.</summary>
-        private static float Travel(in HitData hit, Physics victim, Vector3 center, Vector3 pos)
+        /// <summary>이 타격 하나가 만들어 내는 이동 거리. 모으기는 중심을, 밀치기는 벽을 지나치지 않게 자른다.</summary>
+        private static float Travel(in HitData hit, Physics victim, Vector3 center, Vector3 pos, Vector3 dir)
         {
             float force = hit.knockbackForce;
 
@@ -92,7 +95,17 @@ namespace Prototype
                 force = Mathf.Min(force, victim.ImpulseToTravel(flat.magnitude));
             }
 
-            return victim.TravelForImpulse(force);
+            float travel = victim.TravelForImpulse(force);
+
+            // 벽으로 미는 타격은 벽에서 멈춘다. 안 자르면 화살표가 벽을 뚫고 나가
+            // "저기까지 날아간다"는 거짓말이 된다 — 실제로는 벽에 닿아 튕긴다.
+            if (hit.mode == KnockbackMode.TowardWall)
+            {
+                float toWall = WallFinder.DistanceToWall(pos, dir, victim.WallMask);
+                if (!float.IsInfinity(toWall)) travel = Mathf.Min(travel, toWall);
+            }
+
+            return travel;
         }
 
         /// <summary>초기 속도 v로 띄웠을 때의 정점 높이. v² / 2g.</summary>

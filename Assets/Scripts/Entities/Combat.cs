@@ -446,7 +446,8 @@ namespace Prototype
             if (hit.snapZ && (attacker != null || hit.hasOrigin))
                 physics.SnapZ(casterPos.z);
 
-            Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position);
+            // 벽 레이어를 같이 넘긴다 — 밀치기(TowardWall)는 시전자가 아니라 벽이 방향을 정한다.
+            Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position, physics.WallMask);
             if (hit.knockbackForce > 0f)
                 physics.AddImpulse(dir, PullClamped(hit, casterPos), resetInertia: false);
 

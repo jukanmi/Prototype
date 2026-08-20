@@ -23,5 +23,11 @@ namespace Prototype.YG
         /// </summary>
         public const string StageMini = "Stage_Mini";
         public const string StageBoss = "Stage_Boss";
+
+        /// <summary>
+        /// 훈련장. 허수아비 하나와 <b>고정 손패</b>만 놓은 씬이다 —
+        /// 콤보 한 싸이클을 매번 같은 조건에서 굴려 보는 자리.
+        /// </summary>
+        public const string StageTraining = "Stage_Training";
     }
 }

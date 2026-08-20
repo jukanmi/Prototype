@@ -159,6 +159,22 @@ namespace Prototype
             return drawn.Count;
         }
 
+        /// <summary>
+        /// 카드 한 장을 오른쪽 끝에 놓는다. 손패가 이미 <see cref="Size"/>면 거부한다.
+        ///
+        /// 덱을 거치지 않는 유일한 통로다 — <b>견본 콤보</b>(고정 손패)가 쓴다.
+        /// 시연·튜닝에서 매번 같은 4장이 같은 순서로 와야 콤보 한 싸이클을 비교할 수 있는데,
+        /// 셔플을 거치면 그게 불가능하다.
+        /// </summary>
+        public bool Add(ComboCard card)
+        {
+            if (card == null || slots.Count >= Size) return false;
+
+            slots.Add(new ComboSlot { card = card });
+            OnChanged?.Invoke();
+            return true;
+        }
+
         /// <summary>맨 왼쪽 카드를 꺼낸다. 나머지는 왼쪽으로 당겨진다.</summary>
         public ComboSlot Dequeue()
         {

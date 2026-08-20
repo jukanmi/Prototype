@@ -74,7 +74,7 @@ namespace Prototype
         /// 방 안쪽 적에서 시작하면 커서가 늘 우측 상단에 뜬 것처럼 보인다.
         /// 화면 기준으로 잡고 싶으면 <see cref="ScreenToGround"/>를 거쳐 넘겨라.
         /// </summary>
-        public void Begin(SkillData data) => Begin(data, NearestStart());
+        public void Begin(SkillData data) => Begin(data, PickStart(data));
 
         /// <summary>시작점을 지정해 조준을 연다.</summary>
         public void Begin(SkillData data, Vector3 startGround)
@@ -89,13 +89,18 @@ namespace Prototype
                 $"조준 시작: {(data != null ? data.skillName : "(null)")} | 방식 {(data != null ? data.targeting.ToString() : "?")} | 시작 {CursorPoint:F1}", this);
         }
 
-        /// <summary>커서를 매번 원점에서 시작하면 멀리서부터 끌고 와야 한다. 가까운 적을 기본으로 둔다.</summary>
-        private Vector3 NearestStart()
+        /// <summary>
+        /// 커서를 매번 원점에서 시작하면 멀리서부터 끌고 와야 한다. 스킬이 자동으로 고를 적 위에 올려 둔다 —
+        /// 그냥 확정하면 자동 조준과 <b>같은 결과</b>가 나오도록(<see cref="SkillData.targetPick"/>).
+        /// </summary>
+        private Vector3 PickStart(SkillData data)
         {
-            Entity near = cursorOrigin != null ? BattleRegistry.NearestEnemy(cursorOrigin.position) : null;
+            if (cursorOrigin == null) return Vector3.zero;
 
-            return near != null ? near.transform.position
-                 : (cursorOrigin != null ? cursorOrigin.position : Vector3.zero);
+            TargetPick pick = data != null ? data.targetPick : TargetPick.Nearest;
+            Entity picked = BattleRegistry.PickEnemy(cursorOrigin.position, pick);
+
+            return picked != null ? picked.transform.position : cursorOrigin.position;
         }
 
         /// <summary>

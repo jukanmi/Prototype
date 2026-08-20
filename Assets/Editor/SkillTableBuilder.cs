@@ -197,6 +197,13 @@ namespace Prototype.EditorTools
 
                 // 선행 상태에서 이 스킬을 돌리면 실제로 무엇이 나오는지 — 실전투와 같은 규칙.
                 CombatState sim = s.requireState;
+
+                // 효과가 먼저 돈다(SkillState.Enter: ApplyEffects → FireNextHit).
+                // 띄우기를 HitData가 아니라 AirborneEffect로 내는 스킬(융기)이 있으므로
+                // 이걸 빼먹으면 "결과가 어긋난다"는 가짜 경고가 뜬다.
+                if (LaunchesByEffect(s))
+                    sim = CombatState.AerialHit;
+
                 for (int h = 0; h < s.hitDataList.Count; h++)
                 {
                     HitData hit = s.hitDataList[h];
@@ -215,8 +222,12 @@ namespace Prototype.EditorTools
                 switch (s.attackType)
                 {
                     case AttackType.Launcher:
-                        if (s.hitDataList[0].mode != KnockbackMode.Up || s.hitDataList[0].launchForce <= 0f)
-                            problems += Warn(s, $"{tag}: 띄우기인데 mode가 Up이 아니거나 launchForce가 0이다. 안 뜬다.");
+                        // 어느 타에서 띄우든 상관없다 — 3연타의 <b>마무리</b>로 띄우는 스킬(올려베기)이 있고,
+                        // HitData가 아니라 AirborneEffect로 띄우는 스킬(융기)도 있다.
+                        // 첫 타만 보면 둘 다 가짜 경고가 뜬다.
+                        if (!LaunchesByHit(s) && !LaunchesByEffect(s))
+                            problems += Warn(s, $"{tag}: 띄우기인데 어느 타에도 Up · launchForce가 없고 " +
+                                                "AirborneEffect도 없다. 안 뜬다.");
                         break;
 
                     case AttackType.Push:
@@ -226,6 +237,17 @@ namespace Prototype.EditorTools
                                                 "여기는 Knockback으로 둘 것.");
                         if (s.hitDataList[0].knockbackForce <= 0f)
                             problems += Warn(s, $"{tag}: 밀치기인데 knockbackForce가 0이다. 벽까지 못 간다.");
+
+                        // 밀치기는 벽으로만 보낸다. AwayFromCaster로 두면 시전자가 어디 섰느냐에 따라
+                        // 적이 방 한복판으로 날아가고, 그러면 벽바운드가 운에 맡겨진다.
+                        if (s.hitDataList[0].mode != KnockbackMode.TowardWall)
+                            problems += Warn(s, $"{tag}: 밀치기인데 mode가 {s.hitDataList[0].mode}다. " +
+                                                "TowardWall이어야 벽바운드가 항상 성립한다.");
+
+                        // 벽까지 밀 거리가 나와야 한다. 코앞의 적을 밀면 한 뼘 가서 벽에 닿고 끝난다.
+                        if (s.targetPick != TargetPick.Farthest)
+                            problems += Warn(s, $"{tag}: 밀치기인데 targetPick이 {s.targetPick}다. " +
+                                                "Farthest여야 벽까지 날아갈 거리가 확보된다.");
 
                         // 밀치기는 보스 가드를 허무는 역할을 맡는다. 값을 비워 두면
                         // 평타와 같은 한 대분만 깎아 "가드 브레이커"라는 정체성이 사라진다.
@@ -263,6 +285,22 @@ namespace Prototype.EditorTools
             else
                 Debug.LogWarning($"<b>[검증] 문제 {problems}건</b> — 위 경고 확인");
         }
+
+        /// <summary>어느 한 타라도 실제로 띄우는지.</summary>
+        private static bool LaunchesByHit(SkillData s)
+        {
+            if (s.hitDataList == null) return false;
+
+            for (int i = 0; i < s.hitDataList.Count; i++)
+                if (s.hitDataList[i].mode == KnockbackMode.Up && s.hitDataList[i].launchForce > 0f)
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>효과로 띄우는지. 융기처럼 판정은 부가 히트고 띄우기는 효과가 맡는 형태.</summary>
+        private static bool LaunchesByEffect(SkillData s)
+            => s.effects != null && s.effects.Exists(e => e is AirborneEffect);
 
         private static int Warn(Object ctx, string message)
         {

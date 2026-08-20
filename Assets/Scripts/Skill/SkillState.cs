@@ -107,8 +107,11 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 시전 대상을 확정한다. 조준은 <b>좌표</b>만 주므로 그 좌표에서 가장 가까운 적을 상대로 삼는다.
-        /// (<see cref="SkillContext.Origin"/> — GroundPoint면 찍은 자리, 아니면 시전자 자리)
+        /// 시전 대상을 확정한다. 조준은 <b>좌표</b>만 주므로 그 좌표에서 규칙대로 한 명을 고른다
+        /// (<see cref="SkillContext.Origin"/> — GroundPoint면 찍은 자리, 아니면 시전자 자리).
+        ///
+        /// 규칙은 <see cref="SkillData.targetPick"/> 하나뿐이다 — 가장 가까운 적이거나 가장 먼 적.
+        /// 반경 훑기 · 부채꼴 검사를 두지 않는 이유는 유저가 "어디로 나갈지"를 눈으로 알아야 하기 때문이다.
         ///
         /// 조준 시점과 시전 시점 사이에 대상이 죽었어도 여기서 자동으로 다시 잡히므로
         /// 별도의 재타겟 경로가 필요 없다.
@@ -117,13 +120,25 @@ namespace Prototype
         {
             if (ctx.target != null && ctx.target.Combat != null && !ctx.target.Combat.IsDead) return;
 
-            ctx.target = BattleRegistry.NearestEnemy(ctx.Origin);
+            // 찍은 좌표가 있으면 그 좌표가 곧 지정이다 — 유저가 직접 조준했거나,
+            // 자동 조준(Ally.AutoTarget)이 이미 targetPick으로 고른 적의 자리다.
+            if (ctx.targetInfo.type == TargetingType.GroundPoint)
+            {
+                ctx.target = BattleRegistry.NearestEnemy(ctx.Origin);
+                return;
+            }
+
+            // 좌표가 없는 조준(None · Direction)은 시전자 기준으로 규칙대로 한 명 고른다.
+            Vector3 from = ctx.CasterPhysics != null ? ctx.CasterPhysics.GroundPosition : ctx.Origin;
+            ctx.target = BattleRegistry.PickEnemy(from, data.targetPick);
         }
 
         /// <summary>
-        /// 결정론적 가이드. <b>근거리 직업은 대상 옆으로 순간이동한 뒤에 시작한다</b> —
-        /// 제자리에서 휘두르면 조준한 곳에 판정이 안 닿아 콤보가 통째로 헛돈다.
-        /// 원거리 직업은 사거리가 있으니 움직이지 않고 방향만 맞춘다.
+        /// 자동 발동의 전부. <b>대상보다 멀면 사거리 안까지 들어가고, 그다음 때린다.</b>
+        ///
+        /// 예전에는 직업으로 갈렸다 — 근접만 이동하고 원거리는 제자리. 그래서 같은 카드가
+        /// 시전자에 따라 다르게 움직였고, 원거리는 사거리 밖이면 아무 일도 없이 투사체만 증발했다.
+        /// 규칙을 하나로 줄이면 유저가 외울 것도 하나다.
         /// </summary>
         protected void PlaceCaster()
         {
@@ -138,15 +153,6 @@ namespace Prototype
             // 시전 중 관성은 전부 끊는다. 연계가 밀리는 오차를 차단.
             phys.ResetInertia();
         }
-
-        /// <summary>
-        /// 근거리 직업인지. 스킬 카드는 직업에 묶여 있으므로(<c>Ally.EquipSkill</c>)
-        /// 에셋의 role이 곧 시전자의 직업이다.
-        ///
-        /// 투사체 유무로 가르지 않는 이유: 위저드 장판은 투사체가 없지만 근거리가 아니다.
-        /// 그걸 근접으로 보면 마법사가 적진 한가운데로 순간이동한다.
-        /// </summary>
-        private bool IsMeleeCaster => data.role == Role.Tanker || data.role == Role.Warrior;
 
         /// <summary>
         /// 장판인지 — 원거리 직업인데 날릴 투사체가 없는 스킬(융기 · 중력장 · 그물사격 …).
@@ -165,35 +171,37 @@ namespace Prototype
 
         /// <summary>
         /// 시전을 시작할 자리. 옮길 필요가 없으면 false.
-        ///
-        /// 조준 방식과 무관하게 <b>대상 옆</b>이 답이다 — 찍은 좌표 위에 그대로 서면
-        /// 적과 겹치거나 사거리 밖에 떨어져 판정이 안 닿는다.
-        /// 원거리는 사거리가 있으므로 아예 움직이지 않는다.
+        /// 직업을 보지 않는다 — <see cref="SkillData.ApproachDistance"/>가 성격별 거리를 이미 접어 준다.
         /// </summary>
         private bool TryGetCastSpot(Physics phys, out Vector3 spot)
-        {
-            spot = default;
-            if (!IsMeleeCaster) return false;
+            => TryApproach(phys.GroundPosition, ctx.target, data.ApproachDistance, out spot);
 
-            return TryApproach(phys.GroundPosition, ctx.target, out spot);
-        }
-
-        /// <summary>대상 옆에 서는 자리. 오던 쪽에 붙는다 — 대상을 관통해 넘어가지 않게.</summary>
-        private bool TryApproach(Vector3 from, Entity target, out Vector3 spot)
+        /// <summary>
+        /// 대상에게서 <paramref name="distance"/>만큼 떨어진 자리. 오던 쪽에 붙는다 —
+        /// 대상을 관통해 반대편으로 넘어가지 않게.
+        ///
+        /// <b>이미 그만큼 가까우면 움직이지 않는다.</b> 멀 때만 들어가는 게 규칙이라,
+        /// 코앞에 붙어 있던 원거리를 억지로 뒤로 밀어내지 않는다.
+        /// </summary>
+        public static bool TryApproach(Vector3 from, Entity target, float distance, out Vector3 spot)
         {
             spot = default;
             if (target == null || target.Physics == null) return false;
             if (target.Combat != null && target.Combat.IsDead) return false;
 
+            Vector3 targetPos = target.Physics.GroundPosition;
+
+            Vector3 gap = targetPos - from;
+            gap.y = 0f;
+
+            // 사거리 안이면 그대로 쏘거나 휘두른다. 여기서 걸러야 매 타격마다 미세하게 튀지 않는다.
+            if (gap.magnitude <= distance) return false;
+
             // 벨트스크롤에서 Z가 어긋나면 후속타가 전부 빗나간다(Physics.SnapZ와 같은 이유).
             // X만 띄우고 깊이는 대상과 같은 레인에 맞춘다.
             // 계산은 KnockbackPreview가 들고 있다 — 프리뷰와 실전이 같은 자리를 잡아야 화살표가 맞는다.
-            spot = KnockbackPreview.ApproachSpot(from, target.Physics.GroundPosition, data.ApproachDistance);
-
-            // 이미 그 자리면 옮기지 않는다. 매 타격마다 미세하게 튀는 걸 막는다.
-            Vector3 d = spot - from;
-            d.y = 0f;
-            return d.sqrMagnitude > 0.04f;
+            spot = KnockbackPreview.ApproachSpot(from, targetPos, distance);
+            return true;
         }
 
         /// <summary>

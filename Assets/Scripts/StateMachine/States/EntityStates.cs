@@ -264,32 +264,121 @@ namespace Prototype
         }
     }
 
-    /// <summary>공중 공격. 착지하면 즉시 종료한다.</summary>
+    /// <summary>
+    /// 공중 공격. 착지하면 즉시 종료한다.
+    ///
+    /// <b>지상 평타와 같은 단계 표를 쓴다</b>(<see cref="BasicAttackStage"/>) — 즉 공중에서도 연타가 된다.
+    /// 예전에는 한 대 때리고 <c>BasicAttackTotal</c>이 지나기만 기다렸다. 그래서 띄운 적을 쫓아
+    /// 올라가도 한 대밖에 못 넣었고, 공중 콤보의 마무리를 전부 스킬에 기대야 했다.
+    ///
+    /// 지상과 다른 점은 <b>끝나는 조건</b> 하나다 — 착지하면 몇 타째든 그 자리에서 끝난다.
+    /// 마지막 타를 다 쓰면 <see cref="BasicComboStep.Restart"/>로 1타부터 다시 도는 것도 같다.
+    /// </summary>
     public class AerialAttackState : EntityState
     {
         private float timer;
+        private int stage;
 
         public AerialAttackState(Entity entity) : base(entity) { }
+
+        /// <summary>지금 몇 타째인가(0-base). 애니메이터가 클립을 고를 때 읽는다.</summary>
+        public int Stage => stage;
 
         public override void Enter()
         {
             timer = 0f;
+            stage = 0;
 
-            if (Entity.BasicIsRanged) Entity.FireBasicProjectile();
-            else Entity.BasicAttack?.Begin(Entity.BuildBasicHit());
+            Entity.SetActiveAttackStage(0, Entity.GetBasicStageTiming(0).total);
+
+            // 지상 평타와 같은 이유로 이 상태에 들어오게 만든 입력을 버린다.
+            // 안 버리면 한 번의 점프 공격이 곧바로 2타까지 예약해 버린다.
+            Control?.ClearAttackBuffer();
+
+            FireStage();
         }
 
         public override void Tick(float dt)
         {
+            // 착지가 최우선이다. 몇 타째든, 히트박스가 열려 있든 여기서 끝난다.
+            if (Physics.PhysicsState == PhysicsState.Ground)
+            {
+                Entity.StateMachine.TryChangeState(Entity.IdleState);
+                return;
+            }
+
+            BasicAttackTiming t = Entity.GetBasicStageTiming(stage);
+
+            float prev = timer;
             timer += dt;
 
-            if (Physics.PhysicsState == PhysicsState.Ground || timer >= Entity.BasicAttackTotal)
-                Entity.StateMachine.TryChangeState(Entity.IdleState);
+            // 원거리는 선딜 끝에 한 발 쏘고 끝이라 켜고 끌 히트박스가 없다.
+            // 연타 대상도 아니다 — 지상 평타(AttackState)와 같은 규약이다.
+            if (Entity.BasicIsRanged)
+            {
+                if (timer >= t.total)
+                    Entity.StateMachine.TryChangeState(Entity.IdleState);
+                return;
+            }
+
+            if (prev < t.activeEnd && timer >= t.activeEnd)
+                Entity.BasicAttack?.End();
+
+            bool buffered = Control != null && Control.HasAttackBuffer;
+
+            switch (BasicComboRules.Decide(timer, in t, stage, Entity.BasicComboStageCount, buffered))
+            {
+                case BasicComboStep.Advance:
+                    Control?.ClearAttackBuffer();
+                    GoToStage(stage + 1);
+                    break;
+
+                case BasicComboStep.Restart:
+                    Control?.ClearAttackBuffer();
+                    GoToStage(0);
+                    break;
+
+                case BasicComboStep.Finish:
+                    Entity.StateMachine.TryChangeState(Entity.IdleState);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 다음 타로 넘어간다. <see cref="AttackState.GoToStage"/>와 같은 일을 하되
+        /// 방향 재조준(<c>Physics.Move</c>)은 하지 않는다 — 공중에서는 관성이 이동을 이미 쥐고 있다.
+        /// </summary>
+        private void GoToStage(int next)
+        {
+            Entity.BasicAttack?.End();
+
+            stage = next;
+            timer = 0f;
+
+            BasicAttackTiming t = Entity.GetBasicStageTiming(stage);
+            Entity.SetActiveAttackStage(stage, t.total);
+            Entity.Animator?.PlayBasicAttackStage(stage, t.total);
+
+            FireStage();
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{Entity.name} 공중 평타 {stage + 1}/{Entity.BasicComboStageCount}타", Entity);
+        }
+
+        /// <summary>
+        /// 이 단계의 타격을 낸다. 공중 공격은 선딜을 두지 않는다 —
+        /// 체공 시간이 짧아 선딜을 기다리면 착지가 먼저 오고 한 대도 못 넣는다.
+        /// </summary>
+        private void FireStage()
+        {
+            if (Entity.BasicIsRanged) Entity.FireBasicProjectile();
+            else Entity.BasicAttack?.Begin(Entity.BuildBasicHit(stage));
         }
 
         public override void Exit()
         {
             Entity.BasicAttack?.End();
+            stage = 0;
         }
     }
 

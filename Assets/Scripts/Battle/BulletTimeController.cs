@@ -57,6 +57,22 @@ namespace Prototype
                  "같은 직업 동료가 아직 살아 있으면 남긴다.")]
         [SerializeField] private bool purgeCardsOnAllyDeath = true;
 
+        [Header("견본 콤보 — 훈련장 · 시연용")]
+        [Tooltip("켜면 덱·셔플을 건너뛰고 아래 스킬만 그 순서대로 손패에 채운다.\n\n" +
+                 "콤보 한 싸이클을 매번 똑같이 굴려야 값을 비교할 수 있다. " +
+                 "무작위 드로우로는 같은 체인이 두 번 나오지 않는다.")]
+        [SerializeField] private bool useFixedHand = false;
+
+        [Tooltip("고정 손패에 채울 순서. 정석 체인은 모으기 → 띄우기 → 공격기 → 밀치기다.\n" +
+                 "4장을 넘겨도 되며, 손패 4칸이 비는 대로 이 순서를 순환한다.")]
+        [SerializeField] private List<SkillData> fixedHand = new List<SkillData>();
+
+        /// <summary>고정 손패에서 다음에 낼 카드의 인덱스. 순환한다.</summary>
+        private int fixedCursor;
+
+        /// <summary>고정 손패가 켜져 있고 실제로 낼 카드가 있는지.</summary>
+        public bool UsesFixedHand => useFixedHand && fixedHand != null && fixedHand.Count > 0;
+
         [Header("전술 페이즈")]
         [Tooltip("Freeze 체류 시간(비배율 초). 0이면 다음 프레임에 곧바로 Order로 넘어간다. UI 확대 연출을 넣을 자리.")]
         [SerializeField] private float freezeDuration = 0f;
@@ -148,7 +164,9 @@ namespace Prototype
 
         private void Start()
         {
-            if (buildDeckOnStart)
+            // 견본 손패는 덱을 아예 거치지 않는다. 여기서 덱을 지으면
+            // "16장이 아니다" 경고만 뜨고 아무도 그 카드를 뽑지 않는다.
+            if (buildDeckOnStart && !UsesFixedHand)
                 BuildDeckFromParty();
 
             // 덱이 0장인 채로 시작하므로 첫 Refill이 Discard 회수 → 셔플을 자동으로 부른다.
@@ -276,7 +294,7 @@ namespace Prototype
                 // 발동할 수 없는 카드는 붙잡아 두지 않는다. 방치하면 손패 맨 앞이 영구히 막힌다.
                 BattleLog.Warn(LogCategory.Deck, "SkillData가 비어 있는 카드 — 버리고 다음 장을 당긴다", this);
                 hand.Dequeue();
-                discard.Add(slot.card);
+                Recycle(slot.card);
                 RefillHand();
                 return false;
             }
@@ -328,9 +346,19 @@ namespace Prototype
                 $"<b>즉시 사용</b> {data.skillName} | {BattleLog.Name(caster)} | 조준 {info.type}" +
                 (SkillCooldownRemaining(data) > 0f ? $" | 쿨 {SkillCooldownRemaining(data):0.#}s" : ""), this);
 
-            discard.Add(slot.card);
+            Recycle(slot.card);
             RefillHand();
             return true;
+        }
+
+        /// <summary>
+        /// 다 쓴 카드를 버린 더미로. 견본 손패는 카드를 그 자리에서 찍어 내므로 회수하지 않는다 —
+        /// 넣어 두면 아무도 뽑지 않는 더미만 무한히 커진다.
+        /// </summary>
+        private void Recycle(ComboCard card)
+        {
+            if (UsesFixedHand) return;
+            discard.Add(card);
         }
 
         /// <summary>
@@ -403,10 +431,58 @@ namespace Prototype
         /// <summary>덱에서 뽑아 손패를 4장까지 채운다. 덱이 비면 Discard가 섞여 되돌아온다.</summary>
         public void RefillHand()
         {
+            if (UsesFixedHand)
+            {
+                RefillFixedHand();
+                return;
+            }
+
             int drawn = hand.Refill(deck, discard);
             if (drawn > 0)
                 BattleLog.Log(LogCategory.Deck,
                     $"손패 보충 {drawn}장 → {hand.Count}장 | 덱 {deck.Count} | Discard {discard.Count}", this);
+        }
+
+        /// <summary>
+        /// 견본 손패 보충. 덱·Discard를 아예 건드리지 않는다 —
+        /// 여기서 나간 카드는 회수할 필요가 없다(<see cref="HandleSlotConsumed"/>가 넣는 Discard는
+        /// 고정 손패가 쓰지 않으므로 그냥 쌓였다가 무시된다).
+        /// </summary>
+        private void RefillFixedHand()
+        {
+            int added = 0;
+
+            // 리스트가 전부 null이면 아래 continue가 영원히 돌 수 있다.
+            // 손패를 다 채우거나 리스트를 한 바퀴 다 훑으면 그만둔다.
+            int tries = Hand.Size + fixedHand.Count;
+
+            while (hand.Count < Hand.Size && tries-- > 0)
+            {
+                SkillData data = fixedHand[fixedCursor];
+                fixedCursor = (fixedCursor + 1) % fixedHand.Count;
+
+                if (data == null) continue;
+                if (!hand.Add(new ComboCard(data))) break;
+
+                added++;
+            }
+
+            if (added > 0)
+                BattleLog.Log(LogCategory.Deck,
+                    $"<b>견본 손패</b> 보충 {added}장 → {hand.Count}장 | {DescribeHand()}", this);
+        }
+
+        /// <summary>손패를 "A → B → C" 한 줄로. 로그에서 체인 순서를 눈으로 확인하는 용도.</summary>
+        private string DescribeHand()
+        {
+            var names = new string[hand.Count];
+            for (int i = 0; i < hand.Count; i++)
+            {
+                SkillData d = hand.Get(i).Data;
+                names[i] = d != null ? d.skillName : "?";
+            }
+
+            return string.Join(" → ", names);
         }
 
         /// <summary>
@@ -427,7 +503,7 @@ namespace Prototype
                 if (data == null)
                 {
                     // 그냥 continue하면 카드가 덱에서 증발한다. Discard로 돌려보낸다.
-                    discard.Add(s.card);
+                    Recycle(s.card);
                     continue;
                 }
 
@@ -436,7 +512,7 @@ namespace Prototype
                 {
                     BattleLog.Warn(LogCategory.Combo,
                         $"{data.skillName} 건너뜀 — {data.role} 동료가 파티에 없거나 사망", this);
-                    discard.Add(s.card);
+                    Recycle(s.card);
                     continue;
                 }
 
@@ -472,6 +548,9 @@ namespace Prototype
 
         private void HandleSlotConsumed(ComboCard card)
         {
+            // 견본 손패는 매번 새 ComboCard를 찍어 낸다. 버린 더미에 넣으면 회수되지 않은 채 계속 쌓인다.
+            if (UsesFixedHand) return;
+
             // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 실행 큐는 손패를 통째로 굳혀 두므로
             // 콤보 도중에 시전자가 죽어도 남은 슬롯이 여기까지 흘러온다 —
             // 그대로 넣으면 덱이 소진될 때 Discard가 회수되면서 죽은 동료 카드가 되살아난다.

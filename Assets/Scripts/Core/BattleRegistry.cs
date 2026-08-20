@@ -78,6 +78,23 @@ namespace Prototype
                 : NearestAlly(self.transform.position, self);
         }
 
+        /// <summary>
+        /// 지정 좌표에서 <b>가장 먼</b> 살아 있는 적.
+        /// 밀치기처럼 벽까지의 거리가 필요한 스킬이 고른다(<see cref="TargetPick.Farthest"/>).
+        /// </summary>
+        public static Entity FarthestEnemy(Vector3 position, Entity exclude = null)
+            => Farthest(enemies, position, exclude);
+
+        /// <summary>
+        /// 규칙 하나로 적을 고른다. <b>자동 조준의 유일한 창구</b> —
+        /// 스킬마다 반경 훑기 · 부채꼴 검사 같은 걸 따로 두면 유저가 어디로 나갈지 예측할 수 없다.
+        /// 가까운 적 아니면 먼 적, 둘뿐이다.
+        /// </summary>
+        public static Entity PickEnemy(Vector3 position, TargetPick pick, Entity exclude = null)
+            => pick == TargetPick.Farthest
+                ? FarthestEnemy(position, exclude)
+                : NearestEnemy(position, exclude);
+
         private static Entity Nearest(List<Entity> list, Vector3 position, Entity exclude)
         {
             Entity best = null;
@@ -90,6 +107,26 @@ namespace Prototype
 
                 float sqr = (e.transform.position - position).sqrMagnitude;
                 if (sqr >= bestSqr) continue;
+
+                bestSqr = sqr;
+                best = e;
+            }
+
+            return best;
+        }
+
+        private static Entity Farthest(List<Entity> list, Vector3 position, Entity exclude)
+        {
+            Entity best = null;
+            float bestSqr = -1f;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Entity e = list[i];
+                if (e == null || e == exclude || e.Combat.IsDead) continue;
+
+                float sqr = (e.transform.position - position).sqrMagnitude;
+                if (sqr <= bestSqr) continue;
 
                 bestSqr = sqr;
                 best = e;

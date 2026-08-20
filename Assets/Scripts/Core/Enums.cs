@@ -60,6 +60,27 @@ namespace Prototype
         AwayFromCaster,
         /// <summary>위로 띄움.</summary>
         Up,
+
+        /// <summary>
+        /// <b>가장 가까운 벽</b>으로 날린다(밀치기 전용).
+        ///
+        /// <see cref="AwayFromCaster"/>는 시전자가 선 자리에 따라 적이 허공으로 날아가
+        /// 벽바운드가 운에 맡겨졌다. 밀치기의 존재 이유가 벽바운드 연계이므로 방향을
+        /// 벽이 정하게 한다 — 값이 4번이라 기존 에셋의 0~3 로드는 그대로다.
+        /// </summary>
+        TowardWall,
+    }
+
+    /// <summary>
+    /// 스킬이 자동으로 겨눌 상대를 고르는 규칙. 스킬 에셋마다 정한다.
+    ///
+    /// 밀치기를 <b>가장 먼 적</b>에게 걸면 벽까지의 거리가 확보되고,
+    /// 모으기·시동기는 <b>가까운 적</b>이어야 콤보가 손 안에서 끝난다.
+    /// </summary>
+    public enum TargetPick
+    {
+        Nearest,
+        Farthest,
     }
 
     /// <summary>스킬이 요구하는 조준 방식. 불릿타임 중 유저가 직접 지정한다.</summary>
