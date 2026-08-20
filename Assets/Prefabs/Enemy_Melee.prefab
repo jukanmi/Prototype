@@ -249,9 +249,9 @@ MonoBehaviour:
   energies:
     energies: []
   basicAttack: {fileID: 1138960660791772845}
-  basicAttackWindup: 0.24
-  basicAttackActiveEnd: 0.3
-  basicAttackTotal: 0.45
+  basicAttackWindup: 0.5
+  basicAttackActiveEnd: 0.65
+  basicAttackTotal: 0.9
   basicHit:
     damageData:
       damage: 10

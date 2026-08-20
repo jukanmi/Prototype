@@ -79,6 +79,7 @@ namespace Prototype
 
             target = chargeTarget;
             sequence.Begin();
+            owner.SetTelegraph(sequence.ShouldShowTelegraph);
 
             BattleLog.Log(LogCategory.State, $"{name} 돌진 예고 시작 → {chargeTarget.name}", this);
             return true;
@@ -94,6 +95,10 @@ namespace Prototype
             EnemySpecialPhase after = sequence.Phase;
 
             if (before != after) HandleTransition(after);
+
+            // 돌진 시작 TelegraphLead초 전부터만 번쩍인다. 예고 0.6초를 통째로 켜면
+            // !를 보고 누른 대시가 돌진이 오기 전에 끝난다.
+            owner.SetTelegraph(sequence.ShouldShowTelegraph);
 
             switch (after)
             {
@@ -117,8 +122,33 @@ namespace Prototype
 
             sequence.Cancel();
             Teardown();
+            owner.SetTelegraph(false);
 
             BattleLog.Log(LogCategory.State, $"{name} 돌진 취소", this);
+        }
+
+        /// <summary>
+        /// 돌진이 쓸고 갈 자리. 예고 중에만 내놓는다 — 돌진은 전부 전진이라
+        /// 발밑 상자만 그리면 표시 밖에서 맞는다.
+        /// </summary>
+        public bool TryGetRange(out AttackRangePreview range)
+        {
+            range = default;
+
+            if (Phase != EnemySpecialPhase.Telegraph) return false;
+            if (owner == null || owner.Physics == null) return false;
+
+            if (!AttackRangePreview.TryReadBox(Hitbox, owner.transform,
+                                               out Vector3 localOffset, out Vector3 size))
+                return false;
+
+            range = AttackRangePreview.FromBox(
+                owner.Physics.GroundPosition, owner.Physics.Facing,
+                localOffset, size,
+                chargeSpeed * chargeDuration,
+                sequence.PhaseProgress);
+
+            return true;
         }
 
         private void HandleTransition(EnemySpecialPhase next)

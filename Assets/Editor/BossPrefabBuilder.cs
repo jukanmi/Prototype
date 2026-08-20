@@ -27,10 +27,13 @@ namespace Prototype.EditorTools
         private const string IdleSheet = "Assets/Art/Character/BossWarrior/Idle.png";
 
         private const string SpritePath = "View/Sprite";
-        private const string BasicHitboxName = "Attack";
+        internal const string BasicHitboxName = "Attack";
 
         /// <summary>광역 히트박스 자식 이름. 재실행 때 이 이름으로 찾아 갱신한다.</summary>
         internal const string WideHitboxName = "WideHitbox";
+
+        /// <summary>둘레 판정 히트박스 자식 이름. 횡베기처럼 앞뒤 구분이 없는 패턴이 쓴다.</summary>
+        internal const string RadialHitboxName = "RadialHitbox";
 
         // ── 수치 ───────────────────────────────────────
         internal const float Hp = 400f;
@@ -58,6 +61,18 @@ namespace Prototype.EditorTools
 
         private static Vector3 WideHitboxPos => new Vector3(0f, BodyHeight * 0.45f, 1.9f);
         private static readonly Vector3 WideHitboxSize = new Vector3(3.6f, 2.4f, 3.2f);
+
+        /// <summary>
+        /// 둘레 판정. <b>몸 중심</b>에 놓는다 — 앞으로 밀면 등 뒤에 사각지대가 생겨
+        /// "뒤로 돌아가면 안 맞는다"가 되고, 그러면 상자를 쓰는 것과 같아진다.
+        /// </summary>
+        private static Vector3 RadialHitboxPos => new Vector3(0f, BodyHeight * 0.45f, 0f);
+
+        /// <summary>
+        /// 둘레 판정 반경. 광역 상자의 정면 도달거리(1.9 + 1.6 = 3.5)보다 조금 짧다 —
+        /// 사방을 덮는 대신 한 방향으로 뻗는 거리를 내주는 것이 이 패턴의 거래다.
+        /// </summary>
+        internal const float RadialHitboxRadius = 3.2f;
 
         [MenuItem("Prototype/보스 - 프리팹 + 데이터 만들기")]
         public static void Build()
@@ -94,11 +109,12 @@ namespace Prototype.EditorTools
 
             Attack basicHitbox = EnsureHitbox(root, BasicHitboxName, BasicHitboxPos, BasicHitboxSize);
             Attack wideHitbox = EnsureHitbox(root, WideHitboxName, WideHitboxPos, WideHitboxSize);
+            Attack radialHitbox = EnsureSphereHitbox(root, RadialHitboxName, RadialHitboxPos, RadialHitboxRadius);
 
             WireEnemy(root, data, basicHitbox);
             WireControl(root, brain);
-            WirePatterns(root, basicHitbox, wideHitbox);
-            AssignLayers(root, basicHitbox, wideHitbox);
+            WirePatterns(root, basicHitbox, wideHitbox, radialHitbox);
+            AssignLayers(root, basicHitbox, wideHitbox, radialHitbox);
 
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -299,11 +315,7 @@ namespace Prototype.EditorTools
         /// </summary>
         private static Attack EnsureHitbox(GameObject root, string name, Vector3 localPos, Vector3 size)
         {
-            Transform child = root.transform.Find(name);
-            GameObject go = child != null ? child.gameObject : NewChild(root, name);
-
-            var marker = go.GetComponent<SpriteRenderer>();
-            if (marker != null) Object.DestroyImmediate(marker);
+            GameObject go = EnsureHitboxObject(root, name, localPos);
 
             // 박스를 <b>먼저</b> 붙이고 옛 콜라이더를 지운다.
             // 순서가 반대면 Attack의 [RequireComponent(typeof(Collider))] 때문에
@@ -311,17 +323,63 @@ namespace Prototype.EditorTools
             var box = go.GetComponent<BoxCollider>();
             if (box == null) box = go.AddComponent<BoxCollider>();
 
-            foreach (Collider c in go.GetComponents<Collider>())
-                if (c != box) Object.DestroyImmediate(c);
+            KeepOnly(go, box);
 
             box.isTrigger = true;
             box.size = size;
             box.center = Vector3.zero;
 
+            return FinishHitbox(go, root);
+        }
+
+        /// <summary>
+        /// 둘레 판정용 구 히트박스. 상자와 달리 회전을 타지 않으므로
+        /// 보스가 어디를 보고 있든 같은 범위를 덮는다 — 그게 이 히트박스의 존재 이유다.
+        /// </summary>
+        private static Attack EnsureSphereHitbox(GameObject root, string name, Vector3 localPos, float radius)
+        {
+            GameObject go = EnsureHitboxObject(root, name, localPos);
+
+            var sphere = go.GetComponent<SphereCollider>();
+            if (sphere == null) sphere = go.AddComponent<SphereCollider>();
+
+            KeepOnly(go, sphere);
+
+            sphere.isTrigger = true;
+            sphere.radius = radius;
+            sphere.center = Vector3.zero;
+
+            return FinishHitbox(go, root);
+        }
+
+        /// <summary>히트박스 자식 하나. 재실행 때는 이름으로 찾아 자리만 다시 잡는다.</summary>
+        private static GameObject EnsureHitboxObject(GameObject root, string name, Vector3 localPos)
+        {
+            Transform child = root.transform.Find(name);
+            GameObject go = child != null ? child.gameObject : NewChild(root, name);
+
+            var marker = go.GetComponent<SpriteRenderer>();
+            if (marker != null) Object.DestroyImmediate(marker);
+
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.identity;
             go.transform.localScale = Vector3.one;
 
+            return go;
+        }
+
+        /// <summary>
+        /// 남겨 둘 콜라이더 하나만 남기고 나머지를 지운다.
+        /// 옛 모양이 남아 있으면 판정이 둘로 겹쳐 같은 대상을 두 번 때린다.
+        /// </summary>
+        private static void KeepOnly(GameObject go, Collider keep)
+        {
+            foreach (Collider c in go.GetComponents<Collider>())
+                if (c != keep) Object.DestroyImmediate(c);
+        }
+
+        private static Attack FinishHitbox(GameObject go, GameObject root)
+        {
             Attack hitbox = go.GetComponent<Attack>();
             if (hitbox == null) hitbox = go.AddComponent<Attack>();
             hitbox.Attacker = root.GetComponent<Combat>();
@@ -372,7 +430,7 @@ namespace Prototype.EditorTools
         /// 패턴 표 → 실행기. 브레인 규칙의 index와 같은 순서다.
         /// 돌진 멧돼지의 실행기가 붙어 있으면 걷어낸다 — 한 Entity에 특수 실행기는 하나뿐이다.
         /// </summary>
-        private static void WirePatterns(GameObject root, Attack basicHitbox, Attack wideHitbox)
+        private static void WirePatterns(GameObject root, Attack basicHitbox, Attack wideHitbox, Attack radialHitbox)
         {
             var charge = root.GetComponent<EnemyChargeAction>();
             if (charge != null) Object.DestroyImmediate(charge);
@@ -387,13 +445,16 @@ namespace Prototype.EditorTools
                 built[i] = new BossPattern
                 {
                     label = e.label,
+                    chargeTime = e.chargeTime,
+                    chargeHitDelay = e.chargeHitDelay,
+                    chargeClip = e.chargeState,
                     telegraph = e.telegraph,
                     active = e.active,
                     recovery = e.recovery,
                     hitCount = e.hitCount,
                     hitDuration = e.hitDuration,
                     damageScale = e.damageScale,
-                    hitbox = e.wideHitbox ? wideHitbox : basicHitbox,
+                    hitbox = HitboxFor(e.hitboxKind, basicHitbox, wideHitbox, radialHitbox),
                     hit = BuildHit(e),
                     advanceSpeed = e.advanceSpeed,
                     cancelOnContact = e.cancelOnContact,
@@ -408,6 +469,17 @@ namespace Prototype.EditorTools
 
             action.SetPatterns(built);
             EditorUtility.SetDirty(action);
+        }
+
+        private static Attack HitboxFor(BossPatternTable.HitboxKind kind,
+                                        Attack basic, Attack wide, Attack radial)
+        {
+            switch (kind)
+            {
+                case BossPatternTable.HitboxKind.Wide: return wide;
+                case BossPatternTable.HitboxKind.Radial: return radial;
+                default: return basic;
+            }
         }
 
         /// <summary>
@@ -429,7 +501,8 @@ namespace Prototype.EditorTools
                 mode = multi ? KnockbackMode.Fixed : KnockbackMode.AwayFromCaster,
                 fixedDir = Vector3.forward,
                 knockbackForce = multi ? 3f : 10f,
-                launchForce = e.wideHitbox && !multi && e.advanceSpeed <= 0f ? 4f : 0f,
+                launchForce = e.hitboxKind != BossPatternTable.HitboxKind.Basic
+                              && !multi && e.advanceSpeed <= 0f ? 4f : 0f,
                 hitStunDuration = multi ? 0.22f : 0.55f,
             };
         }

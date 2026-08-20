@@ -39,6 +39,11 @@ namespace Prototype
         public float launchForce;
         public float hitStunDuration;
 
+        [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +
+                 "0을 기본으로 둔 이유는 기존 애셋 전부가 0으로 로드되기 때문이다 — " +
+                 "데이터를 안 채워도 동작하고, 가드 파괴가 특기인 스킬만 값을 준다.")]
+        public float guardDamage;
+
         [Tooltip("모으기 계열에서 Z축을 기준점에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
         public bool snapZ;
 

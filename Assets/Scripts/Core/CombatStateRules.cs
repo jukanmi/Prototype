@@ -12,10 +12,10 @@ namespace Prototype
         // ── 공중 콤보 제한 ──────────────────────────────
         // 무한 홀딩만 막고 연계는 넉넉히 허용한다. 값을 조이면 슬롯 간격(ComboExecutor.slotGap)
         // 안에 대상이 먼저 착지해 콤보가 끊긴다.
-        /// <summary>공중 피격 1회마다 붙는 중력 가중치.</summary>
-        public const float AirGravityStep = 0.15f;
-        /// <summary>중력 가중치 상한. 이 이상 무거워지지 않는다.</summary>
-        public const float MaxAirGravityScale = 2f;
+        //
+        // 맞을수록 무겁게 떨어뜨리던 중력 가중치는 없앴다 — 조기 착지가 다운을 부르고,
+        // 다운은 1.6초 무적이라 뒤따르던 슬롯이 통째로 증발했다. 체공 조절은
+        // Physics.fallGravityScale · apexHangTime으로 한다.
         /// <summary>이 횟수를 넘기면 띄우기가 무시되고 그대로 낙하한다.</summary>
         public const int MaxAirHit = 10;
 
@@ -132,10 +132,6 @@ namespace Prototype
 
             return Vector3.Angle(facing, toAttacker) <= angle * 0.5f;
         }
-
-        /// <summary>공중 히트 누적에 따른 중력 배율. 맞을수록 무겁게 떨어진다.</summary>
-        public static float AirGravityScale(int airHitCount)
-            => Mathf.Min(1f + airHitCount * AirGravityStep, MaxAirGravityScale);
 
         /// <summary>
         /// 벽에 닿았을 때의 전이. 넉백과 공중 피격이 벽 바운드로 간다.

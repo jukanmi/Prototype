@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Prototype
@@ -30,6 +31,11 @@ namespace Prototype
             knockbackForce = 3f,
             hitStunDuration = 0.3f,
         };
+
+        [Tooltip("평타 연타 단계. 비워 두면 지금까지의 단발 평타 그대로다 — 적 · 자율 동료가 그렇다.\n\n" +
+                 "채우면 유저가 모는 몸(PlayerControl)만 버튼을 반복해 이어 칠 수 있다.\n" +
+                 "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
+        [SerializeField] private BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
 
         [Tooltip("스킬 전용 히트박스. 비우면 평타 히트박스를 재사용한다.")]
         [SerializeField] private Attack skillAttack;
@@ -82,11 +88,60 @@ namespace Prototype
         public float BasicAttackTotal => basicAttackTotal;
 
         /// <summary>평타 HitData에 현재 공격력을 실어 새로 만든다. 원본은 건드리지 않는다.</summary>
-        public HitData BuildBasicHit()
+        public HitData BuildBasicHit() => BuildBasicHit(0);
+
+        /// <summary>
+        /// 연타 <paramref name="stage"/>타째의 타격. 단계가 없으면 기본 평타와 같다 —
+        /// 무인자 버전이 여기로 위임하므로 원거리 · 공중 평타 호출부는 손댈 필요가 없다.
+        /// </summary>
+        public HitData BuildBasicHit(int stage)
         {
             HitData h = basicHit;
             h.damageData.damage = stats.GetValue(StatType.AttackPower, h.damageData.damage);
-            return h;
+
+            if (!HasComboStage(stage)) return h;
+
+            return BasicComboRules.BuildStageHit(in h, in basicComboStages[stage]);
+        }
+
+        // ── 평타 연타 ────────────────────────────────────
+
+        /// <summary>연타 단계 수. 저작하지 않았으면 1 — 단발이라는 뜻이다.</summary>
+        public int BasicComboStageCount => basicComboStages != null && basicComboStages.Length > 0
+            ? basicComboStages.Length
+            : 1;
+
+        /// <summary>연타를 저작한 몸인지.</summary>
+        public bool HasBasicCombo => BasicComboStageCount > 1;
+
+        private bool HasComboStage(int stage)
+            => basicComboStages != null && stage >= 0 && stage < basicComboStages.Length;
+
+        /// <summary>이 단계에 재생할 클립. 비워 뒀으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
+        public AnimationClip GetBasicStageClip(int stage)
+            => HasComboStage(stage) ? basicComboStages[stage].clip : null;
+
+        /// <summary>단계 타이밍. 0으로 비워 둔 값은 기본 평타 값으로 접어서 돌려준다.</summary>
+        public BasicAttackTiming GetBasicStageTiming(int stage)
+        {
+            BasicAttackStage s = HasComboStage(stage) ? basicComboStages[stage] : default;
+            return BasicComboRules.ResolveTiming(in s, basicAttackWindup, basicAttackActiveEnd, basicAttackTotal);
+        }
+
+        /// <summary>
+        /// 지금 도는 평타 한 타의 길이. <see cref="EntityAnimator"/>가 클립 속도를 여기에 맞춘다 —
+        /// 고정 <see cref="BasicAttackTotal"/>을 보면 10프레임짜리 마무리가 1타 길이에 우겨넣어져 배속으로 보인다.
+        /// </summary>
+        public float ActiveAttackTotal { get; private set; }
+
+        /// <summary>지금 도는 단계. 애니메이터가 클립을 고를 때 본다.</summary>
+        public int ActiveAttackStage { get; private set; }
+
+        /// <summary><see cref="AttackState"/>만 부른다. 단계에 들어갈 때 한 번.</summary>
+        public void SetActiveAttackStage(int stage, float total)
+        {
+            ActiveAttackStage = stage;
+            ActiveAttackTotal = total > 0f ? total : basicAttackTotal;
         }
 
         /// <summary>
@@ -153,6 +208,16 @@ namespace Prototype
         public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
         public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
 
+        private EntityAnimator cachedAnimator;
+
+        /// <summary>
+        /// 스프라이트 애니메이터. 없는 몸도 있으므로(생성기 · 테스트) 항상 null 검사를 하고 쓴다.
+        /// <see cref="Physics"/>와 같은 이유로 지연 해석한다.
+        /// </summary>
+        public EntityAnimator Animator => cachedAnimator != null
+            ? cachedAnimator
+            : cachedAnimator = GetComponentInChildren<EntityAnimator>(true);
+
         /// <summary>
         /// 지금 이 몸을 모는 것. <see cref="UseControl{T}"/>가 갈아 끼운다.
         /// 아무도 안 몰면 null이다 — 태그로 내려간 몸과, 불릿타임에 불려 나왔지만
@@ -170,7 +235,58 @@ namespace Prototype
         /// </summary>
         public bool IsCommanded { get; set; }
 
+        /// <summary>
+        /// 공격 예고(선딜) 중인가. <b>맞기 전에 읽을 수 있는 유일한 신호</b>다.
+        ///
+        /// 평타는 선딜(<see cref="BasicAttackWindup"/>), 보스 · 돌진은
+        /// <see cref="EnemySpecialPhase.Telegraph"/> 구간이 여기 해당한다.
+        /// 화면 표현(<see cref="EnemyStateTint"/>)이 이 값을 보고 몸을 하얗게 번쩍인다 —
+        /// 대시 패링은 이 신호를 보고 누르는 것이라, 신호가 없으면 패링은 운이 된다.
+        /// </summary>
+        public bool IsTelegraphing { get; private set; }
+
+        /// <summary>예고가 켜지고 꺼질 때. 표현 쪽이 매 프레임 폴링하지 않게 이벤트로 알린다.</summary>
+        public event Action<bool> OnTelegraphChanged;
+
+        /// <summary>예고 표시를 켜고 끈다. 같은 값이면 아무 일도 하지 않는다.</summary>
+        public void SetTelegraph(bool on)
+        {
+            if (IsTelegraphing == on) return;
+
+            IsTelegraphing = on;
+            OnTelegraphChanged?.Invoke(on);
+        }
+
         public StateMachine StateMachine { get; private set; }
+
+        /// <summary>
+        /// 지금 무언가를 모으고 있으면 그 주체. 없으면 null.
+        ///
+        /// 모으는 경로가 둘이라 한 창구로 합친다 —
+        /// 동료 스킬은 <see cref="ChargeSkillState"/>로 <b>상태머신</b> 위에서 돌고,
+        /// 보스 패턴은 <see cref="BossPatternAction"/>으로 <b>컴포넌트</b> 위에서 돈다.
+        /// 머리 위 게이지(<see cref="ChargeGauge"/>)는 그 차이를 알 이유가 없다.
+        /// </summary>
+        public IChargeState ChargeState
+        {
+            get
+            {
+                if (StateMachine?.CurState is IChargeState fromState) return fromState;
+
+                // 컴포넌트 쪽은 한 번만 찾는다. 매 프레임 GetComponent를 도는 자리다.
+                if (!chargeComponentResolved)
+                {
+                    chargeComponentResolved = true;
+                    chargeComponent = GetComponent<IChargeState>();
+                }
+
+                return chargeComponent;
+            }
+        }
+
+        private IChargeState chargeComponent;
+        private bool chargeComponentResolved;
+
         public Stats Stats => stats;
         public Energies Energies => energies;
 
@@ -216,6 +332,25 @@ namespace Prototype
                 this);
 
             StateMachine.ForceChangeState(IdleState);
+
+            // 선딜이 전체 길이보다 길면 AttackState가 히트박스를 켜기 전에 끝난다 —
+            // 공격이 조용히 사라지고 모션만 남는다. 예고를 길게 잡다가 밟기 쉬운 함정이라 경고한다.
+            if (basicAttackWindup >= basicAttackTotal)
+                BattleLog.Warn(LogCategory.Combat,
+                    $"{name}: 평타 선딜({basicAttackWindup:0.##}s)이 전체 길이({basicAttackTotal:0.##}s) 이상이다. " +
+                    "히트박스가 켜지지 않는다 — windup < activeEnd < total 순서를 지킬 것.", this);
+
+            // 연타는 단계마다 같은 함정을 밟을 수 있다. 폴백을 먹인 뒤의 값으로 본다.
+            for (int i = 0; i < BasicComboStageCount && HasBasicCombo; i++)
+            {
+                BasicAttackTiming t = GetBasicStageTiming(i);
+                if (t.windup < t.activeEnd && t.activeEnd <= t.total) continue;
+
+                BattleLog.Warn(LogCategory.Combat,
+                    $"{name}: 평타 {i + 1}타 타이밍이 어긋났다 " +
+                    $"(선딜 {t.windup:0.##} / 판정끝 {t.activeEnd:0.##} / 전체 {t.total:0.##}). " +
+                    "windup < activeEnd <= total 순서를 지킬 것.", this);
+            }
         }
 
         /// <summary>
@@ -292,6 +427,7 @@ namespace Prototype
         /// <summary>사망은 슈퍼아머를 관통한다(결정 로그 ②③).</summary>
         public void ForceDead()
         {
+            SetTelegraph(false);
             StateMachine.ForceChangeState(DeadState);
         }
 
@@ -354,6 +490,7 @@ namespace Prototype
         protected void ReleaseBody()
         {
             IsCommanded = false;
+            SetTelegraph(false);
 
             if (Combat.IsDead) return;
 

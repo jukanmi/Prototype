@@ -68,22 +68,50 @@ namespace Prototype
                 if (e == null || e.Combat == null) continue;
 
                 CombatState state = e.Combat.CombatState;
-                if (!CombatStateVisuals.ShouldShow(state)) continue;
 
-                Draw(Take(n), e, state);
-                n++;
+                if (CombatStateVisuals.ShouldShow(state))
+                {
+                    Draw(Take(n), e, CombatStateVisuals.Label(state), CombatStateVisuals.StateColor(state));
+                    n++;
+                    continue;
+                }
+
+                if (e.Combat.IsDead) continue;
+
+                // 아래 셋은 상태가 아니라 행동이라 CombatState에 없다. 몸 색(EnemyStateTint)과
+                // 짝을 이뤄 글자로도 띄운다 — 색만으로는 색약자가 구분하지 못한다.
+                if (e.Combat.IsGuardBroken)
+                {
+                    // 브레이크는 몸 색을 건드리지 않으므로 글자가 유일한 표시다.
+                    Draw(Take(n), e, CombatStateVisuals.GuardBreakLabel, new Color(0.886f, 0.290f, 1f));
+                    n++;
+                    continue;
+                }
+
+                if (e.Combat.IsSuperArmored)
+                {
+                    Draw(Take(n), e, CombatStateVisuals.SuperArmorLabel, new Color(1f, 0.820f, 0.400f));
+                    n++;
+                    continue;
+                }
+
+                if (e.IsTelegraphing)
+                {
+                    Draw(Take(n), e, CombatStateVisuals.TelegraphLabel, Color.white);
+                    n++;
+                }
             }
 
             return n;
         }
 
-        private void Draw(Slot slot, Entity e, CombatState state)
+        private void Draw(Slot slot, Entity e, string label, Color color)
         {
             Physics phys = e.Physics;
             Vector3 ground = phys.GroundPosition;
 
-            slot.text.text = CombatStateVisuals.Label(state);
-            slot.text.color = CombatStateVisuals.StateColor(state);
+            slot.text.text = label;
+            slot.text.color = color;
 
             slot.text.transform.position = LabelPosition(ground, phys.Height, headOffset);
             slot.text.transform.rotation = Quaternion.identity;   // 빌보드

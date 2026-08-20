@@ -19,20 +19,26 @@ MonoBehaviour:
     maxRange: 6
     cooldown: 999
     maxHealthRatio: 0.5
-  - label: "\uB300\uC9C0\uAC00\uB974\uAE30"
+  - label: "\uD6A1\uBCA0\uAE30"
     index: 1
+    minRange: 0
+    maxRange: 6
+    cooldown: 14
+    maxHealthRatio: 0.6
+  - label: "\uB300\uC9C0\uAC00\uB974\uAE30"
+    index: 2
     minRange: 0
     maxRange: 4.5
     cooldown: 6
     maxHealthRatio: 0
   - label: "\uB3CC\uC9C4\uBCA0\uAE30"
-    index: 2
+    index: 3
     minRange: 3
     maxRange: 9
     cooldown: 5
     maxHealthRatio: 0
   - label: "\uC0BC\uC5F0\uCC38"
-    index: 3
+    index: 4
     minRange: 0
     maxRange: 3.2
     cooldown: 3.5

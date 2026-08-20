@@ -186,5 +186,174 @@ namespace Prototype.Tests
 
             Assert.That(seq.PhaseProgress, Is.EqualTo(0.5f).Within(0.01f));
         }
+
+        // ── 차징 ────────────────────────────────────────
+        // 보스 차징기(혼신베기)의 뼈대다. "때리면 늦어지고, 계속 때리면 안 터진다"가
+        // 이 패턴의 전부라 그 규칙을 여기서 고정한다.
+
+        private const float Charge = 2.4f;
+
+        private void BeginCharging()
+        {
+            seq.Begin(Charge, Telegraph, Active, Recovery);
+        }
+
+        [Test]
+        public void BeginWithCharge_EntersChargeFirst()
+        {
+            BeginCharging();
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Charge));
+            Assert.That(seq.ChargeDuration, Is.EqualTo(Charge).Within(0.0001f));
+        }
+
+        /// <summary>차징을 안 쓰는 패턴은 이 클래스가 생기기 전과 같은 경로를 타야 한다.</summary>
+        [Test]
+        public void BeginWithZeroCharge_SkipsStraightToTelegraph()
+        {
+            seq.Begin(0f, Telegraph, Active, Recovery);
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Telegraph));
+        }
+
+        [Test]
+        public void AfterChargeDuration_EntersTelegraph()
+        {
+            BeginCharging();
+            seq.Tick(Charge, Vector3.right);
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Telegraph));
+        }
+
+        /// <summary>차징 중에는 "!"를 켜지 않는다. 예고는 발동 직전이라는 뜻으로 남겨 둔다.</summary>
+        [Test]
+        public void DuringCharge_TelegraphSignIsOff()
+        {
+            BeginCharging();
+            seq.Tick(Charge * 0.5f, Vector3.right);
+
+            Assert.That(seq.ShouldShowTelegraph, Is.False);
+
+            seq.Tick(Charge * 0.5f, Vector3.right);
+            Assert.That(seq.ShouldShowTelegraph, Is.True, "차징이 끝나면 예고가 켜져야 한다");
+        }
+
+        [Test]
+        public void ChargeProgress_TracksCharge()
+        {
+            BeginCharging();
+            seq.Tick(Charge * 0.5f, Vector3.right);
+
+            Assert.That(seq.ChargeProgress, Is.EqualTo(0.5f).Within(0.01f));
+        }
+
+        /// <summary>예고로 넘어가면 게이지가 사라져야 한다 — 모으는 중이 아니다.</summary>
+        [Test]
+        public void ChargeProgress_IsZeroOutsideChargePhase()
+        {
+            BeginCharging();
+            seq.Tick(Charge, Vector3.right);
+
+            Assert.That(seq.ChargeProgress, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Delay_PushesChargeBack()
+        {
+            BeginCharging();
+            seq.Tick(1.2f, Vector3.right);
+            seq.Delay(0.4f);
+
+            Assert.That(seq.PhaseTime, Is.EqualTo(0.8f).Within(0.0001f));
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Charge));
+        }
+
+        /// <summary>되감기는 0까지다. 음수로 새면 차징이 정상보다 길어진다.</summary>
+        [Test]
+        public void Delay_ClampsAtZero()
+        {
+            BeginCharging();
+            seq.Tick(0.3f, Vector3.right);
+            seq.Delay(99f);
+
+            Assert.That(seq.PhaseTime, Is.EqualTo(0f));
+        }
+
+        /// <summary>몰아치는 쪽이 이긴다 — 지연이 진행보다 빠르면 차징은 끝나지 않는다.</summary>
+        [Test]
+        public void RepeatedDelay_NeverFinishesCharge()
+        {
+            BeginCharging();
+
+            for (int i = 0; i < 200; i++)
+            {
+                seq.Tick(0.1f, Vector3.right);
+                seq.Delay(0.35f);
+            }
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Charge));
+        }
+
+        /// <summary>
+        /// 예고 · 발동은 밀 수 없다. 밀리면 "!"를 보고 맞춘 회피 · 패링 타이밍이 매번 달라진다.
+        /// </summary>
+        [Test]
+        public void Delay_OutsideCharge_IsIgnored()
+        {
+            BeginCharging();
+            seq.Tick(Charge, Vector3.right);
+            seq.Tick(0.2f, Vector3.right);
+            seq.Delay(0.2f);
+
+            Assert.That(seq.PhaseTime, Is.EqualTo(0.2f).Within(0.0001f));
+        }
+
+        [Test]
+        public void ReleaseCharge_JumpsToTelegraph()
+        {
+            BeginCharging();
+            seq.Tick(0.3f, Vector3.right);
+            seq.ReleaseCharge();
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Telegraph));
+            Assert.That(seq.PhaseTime, Is.EqualTo(0f));
+        }
+
+        /// <summary>끊기면 아무것도 터지지 않는다 — 모은 만큼 약하게 나가는 경로는 없다.</summary>
+        [Test]
+        public void Cancel_DuringCharge_LeavesNothingRunning()
+        {
+            BeginCharging();
+            seq.Tick(Charge * 0.9f, Vector3.right);
+            seq.Cancel();
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Idle));
+            Assert.That(seq.IsRunning, Is.False);
+            Assert.That(seq.ChargeProgress, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void NegativeCharge_ClampsToZero()
+        {
+            seq.Begin(-1f, Telegraph, Active, Recovery);
+
+            Assert.That(seq.ChargeDuration, Is.EqualTo(0f));
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Telegraph));
+        }
+
+        /// <summary>차징을 붙여도 그 뒤 단계의 길이와 방향 고정은 그대로여야 한다.</summary>
+        [Test]
+        public void ChargeDoesNotDisturbLaterPhases()
+        {
+            BeginCharging();
+            seq.Tick(Charge, Vector3.right);
+            seq.Tick(Telegraph, Vector3.right);
+
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Active));
+            Assert.That(Vector3.Distance(seq.LockedDirection, Vector3.right), Is.LessThan(0.001f));
+
+            seq.Tick(Active, Vector3.right);
+            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Recovery));
+        }
     }
 }

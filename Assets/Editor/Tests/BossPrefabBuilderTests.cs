@@ -120,6 +120,10 @@ namespace Prototype.Tests
             {
                 Assert.That(seen.Add(e.state), Is.True, $"발동 상태 이름 중복: {e.state}");
                 Assert.That(seen.Add(e.windupState), Is.True, $"예고 상태 이름 중복: {e.windupState}");
+
+                // 비어 있으면 예고 클립으로 떨어진다 — 그건 중복이 아니라 정상이다.
+                if (!string.IsNullOrEmpty(e.chargeState))
+                    Assert.That(seen.Add(e.chargeState), Is.True, $"차징 상태 이름 중복: {e.chargeState}");
             }
         }
 
@@ -205,6 +209,9 @@ namespace Prototype.Tests
             {
                 Assert.That(states, Contains.Item(e.state), $"{e.label}: 발동 상태가 없다");
                 Assert.That(states, Contains.Item(e.windupState), $"{e.label}: 예고 상태가 없다");
+
+                if (!string.IsNullOrEmpty(e.chargeState))
+                    Assert.That(states, Contains.Item(e.chargeState), $"{e.label}: 차징 상태가 없다");
             }
         }
 
@@ -268,6 +275,67 @@ namespace Prototype.Tests
             Assert.That(action.Count, Is.EqualTo(BossPatternTable.All.Length));
         }
 
+        /// <summary>
+        /// 차징 수치가 실행기까지 안 내려가면 차징기가 그냥 조금 느린 평범한 패턴이 된다 —
+        /// 게이지도 안 뜨고 때려서 늦출 수도 없는데, 로그로는 정상으로 보인다.
+        /// </summary>
+        [Test]
+        public void Prefab_ChargeFieldsReachTheAction()
+        {
+            BossPattern[] patterns = Prefab().GetComponent<BossPatternAction>().Patterns;
+
+            for (int i = 0; i < patterns.Length; i++)
+            {
+                BossPatternTable.Entry e = BossPatternTable.All[i];
+
+                Assert.That(patterns[i].chargeTime, Is.EqualTo(e.chargeTime).Within(0.0001f),
+                            $"{e.label}: 차징 길이 미배선");
+                Assert.That(patterns[i].chargeHitDelay, Is.EqualTo(e.chargeHitDelay).Within(0.0001f),
+                            $"{e.label}: 차징 지연 미배선");
+            }
+        }
+
+        /// <summary>
+        /// 둘레 판정은 제자리 패턴만 쓴다. 전진하면 구가 쓸고 간 자리 전체가 위험 구역인데
+        /// 표시는 원 하나만 그리므로 "표시 밖인데 맞았다"가 된다.
+        /// </summary>
+        [Test]
+        public void Table_RadialPatternsDoNotAdvance()
+        {
+            foreach (BossPatternTable.Entry e in BossPatternTable.All)
+            {
+                if (e.hitboxKind != BossPatternTable.HitboxKind.Radial) continue;
+
+                Assert.That(e.advanceSpeed, Is.EqualTo(0f), $"{e.label}: 둘레 판정인데 전진한다");
+            }
+        }
+
+        /// <summary>차징기가 하나는 있어야 가드 시스템에 몰아칠 이유가 생긴다.</summary>
+        [Test]
+        public void Table_HasAChargePattern()
+        {
+            int charging = 0;
+            foreach (BossPatternTable.Entry e in BossPatternTable.All)
+                if (e.chargeTime > 0f) charging++;
+
+            Assert.That(charging, Is.GreaterThan(0), "차징 패턴이 하나도 없다");
+        }
+
+        /// <summary>
+        /// 지연이 0인 차징기는 때려도 안 밀린다 — 가드브레이크 말고는 손쓸 방법이 없어져
+        /// "몰아치면 늦출 수 있다"는 규칙이 화면에서 사라진다.
+        /// </summary>
+        [Test]
+        public void Table_ChargePatternsCanBeDelayed()
+        {
+            foreach (BossPatternTable.Entry e in BossPatternTable.All)
+            {
+                if (e.chargeTime <= 0f) continue;
+
+                Assert.That(e.chargeHitDelay, Is.GreaterThan(0f), $"{e.label}: 때려도 안 밀린다");
+            }
+        }
+
         /// <summary>히트박스가 안 물리면 평타 히트박스로 떨어져 광역기가 근접기가 된다.</summary>
         [Test]
         public void Prefab_EveryPatternHasItsOwnHitboxWired()
@@ -281,21 +349,58 @@ namespace Prototype.Tests
             }
         }
 
+        /// <summary>
+        /// 표가 고른 종류와 실제로 물린 히트박스가 어긋나면 광역기가 근접기가 되거나
+        /// 둘레기가 정면기가 된다. 둘 다 로그로는 정상으로 보인다.
+        /// </summary>
         [Test]
-        public void Prefab_WidePatternsUseTheWideHitbox()
+        public void Prefab_PatternsUseTheHitboxKindTheTableAsksFor()
         {
             GameObject go = Prefab();
             BossPattern[] patterns = go.GetComponent<BossPatternAction>().Patterns;
-            Attack basic = go.GetComponent<Enemy>().BasicAttack;
 
             for (int i = 0; i < patterns.Length; i++)
             {
-                bool wide = BossPatternTable.All[i].wideHitbox;
-                bool usesBasic = patterns[i].hitbox == basic;
+                string expected = NameOf(BossPatternTable.All[i].hitboxKind);
 
-                Assert.That(usesBasic, Is.EqualTo(!wide),
-                            $"{patterns[i].label}: 광역 여부와 히트박스가 안 맞는다");
+                Assert.That(patterns[i].hitbox, Is.Not.Null, $"{patterns[i].label}: 히트박스 미배선");
+                Assert.That(patterns[i].hitbox.name, Is.EqualTo(expected),
+                            $"{patterns[i].label}: 히트박스 종류가 표와 다르다");
             }
+        }
+
+        private static string NameOf(BossPatternTable.HitboxKind kind)
+        {
+            switch (kind)
+            {
+                case BossPatternTable.HitboxKind.Wide: return BossPrefabBuilder.WideHitboxName;
+                case BossPatternTable.HitboxKind.Radial: return BossPrefabBuilder.RadialHitboxName;
+                default: return BossPrefabBuilder.BasicHitboxName;
+            }
+        }
+
+        /// <summary>
+        /// 둘레 판정은 <b>구</b>여야 한다. 상자로 만들면 회전을 타서 등 뒤가 비고,
+        /// 그러면 "뒤로 돌아가면 안 맞는다"가 되어 차징을 기다릴 이유가 사라진다.
+        /// </summary>
+        [Test]
+        public void Prefab_RadialHitboxIsASphereAtBodyCenter()
+        {
+            Transform radial = Prefab().transform.Find(BossPrefabBuilder.RadialHitboxName);
+
+            Assert.That(radial, Is.Not.Null, "둘레 히트박스가 없다");
+
+            var sphere = radial.GetComponent<SphereCollider>();
+            Assert.That(sphere, Is.Not.Null, "둘레 히트박스가 구가 아니다");
+            Assert.That(sphere.isTrigger, Is.True);
+            Assert.That(sphere.radius, Is.EqualTo(BossPrefabBuilder.RadialHitboxRadius).Within(0.0001f));
+
+            // 앞으로 밀면 등 뒤에 사각지대가 생긴다.
+            Assert.That(radial.localPosition.x, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(radial.localPosition.z, Is.EqualTo(0f).Within(0.0001f));
+
+            Assert.That(radial.GetComponents<Collider>().Length, Is.EqualTo(1),
+                        "옛 콜라이더가 남아 판정이 겹친다");
         }
 
         [Test]

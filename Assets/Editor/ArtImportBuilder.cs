@@ -58,7 +58,7 @@ namespace Prototype.EditorTools
         private const int GaugeH = 32;
 
         /// <summary>Animator 상태 이름 ↔ 원본 시트. 상태 이름은 <see cref="EntityAnimator"/>가 정한다.</summary>
-        private struct ClipSpec
+        internal struct ClipSpec
         {
             public string state;      // Animator 상태 이름
             public string sheet;      // 원본 파일명(확장자 없이)
@@ -240,7 +240,7 @@ namespace Prototype.EditorTools
         }
 
         /// <summary>슬라이스 결과를 번호 순으로 돌려준다.</summary>
-        private static Sprite[] LoadSprites(string assetPath)
+        internal static Sprite[] LoadSprites(string assetPath)
         {
             var list = new List<Sprite>();
             foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(assetPath))
@@ -355,7 +355,7 @@ namespace Prototype.EditorTools
             return controller;
         }
 
-        private static AnimationClip BuildSpriteClip(ClipSpec spec)
+        internal static AnimationClip BuildSpriteClip(ClipSpec spec)
         {
             Sprite[] all = LoadSprites($"{CharFolder}/{spec.sheet}.png");
             if (all.Length == 0)
@@ -415,7 +415,7 @@ namespace Prototype.EditorTools
             AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(SpritePath, type, property), curve);
         }
 
-        private static AnimationClip SaveClip(AnimationClip clip, string name)
+        internal static AnimationClip SaveClip(AnimationClip clip, string name)
         {
             string path = $"{AnimFolder}/{name}.anim";
             var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);

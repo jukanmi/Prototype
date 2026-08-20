@@ -1761,7 +1761,7 @@ MonoBehaviour:
   swap: {fileID: 0}
   maxGauge: 100
   gaugeRegen: 8
-  requiredRatio: 0.1
+  requiredRatio: 1
   manaCost: 0
   cooldown: 0
   buildDeckOnStart: 1
