@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcb9c74b2b852664aa5539d765aab9a8, type: 3}
   m_Name: VfxLibrary
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxLibrary
-  impact: {fileID: 11400000, guid: d7e795d2296570245978eff32f9c65b7, type: 2}
-  shock: {fileID: 0}
-  cast: {fileID: 11400000, guid: 405b67d557a7acc4fa30f68d332191d3, type: 2}
-  wall: {fileID: 0}
+  impact: {fileID: 11400000, guid: 3b99f6407696af54abfeced957d352fc, type: 2}
+  shock: {fileID: 11400000, guid: 26ada14a0c41b754189a7ec1b1027a2b, type: 2}
+  cast: {fileID: 11400000, guid: 6bcb42c6aa62fae48beb765125a0cd22, type: 2}
+  wall: {fileID: 11400000, guid: 379d713dc0be67c4f8f53b9e48c37a5f, type: 2}
   chargeGauge: {fileID: 11400000, guid: f7a4c7abcfc1c9549bffddd02e29bff2, type: 2}

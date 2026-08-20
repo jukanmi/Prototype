@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f091ed66ce612d540b990bd7047de5a4, type: 3}
+  m_Name: "VFX_WR_\uC62C\uB824\uBCA0\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxClip
+  frames:
+  - {fileID: 763905038, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 2126966529, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -348636619, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -763661899, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 2080076936, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 433759893, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 558612107, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 84255135, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 1813961907, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 1221035580, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -971997604, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -1664977065, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -1924021014, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 795720144, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -1495319161, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 709039325, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -1416363139, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -1868072314, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 705081173, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -310215723, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -674030943, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: -767599975, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  - {fileID: 1898867097, guid: e8128dd70fcea734bb6092faac76ae97, type: 3}
+  fps: 26
+  loops: 1
+  fitRadius: 1
+  scale: 1
+  heightOffset: 0
+  sortingOffset: 50
+  rotateToFacing: 0
+  flipToFacing: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  useSkillColor: 0
+  fadeOut: 0.25

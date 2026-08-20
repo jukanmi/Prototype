@@ -14,13 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uBC29\uD328 \uC5F0\uD0C0"
   icon: {fileID: 9074754844832482479, guid: 3aa7140f3eff4ccb8c6b3464b1f46080, type: 3}
-  description: "\uACF5\uC911\uC5D0 \uB72C \uC801\uC744 \uBC29\uD328\uB85C \uC138 \uBC88 \uB450\uB4E4\uAE34\uB2E4. \uB744\uC6B4 \uB192\uC774\uB97C \uC720\uC9C0\uD558\uBA70 \uD53C\uD574\uB9CC \uC313\uB294\uB2E4."
+  description: "\uACF5\uC911\uC5D0 \uB72C \uC801\uC744 \uBC29\uD328\uB85C \uC138
+    \uBC88 \uB450\uB4E4\uAE34\uB2E4. \uB744\uC6B4 \uB192\uC774\uB97C \uC720\uC9C0\uD558\uBA70
+    \uD53C\uD574\uB9CC \uC313\uB294\uB2E4."
   role: 0
   attackType: 2
   requireState: 2
   resultState: 2
   targeting: 1
   radius: 4
+  targetPick: 0
   castTime: 0.12
   hitInterval: 0.18
   recoveryTime: 0.25
@@ -78,8 +81,8 @@ MonoBehaviour:
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
-    castClip: {fileID: 0}
-    hitClip: {fileID: 0}
+    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
+    hitClip: {fileID: 11400000, guid: 4e82d4ccd56228a4ca108a0ceecc3a59, type: 2}
   references:
     version: 2
     RefIds: []
