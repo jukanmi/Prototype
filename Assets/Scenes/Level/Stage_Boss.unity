@@ -1723,7 +1723,7 @@ MonoBehaviour:
   swap: {fileID: 0}
   maxGauge: 100
   gaugeRegen: 8
-  requiredRatio: 0.1
+  requiredRatio: 1
   parryGaugeReward: 12
   manaCost: 0
   cooldown: 0

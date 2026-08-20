@@ -185,6 +185,10 @@ namespace Prototype
                 if (s.aimed)
                     line += " <color=#FFD166>◉조준됨</color>";
 
+                float cool = bulletTime.SkillCooldownRemaining(d);
+                if (cool > 0f)
+                    line += $" <color=#FF8080>쿨 {cool:0.0}s</color>";
+
                 if (editing && predicted != null && i < predicted.Count)
                 {
                     bool chained = bulletTime.Predictor.IsChained(hand.Slots, i);

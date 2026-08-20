@@ -40,6 +40,9 @@ namespace Prototype
         /// <summary>조준 시작점을 카드 위쪽 모서리에서 얼마나 더 띄울지. 카드 높이 대비 비율.</summary>
         private const float AimStartGap = 0.5f;
 
+        /// <summary>쿨타임 중인 카드의 투명도. 지금 못 쓴다는 걸 글자 없이도 알아보게 한다.</summary>
+        private const float CooldownAlpha = 0.45f;
+
         /// <summary>아트 영역이 시작하는 세로 비율. 그 아래는 상태 띠.</summary>
         private const float ArtBottom = StatusBarHeight / HandFanLayout.CardHeight;
 
@@ -126,6 +129,9 @@ namespace Prototype
 
             /// <summary>한 번이라도 자리를 잡았는지. 처음 뽑힌 카드는 날아오지 않고 제자리에서 나타난다.</summary>
             public bool placed;
+
+            /// <summary>쿨타임 표시로 덮어 둔 상태. 풀리는 순간을 잡아 원래 글자를 되돌리는 데 쓴다.</summary>
+            public bool cooling;
         }
 
         // 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
@@ -249,7 +255,45 @@ namespace Prototype
 
             AnimateCards(dt);
             AnimateArrow(dt);
+            RefreshCooldowns();
             _gauge.Refresh(_bulletTime, dt);
+        }
+
+        /// <summary>
+        /// 실시간 쿨타임 표시. 손패가 안 바뀌어도 숫자는 매 프레임 줄어야 하므로
+        /// <see cref="RefreshUI"/>(이벤트 구동)가 아니라 여기서 덮어 쓴다.
+        /// </summary>
+        private void RefreshCooldowns()
+        {
+            if (!_bulletTime.RealtimeCooldownEnabled) return;
+
+            // 전술 배치 중에는 실행 순서 · 체인 예측이 상태 띠를 쓴다. 쿨타임은 실시간에만 그린다.
+            if (_bulletTime.AllowsCardEdit) return;
+
+            bool restore = false;
+
+            for (int i = 0; i < Hand.Size; i++)
+            {
+                CardWidgets w = _cards[i];
+                if (w == null || !w.root.activeSelf) continue;
+
+                float left = _bulletTime.SkillCooldownRemaining(_bulletTime.Hand.Get(i).Data);
+
+                if (left > 0f)
+                {
+                    w.statusLabel.text = $"<color=#FF8080>쿨 {left:0.0}s</color>";
+                    w.group.alpha = CooldownAlpha;
+                    w.cooling = true;
+                }
+                else if (w.cooling)
+                {
+                    // 원래 글자를 여기서 다시 조립하지 않는다 — RefreshUI 한 번이면 전부 제자리로 온다.
+                    w.cooling = false;
+                    restore = true;
+                }
+            }
+
+            if (restore) RefreshUI();
         }
 
         /// <summary>
