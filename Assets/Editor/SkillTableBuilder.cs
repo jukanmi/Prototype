@@ -292,7 +292,8 @@ namespace Prototype.EditorTools
             if (s.hitDataList == null) return false;
 
             for (int i = 0; i < s.hitDataList.Count; i++)
-                if (s.hitDataList[i].mode == KnockbackMode.Up && s.hitDataList[i].launchForce > 0f)
+                if (s.hitDataList[i].mode == KnockbackMode.Up &&
+                    (s.hitDataList[i].launchForce > 0f || s.hitDataList[i].airLaunchForce > 0f))
                     return true;
 
             return false;

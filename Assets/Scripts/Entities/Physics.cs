@@ -32,9 +32,19 @@ namespace Prototype
         [Tooltip("정점에서 붙잡아 두는 시간(행맨타임). 0이면 사용하지 않는다.\n" +
                  "체공에 그대로 더해지므로 띄운 높이를 키우지 않고 시간만 벌 수 있다 —\n" +
                  "너무 높이 뜨면 후속타 히트박스가 닿지 않는다.")]
-        [SerializeField] private float apexHangTime = 0f;
+        [SerializeField] private float apexHangTime = 10f;
         [Tooltip("수직 속도가 이 값 이하이면 정점으로 본다.")]
         [SerializeField] private float apexVelocityThreshold = 3f;
+
+        [Tooltip("공중에서 맞았을 때 launchForce에 곱하는 배율. 1보다 크면 공중 연계가 더 높이 뜬다. " +
+                 "지상 첫 타는 영향받지 않으므로 띄우기 시작 높이를 건드리지 않고 공중만 조절할 수 있다.")]
+        [Range(0.5f, 3f)][SerializeField] private float airLaunchScale = 1.1f;
+
+        [Tooltip("이미 떠 있는 대상이 맞을 때마다 최소한 이만큼은 올려 준다. 띄우기 값이 없는 평타도 포함. " +
+                 "0이면 끈다.\n\n" +
+                 "지상에 서 있는 대상에게는 절대 걸리지 않는다 — 걸면 모든 평타가 띄우기가 되어 " +
+                 "지상 콤보가 사라진다. 한 대마다 정점이 갱신되므로 콤보를 이어 갈수록 체공만 늘어난다.")]
+        [SerializeField] private float airHitLift = 4f;
 
         [Tooltip("바라보는 방향으로 transform을 돌린다. 히트박스 방향이 여기 따라간다.")]
         [SerializeField] private bool rotateToFacing = true;
@@ -97,6 +107,12 @@ namespace Prototype
         public float TravelForImpulse(float force) => impulseDamping > 0.0001f ? force / impulseDamping : 0f;
 
         public float VerticalVelocity => verticalVelocity;
+
+        /// <summary>
+        /// 공중 피격 최소 부양. 띄우기 값이 없는 타격도 이만큼은 올린다.
+        /// <b>지상 대상에는 쓰지 않는다</b> — 호출부(<c>Combat.ResolveLaunch</c>)가 공중일 때만 읽는다.
+        /// </summary>
+        public float AirHitLift => airHitLift;
         public Vector3 Facing { get; private set; } = Vector3.right;
 
         /// <summary>
@@ -220,16 +236,29 @@ namespace Prototype
             }
         }
 
-        /// <summary>수직 충격. 띄우기 전용.</summary>
+        /// <summary>
+        /// 수직 충격. 띄우기 전용.
+        ///
+        /// 공중에서 맞으면 <see cref="airLaunchScale"/>을 곱하고, <b>지금 속도보다 느리게는
+        /// 만들지 않는다</b>. 그냥 덮어쓰면 올라가는 중에 맞은 후속타의 <c>launchForce</c>가
+        /// 현재 상승속도보다 작을 때 몸이 오히려 주저앉았다 — 띄우는 힘이 부족해 보이는 원인이다.
+        /// </summary>
         public void AddLaunch(float force)
         {
             if (force <= 0f) return;
-            verticalVelocity = force;
+
+            bool aerial = PhysicsState == PhysicsState.Aerial;
+            float applied = aerial ? force * airLaunchScale : force;
+            if (aerial) applied = Mathf.Max(verticalVelocity, applied);
+
+            verticalVelocity = applied;
             PhysicsState = PhysicsState.Aerial;
             // 다시 띄울 때마다 정점 체류를 새로 채운다. 추가타마다 한 번씩 붕 뜬다.
             apexHangLeft = apexHangTime;
 
-            BattleLog.Log(LogCategory.Physics, $"{name} 띄우기 force={force:0.#}", this);
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} 띄우기 force={force:0.#}" +
+                (aerial ? $" → 공중 보정 {applied:0.#} (x{airLaunchScale:0.##})" : string.Empty), this);
         }
 
         /// <summary>지속 힘. 매 프레임 호출해야 유지된다. ex) 몹몰이 장판.</summary>
@@ -238,6 +267,26 @@ namespace Prototype
             dir.y = 0f;
             if (dir.sqrMagnitude <= 0.0001f) return;
             continuousVelocity += dir.normalized * force;
+        }
+
+        /// <summary>
+        /// <b>낙하 중일 때만</b> 수직 속도를 끊는다. 상승 중이면 건드리지 않는다.
+        ///
+        /// <see cref="ResetInertia"/>는 XZ만 지운다 — 떨어지던 속도가 남으면 같은
+        /// <c>launchForce</c>인데도 뜨는 높이가 매번 달라 공중 연계가 재현되지 않는다.
+        ///
+        /// 반대로 올라가는 쪽은 살려 둔다. 상승 중에 0으로 리셋하면 띄워 놓은 몸이
+        /// 후속타를 맞는 순간 정점에서 뚝 끊겨 그대로 떨어졌다.
+        ///
+        /// 공중 상태(<see cref="PhysicsState"/>)는 건드리지 않는다 —
+        /// 띄우기 없는 타격이면 그 자리에서 그대로 떨어져야 한다.
+        /// </summary>
+        public void StopFall()
+        {
+            if (verticalVelocity >= 0f) return;
+
+            verticalVelocity = 0f;
+            apexHangLeft = 0f;
         }
 
         /// <summary>관성 강제 초기화. 스킬 적중 시 연계가 빗나가는 오차를 차단한다.</summary>

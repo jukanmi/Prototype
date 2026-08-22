@@ -124,6 +124,7 @@ namespace Prototype
             hit.damageData.damage *= mul;
             hit.knockbackForce *= mul;
             hit.launchForce *= mul;
+            hit.airLaunchForce *= mul;
 
             return hit;
         }
