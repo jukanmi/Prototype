@@ -184,6 +184,16 @@ namespace Prototype
         public static event Action<Combat, Combat> OnParried;
 
         /// <summary>
+        /// 피해가 <b>실제로</b> 들어갔다. 인자는 (때린 쪽, 맞은 쪽, 깎인 양) 순이다.
+        ///
+        /// <see cref="OnAnyHitLanded"/>와 나눠 둔 이유: 그쪽은 수치를 주지 않고, 이쪽은
+        /// 방어력 · 보호막 · 피해감소가 전부 적용된 <b>최종 수치</b>를 준다.
+        /// 무적 · 패링으로 흘린 타격이나 0딜 반격은 여기까지 오지 않는다.
+        /// 콤보 카운터(<see cref="ComboDamageHUD"/>)가 구독한다.
+        /// </summary>
+        public static event Action<Combat, Combat, float> OnAnyDamageDealt;
+
+        /// <summary>
         /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
         /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
         /// </summary>
@@ -192,6 +202,7 @@ namespace Prototype
         {
             OnAnyHitLanded = null;
             OnParried = null;
+            OnAnyDamageDealt = null;
         }
 
         /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
@@ -336,7 +347,15 @@ namespace Prototype
             // 대시 패링 — 데미지가 들어가기 전에 본다. 막았으면 맞지 않은 것으로 친다.
             if (TryParry(in hit, attacker)) return false;
 
+            // 방어력 · 보호막 · 피해감소가 다 적용된 <b>실제로 들어간 양</b>을 재려면
+            // TakeDamage 앞뒤를 재는 수밖에 없다 — 그 안에서 값이 여러 번 깎인다.
+            // 보호막이 먹은 몫도 "들어간 피해"로 친다. 화면에 뜨는 숫자는 때린 쪽 기준이다.
+            float poolBefore = Health.CurValue + shield;
+
             TakeDamage(hit.damageData);
+
+            ReportDamageDealt(attacker, poolBefore);
+
             if (IsDead) return true;
 
             // 가드를 먼저 깎는다. 이 타격이 가드를 0으로 만들면 아래 아머 검사가 이미 풀려 있어
@@ -383,6 +402,20 @@ namespace Prototype
 
             OnHitTaken?.Invoke(hit, next);
             return true;
+        }
+
+        /// <summary>
+        /// 이번 타격이 실제로 깎아 낸 양을 알린다. <see cref="OnAnyHitLanded"/>로는 못 대신한다 —
+        /// 그쪽은 "맞았다"만 알리고 수치를 안 준다.
+        /// </summary>
+        private void ReportDamageDealt(Combat attacker, float poolBefore)
+        {
+            if (OnAnyDamageDealt == null) return;
+
+            float dealt = poolBefore - (Health.CurValue + shield);
+            if (dealt <= 0f) return;
+
+            OnAnyDamageDealt.Invoke(attacker, this, dealt);
         }
 
         public void TakeDamage(in DamageData damageData)
