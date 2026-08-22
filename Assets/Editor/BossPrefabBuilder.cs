@@ -45,6 +45,28 @@ namespace Prototype.EditorTools
         /// <summary>보스방은 도망칠 곳이 없다. 0은 "추격을 포기하지 않는다"는 뜻이다.</summary>
         internal const float LeashRange = 0f;
 
+        // ── 가드 (슈퍼아머 · 가드브레이크) ───────────────
+        //
+        // 여기 없으면 <b>보스가 평상시 슈퍼아머를 잃는다</b>. Combat.maxGuard의 클래스 기본값이
+        // 0이고 HasGuard가 그걸 그대로 보므로, 기준 프리팹(Enemy_Melee)에서 떠 오는 순간
+        // 가드 시스템이 통째로 꺼진다 — 실제로 한 번 그렇게 날아갔다.
+        // 나머지 가드 수치만 남아 있으면 조용히 무의미해지므로 네 값을 한자리에 묶어 둔다.
+
+        /// <summary>가드 게이지 최대치. <see cref="GuardDamage"/>로 나누면 "몇 대 맞고 깨지나"가 나온다 — 지금은 10대.</summary>
+        internal const float MaxGuard = 60f;
+
+        /// <summary>평타 한 대가 깎는 양. 스킬은 HitData.guardDamage로 이보다 크게 깎을 수 있다.</summary>
+        internal const float GuardDamage = 6f;
+
+        /// <summary>깨진 뒤 무방비로 있는 시간. 콤보를 넣을 수 있는 유일한 창.</summary>
+        internal const float GuardBreakDuration = 4f;
+
+        /// <summary>마지막 피격 후 이만큼 지나야 회복이 시작된다.</summary>
+        internal const float GuardRegenDelay = 3f;
+
+        /// <summary>초당 회복량. 연타를 끊으면 벽이 도로 선다(초당 게이지의 20%).</summary>
+        internal const float GuardRegen = 12f;
+
         // 평타. 몸집에 맞게 동료보다 느리게 휘두른다.
         // BossArtImportBuilder의 Attack 클립 fps(7)가 이 길이에 맞춰져 있다.
         private const float BasicWindup = 0.18f;
@@ -112,6 +134,7 @@ namespace Prototype.EditorTools
             Attack radialHitbox = EnsureSphereHitbox(root, RadialHitboxName, RadialHitboxPos, RadialHitboxRadius);
 
             WireEnemy(root, data, basicHitbox);
+            WireGuard(root);
             WireControl(root, brain);
             WirePatterns(root, basicHitbox, wideHitbox, radialHitbox);
             AssignLayers(root, basicHitbox, wideHitbox, radialHitbox);
@@ -403,6 +426,29 @@ namespace Prototype.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(enemy);
+        }
+
+        /// <summary>
+        /// 가드를 프리팹에 박는다. <b>보스를 보스로 만드는 값</b>이라 빌더가 직접 쓴다.
+        ///
+        /// 기준 프리팹(Enemy_Melee)에는 가드가 없어서, 이걸 안 쓰면 빌더를 돌릴 때마다
+        /// <c>maxGuard</c>가 0으로 떨어지고 보스가 평상시 슈퍼아머를 조용히 잃는다.
+        /// 손으로 인스펙터에 넣어 두는 방식이 실제로 한 번 그렇게 날아갔다.
+        /// </summary>
+        private static void WireGuard(GameObject root)
+        {
+            var combat = root.GetComponent<Combat>();
+            if (combat == null) return;
+
+            var so = new SerializedObject(combat);
+            so.FindProperty("maxGuard").floatValue = MaxGuard;
+            so.FindProperty("defaultGuardDamage").floatValue = GuardDamage;
+            so.FindProperty("guardBreakDuration").floatValue = GuardBreakDuration;
+            so.FindProperty("guardRegenDelay").floatValue = GuardRegenDelay;
+            so.FindProperty("guardRegen").floatValue = GuardRegen;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(combat);
         }
 
         private static void WireControl(GameObject root, BossBrainAsset brain)

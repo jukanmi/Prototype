@@ -223,6 +223,20 @@ namespace Prototype.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
+            // 가드는 <b>일부러 끈다</b> — 보스에서 물려받는 값 중 유일한 예외다.
+            //
+            // 무게를 물려받는 게 목적이지만 가드까지 오면 허수아비가 평상시 슈퍼아머가 되어
+            // 경직 · 넉백 · 공중 콤보가 전부 무시된다. 훈련장은 콤보 체인을 보여 주는 자리인데
+            // 가드를 먼저 깨야만 체인이 시작되면 보여 줄 게 없다.
+            // 가드 브레이크 자체를 연습하려면 인스펙터에서 Max Guard를 60으로 올리면 된다.
+            var combat = root.GetComponent<Combat>();
+            if (combat != null)
+            {
+                var so = new SerializedObject(combat);
+                so.FindProperty("maxGuard").floatValue = 0f;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
             // 보스 패턴 실행기가 붙어 있으면 브레인이 침묵해도 자기 차례를 돌린다. 떼어 낸다.
             foreach (var special in root.GetComponents<MonoBehaviour>())
                 if (special is IEnemySpecialAction)

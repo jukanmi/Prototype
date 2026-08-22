@@ -112,8 +112,12 @@ namespace Prototype.Tests
             {
                 Assert.That(s.hitDataList[0].damageData.damage, Is.GreaterThanOrEqualTo(30f),
                             $"{s.name}: 밀치기 데미지가 너무 낮다 — 체인 마무리로서 값이 안 된다");
-                Assert.That(s.hitDataList[0].guardDamage, Is.GreaterThan(1f),
-                            $"{s.name}: 가드를 평타 한 대분만 깎으면 가드 브레이커가 아니다");
+                // 보스 평타 한 대분(BossPrefabBuilder.GuardDamage)과 직접 견준다.
+                // 상수로 1을 적어 두면 가드 스케일이 바뀔 때 이 테스트만 조용히 무의미해진다 —
+                // 실제로 defaultGuardDamage가 1에서 6으로 오른 적이 있다.
+                Assert.That(s.hitDataList[0].guardDamage,
+                            Is.GreaterThan(Prototype.EditorTools.BossPrefabBuilder.GuardDamage),
+                            $"{s.name}: 가드를 보스 평타 한 대분 이하로 깎으면 가드 브레이커가 아니다");
             }
         }
 
