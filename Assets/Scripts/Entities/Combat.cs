@@ -138,7 +138,9 @@ namespace Prototype
         /// <see cref="OnHitTaken"/>으로는 대신할 수 없다 — 슈퍼아머인 동안은
         /// <see cref="Hit"/>가 그 이벤트를 발화하기 <b>전에</b> 돌아간다. 그런데 가드를 가진 개체는
         /// 평소가 슈퍼아머라, "맞았다"를 알 유일한 경로가 여기다.
-        /// 보스 차징을 뒤로 미는 <see cref="BossPatternAction"/>이 구독한다.
+        ///
+        /// 지금은 구독자가 없다. 보스 차징을 늦추던 쪽이 쓰다가 그 메커니즘째 걷어냈고,
+        /// 이벤트는 남겨 둔다 — 슈퍼아머 중 피격 연출 · HUD가 붙을 자리가 여기뿐이다.
         /// </summary>
         public event Action<float> OnGuardDrained;
 
@@ -296,12 +298,19 @@ namespace Prototype
         /// <summary>
         /// 판정과 부가효과의 주체. Attack 컴포넌트는 대상만 넘겨준다.
         /// </summary>
-        public void Attack(IHittable target, in HitData hit)
+        /// <returns>
+        /// 타격이 <b>실제로 성립했는지</b>. 무적 · 패링으로 흘렸으면 false다.
+        ///
+        /// 이 값을 돌려주는 이유: <see cref="Hit"/>가 "없던 일"로 처리한 타격을 호출부가 알 길이
+        /// 없었다. 그래서 흘려낸 공격에도 타격 이펙트가 뜨고, 투사체 관통이 소모되고,
+        /// 보스 돌진이 명중한 것처럼 끊겼다 — 전부 여기서 false가 새어 나가지 못한 탓이다.
+        /// </returns>
+        public bool Attack(IHittable target, in HitData hit)
         {
-            if (target == null || IsDead) return;
-            if (ReferenceEquals(target, this)) return;
+            if (target == null || IsDead) return false;
+            if (ReferenceEquals(target, this)) return false;
 
-            if (!target.Hit(in hit, this)) return;
+            if (!target.Hit(in hit, this)) return false;
 
             if (lifestealRatio > 0f)
             {
@@ -316,6 +325,8 @@ namespace Prototype
             OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
                 OnAnyHitLanded?.Invoke(this, victim);
+
+            return true;
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────

@@ -234,17 +234,37 @@ namespace Prototype
             BattleVfx.Cast(ctx.Origin, data.radius * ctx.RadiusScale, in style);
         }
 
+        /// <summary>
+        /// 시전 순간에 도는 효과. <see cref="ILastHitEffect"/>는 여기서 빠지고
+        /// <see cref="ApplyLastHitEffects"/>가 마지막 타격에 맞춰 낸다.
+        /// </summary>
         private void ApplyEffects()
+        {
+            ApplyEffects(lastHit: false);
+
+            // 때릴 게 아예 없는 스킬이면 마지막 타격이 영영 안 온다. 여기서 같이 내보낸다 —
+            // 안 그러면 효과가 조용히 증발한다(검증이 hitDataList 비었다고 이미 경고하는 경우다).
+            if (data.hitDataList == null || data.hitDataList.Count == 0)
+                ApplyLastHitEffects();
+        }
+
+        /// <summary>마지막 타격과 함께 도는 효과. 시전자를 움직이는 돌진이 여기 속한다.</summary>
+        private void ApplyLastHitEffects() => ApplyEffects(lastHit: true);
+
+        private void ApplyEffects(bool lastHit)
         {
             if (data.effects == null) return;
 
             for (int i = 0; i < data.effects.Count; i++)
             {
-                if (data.effects[i] == null) continue;
+                ISkillEffect effect = data.effects[i];
+                if (effect == null) continue;
+                if (effect is ILastHitEffect != lastHit) continue;
 
                 BattleLog.Log(LogCategory.Skill,
-                    $"  └ 효과 적용: {data.effects[i].GetType().Name}", ctx.caster);
-                data.effects[i].Apply(in ctx);
+                    $"  └ 효과 적용: {effect.GetType().Name}" +
+                    (lastHit ? " (마지막 타격)" : string.Empty), ctx.caster);
+                effect.Apply(in ctx);
             }
         }
 
@@ -253,10 +273,15 @@ namespace Prototype
             if (nextHitIndex >= data.hitDataList.Count) return;
 
             HitData hit = ModifyHit(data.hitDataList[nextHitIndex]);
+            bool last = nextHitIndex == data.hitDataList.Count - 1;
 
             if (data.IsRanged) LaunchProjectile(in hit);
             else if (IsAreaCaster) FireArea(in hit);
             else FireMelee(in hit);
+
+            // 돌진은 판정과 <b>같은 프레임</b>에 나가야 베고 지나가는 그림이 된다.
+            // 타격보다 먼저 내면 선딜 동안 대상을 지나쳐 히트박스가 허공에서 열린다.
+            if (last) ApplyLastHitEffects();
 
             BattleLog.Log(LogCategory.Skill,
                 $"  └ {data.skillName} {nextHitIndex + 1}/{data.hitDataList.Count}타 발동 (t={timer:0.##}s)", ctx.caster);

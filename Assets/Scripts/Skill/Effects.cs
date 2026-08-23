@@ -39,7 +39,9 @@ namespace Prototype
             {
                 if (c == skipped) return;
 
-                attacker.Attack(c, in blast);
+                // 흘린 대상은 세지도, 파편을 튀기지도 않는다.
+                // 이 hits는 "헛침" 경고의 근거라 무적을 세어 넣으면 헛친 장판이 적중으로 보고된다.
+                if (!attacker.Attack(c, in blast)) return;
                 hits++;
 
                 if (c.Physics == null) return;
@@ -124,7 +126,10 @@ namespace Prototype
             // 시전자 기준이면 적이 찍은 자리가 아니라 궁수 발밑으로 모인다.
             }.WithOrigin(center);
 
-            int caught = EffectUtil.OverlapCombats(center, r, caster, c => caster.Attack(c, in hit));
+            // 실제로 들어간 것만 센다. OverlapCombats가 돌려주는 건 "반경 안에 몇이 있었나"라
+            // 무적으로 흘린 적까지 흡입한 것으로 보고된다 — 아래 헛침 경고가 그때 침묵한다.
+            int caught = 0;
+            EffectUtil.OverlapCombats(center, r, caster, c => { if (caster.Attack(c, in hit)) caught++; });
 
             BattleLog.Log(LogCategory.Skill,
                 $"  └ PullEffect: 중심 {center} 반경 {r:0.#} → {caught}마리 흡입", caster);
@@ -221,9 +226,14 @@ namespace Prototype
         }
     }
 
-    /// <summary>차징 · 돌진. 시전자를 지정 방향으로 밀어낸다.</summary>
+    /// <summary>
+    /// 차징 · 돌진. 시전자를 지정 방향으로 밀어낸다.
+    ///
+    /// <see cref="ILastHitEffect"/>라 <b>마지막 타격과 같이</b> 나간다. 시전 순간에 내면
+    /// 선딜 동안 먼저 달려가 히트박스가 열릴 때는 대상을 지나쳐 있다.
+    /// </summary>
     [Serializable]
-    public class ChargeEffect : ISkillEffect
+    public class ChargeEffect : ILastHitEffect
     {
         [SerializeField] private float speed = 20f;
 

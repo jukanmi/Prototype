@@ -492,7 +492,6 @@ namespace Prototype.EditorTools
                 {
                     label = e.label,
                     chargeTime = e.chargeTime,
-                    chargeHitDelay = e.chargeHitDelay,
                     chargeClip = e.chargeState,
                     telegraph = e.telegraph,
                     active = e.active,

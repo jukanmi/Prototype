@@ -32,7 +32,7 @@ namespace Prototype
         [Tooltip("정점에서 붙잡아 두는 시간(행맨타임). 0이면 사용하지 않는다.\n" +
                  "체공에 그대로 더해지므로 띄운 높이를 키우지 않고 시간만 벌 수 있다 —\n" +
                  "너무 높이 뜨면 후속타 히트박스가 닿지 않는다.")]
-        [SerializeField] private float apexHangTime = 10f;
+        [SerializeField] private float apexHangTime = 0f;
         [Tooltip("수직 속도가 이 값 이하이면 정점으로 본다.")]
         [SerializeField] private float apexVelocityThreshold = 3f;
 
