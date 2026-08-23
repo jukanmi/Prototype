@@ -37,6 +37,11 @@ namespace Prototype
         public Vector3 fixedDir;
         public float knockbackForce;
         public float launchForce;
+        [Tooltip("대상이 이미 떠 있을 때 대신 쓰는 띄우기 힘. 0이면 launchForce를 그대로 쓴다. " +
+                 "지상 첫 타는 히트박스가 닿는 높이까지만 띄우면 되지만, 공중 연계는 이미 올라간 몸을 " +
+                 "다시 밀어 올려야 해서 같은 값으로는 모자란다. 두 값을 나눠 두면 시작 높이를 " +
+                 "건드리지 않고 공중만 조절할 수 있다.")]
+        public float airLaunchForce;
         public float hitStunDuration;
 
         [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +

@@ -148,8 +148,16 @@ namespace Prototype
 
             if (!alreadyHit.Add(victim)) return;
 
-            if (victim is IHittable hittable)
-                attacker.Attack(hittable, in hitData);
+            // 무적 · 패링으로 흘린 타격은 <b>없던 일</b>이다. 연출도 OnHit도 내지 않는다.
+            //
+            // OnHit은 혹을 둘 달고 다닌다 — 투사체 관통 수 소모(Projectile.HandleHit)와
+            // 돌진 · 보스 패턴의 조기 종료(EnemySpecialSequence.HitOrWall)가 여기 매달려 있다.
+            // 여기서 새면 완벽하게 흘려낸 공격이 명중과 같은 결과를 낸다.
+            //
+            // alreadyHit에서 빼지는 않는다. 한 번 켜는 동안 같은 대상은 1회라는 규약은
+            // 그대로고, 무적 구간(다운 1.2s · 기상 0.4s)이 히트박스 수명보다 길다.
+            bool landed = victim is IHittable hittable && attacker.Attack(hittable, in hitData);
+            if (!landed) return;
 
             if (impactVfx) EmitImpact(victim);
 

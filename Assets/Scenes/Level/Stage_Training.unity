@@ -296,6 +296,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -715,6 +716,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -955,6 +957,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -1656,6 +1659,7 @@ GameObject:
   - component: {fileID: 1026486066}
   - component: {fileID: 1026486067}
   - component: {fileID: 1026486068}
+  - component: {fileID: 1026486069}
   m_Layer: 0
   m_Name: CombatManager
   m_TagString: Untagged
@@ -1831,6 +1835,23 @@ MonoBehaviour:
   portraitSize: 360
   portraitShownX: 48
   labelShownX: 300
+--- !u!114 &1026486069
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026486057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c07336015bd0d874ebae627a5864828b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboDamageHUD
+  comboWindow: 2.5
+  lingerDuration: 1.5
+  rightMargin: 56
+  verticalOffset: 90
+  show: 1
 --- !u!1 &1121415244
 GameObject:
   m_ObjectHideFlags: 0
@@ -2611,6 +2632,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -2654,6 +2676,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0

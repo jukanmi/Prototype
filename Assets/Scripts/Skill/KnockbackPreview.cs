@@ -69,10 +69,15 @@ namespace Prototype
                     pos += dir * Travel(in hit, victim, castOrigin, pos, dir);
                 }
 
-                if (hit.launchForce > 0f)
+                // 실전과 같은 선택 규칙 — 이미 떠 있는 대상은 airLaunchForce가 우선한다.
+                float launch = victim.PhysicsState == PhysicsState.Aerial && hit.airLaunchForce > 0f
+                    ? hit.airLaunchForce
+                    : hit.launchForce;
+
+                if (launch > 0f)
                 {
                     moves = true;
-                    apex = Mathf.Max(apex, ApexHeight(hit.launchForce, victim.Gravity));
+                    apex = Mathf.Max(apex, ApexHeight(launch, victim.Gravity));
                 }
             }
 

@@ -674,6 +674,11 @@ namespace Prototype.EditorTools
             if (btc.GetComponent<RecentHitEnemyHUD>() == null)
                 Undo.AddComponent<RecentHitEnemyHUD>(btc.gameObject);
 
+            // 콤보 타수 · 누적 피해를 화면 오른쪽에 띄운다. 훈련장 콘솔 합계는 끝난 뒤에야
+            // 보이는 숫자라, 굴리는 도중 어디서 끊겼는지는 이게 없으면 눈으로 못 잡는다.
+            if (btc.GetComponent<ComboDamageHUD>() == null)
+                Undo.AddComponent<ComboDamageHUD>(btc.gameObject);
+
             var so = new SerializedObject(hud);
             so.FindProperty("bulletTime").objectReferenceValue = btc;
             so.FindProperty("targetSelector").objectReferenceValue = Object.FindAnyObjectByType<TargetSelector>();

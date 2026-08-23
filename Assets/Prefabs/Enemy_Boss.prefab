@@ -445,8 +445,8 @@ MonoBehaviour:
   parrySuccessInvuln: 0.3
   parryCounterStun: 0.6
   parryCounterKnockback: 4
-  maxGuard: 0
-  defaultGuardDamage: 1
+  maxGuard: 60
+  defaultGuardDamage: 6
   guardBreakDuration: 4
   guardRegenDelay: 3
   guardRegen: 2

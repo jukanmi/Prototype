@@ -138,7 +138,9 @@ namespace Prototype
         /// <see cref="OnHitTaken"/>으로는 대신할 수 없다 — 슈퍼아머인 동안은
         /// <see cref="Hit"/>가 그 이벤트를 발화하기 <b>전에</b> 돌아간다. 그런데 가드를 가진 개체는
         /// 평소가 슈퍼아머라, "맞았다"를 알 유일한 경로가 여기다.
-        /// 보스 차징을 뒤로 미는 <see cref="BossPatternAction"/>이 구독한다.
+        ///
+        /// 지금은 구독자가 없다. 보스 차징을 늦추던 쪽이 쓰다가 그 메커니즘째 걷어냈고,
+        /// 이벤트는 남겨 둔다 — 슈퍼아머 중 피격 연출 · HUD가 붙을 자리가 여기뿐이다.
         /// </summary>
         public event Action<float> OnGuardDrained;
 
@@ -184,6 +186,16 @@ namespace Prototype
         public static event Action<Combat, Combat> OnParried;
 
         /// <summary>
+        /// 피해가 <b>실제로</b> 들어갔다. 인자는 (때린 쪽, 맞은 쪽, 깎인 양) 순이다.
+        ///
+        /// <see cref="OnAnyHitLanded"/>와 나눠 둔 이유: 그쪽은 수치를 주지 않고, 이쪽은
+        /// 방어력 · 보호막 · 피해감소가 전부 적용된 <b>최종 수치</b>를 준다.
+        /// 무적 · 패링으로 흘린 타격이나 0딜 반격은 여기까지 오지 않는다.
+        /// 콤보 카운터(<see cref="ComboDamageHUD"/>)가 구독한다.
+        /// </summary>
+        public static event Action<Combat, Combat, float> OnAnyDamageDealt;
+
+        /// <summary>
         /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
         /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
         /// </summary>
@@ -192,6 +204,7 @@ namespace Prototype
         {
             OnAnyHitLanded = null;
             OnParried = null;
+            OnAnyDamageDealt = null;
         }
 
         /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
@@ -285,12 +298,19 @@ namespace Prototype
         /// <summary>
         /// 판정과 부가효과의 주체. Attack 컴포넌트는 대상만 넘겨준다.
         /// </summary>
-        public void Attack(IHittable target, in HitData hit)
+        /// <returns>
+        /// 타격이 <b>실제로 성립했는지</b>. 무적 · 패링으로 흘렸으면 false다.
+        ///
+        /// 이 값을 돌려주는 이유: <see cref="Hit"/>가 "없던 일"로 처리한 타격을 호출부가 알 길이
+        /// 없었다. 그래서 흘려낸 공격에도 타격 이펙트가 뜨고, 투사체 관통이 소모되고,
+        /// 보스 돌진이 명중한 것처럼 끊겼다 — 전부 여기서 false가 새어 나가지 못한 탓이다.
+        /// </returns>
+        public bool Attack(IHittable target, in HitData hit)
         {
-            if (target == null || IsDead) return;
-            if (ReferenceEquals(target, this)) return;
+            if (target == null || IsDead) return false;
+            if (ReferenceEquals(target, this)) return false;
 
-            if (!target.Hit(in hit, this)) return;
+            if (!target.Hit(in hit, this)) return false;
 
             if (lifestealRatio > 0f)
             {
@@ -305,6 +325,8 @@ namespace Prototype
             OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
                 OnAnyHitLanded?.Invoke(this, victim);
+
+            return true;
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────
@@ -336,7 +358,15 @@ namespace Prototype
             // 대시 패링 — 데미지가 들어가기 전에 본다. 막았으면 맞지 않은 것으로 친다.
             if (TryParry(in hit, attacker)) return false;
 
+            // 방어력 · 보호막 · 피해감소가 다 적용된 <b>실제로 들어간 양</b>을 재려면
+            // TakeDamage 앞뒤를 재는 수밖에 없다 — 그 안에서 값이 여러 번 깎인다.
+            // 보호막이 먹은 몫도 "들어간 피해"로 친다. 화면에 뜨는 숫자는 때린 쪽 기준이다.
+            float poolBefore = Health.CurValue + shield;
+
             TakeDamage(hit.damageData);
+
+            ReportDamageDealt(attacker, poolBefore);
+
             if (IsDead) return true;
 
             // 가드를 먼저 깎는다. 이 타격이 가드를 0으로 만들면 아래 아머 검사가 이미 풀려 있어
@@ -383,6 +413,20 @@ namespace Prototype
 
             OnHitTaken?.Invoke(hit, next);
             return true;
+        }
+
+        /// <summary>
+        /// 이번 타격이 실제로 깎아 낸 양을 알린다. <see cref="OnAnyHitLanded"/>로는 못 대신한다 —
+        /// 그쪽은 "맞았다"만 알리고 수치를 안 준다.
+        /// </summary>
+        private void ReportDamageDealt(Combat attacker, float poolBefore)
+        {
+            if (OnAnyDamageDealt == null) return;
+
+            float dealt = poolBefore - (Health.CurValue + shield);
+            if (dealt <= 0f) return;
+
+            OnAnyDamageDealt.Invoke(attacker, this, dealt);
         }
 
         public void TakeDamage(in DamageData damageData)
@@ -440,8 +484,12 @@ namespace Prototype
             TryResolveHitOrigin(in hit, attacker, out Vector3 casterPos);
             Vector3 casterFwd = attacker != null ? attacker.Physics.Facing : physics.Facing;
 
-            // 관성 강제 초기화 — 연계 스킬이 빗나가는 오차를 차단한다.
+            // 맞은 순간 속력을 0으로 만든다. 남은 관성 위에 힘을 얹으면 같은 데이터인데도
+            // 대상이 달려오던 중이냐 떨어지던 중이냐에 따라 밀리는 거리와 뜨는 높이가
+            // 달라져 연계가 빗나간다. 수직은 낙하 성분만 끊는다 — 올라가는 중에 끊으면
+            // 띄워 둔 몸이 후속타를 맞는 순간 정점에서 뚝 떨어진다.
             physics.ResetInertia();
+            physics.StopFall();
 
             if (hit.snapZ && (attacker != null || hit.hasOrigin))
                 physics.SnapZ(casterPos.z);
@@ -451,8 +499,30 @@ namespace Prototype
             if (hit.knockbackForce > 0f)
                 physics.AddImpulse(dir, PullClamped(hit, casterPos), resetInertia: false);
 
-            if (hit.launchForce > 0f)
-                physics.AddLaunch(hit.launchForce);
+            float launch = ResolveLaunch(in hit);
+            if (launch > 0f)
+                physics.AddLaunch(launch);
+        }
+
+        /// <summary>
+        /// 이번 타격이 실을 띄우기 힘. 대상이 이미 떠 있으면 <c>airLaunchForce</c>를 쓴다.
+        ///
+        /// 값이 0이면 <c>launchForce</c>로 떨어진다 — 기존 애셋 전부가 0으로 로드되므로
+        /// 데이터를 안 채운 스킬은 예전과 똑같이 동작한다.
+        ///
+        /// 공중 대상에는 마지막으로 <see cref="Physics.AirHitLift"/>를 바닥값으로 깐다.
+        /// 띄우기 값이 없는 평타도 한 대마다 조금씩 올려 체공을 벌어 주기 위한 것이다.
+        /// <b>지상 대상은 건드리지 않는다</b> — 지상에까지 걸면 모든 평타가 띄우기가 되어
+        /// 지상 콤보가 통째로 사라진다.
+        /// </summary>
+        private float ResolveLaunch(in HitData hit)
+        {
+            if (physics.PhysicsState != PhysicsState.Aerial)
+                return hit.launchForce;
+
+            float launch = hit.airLaunchForce > 0f ? hit.airLaunchForce : hit.launchForce;
+
+            return Mathf.Max(launch, physics.AirHitLift);
         }
 
         /// <summary>

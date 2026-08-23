@@ -46,7 +46,7 @@ MonoBehaviour:
     knockbackForce: 30
     launchForce: 0
     hitStunDuration: 0.5
-    guardDamage: 3
+    guardDamage: 18
     snapZ: 0
   effects: []
   cooldown: 5
