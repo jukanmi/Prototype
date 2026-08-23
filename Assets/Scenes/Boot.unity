@@ -389,6 +389,7 @@ GameObject:
   - component: {fileID: 773120534}
   - component: {fileID: 773120533}
   - component: {fileID: 773120536}
+  - component: {fileID: 773120537}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -458,6 +459,23 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ddfc739a729e39e469bcd56186a33b4c, type: 2}
   - {fileID: 11400000, guid: 2e2f46157b661834084e6acd9fc3e0d4, type: 2}
   fallbackActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+--- !u!114 &773120537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 773120532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c07336015bd0d874ebae627a5864828b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboDamageHUD
+  comboWindow: 2.5
+  lingerDuration: 1.5
+  rightMargin: 56
+  verticalOffset: 90
+  show: 1
 --- !u!1 &874217974
 GameObject:
   m_ObjectHideFlags: 0
