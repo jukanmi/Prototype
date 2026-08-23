@@ -60,6 +60,9 @@ namespace Prototype
             return true;
         }
 
+        // 아래 조준 함수들은 전부 IsTargetable 을 본다. 벽에서 걸어 나오는 중인 적은
+        // 판정이 꺼져 있어 때릴 수 없으므로, 후보로 남겨 두면 스킬이 그쪽으로 나가 헛돈다.
+
         /// <summary>지정 좌표에서 가장 가까운 살아 있는 적. 대상 사망 시 재타겟에 쓴다(결정 로그 ⑧).</summary>
         public static Entity NearestEnemy(Vector3 position, Entity exclude = null)
             => Nearest(enemies, position, exclude);
@@ -103,7 +106,7 @@ namespace Prototype
             for (int i = 0; i < list.Count; i++)
             {
                 Entity e = list[i];
-                if (e == null || e == exclude || e.Combat.IsDead) continue;
+                if (e == null || e == exclude || e.Combat.IsDead || !e.IsTargetable) continue;
 
                 float sqr = (e.transform.position - position).sqrMagnitude;
                 if (sqr >= bestSqr) continue;
@@ -123,7 +126,7 @@ namespace Prototype
             for (int i = 0; i < list.Count; i++)
             {
                 Entity e = list[i];
-                if (e == null || e == exclude || e.Combat.IsDead) continue;
+                if (e == null || e == exclude || e.Combat.IsDead || !e.IsTargetable) continue;
 
                 float sqr = (e.transform.position - position).sqrMagnitude;
                 if (sqr <= bestSqr) continue;

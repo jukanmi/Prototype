@@ -421,9 +421,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.YG.GameManager
   stageScenes:
-  - Stage_Mini
-  - SampleScene
-  - Stage_Boss
+  - Stage_01
+  - Stage_02
+  - Stage_03
+  - Stage_04
+  - Stage_05
 --- !u!4 &773120535
 Transform:
   m_ObjectHideFlags: 0
