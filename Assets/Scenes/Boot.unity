@@ -422,6 +422,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.YG.GameManager
   stageScenes:
   - Stage_Mini
+  - Stage_Soft
+  - Stage_Hard
   - SampleScene
   - Stage_Boss
 --- !u!4 &773120535

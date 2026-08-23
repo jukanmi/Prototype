@@ -32,14 +32,19 @@ namespace Prototype.Tests
 
         // ── 기본 목록 ───────────────────────────────────
 
-        /// <summary>미니 → SampleScene → 보스. 이 순서가 곧 게임의 흐름이다.</summary>
+        /// <summary>
+        /// 미니 → Soft → SampleScene → Hard → 보스. 이 순서가 곧 게임의 흐름이다.
+        /// 근접만 있는 방으로 시작해 원거리를 한 종류 얹고, 마지막에 둘을 섞는다.
+        /// </summary>
         [Test]
-        public void DefaultStages_AreMiniThenSampleThenBoss()
+        public void DefaultStages_RampFromMeleeThroughRangedToBoss()
         {
             Assert.That(GameManager.DefaultStages, Is.EqualTo(new[]
             {
                 SceneNames.StageMini,
+                SceneNames.StageSoft,
                 SceneNames.Battle,
+                SceneNames.StageHard,
                 SceneNames.StageBoss,
             }));
         }

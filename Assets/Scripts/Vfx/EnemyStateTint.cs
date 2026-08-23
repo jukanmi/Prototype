@@ -18,9 +18,19 @@ namespace Prototype
         private Combat combat;
         private Entity owner;
 
+        /// <summary>
+        /// 물들일 렌더러 전부. 몸이 파츠 여러 장으로 쪼개진 캐릭터(스켈레탈 리그)는
+        /// 한 장만 물들이면 머리만 빨개진다.
+        /// </summary>
+        private SpriteRenderer[] bodies = System.Array.Empty<SpriteRenderer>();
+
+        /// <summary><see cref="bodies"/>와 같은 순서의 원래 색. 파츠마다 다를 수 있다.</summary>
+        private Color[] baseColors = System.Array.Empty<Color>();
+
         /// <summary>물들이기 전의 색. 적 종류를 구분하는 고유색이다.</summary>
         public Color BaseColor { get; private set; } = Color.white;
 
+        /// <summary>대표 렌더러. 파츠가 여럿이면 첫 장이다.</summary>
         public SpriteRenderer Body => body;
 
         private void Awake()
@@ -28,8 +38,16 @@ namespace Prototype
             combat = GetComponent<Combat>();
             owner = GetComponent<Entity>();
 
-            if (body == null) body = ResolveBody();
-            if (body != null) BaseColor = body.color;
+            bodies = body != null ? new[] { body } : ResolveBodies();
+
+            baseColors = new Color[bodies.Length];
+            for (int i = 0; i < bodies.Length; i++) baseColors[i] = bodies[i].color;
+
+            if (bodies.Length > 0)
+            {
+                body = bodies[0];
+                BaseColor = baseColors[0];
+            }
         }
 
         private void OnEnable()
@@ -73,9 +91,13 @@ namespace Prototype
         /// </summary>
         public void Apply(CombatState state)
         {
-            if (body == null) return;
+            CombatOverlay overlay = ResolveOverlay();
 
-            body.color = CombatStateVisuals.Tint(BaseColor, state, ResolveOverlay());
+            for (int i = 0; i < bodies.Length; i++)
+            {
+                if (bodies[i] == null) continue;
+                bodies[i].color = CombatStateVisuals.Tint(baseColors[i], state, overlay);
+            }
         }
 
         /// <summary>
@@ -95,20 +117,23 @@ namespace Prototype
         /// <summary>
         /// 몸 렌더러를 찾는다.
         ///
-        /// <c>GetComponentInChildren</c>은 쓰지 않는다 — 자식 순서에 따라 그림자를 집을 수 있고,
-        /// 그러면 몸은 그대로인데 발밑 타원만 물든다.
+        /// 루트에서 <c>GetComponentInChildren</c>을 돌리지 않는다 — 자식 순서에 따라 그림자를
+        /// 집을 수 있고, 그러면 몸은 그대로인데 발밑 타원만 물든다. 그림자는 SpriteRoot의
+        /// <b>형제</b>이므로 SpriteRoot 아래만 훑으면 절대 섞이지 않는다.
         /// </summary>
-        private SpriteRenderer ResolveBody()
+        private SpriteRenderer[] ResolveBodies()
         {
             var view = GetComponent<BeltScrollView>();
             if (view != null && view.SpriteRoot != null)
             {
-                SpriteRenderer sr = view.SpriteRoot.GetComponent<SpriteRenderer>();
-                if (sr != null) return sr;
+                // 렌더러 한 장짜리는 SpriteRoot 자신이 그 한 장이라 결과가 예전과 같다.
+                SpriteRenderer[] found = view.SpriteRoot.GetComponentsInChildren<SpriteRenderer>(true);
+                if (found.Length > 0) return found;
             }
 
             // BeltScrollView가 없는 변종 프리팹은 루트에 몸이 붙어 있다.
-            return GetComponent<SpriteRenderer>();
+            var self = GetComponent<SpriteRenderer>();
+            return self != null ? new[] { self } : System.Array.Empty<SpriteRenderer>();
         }
     }
 }

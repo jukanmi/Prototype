@@ -30,6 +30,9 @@ namespace Prototype
         [SerializeField] private bool flipToFacing = false;
         [Tooltip("반전시킬 렌더러. 비우면 sprite에서 찾는다.")]
         [SerializeField] private SpriteRenderer facingRenderer;
+        [Tooltip("좌우 반전을 localScale.x 부호로 거는 노드. 몸이 렌더러 여러 장으로 쪼개진 " +
+                 "캐릭터(스켈레탈 리그)는 flipX로 못 뒤집는다. 비우면 facingRenderer.flipX를 쓴다.")]
+        [SerializeField] private Transform facingRoot;
         [Tooltip("그림자 기본 배율. 바닥에 눕혀 보이도록 Y를 납작하게 준다.")]
         [SerializeField] private Vector3 shadowBaseScale = new Vector3(0.9f, 0.35f, 1f);
         [Tooltip("높이에 따라 그림자를 줄여 체공감을 준다.")]
@@ -99,12 +102,8 @@ namespace Prototype
 
                 // 빌보드로 회전을 지웠으니 방향은 좌우 반전으로만 표현된다.
                 // 시트는 오른쪽을 보고 그려져 있다.
-                if (flipToFacing)
-                {
-                    if (facingRenderer == null) facingRenderer = sprite.GetComponent<SpriteRenderer>();
-                    if (facingRenderer != null && Mathf.Abs(physics.Facing.x) > 0.0001f)
-                        facingRenderer.flipX = physics.Facing.x < 0f;
-                }
+                if (flipToFacing && Mathf.Abs(physics.Facing.x) > 0.0001f)
+                    ApplyFacing(physics.Facing.x < 0f);
             }
 
             if (shadow != null)
@@ -117,6 +116,34 @@ namespace Prototype
             }
 
             ApplySorting(ground.z);
+        }
+
+        /// <summary>
+        /// 왼쪽을 보게 뒤집는다.
+        ///
+        /// <paramref name="left"/>가 참이면 좌향이다. 렌더러 한 장짜리는 flipX로 끝나지만,
+        /// 몸이 파츠 여러 장으로 쪼개진 캐릭터는 장마다 flipX를 걸면 <b>각자 제자리에서</b>
+        /// 뒤집혀 리그가 분해된다 — 그쪽은 부모 노드의 scale.x 부호로 통째로 거울을 놔야 한다.
+        /// </summary>
+        private void ApplyFacing(bool left)
+        {
+            if (facingRoot != null)
+            {
+                Vector3 s = facingRoot.localScale;
+                float want = left ? -Mathf.Abs(s.x) : Mathf.Abs(s.x);
+
+                // 매 프레임 대입하면 프리팹 인스턴스가 계속 더티가 된다.
+                if (!Mathf.Approximately(s.x, want))
+                {
+                    s.x = want;
+                    facingRoot.localScale = s;
+                }
+
+                return;
+            }
+
+            if (facingRenderer == null && sprite != null) facingRenderer = sprite.GetComponent<SpriteRenderer>();
+            if (facingRenderer != null) facingRenderer.flipX = left;
         }
 
         private void ApplySorting(float z)

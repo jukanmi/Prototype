@@ -21,14 +21,17 @@ namespace Prototype.YG
         /// <summary>
         /// 스테이지 진행 순서. 이 순서가 곧 게임의 흐름이다.
         ///
-        /// 가운데가 <see cref="SceneNames.Battle"/>(SampleScene)인 이유는 그 씬이 원래의
-        /// 전투 씬이자 두 스테이지 씬의 복제 원본이기 때문이다 — 공통 배치를 고칠 때
-        /// 여기서 바로 확인할 수 있는 자리이기도 하다.
+        /// 근접(미니) → 원거리 입문(Soft) → 원거리 + 근접 혼성(Hard) → 보스. 새 위협을 하나씩
+        /// 얹고 마지막에 섞는다. <see cref="SceneNames.Battle"/>(SampleScene)이 가운데 남아 있는
+        /// 이유는 그 씬이 원래의 전투 씬이자 모든 스테이지 씬의 복제 원본이기 때문이다 —
+        /// 공통 배치를 고칠 때 여기서 바로 확인할 수 있는 자리이기도 하다.
         /// </summary>
         public static readonly string[] DefaultStages =
         {
             SceneNames.StageMini,
+            SceneNames.StageSoft,
             SceneNames.Battle,
+            SceneNames.StageHard,
             SceneNames.StageBoss,
         };
 
@@ -39,7 +42,7 @@ namespace Prototype.YG
         /// Boot 씬의 GameManager 는 빈 배열로 역직렬화되는데, 그대로 두면 스테이지가 0개라
         /// 게임이 시작조차 안 된다.
         /// </summary>
-        [Tooltip("비우면 기본 순서(미니 → SampleScene → 보스)로 채운다.")]
+        [Tooltip("비우면 기본 순서(미니 → Soft → SampleScene → Hard → 보스)로 채운다.")]
         [SerializeField] private string[] stageScenes;
 
         // ── 런 데이터 (프로토타입 단계 최소 구성)

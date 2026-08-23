@@ -25,6 +25,16 @@ namespace Prototype.YG
         public const string StageBoss = "Stage_Boss";
 
         /// <summary>
+        /// 원거리 스테이지 두 짝. 둘 다 마법사(<c>Enemy_WizardRanged</c>)로만 채워져 있고,
+        /// 같은 프리팹에 <b>다른 EnemyData</b>를 물려 난이도를 가른다.
+        ///
+        /// Soft는 원거리 적을 어떻게 붙잡는지 배우는 자리, Hard는 그걸 근접 적과 섞어
+        /// "붙을 수가 없는" 압박으로 되돌려주는 자리다.
+        /// </summary>
+        public const string StageSoft = "Stage_Soft";
+        public const string StageHard = "Stage_Hard";
+
+        /// <summary>
         /// 훈련장. 허수아비 하나와 <b>고정 손패</b>만 놓은 씬이다 —
         /// 콤보 한 싸이클을 매번 같은 조건에서 굴려 보는 자리.
         /// </summary>

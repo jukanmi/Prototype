@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -234,19 +235,47 @@ namespace Prototype.EditorTools
             so.FindProperty("depthToScreenX").floatValue = DepthToScreenX;
             so.FindProperty("depthScalePerUnit").floatValue = DepthScalePerUnit;
 
-            // 그림자가 먼저(뒤에), 스프라이트가 나중(앞에) 그려져야 한다.
+            // 그림자가 먼저(뒤에), 몸이 나중(앞에) 그려져야 한다.
             SerializedProperty sorted = so.FindProperty("sortedRenderers");
             sorted.ClearArray();
-            sorted.InsertArrayElementAtIndex(0);
-            sorted.GetArrayElementAtIndex(0).objectReferenceValue = shadow.GetComponent<SpriteRenderer>();
-            sorted.InsertArrayElementAtIndex(1);
-            sorted.GetArrayElementAtIndex(1).objectReferenceValue = sprite.GetComponent<SpriteRenderer>();
+
+            List<SpriteRenderer> ordered = CollectSortedRenderers(sprite, shadow);
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                sorted.InsertArrayElementAtIndex(i);
+                sorted.GetArrayElementAtIndex(i).objectReferenceValue = ordered[i];
+            }
 
             so.ApplyModifiedProperties();
             EditorUtility.SetDirty(view);
 
             // 히트박스는 루트를 따라 돌아야 하므로 Attack 자식은 건드리지 않는다.
             return true;
+        }
+
+        /// <summary>
+        /// 그리는 순서대로 늘어놓은 렌더러 목록. 그림자가 맨 뒤,
+        /// 그 위에 몸이 <b>원래 sortingOrder 오름차순</b>으로 얹힌다.
+        ///
+        /// 몸이 파츠 여러 장인 캐릭터(스켈레탈 리그)를 위해 순서를 지킨다.
+        /// <see cref="BeltScrollView"/>는 이 목록에 index를 그대로 더해 정렬값을 주므로,
+        /// 여기서 순서가 뒤집히면 화면에서 팔이 얼굴 앞으로 나온다.
+        /// 렌더러 한 장짜리는 결과가 [그림자, 몸] 두 개로 예전과 같다.
+        /// </summary>
+        private static List<SpriteRenderer> CollectSortedRenderers(Transform sprite, Transform shadow)
+        {
+            var ordered = new List<SpriteRenderer>();
+
+            SpriteRenderer shadowRenderer = shadow != null ? shadow.GetComponent<SpriteRenderer>() : null;
+            if (shadowRenderer != null) ordered.Add(shadowRenderer);
+
+            var body = new List<SpriteRenderer>(sprite.GetComponentsInChildren<SpriteRenderer>(true));
+
+            // OrderBy를 쓴다 — List.Sort는 불안정 정렬이라 sortingOrder가 같은 파츠끼리
+            // 돌릴 때마다 앞뒤가 바뀔 수 있다. 빌더는 여러 번 돌린다.
+            ordered.AddRange(body.OrderBy(r => r.sortingOrder));
+
+            return ordered;
         }
 
         /// <summary>
@@ -352,7 +381,7 @@ namespace Prototype.EditorTools
         }
 
         /// <summary>진영에 맞는 레이어를 몸통과 히트박스에 나눠 붙인다.</summary>
-        private static void AssignLayers(Entity entity)
+        internal static void AssignLayers(Entity entity)
         {
             bool ally = entity.Faction == Faction.Ally;
 
