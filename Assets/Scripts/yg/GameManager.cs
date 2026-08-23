@@ -21,11 +21,30 @@ namespace Prototype.YG
         /// <summary>
         /// 스테이지 진행 순서. 이 순서가 곧 게임의 흐름이다.
         ///
-        /// 가운데가 <see cref="SceneNames.Battle"/>(SampleScene)인 이유는 그 씬이 원래의
-        /// 전투 씬이자 두 스테이지 씬의 복제 원본이기 때문이다 — 공통 배치를 고칠 때
-        /// 여기서 바로 확인할 수 있는 자리이기도 하다.
+        /// 역할군(전사 → 돌진전사 → 마법사)이 스테이지마다 늘어나는 순서라
+        /// 이 배열의 순서 자체가 학습 곡선이다.
+        ///
+        /// <b>2 · 5스테이지는 성격이 다르다</b> — 아레나 2개와 통로로 이뤄진 스크롤 스테이지이고,
+        /// 구성은 <see cref="Prototype.ArenaRoundCatalog"/>에 있다. 5스테이지가 보스방이다.
+        /// 나머지는 방 하나짜리 웨이브 스테이지이고 <see cref="Prototype.StageWaveCatalog"/>를 읽는다.
+        ///
+        /// 예전 경로(미니 → SampleScene → 보스)는 <see cref="DebugStages"/>에 남겨 뒀다 —
+        /// 씬 하나만 띄워 감각을 보는 용도라 게임의 흐름과는 다른 물건이다.
         /// </summary>
         public static readonly string[] DefaultStages =
+        {
+            SceneNames.Stage01,
+            SceneNames.Stage02,
+            SceneNames.Stage03,
+            SceneNames.Stage04,
+            SceneNames.Stage05,
+        };
+
+        /// <summary>
+        /// 배치·전투 감각 확인용 짧은 경로. 웨이브 없이 씬에 놓인 적과 그대로 싸운다.
+        /// 인스펙터의 <c>stageScenes</c>에 손으로 넣어 쓴다.
+        /// </summary>
+        public static readonly string[] DebugStages =
         {
             SceneNames.StageMini,
             SceneNames.Battle,
@@ -39,7 +58,7 @@ namespace Prototype.YG
         /// Boot 씬의 GameManager 는 빈 배열로 역직렬화되는데, 그대로 두면 스테이지가 0개라
         /// 게임이 시작조차 안 된다.
         /// </summary>
-        [Tooltip("비우면 기본 순서(미니 → SampleScene → 보스)로 채운다.")]
+        [Tooltip("비우면 기본 순서(스테이지 1~5)로 채운다.")]
         [SerializeField] private string[] stageScenes;
 
         // ── 런 데이터 (프로토타입 단계 최소 구성)

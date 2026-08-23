@@ -31,10 +31,26 @@ namespace Prototype.YG
         /// <summary>
         /// 결말. <b>패배가 승리보다 앞선다</b> — 마지막 적과 마지막 아군이 같은 프레임에
         /// 쓰러졌다면 이긴 것으로 쳐 주지 않는다.
+        ///
+        /// 웨이브 없는 스테이지(씬에 적을 직접 놓은 방)를 위한 지름길이다.
+        /// 웨이브가 도는 방은 <see cref="Evaluate(int, bool, bool)"/>를 쓴다.
         /// </summary>
         public static StageOutcome Evaluate(int aliveEnemies, bool allAlliesDead)
+            => Evaluate(aliveEnemies, allAlliesDead, wavesRemaining: false);
+
+        /// <summary>
+        /// 웨이브가 도는 방의 결말.
+        ///
+        /// <paramref name="wavesRemaining"/>이 없으면 <b>첫 웨이브만 잡고 스테이지가 끝난다</b>.
+        /// 웨이브 사이에는 살아 있는 적이 0명인 구간이 반드시 생기는데(다음 웨이브가 아직 안 나왔다),
+        /// 그 한 프레임이 그대로 승리로 잡히기 때문이다.
+        ///
+        /// 패배는 그 영향을 받지 않는다 — 뒤에 웨이브가 몇 개 남았든 아군이 전멸하면 진 것이다.
+        /// </summary>
+        public static StageOutcome Evaluate(int aliveEnemies, bool allAlliesDead, bool wavesRemaining)
         {
             if (allAlliesDead) return StageOutcome.Defeat;
+            if (wavesRemaining) return StageOutcome.Undecided;
             if (aliveEnemies <= 0) return StageOutcome.Victory;
 
             return StageOutcome.Undecided;

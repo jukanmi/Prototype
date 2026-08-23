@@ -446,10 +446,10 @@ MonoBehaviour:
   parryCounterStun: 0.6
   parryCounterKnockback: 4
   maxGuard: 0
-  defaultGuardDamage: 6
+  defaultGuardDamage: 1
   guardBreakDuration: 4
   guardRegenDelay: 3
-  guardRegen: 12
+  guardRegen: 2
 --- !u!114 &143802035022428292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -483,6 +483,7 @@ MonoBehaviour:
     hitStunDuration: 0.1
     guardDamage: 0
     snapZ: 0
+  basicComboStages: []
   skillAttack: {fileID: 0}
   basicProjectile: {fileID: 0}
   basicProjectileSpeed: 16

@@ -434,6 +434,15 @@ namespace Prototype
         /// <summary>상태머신이 지금 중단 가능한지. AI · UI 판단용.</summary>
         public bool IsBusy => StateMachine.CurState != null && !StateMachine.CurState.CanBeInterrupted;
 
+        /// <summary>
+        /// 자동 조준이 이 몸을 후보로 삼아도 되는가. 기본 true.
+        ///
+        /// 벽에서 걸어 나오는 중인 적이 false를 건다(<see cref="EnemySpawnGuard"/>).
+        /// 판정을 끄는 것만으로는 모자라다 — 조준은 여전히 그쪽을 향하므로,
+        /// 플레이어의 스킬이 <b>때릴 수 없는 적</b>을 향해 나가 헛돈다.
+        /// </summary>
+        public bool IsTargetable { get; set; } = true;
+
         // ── 빙의 ────────────────────────────────────────────
 
         /// <summary>

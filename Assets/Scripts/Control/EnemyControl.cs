@@ -31,6 +31,26 @@ namespace Prototype
         private float retargetTimer;
         private bool active = true;
 
+        /// <summary>진입 연출. <see cref="BeginSpawnEntry"/>가 채우고, 끝나면 스스로 비운다.</summary>
+        private SpawnEntry entry;
+
+        /// <summary>지금 공격권(<see cref="EnemyAttackTokens"/>)을 쥐고 있는가.</summary>
+        private bool holdsToken;
+
+        /// <summary>쥔 토큰의 임대 기간. 휘두르는 동안 이 값으로 계속 갱신한다.</summary>
+        private float tokenLease = AttackTokenPool.BasicLease;
+
+        /// <summary>
+        /// 토큰을 얻고 나서 실제로 휘두르는 상태가 되기까지 봐 주는 시간.
+        ///
+        /// 명령을 낸 프레임에는 아직 <see cref="Entity.IsBusy"/>가 false다 —
+        /// 상태 전이는 이 Tick 다음에 <c>StateMachine.Tick</c>에서 일어난다.
+        /// 그 한 프레임을 안 봐 주면 얻자마자 반납해 토큰이 아무 의미가 없어진다.
+        /// </summary>
+        private const float TokenGrace = 0.35f;
+
+        private float tokenGrace;
+
         /// <summary>특수 행동 실행기. Entity 하나에 하나만 붙는다(<see cref="IEnemySpecialAction"/>).</summary>
         private IEnemySpecialAction special;
 
@@ -99,8 +119,29 @@ namespace Prototype
                 Clear();
                 if (special != null) special.Cancel();
                 if (Owner != null) Owner.SetTelegraph(false);
+
+                // 정지한 적이 공격권을 물고 있으면 그 자리는 영영 안 열린다.
+                ReleaseAttackToken();
+                entry = null;
             }
         }
+
+        // ── 진입 연출 ────────────────────────────────────
+
+        /// <summary>
+        /// 소환된 직후 <see cref="StageDirector"/>가 부른다. 정착 지점까지 걸어간 뒤
+        /// <paramref name="holdSeconds"/>초를 서 있고, 그동안 브레인은 돌지 않는다.
+        ///
+        /// AI를 끄는 대신 이 컴포넌트가 <c>Command.Move</c>를 내는 이유는 걷는 그림 때문이다 —
+        /// <c>Physics.Move</c>를 직접 밀면 상태머신이 Idle에 남아 서 있는 채로 미끄러진다.
+        /// </summary>
+        public void BeginSpawnEntry(Vector3 entryPoint, float holdSeconds)
+        {
+            entry = new SpawnEntry(entryPoint, holdSeconds);
+        }
+
+        /// <summary>진입 연출이 아직 도는 중인가. 디버그 표시가 읽는다.</summary>
+        public bool IsEntering => entry != null && entry.IsActive;
 
         /// <summary>
         /// EnemyData의 행동 수치를 주입한다. Enemy.Awake가 호출한다.
@@ -138,6 +179,13 @@ namespace Prototype
         {
             Clear();
             if (!active) return;
+
+            UpdateAttackToken();
+
+            // 진입 연출 중에는 브레인이 돌지 않는다. 걸어 들어가 자리를 잡는 것까지가 전부다 —
+            // 쿨 타이머도 여기서는 흐르지 않아, 돌진전사는 선딜레이가 끝나는 순간이 곧 준비 완료다.
+            if (TickSpawnEntry(dt)) return;
+
             if (brain == null) return;
 
             attackTimer -= dt;
@@ -152,6 +200,7 @@ namespace Prototype
             {
                 if (special != null) special.Cancel();
                 Owner.SetTelegraph(false);
+                ReleaseAttackToken();
                 return;
             }
 
@@ -160,6 +209,7 @@ namespace Prototype
             {
                 if (special != null) special.Cancel();
                 Owner.SetTelegraph(false);   // 맞은 순간 예고는 없던 일이 된다
+                ReleaseAttackToken();
                 return;
             }
 
@@ -178,6 +228,14 @@ namespace Prototype
             UpdateAttackTelegraph(in ctx);
 
             EnemyIntent intent = brain.Decide(ctx);
+
+            // 다구리 방지. 공격권을 못 얻은 적은 사거리 안에서 기다린다 —
+            // 몰려 있는 그림은 그대로 두고 들어오는 타격 수만 일정하게 유지한다.
+            if (NeedsAttackToken(intent.kind) && !TakeAttackToken(intent.kind))
+            {
+                if (Owner != null) Owner.SetTelegraph(false);
+                return;   // Clear()로 이미 비어 있다. 제자리에서 기회를 노린다.
+            }
 
             if (intent.kind == EnemyActionKind.Special)
             {
@@ -213,6 +271,95 @@ namespace Prototype
             bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange;
             Owner.SetTelegraph(inRange && attackTimer <= Owner.BasicAttackWindup);
         }
+
+        // ── 진입 연출 ────────────────────────────────────
+
+        /// <summary>
+        /// 진입 연출을 한 프레임 굴린다. <b>true면 이번 프레임은 여기서 끝</b>이다 —
+        /// 브레인도 쿨 타이머도 돌지 않는다.
+        /// </summary>
+        private bool TickSpawnEntry(float dt)
+        {
+            if (entry == null) return false;
+
+            if (!entry.IsActive)
+            {
+                entry = null;
+                return false;
+            }
+
+            Vector3 dir = entry.Tick(transform.position, dt);
+
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                Command = Command.Move;
+                MoveDirection = dir;
+            }
+
+            return true;
+        }
+
+        // ── 동시 공격 제한 ───────────────────────────────
+
+        /// <summary>평타와 특수 행동만 공격권을 요구한다. 이동·대기는 몇이든 자유다.</summary>
+        private static bool NeedsAttackToken(EnemyActionKind kind)
+            => kind == EnemyActionKind.Attack || kind == EnemyActionKind.Special;
+
+        /// <summary>지금 몸이 실제로 뭔가를 휘두르고 있는가. 임대를 갱신할지 판단한다.</summary>
+        private bool IsSwinging
+            => (Owner != null && Owner.IsBusy) || (special != null && special.IsRunning);
+
+        private bool TakeAttackToken(EnemyActionKind kind)
+        {
+            float lease = kind == EnemyActionKind.Special
+                ? AttackTokenPool.SpecialLease
+                : AttackTokenPool.BasicLease;
+
+            if (!EnemyAttackTokens.Pool.TryAcquire(this, EnemyAttackTokens.Now, lease))
+                return false;
+
+            holdsToken = true;
+            tokenLease = lease;
+            tokenGrace = TokenGrace;
+            return true;
+        }
+
+        /// <summary>
+        /// 쥔 공격권을 놓을 때가 됐는지 본다.
+        ///
+        /// 휘두르는 동안에는 <b>임대를 매 프레임 갱신</b>한다. 그래서 풀의 만료는
+        /// "이 적이 더 이상 Tick 하지 않는다"는 뜻만 갖는다 — 씬이 내려갔거나 파괴됐거나.
+        /// 불릿타임으로 게임 시간이 멈춰도 Control.Tick 은 계속 도므로 여기서 얼지 않는다.
+        /// </summary>
+        private void UpdateAttackToken()
+        {
+            if (!holdsToken) return;
+
+            if (IsSwinging)
+            {
+                EnemyAttackTokens.Pool.TryAcquire(this, EnemyAttackTokens.Now, tokenLease);
+                tokenGrace = TokenGrace;
+                return;
+            }
+
+            // 명령을 낸 프레임에는 아직 휘두르는 상태가 아니다. 그 한 프레임을 봐 준다.
+            tokenGrace -= TimeControl.UnscaledDeltaTime;
+            if (tokenGrace <= 0f) ReleaseAttackToken();
+        }
+
+        private void ReleaseAttackToken()
+        {
+            if (!holdsToken) return;
+
+            holdsToken = false;
+            EnemyAttackTokens.Pool.Release(this);
+        }
+
+        /// <summary>
+        /// 파괴 · 비활성 경로. 죽은 적이 공격권을 물고 가면 남은 적들이 아무도 못 때린다.
+        /// 임대 만료가 결국은 열어 주지만, 그 몇 초가 전투에서는 대단히 길다.
+        /// </summary>
+        private void OnDisable() => ReleaseAttackToken();
 
         /// <summary>
         /// 브레인이 지목한 패턴을 실행기에 넘긴다.
