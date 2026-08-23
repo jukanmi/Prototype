@@ -16,8 +16,8 @@ namespace Prototype.YG
     /// </summary>
     public class BattleSceneController : MonoBehaviour
     {
-        [Tooltip("이 X좌표를 넘으면 다음 스테이지로 넘어간다. 방 오른쪽 벽이 x = 6이고 " +
-                 "몸통 반지름 때문에 실제로는 5.5 근처에서 막힌다.")]
+        [Tooltip("이 X좌표를 넘으면 다음 스테이지로 넘어간다. 씬에 RoomBounds가 있으면 " +
+                 "그쪽 값이 이 값을 덮는다 — 맵마다 오른쪽 끝이 다르기 때문이다.")]
         [SerializeField] private float exitX = 5f;
 
         private bool isExiting;
@@ -39,6 +39,11 @@ namespace Prototype.YG
 
         private void Start()
         {
+            // 맵이 출구를 안다. 인스펙터 값은 RoomBounds 없는 씬(테스트 씬 등)용 폴백이다.
+            // 씬마다 손으로 맞추면 맵을 늘릴 때 반드시 어딘가 하나를 빠뜨린다.
+            var bounds = FindAnyObjectByType<RoomBounds>();
+            if (bounds != null) exitX = bounds.ExitX;
+
             // 초기화 UI 는 씬 단독 실행에서도 필요하다. GameManager 체크보다 먼저 띄운다.
             restartUI = BattleRestartUI.Create(this);
 

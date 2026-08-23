@@ -3,11 +3,16 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 2.5D 표현 규칙. 논리 좌표는 3D(X 좌우 / Z 깊이 / Y 높이)지만
-    /// 스프라이트는 <b>(X, Z + Y)</b> 위치에 그린다.
-    /// 가시성 확보를 위해 그림자는 항상 바닥 (X, Z)에 고정한다.
+    /// 2.5D 표현 규칙. 논리 좌표는 3D(X 좌우 / Z 깊이 / Y 높이)이고,
+    /// <b>스프라이트도 그 좌표에 그대로 놓는다</b> — 투영은 기울인 원근 카메라가 한다.
+    /// 그림자는 발밑 바닥 (X, Z)에 눕혀 고정한다.
     ///
-    /// 깊이 배율은 <c>depthRoot</c>(Sprite의 부모)가 받는다 — Sprite의 localScale은 애니 클립 소유다.
+    /// 스프라이트는 월드에서 수직으로 선 채 <b>Y축 빌보드</b>로 그려진다. 카메라가 좌우로만
+    /// 따라가고 요(yaw) 회전을 하지 않으므로 회전을 항등으로 지우는 것이 곧 빌보드다.
+    /// 대신 카메라가 아래로 기운 만큼 스프라이트가 화면에서 눌려 보이므로
+    /// <see cref="billboardStretchY"/>로 되돌린다.
+    ///
+    /// 표시 배율은 <c>depthRoot</c>(Sprite의 부모)가 받는다 — Sprite의 localScale은 애니 클립 소유다.
     /// </summary>
     [ExecuteAlways]
     public class BeltScrollView : MonoBehaviour
@@ -18,14 +23,17 @@ namespace Prototype
         [SerializeField] private Transform depthRoot;
         [Tooltip("바닥에 고정되는 그림자.")]
         [SerializeField] private Transform shadow;
-        [Tooltip("깊이(Z)가 화면 세로로 환산되는 비율. 벨트의 기울기. tan θ에 해당한다.")]
-        [SerializeField] private float depthToScreen = 0.5f;
-        [Tooltip("깊이(Z)가 화면 가로로 밀리는 비율. 바닥이 평행사변형으로 기운다. 0이면 정면 투영.")]
-        [SerializeField] private float depthToScreenX = 0.45f;
-        [Tooltip("깊이(Z) 1당 줄어드는 표시 배율. 0이면 크기가 일정하다. 모든 인스턴스가 같은 값이어야 한다.")]
-        [SerializeField] private float depthScalePerUnit = 0.06f;
+        [Tooltip("깊이(Z)를 화면 세로로 접어 넣는 비율. 0이면 카메라가 대신 기울어 처리한다.")]
+        [SerializeField] private float depthToScreen = 0f;
+        [Tooltip("깊이(Z)를 화면 가로로 미는 비율. 0이면 밀지 않는다.")]
+        [SerializeField] private float depthToScreenX = 0f;
+        [Tooltip("깊이(Z) 1당 줄어드는 표시 배율. 0이면 원근 카메라가 대신 줄인다. 모든 인스턴스가 같은 값이어야 한다.")]
+        [SerializeField] private float depthScalePerUnit = 0f;
         [Tooltip("발이 바닥에 닿아 보이도록 스프라이트를 위로 올리는 양. 보통 스프라이트 높이의 절반. 피벗이 발밑이면 0.")]
         [SerializeField] private float spriteOffsetY = 0.5f;
+        [Tooltip("기울인 카메라가 수직 스프라이트를 눌러 보이게 하는 만큼 세로로 늘린다. " +
+                 "카메라 피치 θ에 대해 1/cos θ. 1이면 보정하지 않는다.")]
+        [SerializeField] private float billboardStretchY = 1.346f;
         [Tooltip("바라보는 쪽으로 스프라이트를 좌우 반전한다. 옆에서 본 시트에 필요하다.")]
         [SerializeField] private bool flipToFacing = false;
         [Tooltip("반전시킬 렌더러. 비우면 sprite에서 찾는다.")]
@@ -33,13 +41,22 @@ namespace Prototype
         [Tooltip("좌우 반전을 localScale.x 부호로 거는 노드. 몸이 렌더러 여러 장으로 쪼개진 " +
                  "캐릭터(스켈레탈 리그)는 flipX로 못 뒤집는다. 비우면 facingRenderer.flipX를 쓴다.")]
         [SerializeField] private Transform facingRoot;
-        [Tooltip("그림자 기본 배율. 바닥에 눕혀 보이도록 Y를 납작하게 준다.")]
-        [SerializeField] private Vector3 shadowBaseScale = new Vector3(0.9f, 0.35f, 1f);
+        [Tooltip("그림자 기본 배율. 실제로 바닥에 눕히므로 납작하게 누르지 않는다.")]
+        [SerializeField] private Vector3 shadowBaseScale = new Vector3(0.9f, 0.9f, 1f);
         [Tooltip("높이에 따라 그림자를 줄여 체공감을 준다.")]
         [SerializeField] private float shadowShrinkPerUnit = 0.12f;
         [SerializeField] private SpriteRenderer[] sortedRenderers;
         [Tooltip("Z가 클수록(멀수록) 뒤에 그린다.")]
         [SerializeField] private float sortingPrecision = 100f;
+
+        /// <summary>
+        /// 그림자를 바닥에서 살짝 띄우는 양. 바닥 메시와 같은 평면에 놓으면
+        /// 뎁스가 팽팽히 맞아 깜빡인다(Z 파이팅).
+        /// </summary>
+        public const float ShadowLift = 0.01f;
+
+        /// <summary>그림자를 XZ 평면에 눕히는 회전. 스프라이트는 기본이 XY 평면이다.</summary>
+        public static readonly Quaternion ShadowRotation = Quaternion.Euler(90f, 0f, 0f);
 
         /// <summary>
         /// 몸 스프라이트가 붙은 자식. 색을 바꾸려는 쪽(<see cref="EnemyStateTint"/>)이
@@ -82,7 +99,8 @@ namespace Prototype
             {
                 // 배율은 여기서만 건다. Sprite의 localScale은 Animator 것이라
                 // 거기 쓰면 스쿼시 · 스트레치가 매 프레임 지워진다.
-                depthRoot.localScale = new Vector3(scale, scale, 1f);
+                // 세로만 더 늘리는 것은 기울인 카메라가 눌러 보이게 하는 몫을 되돌리는 것이다.
+                depthRoot.localScale = new Vector3(scale, scale * billboardStretchY, 1f);
 
                 // 오프셋에도 배율을 곱해야 뒤쪽 캐릭터의 발이 그림자 위에 붙는다.
                 depthRoot.position = BeltScroll.ToView(ground, height + spriteOffsetY * scale);
@@ -108,8 +126,10 @@ namespace Prototype
 
             if (shadow != null)
             {
-                shadow.position = BeltScroll.ToView(ground);
-                shadow.rotation = Quaternion.identity;
+                // 몸과 달리 그림자는 빌보드가 아니다. 실제로 바닥에 눕혀야
+                // 3D 맵 위를 걸을 때 지면에 붙어 보인다.
+                shadow.position = BeltScroll.ToView(ground) + new Vector3(0f, ShadowLift, 0f);
+                shadow.rotation = ShadowRotation;
 
                 float shrink = Mathf.Clamp(1f - height * shadowShrinkPerUnit, 0.3f, 1f);
                 shadow.localScale = shadowBaseScale * (shrink * scale);

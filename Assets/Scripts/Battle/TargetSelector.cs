@@ -106,16 +106,21 @@ namespace Prototype
         /// <summary>
         /// 화면 좌표 → 논리 바닥 좌표. 마우스 피킹과 조준 시작점이 같은 길을 타야
         /// 시작 위치와 마우스로 집은 위치가 어긋나지 않는다.
+        ///
+        /// 바닥 평면과의 <b>레이 교차</b>로 푼다. 예전에는 <c>ScreenToWorldPoint</c> 한 점을
+        /// <see cref="BeltScroll.ToGround"/>로 되돌렸는데, 그건 카메라가 기울지 않은 직교
+        /// 투영이라 화면 한 점이 곧 월드 한 점이던 시절의 방법이다. 기울어진 원근
+        /// 카메라에서는 화면 한 점이 <b>광선</b>이라 그 식이 성립하지 않는다.
         /// </summary>
         public Vector3 ScreenToGround(Vector2 screenPos)
         {
             if (cam == null) return Vector3.zero;
 
-            Vector3 screen = screenPos;
-            screen.z = Mathf.Abs(cam.transform.position.z);   // 직교 카메라라 깊이는 아무 값이나 무방
+            Ray ray = cam.ScreenPointToRay(screenPos);
+            var ground = new Plane(Vector3.up, new Vector3(0f, groundY, 0f));
 
-            Vector3 view = cam.ScreenToWorldPoint(screen);
-            return BeltScroll.ToGround(view, groundY);
+            // 지면과 평행하게 쏘면(카메라가 눕는 경우) 교차가 없다. 그때는 조준을 포기한다.
+            return ground.Raycast(ray, out float distance) ? ray.GetPoint(distance) : Vector3.zero;
         }
 
         public void Cancel()

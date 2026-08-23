@@ -23,7 +23,7 @@ namespace Prototype.EditorTools
         private const string PrefabFolder = "Assets/Prefabs";
 
         // 3D전환_TODO.md §2 — 레이어 번호는 문서와 맞춘다.
-        private const int WallLayer = 9;
+        internal const int WallLayer = 9;
         private const int AllyHurtLayer = 10;
         private const int EnemyHurtLayer = 11;
         private const int AllyHitLayer = 12;
@@ -579,7 +579,8 @@ namespace Prototype.EditorTools
             return mesh;
         }
 
-        private static void EnsureFolder(string path)
+        /// <summary>맵 프리팹 빌더도 같은 폴더 만들기를 쓴다.</summary>
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
 
