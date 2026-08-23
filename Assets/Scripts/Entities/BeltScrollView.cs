@@ -44,6 +44,15 @@ namespace Prototype
         /// </summary>
         public Transform SpriteRoot => sprite;
 
+        /// <summary>
+        /// 정렬 순서에 통째로 더하는 값. 기본 0.
+        ///
+        /// 벽에서 걸어 나오는 적이 쓴다(<see cref="EnemySpawnGuard"/>) — 크게 음수를 주면
+        /// 배경 벽보다도 뒤로 가서 <b>벽에 가려져 있다가 걸어 나오는 그림</b>이 된다.
+        /// 페이드인보다 이쪽이 벨트스크롤 감각에 훨씬 잘 맞는다.
+        /// </summary>
+        public int SortingOffset { get; set; }
+
         private Physics physics;
 
         private void Awake()
@@ -123,7 +132,7 @@ namespace Prototype
         {
             if (sortedRenderers == null) return;
 
-            int order = Mathf.RoundToInt(-z * sortingPrecision);
+            int order = Mathf.RoundToInt(-z * sortingPrecision) + SortingOffset;
             for (int i = 0; i < sortedRenderers.Length; i++)
             {
                 if (sortedRenderers[i] == null) continue;

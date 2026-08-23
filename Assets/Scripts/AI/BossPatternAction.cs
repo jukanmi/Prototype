@@ -17,10 +17,6 @@ namespace Prototype
         [Tooltip("힘을 모으는 시간. 0이면 차징 패턴이 아니다 — 예고부터 시작한다.\n\n" +
                  "이 구간에는 예고(!)를 켜지 않는다. 머리 위 게이지가 대신 알린다.")]
         public float chargeTime;
-        [Tooltip("가드를 한 대분 깎을 때마다 차징을 뒤로 미는 초.\n\n" +
-                 "때려서 늦추고, 가드를 다 깎으면(가드브레이크) 통째로 무산된다 — " +
-                 "몰아칠 이유를 만드는 값이다.")]
-        public float chargeHitDelay;
         [Tooltip("차징 중 재생할 Animator 상태 이름. 비우면 예고 클립을 그대로 쓴다.")]
         public string chargeClip;
 
@@ -171,7 +167,7 @@ namespace Prototype
             BattleLog.Log(LogCategory.State,
                 sequence.Phase == EnemySpecialPhase.Charge
                     ? $"{name} 패턴 '{Label(index)}' <color=#FFD166>차징 시작</color> " +
-                      $"({p.chargeTime:0.##}s, 한 대당 {p.chargeHitDelay:0.##}s 지연) → {patternTarget.name}"
+                      $"({p.chargeTime:0.##}s) → {patternTarget.name}"
                     : $"{name} 패턴 '{Label(index)}' 예고 시작 → {patternTarget.name}", this);
             return true;
         }
@@ -450,42 +446,14 @@ namespace Prototype
         private void HandleHit(Combat victim) => sequence.HitOrWall();
         private void HandleWall(Physics.WallHit wall) => sequence.HitOrWall();
 
-        // ── 차징 방해 ───────────────────────────────────
+        // ── 차징 ────────────────────────────────────────
+        //
+        // 때려서 늦추는 경로는 걷어냈다. 차징은 시작하면 정해진 시간에 터진다 —
+        // 맞을 때마다 밀리면 "언제 터지나"가 매 판 달라져서 회피 타이밍을 배울 수가 없었다.
+        //
+        // 끊는 수단은 가드브레이크 하나로 남는다. 그건 여기가 아니라 EnemyControl이
+        // IsGuardBroken을 보고 Cancel을 부른다.
 
-        /// <summary>
-        /// 가드가 깎일 때마다 차징을 뒤로 민다.
-        ///
-        /// <see cref="Combat.OnHitTaken"/>이 아니라 <see cref="Combat.OnGuardDrained"/>를 듣는 이유:
-        /// 보스는 평소가 슈퍼아머라 전자가 발화하지 않는다. 게다가 가드 소모량을 그대로 쓰면
-        /// "차징을 늦추는 것"과 "가드를 깎는 것"이 한 가지 행동이 되어 배울 규칙이 하나로 준다 —
-        /// 계속 몰아치면 늦추다 못해 가드브레이크로 통째로 무산시킨다.
-        /// (무산은 EnemyControl이 IsGuardBroken을 보고 Cancel을 부른다. 여기서 할 일이 없다.)
-        /// </summary>
-        private void HandleGuardDrained(float loss)
-        {
-            if (!IsCharging || current < 0 || current >= Count) return;
-
-            float delay = patterns[current].chargeHitDelay * loss;
-            if (delay <= 0f) return;
-
-            sequence.Delay(delay);
-
-            BattleLog.Log(LogCategory.State,
-                $"{name} 차징 <color=#4CC9F0>지연</color> {delay:0.##}s — 남은 진행 {ChargeRatio * 100f:0}%", this);
-        }
-
-        private void OnEnable()
-        {
-            if (owner != null && owner.Combat != null)
-                owner.Combat.OnGuardDrained += HandleGuardDrained;
-        }
-
-        private void OnDisable()
-        {
-            if (owner != null && owner.Combat != null)
-                owner.Combat.OnGuardDrained -= HandleGuardDrained;
-
-            Cancel();
-        }
+        private void OnDisable() => Cancel();
     }
 }

@@ -31,6 +31,11 @@ namespace Prototype
         [Tooltip("GroundPoint 계열의 유효 반경. 프리뷰 원의 크기.")]
         public float radius = 3f;
 
+        [Tooltip("자동 조준이 고를 상대. 훑기 · 부채꼴 없이 이 둘 중 하나로만 정해진다.\n\n" +
+                 "· Nearest — 가장 가까운 적. 모으기 · 시동기 · 공격기의 기본.\n" +
+                 "· Farthest — 가장 먼 적. 벽까지 밀 거리가 필요한 밀치기에 쓴다.")]
+        public TargetPick targetPick = TargetPick.Nearest;
+
         [Header("타이밍")]
         [Tooltip("선딜 — 발동 준비 모션.")]
         public float castTime = 0.15f;
@@ -79,11 +84,34 @@ namespace Prototype
         /// </summary>
         public bool IsAreaSkill => UsesRadius && !IsRanged;
 
-        [Tooltip("근거리 직업(탱커·워리어)이 대상 옆에 설 거리. 0이면 기본값(1.1)을 쓴다.")]
+        [Tooltip("시전 전에 대상에게서 이만큼까지 붙는다. 0이면 스킬 성격에서 자동으로 정해진다.\n\n" +
+                 "· 근접 — 1.1 (바로 옆)\n" +
+                 "· 장판 — radius의 절반\n" +
+                 "· 투사체 — 사거리의 절반")]
         public float approachDistance = 0f;
 
-        /// <summary>0을 기본값으로 접어 주는 읽기 창구. 에셋 27개를 손으로 채우지 않아도 된다.</summary>
-        public float ApproachDistance => approachDistance > 0f ? approachDistance : 1.1f;
+        /// <summary>
+        /// 0을 기본값으로 접어 주는 읽기 창구. 에셋 16개를 손으로 채우지 않아도 된다.
+        ///
+        /// <b>자동 발동은 이 값 하나로 끝난다</b> — "대상보다 멀면 여기까지 걸어 들어가 때린다".
+        /// 직업별 분기(근접만 이동 / 원거리는 제자리)를 없앤 자리라, 원거리도 사거리 밖이면
+        /// 들어오고 사거리 안이면 그대로 쏜다.
+        /// </summary>
+        public float ApproachDistance => approachDistance > 0f ? approachDistance : DefaultApproach;
+
+        /// <summary>
+        /// 성격에서 접근 거리를 유도한다. 근접은 몸이 닿아야 하고,
+        /// 장판·투사체는 자기 유효 거리의 절반까지만 들어가면 빗나갈 일이 없다.
+        /// </summary>
+        private float DefaultApproach
+        {
+            get
+            {
+                if (IsRanged) return Mathf.Max(3f, projectileRange * 0.5f);
+                if (IsAreaSkill) return Mathf.Max(1.5f, radius * 0.5f);
+                return 1.1f;
+            }
+        }
 
         [Header("판정")]
         public List<HitData> hitDataList = new List<HitData>();

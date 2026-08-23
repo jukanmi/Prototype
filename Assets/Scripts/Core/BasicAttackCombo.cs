@@ -43,6 +43,8 @@ namespace Prototype
         public KnockbackMode mode;
         public float knockbackForce;
         public float launchForce;
+        [Tooltip("공중에 뜬 대상에게 쓰는 띄우기 힘. 0이면 launchForce를 그대로 쓴다.")]
+        public float airLaunchForce;
         public float hitStunDuration;
     }
 
@@ -114,6 +116,7 @@ namespace Prototype
             h.mode = stage.mode;
             h.knockbackForce = stage.knockbackForce;
             h.launchForce = stage.launchForce;
+            h.airLaunchForce = stage.airLaunchForce;
             h.hitStunDuration = Or(stage.hitStunDuration, h.hitStunDuration);
 
             return h;

@@ -154,20 +154,6 @@ namespace Prototype
             Enter(EnemySpecialPhase.Recovery);
         }
 
-        /// <summary>
-        /// 모으던 것을 뒤로 민다. <b>차징 단계에서만</b> 듣는다 —
-        /// 예고·발동을 밀면 "!"를 보고 맞춘 회피·패링 타이밍이 매번 달라진다.
-        ///
-        /// 되감기는 0까지다. 계속 얻어맞으면 차징이 영영 안 끝나는데, 그게 의도다:
-        /// 몰아치는 쪽이 이긴다.
-        /// </summary>
-        public void Delay(float seconds)
-        {
-            if (Phase != EnemySpecialPhase.Charge || seconds <= 0f) return;
-
-            timer = Mathf.Max(0f, timer - seconds);
-        }
-
         /// <summary>차징을 즉시 끝내고 예고로 넘긴다. 외부에서 강제로 터뜨릴 때.</summary>
         public void ReleaseCharge()
         {

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb811218524748478d93baa1bee40f1, type: 3}
+  m_Name: Enemy_Dummy
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyData
+  enemyId: Enemy_Dummy
+  enemyName: "\uD5C8\uC218\uC544\uBE44"
+  hp: 5000
+  atk: 0
+  brain: {fileID: 11400000, guid: 622ec2db47165964789cf717bc1379ce, type: 2}
+  moveSpeed: 0
+  attackRange: 0
+  attackInterval: 999
+  retargetInterval: 0.5
+  leashRange: 0
+  preferredMinRange: 0
+  specialRange: 0
+  specialInterval: 4
+  basicProjectile: {fileID: 0}
+  projectileSpeed: 16
+  projectileRange: 9
+  projectilePierce: 0
+  exp: 0
+  gold: 0
+  prefab: {fileID: 6104322899143957944, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}

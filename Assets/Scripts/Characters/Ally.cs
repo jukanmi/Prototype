@@ -170,7 +170,8 @@ namespace Prototype
 
         /// <summary>
         /// 이 동료가 겨눌 적. 지휘 대상이 잡혀 있으면 그쪽을, 없으면 최근접 적을 쓴다.
-        /// 자동 조준과 실시간 카드가 같은 기준을 쓰도록 한 곳에 모아 둔다.
+        /// 평타 · BT가 보는 기준이다. 스킬 카드는 <see cref="PickTarget"/>을 쓴다 —
+        /// 밀치기는 "가장 먼 적"이어야 하는데 지휘 대상이 그걸 덮으면 안 되기 때문이다.
         /// </summary>
         public Entity PreferredTarget
             => allyControl != null && allyControl.Target != null && !allyControl.Target.Combat.IsDead
@@ -178,15 +179,24 @@ namespace Prototype
                 : BattleRegistry.NearestEnemy(transform.position);
 
         /// <summary>
+        /// 이 스킬이 겨눌 적. <b>규칙은 둘뿐이다</b> — 가장 가까운 적, 가장 먼 적
+        /// (<see cref="SkillData.targetPick"/>). 훑기도 부채꼴도 없다.
+        /// </summary>
+        public Entity PickTarget(SkillData data)
+            => data == null
+                ? PreferredTarget
+                : BattleRegistry.PickEnemy(transform.position, data.targetPick);
+
+        /// <summary>
         /// 유저 조준이 없을 때 쓰는 자동 조준. 대상의 <b>좌표</b>만 뽑아 담는다 —
         /// 손패 카드가 조준 없이 발동할 때 쓴다.
-        /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 다시 고른다.
+        /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 같은 규칙으로 다시 고른다.
         /// </summary>
         public TargetInfo AutoTarget(SkillData data)
         {
             if (data == null) return TargetInfo.None;
 
-            Entity target = PreferredTarget;
+            Entity target = PickTarget(data);
 
             switch (data.targeting)
             {

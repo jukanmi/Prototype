@@ -173,6 +173,8 @@ namespace Prototype
                 // 상태 게이지는 적뿐 아니라 아군도 그린다 — 내 보호막이 언제 풀리는지는
                 // 상대 경직만큼이나 급한 정보다.
                 go.AddComponent<StatusEffectBar>();
+                // 조작 중인 캐릭터 머리 위 화살표 마커
+                go.AddComponent<ControlledCharacterArrow>();
                 return instance;
             }
         }

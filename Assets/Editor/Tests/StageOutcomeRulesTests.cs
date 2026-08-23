@@ -113,5 +113,40 @@ namespace Prototype.Tests
 
             Assert.That(ExitX, Is.LessThan(wallX - bodyRadius));
         }
+    
+        // ── 웨이브 방 ───────────────────────────────────
+        // 웨이브 사이에는 살아 있는 적이 0명인 구간이 반드시 생긴다. 그 한 프레임이
+        // 승리로 잡히면 첫 웨이브만 잡고 스테이지가 끝난다 — 화면만 봐서는
+        // "왜 벌써 클리어지?" 말고는 아무 단서가 없는 종류의 버그다.
+
+        [Test]
+        public void BetweenWaves_NoEnemiesAlive_IsStillUndecided()
+        {
+            Assert.That(StageOutcomeRules.Evaluate(0, false, wavesRemaining: true),
+                        Is.EqualTo(StageOutcome.Undecided));
+        }
+
+        [Test]
+        public void LastWaveCleared_IsVictory()
+        {
+            Assert.That(StageOutcomeRules.Evaluate(0, false, wavesRemaining: false),
+                        Is.EqualTo(StageOutcome.Victory));
+        }
+
+        /// <summary>뒤에 웨이브가 몇 개 남았든 아군이 전멸하면 진 것이다.</summary>
+        [Test]
+        public void AllAlliesDead_LosesEvenWithWavesLeft()
+        {
+            Assert.That(StageOutcomeRules.Evaluate(3, true, wavesRemaining: true),
+                        Is.EqualTo(StageOutcome.Defeat));
+        }
+
+        /// <summary>웨이브가 없는 방(씬에 적을 직접 놓은 방)은 지금까지와 똑같이 돈다.</summary>
+        [Test]
+        public void TwoArgumentForm_MeansNoWavesLeft()
+        {
+            Assert.That(StageOutcomeRules.Evaluate(0, false),
+                        Is.EqualTo(StageOutcomeRules.Evaluate(0, false, wavesRemaining: false)));
+        }
     }
 }

@@ -23,6 +23,18 @@ namespace Prototype
         [Tooltip("스킬명 라벨이 초상화보다 늦게 들어오는 간격. 두 요소가 층을 이뤄 들어온다.")]
         [SerializeField] private float labelDelay = 0.08f;
 
+        [Tooltip("컷인이 떠 있는 동안의 게임 속도. 0이면 완전 정지(예전 동작), 1이면 평소 속도.\n\n" +
+                 "완전 정지는 화면이 사진처럼 굳어 '무엇을 멈춘 건지'가 안 보였다. " +
+                 "느리게 흘리면 적이 아직 날아가는 중이라는 게 읽히고, 컷인이 그 위에 얹힌다.")]
+        [Range(0f, 1f)][SerializeField] private float timeScale = 0.15f;
+
+        /// <summary>컷인 중 게임 속도. 인스펙터에서 재생 중에도 만질 수 있다.</summary>
+        public float TimeScale
+        {
+            get => timeScale;
+            set => timeScale = Mathf.Clamp01(value);
+        }
+
         public float SlideIn => slideIn;
         public float Hold => hold;
         public float SlideOut => slideOut;
@@ -75,6 +87,7 @@ namespace Prototype
             hold = Mathf.Max(0f, hold);
             slideOut = Mathf.Max(0f, slideOut);
             labelDelay = Mathf.Max(0f, labelDelay);
+            timeScale = Mathf.Clamp01(timeScale);
         }
 
         [Tooltip("초상화 패널 한 변의 길이(1920×1080 기준).")]
@@ -143,7 +156,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 컷인 재생. <b>호출 즉시</b> 시간을 멈추고 패널을 세운다 —
+        /// 컷인 재생. <b>호출 즉시</b> 시간을 늦추고 패널을 세운다 —
         /// 반환된 열거자를 펌프하지 않는 호출자도 상태를 관측할 수 있어야 하기 때문
         /// (<see cref="ISkillCutin.Play"/> 계약).
         /// </summary>
@@ -155,7 +168,10 @@ namespace Prototype
             if (IsPlaying) Cancel();
 
             savedScale = TimeControl.Scale;
-            TimeControl.Scale = 0f;
+
+            // 멈추지 않고 <b>늦춘다</b>. 컷인 자체는 UnscaledDeltaTime으로 도므로
+            // 이 값이 0이든 0.15든 슬라이드 길이는 변하지 않는다 — 뒤에서 흐르는 전투만 느려진다.
+            TimeControl.Scale = Mathf.Clamp01(timeScale);
             IsPlaying = true;
 
             Dress(caster, data);
@@ -165,7 +181,7 @@ namespace Prototype
             return Animate();
         }
 
-        /// <summary>재생을 즉시 끝낸다. 정지시킨 시간을 반드시 되돌린다.</summary>
+        /// <summary>재생을 즉시 끝낸다. 늦춰 둔 시간을 반드시 되돌린다.</summary>
         public void Cancel()
         {
             if (!IsPlaying) return;

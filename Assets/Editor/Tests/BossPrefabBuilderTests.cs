@@ -290,8 +290,6 @@ namespace Prototype.Tests
 
                 Assert.That(patterns[i].chargeTime, Is.EqualTo(e.chargeTime).Within(0.0001f),
                             $"{e.label}: 차징 길이 미배선");
-                Assert.That(patterns[i].chargeHitDelay, Is.EqualTo(e.chargeHitDelay).Within(0.0001f),
-                            $"{e.label}: 차징 지연 미배선");
             }
         }
 
@@ -325,17 +323,6 @@ namespace Prototype.Tests
         /// 지연이 0인 차징기는 때려도 안 밀린다 — 가드브레이크 말고는 손쓸 방법이 없어져
         /// "몰아치면 늦출 수 있다"는 규칙이 화면에서 사라진다.
         /// </summary>
-        [Test]
-        public void Table_ChargePatternsCanBeDelayed()
-        {
-            foreach (BossPatternTable.Entry e in BossPatternTable.All)
-            {
-                if (e.chargeTime <= 0f) continue;
-
-                Assert.That(e.chargeHitDelay, Is.GreaterThan(0f), $"{e.label}: 때려도 안 밀린다");
-            }
-        }
-
         /// <summary>히트박스가 안 물리면 평타 히트박스로 떨어져 광역기가 근접기가 된다.</summary>
         [Test]
         public void Prefab_EveryPatternHasItsOwnHitboxWired()

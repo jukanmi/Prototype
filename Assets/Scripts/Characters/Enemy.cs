@@ -55,6 +55,29 @@ namespace Prototype
             if (enemyControl != null) enemyControl.ApplyData(data);
         }
 
+        /// <summary>
+        /// 강화 개체로 만든다. <see cref="ApplyData"/> <b>다음에</b> 불러야 한다 —
+        /// ApplyData 가 표의 원본값으로 덮어쓰기 때문이다.
+        ///
+        /// 몸집은 건드리지 않는다. 깊이 배율(<see cref="BeltScrollView"/>)이 매 프레임
+        /// localScale 을 다시 쓰므로 여기서 키우면 그대로 지워지고, 히트박스만 어긋난다.
+        /// 강화 개체는 이름과 체력 · 공격력으로 구분한다.
+        /// </summary>
+        public void ApplyEliteScale(float healthScale, float attackScale)
+        {
+            float hp = Mathf.Max(1f, healthScale);
+            float atk = Mathf.Max(1f, attackScale);
+
+            float baseHp = data != null ? data.hp : Combat.Health.MaxValue;
+            float baseAtk = data != null ? data.atk : Stats.GetValue(StatType.AttackPower, 10f);
+
+            Combat.SetMaxHealth(baseHp * hp);
+            Stats.Set(StatType.AttackPower, baseAtk * atk);
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} 강화 개체 — 체력 x{hp:0.##}, 공격력 x{atk:0.##}", this);
+        }
+
         /// <summary>스테이지 종료 시 호출. AI와 전투 입력을 모두 멈춘다.</summary>
         public void StopAI()
         {

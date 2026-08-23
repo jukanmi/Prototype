@@ -23,6 +23,7 @@ MonoBehaviour:
   resultState: 2
   targeting: 0
   radius: 3
+  targetPick: 0
   castTime: 0.12
   hitInterval: 0.18
   recoveryTime: 0.25
@@ -45,6 +46,7 @@ MonoBehaviour:
     knockbackForce: 4
     launchForce: 0
     hitStunDuration: 0.2
+    guardDamage: 0
     snapZ: 0
   - damageData:
       damage: 11
@@ -56,6 +58,7 @@ MonoBehaviour:
     knockbackForce: 4
     launchForce: 0
     hitStunDuration: 0.2
+    guardDamage: 0
     snapZ: 0
   - damageData:
       damage: 14
@@ -67,6 +70,7 @@ MonoBehaviour:
     knockbackForce: 0
     launchForce: 12
     hitStunDuration: 0.6
+    guardDamage: 0
     snapZ: 0
   effects: []
   cooldown: 5
@@ -77,8 +81,8 @@ MonoBehaviour:
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
-    castClip: {fileID: 0}
-    hitClip: {fileID: 0}
+    castClip: {fileID: 11400000, guid: e1c281ab22f3b69488fdc4db4fd2a2fb, type: 2}
+    hitClip: {fileID: 11400000, guid: 69ed0fea52321f34aab186bf158d7aca, type: 2}
   references:
     version: 2
     RefIds: []

@@ -666,6 +666,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -1714,6 +1715,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -1954,6 +1956,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -2416,6 +2419,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -2556,6 +2560,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -2833,6 +2838,7 @@ GameObject:
   - component: {fileID: 1026486066}
   - component: {fileID: 1026486067}
   - component: {fileID: 1026486068}
+  - component: {fileID: 1026486069}
   m_Layer: 0
   m_Name: CombatManager
   m_TagString: Untagged
@@ -2907,8 +2913,13 @@ MonoBehaviour:
   parryGaugeReward: 12
   manaCost: 0
   cooldown: 0
+  realtimeCooldown: 1
+  realtimeCooldownMul: 1
+  realtimeGlobalCooldown: 1.5
   buildDeckOnStart: 1
   purgeCardsOnAllyDeath: 1
+  useFixedHand: 0
+  fixedHand: []
   freezeDuration: 0
 --- !u!4 &1026486063
 Transform:
@@ -2995,9 +3006,27 @@ MonoBehaviour:
   hold: 0.6
   slideOut: 0.15
   labelDelay: 0.08
+  timeScale: 0.15
   portraitSize: 360
   portraitShownX: 48
   labelShownX: 300
+--- !u!114 &1026486069
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026486057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c07336015bd0d874ebae627a5864828b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboDamageHUD
+  comboWindow: 2.5
+  lingerDuration: 1.5
+  rightMargin: 56
+  verticalOffset: 90
+  show: 1
 --- !u!1001 &1034345465
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3017,6 +3046,26 @@ PrefabInstance:
     - target: {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
       propertyPath: m_Color.r
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.81359994
+      objectReference: {fileID: 0}
+    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.3164
+      objectReference: {fileID: 0}
+    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.904
+      objectReference: {fileID: 0}
+    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.7199998
+      objectReference: {fileID: 0}
+    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.4399999
       objectReference: {fileID: 0}
     - target: {fileID: 1003116601532776549, guid: 597eabee1a19a184fa846ab0429eef36, type: 3}
       propertyPath: animator
@@ -3182,26 +3231,6 @@ PrefabInstance:
       propertyPath: basicAttack
       value: 
       objectReference: {fileID: 1748487200}
-    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.81359994
-      objectReference: {fileID: 0}
-    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.3164
-      objectReference: {fileID: 0}
-    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.904
-      objectReference: {fileID: 0}
-    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.7199998
-      objectReference: {fileID: 0}
-    - target: {fileID: 4902101889167759731, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.4399999
-      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2715491290645001719, guid: d3fc084ae79b3dc4bbe08024a41c047a, type: 3}
     m_RemovedGameObjects: []
@@ -3407,6 +3436,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -3588,6 +3618,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -3631,6 +3662,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -4295,6 +4327,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -4559,6 +4592,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -4602,6 +4636,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0

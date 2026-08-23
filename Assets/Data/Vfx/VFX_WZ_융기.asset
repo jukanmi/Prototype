@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f091ed66ce612d540b990bd7047de5a4, type: 3}
+  m_Name: "VFX_WZ_\uC735\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxClip
+  frames:
+  - {fileID: -132763121, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: -711085674, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 386952429, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: -970710635, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 1192479739, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 419554150, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 1314621336, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 729907242, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 723751137, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 1263872024, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 1137519865, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: 666578618, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  - {fileID: -1029263839, guid: d2de65a1bc86c9240b15b34d7c4bb75d, type: 3}
+  fps: 24
+  loops: 1
+  fitRadius: 1
+  scale: 1
+  heightOffset: 0
+  sortingOffset: 50
+  rotateToFacing: 0
+  flipToFacing: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  useSkillColor: 0
+  fadeOut: 0.25

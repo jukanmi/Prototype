@@ -153,9 +153,13 @@ namespace Prototype
         {
             if (data == null || data.hitDataList == null) return 0f;
 
+            // 공중 전용 값도 같이 본다. 첫 타로 띄운 뒤 후속타가 airLaunchForce로 더 밀어 올리면
+            // 실제 체공은 그쪽 기준이다 — launchForce만 보면 창을 실제보다 좁게 잡는다.
             float launch = 0f;
             for (int h = 0; h < data.hitDataList.Count; h++)
-                launch = Mathf.Max(launch, data.hitDataList[h].launchForce);
+                launch = Mathf.Max(launch,
+                                   Mathf.Max(data.hitDataList[h].launchForce,
+                                             data.hitDataList[h].airLaunchForce));
 
             if (launch <= 0f) return 0f;
 

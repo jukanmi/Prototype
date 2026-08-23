@@ -43,7 +43,6 @@ namespace Prototype.EditorTools
             // ── 차징 ──
             // chargeTime이 0이면 차징 패턴이 아니다 — 예고부터 시작한다.
             public float chargeTime;
-            public float chargeHitDelay;  // 가드 한 대분을 깎을 때마다 미는 초
 
             // ── 타이밍 ──
             public float telegraph;
@@ -102,9 +101,9 @@ namespace Prototype.EditorTools
 
             // ── 1. 횡베기 — 유일한 차징기. 2.4초 동안 모으고, 몸을 돌려 <b>둘레 전부</b>를 벤다.
             //
-            //      이 패턴만 "때려서 늦출 수 있다". 가드를 깎을 때마다 chargeHitDelay초씩 밀리고,
-            //      다 깎아 가드브레이크를 내면 통째로 무산된다(EnemyControl이 Cancel을 부른다).
-            //      즉 이 패턴은 가드 시스템에 "지금 몰아쳐야 하는 이유"를 주려고 있는 것이다.
+            //      때려도 밀리지 않는다. 차징은 시작하면 2.4초 뒤에 정확히 터진다 —
+            //      맞을 때마다 늦춰지면 "언제 터지나"가 매 판 달라져 회피 타이밍을 못 배운다.
+            //      끊는 수단은 가드브레이크 하나다(EnemyControl이 Cancel을 부른다).
             //
             //      앞뒤 구분이 없으므로(HitboxKind.Radial) 뒤로 돌아가는 회피가 통하지 않는다 —
             //      반경 밖으로 빠지거나, 모으는 동안 끊거나 둘 중 하나다. 차징기에 상자 판정을 주면
@@ -118,7 +117,7 @@ namespace Prototype.EditorTools
                 label = "횡베기", sheet = "Attack4",
                 state = "Pattern_Sweep", windupState = "Pattern_Sweep_Windup",
                 chargeState = "Pattern_Sweep_Hold",
-                chargeTime = 2.4f, chargeHitDelay = 0.35f,
+                chargeTime = 2.4f,
                 telegraph = 0.35f, active = 0.35f, recovery = 1.1f,
                 hitCount = 1, hitDuration = 0.24f, damageScale = 3.5f, hitboxKind = HitboxKind.Radial,
                 minRange = 0f, maxRange = 6f, cooldown = 14f, maxHealthRatio = 0.6f,

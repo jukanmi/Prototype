@@ -34,6 +34,13 @@ namespace Prototype.YG
         private BattleRestartUI restartUI;
         private StageResultUI resultUI;
 
+        /// <summary>
+        /// 웨이브 · 라운드를 굴리는 쪽. <b>없어도 된다</b> — 씬에 적을 직접 놓은 방
+        /// (SampleScene · Stage_Mini · 훈련장)은 지금까지처럼 그대로 돈다.
+        /// 있으면 승리 판정이 이쪽에 "아직 나올 적이 남았는지"를 물어본다.
+        /// </summary>
+        private StageProgressSource progress;
+
         /// <summary>지금 떠 있는 이 씬의 이름. 전환할 때 "무엇을 내릴지"가 된다.</summary>
         private string SceneName => gameObject.scene.name;
 
@@ -41,6 +48,8 @@ namespace Prototype.YG
         {
             // 초기화 UI 는 씬 단독 실행에서도 필요하다. GameManager 체크보다 먼저 띄운다.
             restartUI = BattleRestartUI.Create(this);
+
+            progress = FindAnyObjectByType<StageProgressSource>();
 
             // 씬 단독 실행 대응 — Boot 씬 없이 배틀 씬만 Play 했을 때
             if (GameManager.Instance == null)
@@ -98,6 +107,10 @@ namespace Prototype.YG
             // 산 아군 0명 = 패배라, 씬이 뜨자마자 결과 화면이 나온다.
             if (!judging)
             {
+                // 웨이브·라운드 방은 첫 적이 나오기 전까지 적이 0명이다. 등록 수만 보고 열면
+                // 그 사이에 "적 0명 = 승리"가 나온다 — 한 기라도 나올 때까지 기다린다.
+                if (progress != null && !progress.HasSpawnedAny) return;
+
                 if (!StageOutcomeRules.CanJudge(BattleRegistry.Enemies.Count, BattleRegistry.Allies.Count))
                     return;
 
@@ -105,7 +118,9 @@ namespace Prototype.YG
             }
 
             StageOutcome next = StageOutcomeRules.Evaluate(
-                BattleRegistry.AliveEnemyCount(), BattleRegistry.AllAlliesDead());
+                BattleRegistry.AliveEnemyCount(),
+                BattleRegistry.AllAlliesDead(),
+                progress != null && progress.ThreatsRemaining);
 
             if (next == StageOutcome.Undecided) return;
 
@@ -256,6 +271,10 @@ namespace Prototype.YG
         {
             TimeControl.Reset();
             BattleRegistry.Clear();
+
+            // 공격권도 씬을 넘어 살아남는다. 두고 가면 새 스테이지 첫 몇 초 동안
+            // 지난 판의 임대가 정원을 차지해 아무도 공격하지 않는다.
+            EnemyAttackTokens.Pool.ResetAll();
         }
 
         /// <summary>

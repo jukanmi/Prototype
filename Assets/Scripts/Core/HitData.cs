@@ -37,6 +37,11 @@ namespace Prototype
         public Vector3 fixedDir;
         public float knockbackForce;
         public float launchForce;
+        [Tooltip("대상이 이미 떠 있을 때 대신 쓰는 띄우기 힘. 0이면 launchForce를 그대로 쓴다. " +
+                 "지상 첫 타는 히트박스가 닿는 높이까지만 띄우면 되지만, 공중 연계는 이미 올라간 몸을 " +
+                 "다시 밀어 올려야 해서 같은 값으로는 모자란다. 두 값을 나눠 두면 시작 높이를 " +
+                 "건드리지 않고 공중만 조절할 수 있다.")]
+        public float airLaunchForce;
         public float hitStunDuration;
 
         [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +
@@ -69,11 +74,18 @@ namespace Prototype
         /// <summary>
         /// 넉백 방향을 <b>타격 순간에</b> 계산한다.
         /// 고정 Vector3로는 모으기(TowardCaster)를 표현할 수 없다.
+        ///
+        /// <see cref="KnockbackMode.TowardWall"/>은 벽 레이어를 알아야 하므로
+        /// <see cref="ResolveDirection(Vector3, Vector3, Vector3, LayerMask)"/>를 써야 한다 —
+        /// 이 오버로드로 부르면 시전자 반대쪽(밀치기의 옛 동작)으로 떨어진다.
         /// </summary>
         public Vector3 ResolveDirection(Vector3 casterPos, Vector3 casterForward, Vector3 targetPos)
         {
             switch (mode)
             {
+                case KnockbackMode.TowardWall:
+                    goto case KnockbackMode.AwayFromCaster;
+
                 case KnockbackMode.TowardCaster:
                 {
                     Vector3 d = casterPos - targetPos;
@@ -97,6 +109,20 @@ namespace Prototype
                     return d.sqrMagnitude > 0.0001f ? d.normalized : SafeForward(casterForward);
                 }
             }
+        }
+
+        /// <summary>
+        /// 벽 레이어까지 아는 방향 계산. <see cref="KnockbackMode.TowardWall"/>만 다르게 돌고
+        /// 나머지는 그대로 위임한다 — 실전(<see cref="Combat"/>)과 프리뷰가 같은 값을 본다.
+        /// </summary>
+        public Vector3 ResolveDirection(Vector3 casterPos, Vector3 casterForward, Vector3 targetPos,
+                                        LayerMask wallMask)
+        {
+            Vector3 fallback = ResolveDirection(casterPos, casterForward, targetPos);
+
+            return mode == KnockbackMode.TowardWall
+                ? WallFinder.PushDirection(targetPos, wallMask, fallback)
+                : fallback;
         }
 
         private static Vector3 SafeForward(Vector3 f)

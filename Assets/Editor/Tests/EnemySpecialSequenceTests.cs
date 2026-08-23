@@ -257,55 +257,19 @@ namespace Prototype.Tests
             Assert.That(seq.ChargeProgress, Is.EqualTo(0f));
         }
 
-        [Test]
-        public void Delay_PushesChargeBack()
-        {
-            BeginCharging();
-            seq.Tick(1.2f, Vector3.right);
-            seq.Delay(0.4f);
-
-            Assert.That(seq.PhaseTime, Is.EqualTo(0.8f).Within(0.0001f));
-            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Charge));
-        }
-
-        /// <summary>되감기는 0까지다. 음수로 새면 차징이 정상보다 길어진다.</summary>
-        [Test]
-        public void Delay_ClampsAtZero()
-        {
-            BeginCharging();
-            seq.Tick(0.3f, Vector3.right);
-            seq.Delay(99f);
-
-            Assert.That(seq.PhaseTime, Is.EqualTo(0f));
-        }
-
-        /// <summary>몰아치는 쪽이 이긴다 — 지연이 진행보다 빠르면 차징은 끝나지 않는다.</summary>
-        [Test]
-        public void RepeatedDelay_NeverFinishesCharge()
-        {
-            BeginCharging();
-
-            for (int i = 0; i < 200; i++)
-            {
-                seq.Tick(0.1f, Vector3.right);
-                seq.Delay(0.35f);
-            }
-
-            Assert.That(seq.Phase, Is.EqualTo(EnemySpecialPhase.Charge));
-        }
-
         /// <summary>
-        /// 예고 · 발동은 밀 수 없다. 밀리면 "!"를 보고 맞춘 회피 · 패링 타이밍이 매번 달라진다.
+        /// 차징은 <b>때려도 안 밀린다</b>. 시작하면 정해진 시간에 터진다 —
+        /// 맞을 때마다 늦춰지면 "언제 터지나"가 매 판 달라져 회피 타이밍을 배울 수가 없다.
+        /// 끊는 수단은 가드브레이크 하나이고, 그건 EnemyControl이 Cancel로 처리한다.
         /// </summary>
         [Test]
-        public void Delay_OutsideCharge_IsIgnored()
+        public void Charge_FinishesOnSchedule()
         {
             BeginCharging();
             seq.Tick(Charge, Vector3.right);
-            seq.Tick(0.2f, Vector3.right);
-            seq.Delay(0.2f);
 
-            Assert.That(seq.PhaseTime, Is.EqualTo(0.2f).Within(0.0001f));
+            Assert.That(seq.Phase, Is.Not.EqualTo(EnemySpecialPhase.Charge),
+                        "차징 시간이 다 지났으면 다음 단계로 넘어가야 한다");
         }
 
         [Test]

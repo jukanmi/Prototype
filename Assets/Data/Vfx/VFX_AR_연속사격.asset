@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f091ed66ce612d540b990bd7047de5a4, type: 3}
+  m_Name: "VFX_AR_\uC5F0\uC18D\uC0AC\uACA9"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxClip
+  frames:
+  - {fileID: 116597728, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: -990457445, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: -1977691381, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: 19702643, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: -735694909, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: 2072301518, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: -2106268059, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  - {fileID: 1810883536, guid: 06ecbeb4a5d705b41a26edffd5f275d0, type: 3}
+  fps: 30
+  loops: 1
+  fitRadius: 1
+  scale: 1
+  heightOffset: 0
+  sortingOffset: 50
+  rotateToFacing: 0
+  flipToFacing: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  useSkillColor: 0
+  fadeOut: 0.2
