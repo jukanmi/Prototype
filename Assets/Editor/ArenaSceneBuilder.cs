@@ -376,8 +376,8 @@ namespace Prototype.EditorTools
         /// <summary>
         /// 아레나 경계를 막는 문. 콜라이더 하나와 문짝 그림 한 장이다.
         ///
-        /// 문짝은 <b>화면 좌표</b>에 놓는다 — 깊이 ±3이 화면 세로로 접히므로(<see cref="BeltScroll"/>)
-        /// 논리 좌표에 그대로 세우면 벽면과 어긋나 보인다.
+        /// 문짝은 <b>논리 좌표 그대로</b> YZ 평면에 세운다 — 카메라가 기울어 깊이를 보여 주므로
+        /// 콜라이더가 막는 자리와 그림이 정확히 같은 자리에 온다.
         /// </summary>
         private static ArenaGate BuildGate(Scene scene, string name, float x)
         {
@@ -394,8 +394,10 @@ namespace Prototype.EditorTools
             // 문짝. 깊이 방향으로 기운 방을 가로지르므로 세로로 넉넉히 잡는다.
             var panel = new GameObject("Panel");
             panel.transform.SetParent(go.transform, false);
-            panel.transform.localPosition = Vector3.zero;
-            panel.transform.localScale = new Vector3(0.9f, 8f, 1f);
+            panel.transform.localPosition = new Vector3(0f, WallHeight * 0.5f, 0f);
+            // Y축 90° — 판이 깊이(Z) 방향을 가로지르게 눕힌다. 콜라이더와 같은 크기다.
+            panel.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            panel.transform.localScale = new Vector3(ArenaHalfZ * 2f, WallHeight, 1f);
 
             var sr = panel.AddComponent<SpriteRenderer>();
             sr.sprite = FindSquareSprite();

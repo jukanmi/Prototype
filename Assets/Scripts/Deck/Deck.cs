@@ -5,7 +5,6 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 16장 덱. 직업별 6종 중 4장씩 골라 4직업 = 16장.
     /// <b>맨 위에서 순서대로</b> 뽑는다 — 그래서 <see cref="Shuffle"/>이 실제 순서를 정한다.
     /// 덱이 비면 Discard를 회수해 재셔플한다.
     /// </summary>

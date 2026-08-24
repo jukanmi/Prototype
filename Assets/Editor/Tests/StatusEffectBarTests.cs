@@ -21,29 +21,22 @@ namespace Prototype.Tests
         private readonly List<GameObject> spawned = new List<GameObject>();
         private readonly List<StatusView> rows = new List<StatusView>();
 
-        private float savedDepth;
-        private float savedShear;
-        private float savedScale;
+        private GameObject camRig;
 
         [SetUp]
         public void SetUp()
         {
-            // 전부 static이고 BeltScrollView가 매 프레임 덮어쓴다.
-            // 씬 빌더와 같은 값으로 고정했다가 원래대로 돌려놓는다.
-            savedDepth = BeltScroll.DepthToScreen;
-            savedShear = BeltScroll.DepthToScreenX;
-            savedScale = BeltScroll.DepthScalePerUnit;
-            BeltScroll.DepthToScreen = 0.9f;
-            BeltScroll.DepthToScreenX = 0.45f;
+            // 머리 위 오프셋이 화면 위(0, cosθ, sinθ) 방향으로 올라간다. 카메라를 명시적으로
+            // 물려 주지 않으면 Camera.main을 집어 열려 있던 씬에 따라 값이 달라진다.
             BeltScroll.DepthScalePerUnit = 0.06f;
+            camRig = BeltScrollTestCamera.Attach();
         }
 
         [TearDown]
         public void TearDown()
         {
-            BeltScroll.DepthToScreen = savedDepth;
-            BeltScroll.DepthToScreenX = savedShear;
-            BeltScroll.DepthScalePerUnit = savedScale;
+            BeltScrollTestCamera.Detach(camRig);
+            BeltScroll.DepthScalePerUnit = 0.06f;
 
             for (int i = 0; i < spawned.Count; i++)
                 Object.DestroyImmediate(spawned[i]);
@@ -73,7 +66,9 @@ namespace Prototype.Tests
             Vector3 first = StatusEffectBar.RowPosition(ground, 0f, HeadOffset, 0, RowStep, Width);
             Vector3 second = StatusEffectBar.RowPosition(ground, 0f, HeadOffset, 1, RowStep, Width);
 
-            Assert.That(second.y - first.y, Is.EqualTo(RowStep).Within(0.0001f));
+            // 줄 간격도 화면 위 방향으로 쌓인다 — 월드 Y 차이는 cosθ배다.
+            Assert.That(second.y - first.y,
+                        Is.EqualTo(RowStep * BeltScrollTestCamera.Cos).Within(0.0001f));
         }
 
         /// <summary>게이지는 왼쪽 끝을 기준으로 늘어난다. 그 끝이 몸 기둥의 왼쪽 절반만큼 밖이다.</summary>
@@ -91,10 +86,13 @@ namespace Prototype.Tests
         [Test]
         public void RowFollowsDepthAndJumpHeight()
         {
-            // 깊이 z=2는 화면 세로 1.8로 접히고(0.9 배율), 머리 오프셋은 몸이 줄어든 만큼(0.88배) 내려온다.
+            // 깊이는 카메라가 보여 주므로 z에 그대로 남는다. 머리 오프셋만 몸이 줄어든
+            // 만큼(z=2 → 0.88배) 내려오고, 화면 위 방향으로 올라간다.
             Vector3 row = StatusEffectBar.RowPosition(new Vector3(5f, 0f, 2f), 0f, HeadOffset, 0, RowStep, Width);
+            float lift = HeadOffset * 0.88f;
 
-            Assert.That(row.y, Is.EqualTo(1.8f + HeadOffset * 0.88f).Within(0.001f));
+            Assert.That(row.y, Is.EqualTo(lift * BeltScrollTestCamera.Cos).Within(0.001f));
+            Assert.That(row.z, Is.EqualTo(2f + lift * BeltScrollTestCamera.Sin).Within(0.001f));
 
             Vector3 low = StatusEffectBar.RowPosition(Vector3.zero, 0f, HeadOffset, 0, RowStep, Width);
             Vector3 high = StatusEffectBar.RowPosition(Vector3.zero, 3f, HeadOffset, 0, RowStep, Width);

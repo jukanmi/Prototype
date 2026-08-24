@@ -71,7 +71,8 @@ namespace Prototype
         /// 어느 깊이에서나 같은 크기로 읽혀야 한다.
         /// </summary>
         public static Vector3 GaugePosition(Vector3 ground, float height, float headOffset)
-            => BeltScroll.ToView(ground, height + headOffset * BeltScroll.ScaleAt(ground.z));
+            => BeltScroll.ToView(ground, height)
+             + BeltScroll.ScreenUp * (headOffset * BeltScroll.ScaleAt(ground.z));
 
         private void Draw(SpriteRenderer sr, Entity e, VfxClip clip, float ratio)
         {
@@ -83,7 +84,7 @@ namespace Prototype
             Vector3 ground = phys.GroundPosition;
 
             sr.transform.position = GaugePosition(ground, phys.Height, headOffset);
-            sr.transform.rotation = Quaternion.identity;
+            sr.transform.rotation = BeltScroll.Billboard;
 
             float w = sr.sprite.bounds.size.x;
             float s = w > 0.0001f ? width / w : 1f;

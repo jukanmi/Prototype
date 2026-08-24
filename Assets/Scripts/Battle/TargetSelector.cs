@@ -42,7 +42,7 @@ namespace Prototype
         public Vector3 CursorPoint { get; private set; }
 
         /// <summary>
-        /// 커서를 <b>화면에 그릴</b> 위치. 카메라가 기울어 있지 않아 Z를 세로로 접어야 보인다.
+        /// 커서를 <b>화면에 그릴</b> 위치. 카메라가 기울어 깊이를 보여 주므로 논리 좌표가 곧 그 자리다.
         /// 캐릭터와 같은 <see cref="BeltScroll"/> 변환을 거친다.
         /// </summary>
         public Vector3 CursorViewPoint => BeltScroll.ToView(CursorPoint);
@@ -69,9 +69,8 @@ namespace Prototype
         /// <summary>
         /// 카드를 집었을 때 시작한다. targeting == None이면 곧바로 확정 가능하다.
         ///
-        /// 시작점을 안 주면 가까운 적에서 시작한다. 다만 벨트스크롤 투영이 깊은 z를
-        /// 화면 위 · 오른쪽으로 밀어 올리므로(<see cref="BeltScroll.ToView"/>),
-        /// 방 안쪽 적에서 시작하면 커서가 늘 우측 상단에 뜬 것처럼 보인다.
+        /// 시작점을 안 주면 가까운 적에서 시작한다. 방 안쪽(z가 큰) 적에서 시작하면
+        /// 커서가 화면 위쪽에 뜬 것처럼 보인다 — 기울인 카메라에서 깊이가 세로로 읽히기 때문이다.
         /// 화면 기준으로 잡고 싶으면 <see cref="ScreenToGround"/>를 거쳐 넘겨라.
         /// </summary>
         public void Begin(SkillData data) => Begin(data, PickStart(data));
@@ -111,11 +110,8 @@ namespace Prototype
         {
             if (cam == null) return Vector3.zero;
 
-            Vector3 screen = screenPos;
-            screen.z = Mathf.Abs(cam.transform.position.z);   // 직교 카메라라 깊이는 아무 값이나 무방
-
-            Vector3 view = cam.ScreenToWorldPoint(screen);
-            return BeltScroll.ToGround(view, groundY);
+            // 카메라에서 레이를 쏴 바닥 평면과 만나는 점을 잡는다. 기울기를 바꿔도 여긴 안 고친다.
+            return BeltScroll.ScreenToGround(cam, screenPos, groundY);
         }
 
         public void Cancel()

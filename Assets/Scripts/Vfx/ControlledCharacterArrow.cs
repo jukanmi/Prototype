@@ -44,7 +44,8 @@ namespace Prototype
         /// 깊이 배율을 먹인다(뒤에 선 캐릭터는 몸이 줄어 머리도 내려온다).
         /// </summary>
         public static Vector3 ArrowPosition(Vector3 ground, float height, float headOffset, float bobOffset = 0f)
-            => BeltScroll.ToView(ground, height + (headOffset + bobOffset) * BeltScroll.ScaleAt(ground.z));
+            => BeltScroll.ToView(ground, height)
+             + BeltScroll.ScreenUp * ((headOffset + bobOffset) * BeltScroll.ScaleAt(ground.z));
 
         /// <summary>시간에 따른 상하 부유 오프셋 계산 (순수 함수).</summary>
         public static float BobOffset(float unscaledTime, float speed, float height)
@@ -101,7 +102,7 @@ namespace Prototype
             Vector3 pos = ArrowPosition(ground, phys.Height, headOffset, bob);
 
             textMesh.transform.position = pos;
-            textMesh.transform.rotation = Quaternion.identity; // 빌보드
+            textMesh.transform.rotation = BeltScroll.Billboard; // 빌보드
 
             textMesh.text = "▼";
             textMesh.color = arrowColor;

@@ -308,13 +308,11 @@ MonoBehaviour:
   sprite: {fileID: 4701820578782629900}
   depthRoot: {fileID: 8918431283361384292}
   shadow: {fileID: 4902101889167759731}
-  depthToScreen: 0.9
-  depthToScreenX: 0.45
   depthScalePerUnit: 0.06
   spriteOffsetY: 0
   flipToFacing: 1
   facingRenderer: {fileID: 1543204692497008705}
-  shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
+  shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   sortedRenderers:
   - {fileID: 4060941615929992889}

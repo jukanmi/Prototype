@@ -12,8 +12,22 @@ namespace Prototype
     public class Physics : MonoBehaviour
     {
         [Header("바닥")]
+        [Tooltip("발판이 없을 때 쓰는 바닥 높이. 발판(GroundPlate)이 깔려 있으면 그쪽이 이긴다.")]
         [SerializeField] private float groundY = 0f;
         [SerializeField] private LayerMask wallMask = ~0;
+
+        [Tooltip("발판 판정에 주는 여유. 양수면 가장자리 밖으로 이만큼 더 서 있을 수 있다.\n" +
+                 "0이면 중심이 발판을 벗어나는 순간 지지를 잃는다.")]
+        [SerializeField] private float groundMargin = 0f;
+
+        [Tooltip("발판 밖에서 떨어지게 할지.\n\n" +
+                 "낙차 연출·낙사 처리가 붙기 전까지는 꺼 둔다 — 켜면 발판 밖으로 나간 유닛이 " +
+                 "그대로 아래로 사라진다. 끈 상태에서도 발판 판정 자체는 돌아가므로 " +
+                 "IsSupported로 미리 확인할 수 있다.")]
+        [SerializeField] private bool fallOffLedge = false;
+
+        [Tooltip("이 높이 아래로 떨어지면 OnFellOffLedge를 한 번 쏜다. fallOffLedge가 켜져 있을 때만.")]
+        [SerializeField] private float ledgeDeathY = -12f;
 
         [Header("이동 감각")]
         [Tooltip("XZ 가속도. 클수록 즉각적.")]
@@ -59,6 +73,9 @@ namespace Prototype
         /// <summary>이번 체공에서 정점에 남은 체류 시간. 띄울 때 충전되고 착지하면 사라진다.</summary>
         private float apexHangLeft;
 
+        /// <summary>낙사 알림을 이미 쐈는지. 떨어지는 동안 매 프레임 쏘면 안 된다.</summary>
+        private bool fellOffLedge;
+
         private Vector3 desiredMoveDir;
         private float desiredMoveSpeed;
         private bool hasMoveInput;
@@ -73,20 +90,46 @@ namespace Prototype
         public Rigidbody Rigidbody { get; private set; }
         public PhysicsState PhysicsState { get; private set; } = PhysicsState.Ground;
 
+        /// <summary>
+        /// 지금 서 있는(또는 떨어지면 닿을) 바닥 높이.
+        ///
+        /// 발판이 깔려 있으면 그 윗면, 없으면 <see cref="groundY"/>다.
+        /// 발판을 하나도 안 깐 씬에서는 언제나 <see cref="groundY"/> — 예전 무한 평면 그대로다.
+        /// </summary>
+        public float SupportY => GroundRegistry.HeightAt(Transform.position, groundY, groundMargin);
+
+        /// <summary>
+        /// 발밑에 발판이 있는가. 발판을 안 깐 씬에서는 항상 true다.
+        /// <see cref="fallOffLedge"/>를 켜기 전에도 AI · 스폰 · 넉백이 미리 물어볼 수 있다.
+        /// </summary>
+        public bool IsSupported => GroundRegistry.Supports(Transform.position, groundMargin);
+
+        /// <summary>임의의 점에 발판이 있는지. 넉백 목적지 · 스폰 지점 검사용.</summary>
+        public bool IsSupportedAt(Vector3 point) => GroundRegistry.Supports(point, groundMargin);
+
         /// <summary>바닥 좌표. 그림자와 벨트스크롤 렌더가 이 값을 쓴다.</summary>
         public Vector3 GroundPosition
         {
             get
             {
                 Vector3 p = Transform.position;
-                p.y = groundY;
+                p.y = SupportY;
                 return p;
             }
         }
 
         /// <summary>바닥으로부터의 높이.</summary>
-        public float Height => transform.position.y - groundY;
+        public float Height => transform.position.y - SupportY;
+
+        /// <summary>발판이 없을 때 쓰는 기본 바닥 높이. 실제로 밟는 높이는 <see cref="SupportY"/>다.</summary>
         public float GroundY => groundY;
+
+        /// <summary>발판 밖에서 떨어지게 할지. 낙차 기능이 붙을 때 켠다.</summary>
+        public bool FallOffLedge
+        {
+            get => fallOffLedge;
+            set => fallOffLedge = value;
+        }
         /// <summary>벽으로 볼 레이어. 투사체도 같은 기준으로 소멸한다.</summary>
         public LayerMask WallMask => wallMask;
         public float Gravity => gravity;
@@ -138,6 +181,11 @@ namespace Prototype
 
         /// <summary>착지 순간. Combat이 구독해 공중피격 → 다운 전이를 처리한다.</summary>
         public event Action OnLand;
+        /// <summary>
+        /// 발판 밖으로 떨어져 <c>ledgeDeathY</c>를 지났다. <c>fallOffLedge</c>가 켜져 있을 때만 쏜다.
+        /// 낙사 처리(사망·리스폰·연출)를 붙일 자리다 — 여기서는 아무것도 하지 않는다.
+        /// </summary>
+        public event Action OnFellOffLedge;
         /// <summary>벽 접촉. 넉백 중이면 벽 바운드로 이어진다.</summary>
         public event Action<WallHit> OnWallHit;
 
@@ -327,12 +375,19 @@ namespace Prototype
             impulseVelocity = Vector3.MoveTowards(impulseVelocity, Vector3.zero, impulseDamping * impulseVelocity.magnitude * dt);
         }
 
-        /// <summary>Y축 속도를 중력만큼 감소시키고 착지를 판정한다.</summary>
+        /// <summary>
+        /// Y축 속도를 중력만큼 감소시키고 착지를 판정한다.
+        ///
+        /// 착지 높이는 <see cref="SupportY"/> — 발판이 있으면 그 윗면이다.
+        /// <see cref="fallOffLedge"/>가 켜져 있고 발밑에 발판이 없으면 <b>착지하지 않는다</b>.
+        /// </summary>
         private void HandleGravity(float dt)
         {
             float y = Transform.position.y;
+            float ground = SupportY;
+            bool supported = !fallOffLedge || IsSupported;
 
-            if (PhysicsState == PhysicsState.Aerial || y > groundY + 0.001f)
+            if (PhysicsState == PhysicsState.Aerial || !supported || y > ground + 0.001f)
             {
                 // 정점 근처에서 잠깐 붙잡아 둔다. 높이를 키우지 않고 체공만 늘리는 수단이라
                 // 후속타 히트박스가 닿는 범위를 유지할 수 있다.
@@ -352,16 +407,27 @@ namespace Prototype
             }
 
             float nextY = y + verticalVelocity * dt;
-            if (PhysicsState == PhysicsState.Aerial && nextY <= groundY && verticalVelocity <= 0f)
+            if (supported && PhysicsState == PhysicsState.Aerial && nextY <= ground && verticalVelocity <= 0f)
             {
                 Vector3 p = Transform.position;
-                p.y = groundY;
+                p.y = ground;
                 Transform.position = p;
 
                 verticalVelocity = 0f;
                 apexHangLeft = 0f;
                 PhysicsState = PhysicsState.Ground;
+                fellOffLedge = false;
                 OnLand?.Invoke();
+                return;
+            }
+
+            // 발판 밖으로 떨어지는 중. 한 번만 알린다 — 낙사 처리는 듣는 쪽 몫이다.
+            if (fallOffLedge && !fellOffLedge && nextY < ledgeDeathY)
+            {
+                fellOffLedge = true;
+                BattleLog.Log(LogCategory.Physics,
+                    $"{name} 발판 밖으로 낙하 — y={nextY:0.##} < {ledgeDeathY:0.##}", this);
+                OnFellOffLedge?.Invoke();
             }
         }
 
@@ -450,10 +516,12 @@ namespace Prototype
         {
             BattleLog.Log(LogCategory.Physics, $"{name} 텔레포트 {Transform.position} → {groundPoint}", this);
 
-            groundPoint.y = groundY;
+            // 목적지의 발판 높이에 세운다. 발판이 없으면 예전대로 groundY다.
+            groundPoint.y = GroundRegistry.HeightAt(groundPoint, groundY, groundMargin);
             Transform.position = groundPoint;
             verticalVelocity = 0f;
             PhysicsState = PhysicsState.Ground;
+            fellOffLedge = false;
             ResetInertia();
         }
 

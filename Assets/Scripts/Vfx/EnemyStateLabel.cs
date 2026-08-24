@@ -44,7 +44,8 @@ namespace Prototype
         /// 글자 크기는 안 건드린다. 어느 깊이에서나 같게 읽혀야 한다.
         /// </summary>
         public static Vector3 LabelPosition(Vector3 ground, float height, float headOffset)
-            => BeltScroll.ToView(ground, height + headOffset * BeltScroll.ScaleAt(ground.z));
+            => BeltScroll.ToView(ground, height)
+             + BeltScroll.ScreenUp * (headOffset * BeltScroll.ScaleAt(ground.z));
 
         // 캐릭터 위치는 LateUpdate에 확정된다(BeltScrollView). 그 뒤에 읽는다.
         // TimeControl을 보지 않으므로 불릿타임 중에도 보인다 — 조준하는 동안 상태가 보여야 한다.
@@ -114,7 +115,7 @@ namespace Prototype
             slot.text.color = color;
 
             slot.text.transform.position = LabelPosition(ground, phys.Height, headOffset);
-            slot.text.transform.rotation = Quaternion.identity;   // 빌보드
+            slot.text.transform.rotation = BeltScroll.Billboard;   // 빌보드
 
             // 캐릭터와 같은 깊이 정렬 공식(BeltScrollView.ApplySorting) 위에서 오프셋만 준다.
             slot.renderer.sortingOrder = Mathf.RoundToInt(-ground.z * 100f) + sortingOffset;

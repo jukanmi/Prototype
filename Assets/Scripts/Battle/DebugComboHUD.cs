@@ -78,13 +78,14 @@ namespace Prototype
 
             if (targetSelector.Current.targeting != TargetingType.GroundPoint) return;
 
-            // 바닥의 원은 화면에서 타원이 된다 — 세로가 depthToScreen만큼 눌린다.
+            // 바닥의 원은 화면에서 타원이 된다 — 카메라 기울기 θ만큼 세로가 눌린다.
+            // ScreenUp = (0, cosθ, sinθ) 이므로 그 z성분이 곧 sinθ, 즉 눌리는 비율이다.
             float radius = targetSelector.Current.radius;
             Vector3 edge = cam.WorldToScreenPoint(
                 targetSelector.CursorViewPoint + Vector3.right * radius);
 
             float rx = Mathf.Abs(edge.x - sp.x);
-            float ry = rx * BeltScroll.DepthToScreen;
+            float ry = rx * BeltScroll.ScreenUp.z;
 
             DrawEllipse(sp.x, y, rx, ry, c);
         }

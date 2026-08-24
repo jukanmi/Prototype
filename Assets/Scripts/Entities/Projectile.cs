@@ -175,14 +175,15 @@ namespace Prototype
             if (sprite != null)
             {
                 sprite.position = BeltScroll.ToView(ground, logical.y);
-                sprite.rotation = Quaternion.identity;   // 빌보드
+                sprite.rotation = BeltScroll.Billboard;   // 빌보드
                 sprite.localScale = spriteBaseScale * scale;
             }
 
             if (shadow != null)
             {
-                shadow.position = BeltScroll.ToView(ground);
-                shadow.rotation = Quaternion.identity;
+                // 그림자는 빌보드가 아니라 바닥 평면에 눕는다 — 캐릭터 그림자와 같은 규칙.
+                shadow.position = BeltScroll.ToView(ground) + Vector3.up * 0.01f;
+                shadow.rotation = BeltScrollView.LieOnGround;
                 shadow.localScale = shadowBaseScale * scale;
             }
         }

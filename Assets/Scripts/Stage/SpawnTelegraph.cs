@@ -33,6 +33,7 @@ namespace Prototype
         {
             var go = new GameObject("SpawnTelegraph");
             go.transform.position = BeltScroll.ToView(worldPoint);
+            go.transform.rotation = BeltScroll.Billboard;
 
             var telegraph = go.AddComponent<SpawnTelegraph>();
             telegraph.life = Mathf.Max(0.05f, seconds);

@@ -46,11 +46,17 @@ namespace Prototype.EditorTools
         /// <summary>뒷벽을 그리는 높이. 위가 조금 잘리는 편이 방이 위로 이어져 보인다.</summary>
         private const float WallVisualHeight = 4f;
 
-        /// <summary>깊이를 화면 세로로 접는 비율. 아이작 쪽으로 강하게.</summary>
-        private const float DepthToScreen = 0.9f;
+        /// <summary>
+        /// 카메라 피치. 깊이를 화면 세로로 보여 주는 일을 <b>카메라가</b> 한다.
+        /// X축 하나만 돌린다 — 요를 섞으면 깊이가 화면 가로로도 새어 대각선 이동이 된다.
+        /// </summary>
+        private const float TiltDegrees = BeltScroll.DefaultTiltDegrees;
 
-        /// <summary>깊이를 화면 가로로 미는 비율. 바닥이 평행사변형으로 기운다.</summary>
-        private const float DepthToScreenX = 0.45f;
+        /// <summary>바닥 중심에서 물러나는 거리. 직교라 그림 크기와 무관하고 클리핑 여유만 정한다.</summary>
+        private const float CameraDistance = 10f;
+
+        /// <summary>화면 위로 프레임을 올리는 양. 지면이 화면 한가운데 오지 않게 한다.</summary>
+        private const float CameraLift = 0.5f;
 
         /// <summary>깊이 1당 줄어드는 표시 배율. 방 깊이 ±3에서 앞뒤 1.44배.</summary>
         private const float DepthScalePerUnit = 0.06f;
@@ -230,9 +236,10 @@ namespace Prototype.EditorTools
             so.FindProperty("shadow").objectReferenceValue = shadow;
             so.FindProperty("depthRoot").objectReferenceValue = depthRoot;
             // 모든 인스턴스가 같은 값이어야 한다 — BeltScroll의 static이 한 벌이다.
-            so.FindProperty("depthToScreen").floatValue = DepthToScreen;
-            so.FindProperty("depthToScreenX").floatValue = DepthToScreenX;
             so.FindProperty("depthScalePerUnit").floatValue = DepthScalePerUnit;
+            // 그림자는 바닥 평면에 눕는다. 납작해 보이는 건 카메라 기울기가 만들므로
+            // XY 모두 실제 지름을 준다 — 예전처럼 Y를 0.35로 눌러 두면 이중으로 눌린다.
+            so.FindProperty("shadowBaseScale").vector3Value = new Vector3(0.9f, 0.9f, 1f);
 
             // 그림자가 먼저(뒤에), 스프라이트가 나중(앞에) 그려져야 한다.
             SerializedProperty sorted = so.FindProperty("sortedRenderers");
@@ -431,123 +438,60 @@ namespace Prototype.EditorTools
         /// 방 배경. 바닥 판 하나로는 점프한 높이가 "화면에서 위로 갔다"로만 보인다.
         /// 뒷벽과 경계선을 세워 <b>높이를 잴 기준면</b>을 만든다.
         ///
-        /// 깊이가 화면 가로로도 접히므로(<see cref="DepthToScreenX"/>) 논리 좌표의 사각형이
-        /// 화면에서 <b>평행사변형</b>이 된다. 바닥은 그래서 4점 메시다 — Transform은 기울일 수 없다.
-        /// 뒷벽과 경계선은 z가 한 값(RoomHalfZ)으로 고정이라 통째로 옆으로 밀린 직사각형이다.
+        /// 셋 다 <b>논리 좌표 그대로</b> 놓는다. 카메라가 기울어 깊이를 보여 주므로
+        /// 예전처럼 화면 좌표로 손수 접을 이유가 없다 —
+        /// 바닥은 XZ 평면에 눕힌 판, 뒷벽은 z = +<see cref="RoomHalfZ"/>에 세운 판이다.
         ///
-        /// 폭은 안 좁힌다. 판정이 모든 z에서 x ∈ [-RoomHalfX, RoomHalfX]인 직사각형이라
-        /// 그림만 좁히면 뒤쪽에서 캐릭터가 바닥 밖으로 걸어 나간 것처럼 보인다.
+        /// 바닥이 평행사변형 메시였던 것도 그래서 없앴다. 그 기울기는 화면 가로 밀림
+        /// 때문에 필요했던 것이고, 밀림이 사라진 지금은 판정 영역과 모양이 정확히 같다.
         ///
         /// 테스트가 씬을 건드리지 않고 임시 오브젝트로 부를 수 있게 public이다.
         /// </summary>
         public static void BuildRoomVisual(GameObject room)
         {
-            // 방 뒷변이 화면에서 놓이는 자리. 벽과 경계선이 전부 여기 맞물린다.
-            float backY = RoomHalfZ * DepthToScreen;
-            float backX = RoomHalfZ * DepthToScreenX;
             float width = RoomHalfX * 2f;
 
             // 캐릭터 정렬은 -z*100이라 최저 z(-3)에서도 -300이다. 배경은 전부 그보다 뒤로 보낸다.
-            SpriteRenderer wall = MakePanel(room, "BackWall",
-                      new Vector3(backX, backY + WallVisualHeight * 0.5f, 0f),
+            MakePanel(room, "BackWall",
+                      new Vector3(0f, WallVisualHeight * 0.5f, RoomHalfZ),
+                      Quaternion.identity,
                       new Vector3(width, WallVisualHeight, 1f),
                       new Color(0.10f, 0.11f, 0.14f, 1f), -10001);
 
+            MakeFloor(room, width, new Color(0.16f, 0.17f, 0.20f, 1f), -10000);
+
             // 바닥과 벽이 꺾이는 선. 점프 높이가 이 선 대비로 읽힌다.
+            // 바닥 판과 같은 평면에 두면 깜빡이므로 아주 살짝 띄운다.
             MakePanel(room, "Horizon",
-                      new Vector3(backX, backY, 0f),
+                      new Vector3(0f, 0.03f, RoomHalfZ),
+                      Quaternion.identity,
                       new Vector3(width, 0.06f, 1f),
                       new Color(0.32f, 0.34f, 0.40f, 1f), -9999);
-
-            MakeFloor(room, new Color(0.16f, 0.17f, 0.20f, 1f), -10000,
-                      wall != null ? wall.sharedMaterial : null);
         }
 
         /// <summary>
-        /// 평행사변형 바닥. 논리 좌표의 네 모서리를 그대로 투영해 꼭짓점으로 쓴다 —
-        /// 캐릭터가 밟는 자리와 그림이 정의상 일치한다.
-        ///
-        /// 메시는 에셋으로 저장한다. 씬에만 들고 있으면 저장·재시작에서 참조가 끊긴다.
+        /// 바닥 판. XZ 평면에 눕힌 사각형이라 <b>캐릭터가 밟는 자리와 정의상 같다</b> —
+        /// 판정이 모든 z에서 x ∈ [-RoomHalfX, RoomHalfX]인 직사각형이고, 이 판도 그렇다.
         /// </summary>
-        private static void MakeFloor(GameObject room, Color color, int order, Material material)
+        private static void MakeFloor(GameObject room, float width, Color color, int order)
         {
-            Transform t = room.transform.Find("Floor");
-            if (t == null)
-            {
-                var go = new GameObject("Floor");
-                t = go.transform;
-                t.SetParent(room.transform, false);
-            }
+            SpriteRenderer sr = MakePanel(room, "Floor",
+                                          Vector3.zero,
+                                          BeltScrollView.LieOnGround,
+                                          new Vector3(width, RoomHalfZ * 2f, 1f),
+                                          color, order);
 
-            // 예전엔 사각형 스프라이트였다. 남겨 두면 평행사변형 위에 겹쳐 그려진다.
-            var legacy = t.GetComponent<SpriteRenderer>();
-            if (legacy != null) Object.DestroyImmediate(legacy);
+            // 예전엔 평행사변형 메시였다. 남겨 두면 눕힌 판 위에 겹쳐 그려진다.
+            var mf = sr.GetComponent<MeshFilter>();
+            if (mf != null) Object.DestroyImmediate(mf);
 
-            t.localPosition = Vector3.zero;
-            t.localRotation = Quaternion.identity;
-            t.localScale = Vector3.one;   // 크기는 메시 꼭짓점이 들고 있다
+            var mr = sr.GetComponent<MeshRenderer>();
+            if (mr != null) Object.DestroyImmediate(mr);
 
-            var mf = t.GetComponent<MeshFilter>();
-            if (mf == null) mf = t.gameObject.AddComponent<MeshFilter>();
-
-            var mr = t.GetComponent<MeshRenderer>();
-            if (mr == null) mr = t.gameObject.AddComponent<MeshRenderer>();
-
-            mf.sharedMesh = SaveFloorMesh(color);
-
-            // 스프라이트 머티리얼을 그대로 쓴다 — 정점색을 곱해 주므로 색이 그대로 나오고,
-            // 2D 렌더러가 같은 패스로 그린다. 비워 두면 URP 기본 머티리얼이 붙어 분홍이 된다.
-            if (material == null)
-                material = AssetDatabase.GetBuiltinExtraResource<Material>("Sprites-Default.mat");
-            if (material != null) mr.sharedMaterial = material;
-
-            mr.sortingOrder = order;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-
-            EditorUtility.SetDirty(t.gameObject);
-        }
-
-        private const string FloorMeshPath = "Assets/Data/Mesh/RoomFloor.asset";
-
-        private static Mesh SaveFloorMesh(Color color)
-        {
-            // 논리 (x, z) → 화면 (x + z·kx, z·ky). 캐릭터가 거치는 변환과 같은 식이다.
-            Vector3 Corner(float x, float z)
-                => new Vector3(x + z * DepthToScreenX, z * DepthToScreen, 0f);
-
-            var vertices = new[]
-            {
-                Corner(-RoomHalfX, -RoomHalfZ),   // 0 앞왼
-                Corner( RoomHalfX, -RoomHalfZ),   // 1 앞오
-                Corner( RoomHalfX,  RoomHalfZ),   // 2 뒤오
-                Corner(-RoomHalfX,  RoomHalfZ),   // 3 뒤왼
-            };
-
-            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(FloorMeshPath);
-            bool created = mesh == null;
-            if (created) mesh = new Mesh();
-
-            mesh.name = "RoomFloor";
-            mesh.Clear();
-            mesh.vertices = vertices;
-            mesh.triangles = new[] { 0, 3, 2, 0, 2, 1 };
-            // 색은 정점에 싣는다. 스프라이트 머티리얼이 _MainTex(흰색)에 정점색을 곱하므로
-            // 머티리얼을 인스턴스화하지 않고도 원하는 색이 나온다.
-            mesh.colors = new[] { color, color, color, color };
-            mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
-            if (created)
-            {
-                EnsureFolder("Assets/Data/Mesh");
-                AssetDatabase.CreateAsset(mesh, FloorMeshPath);
-            }
-
-            EditorUtility.SetDirty(mesh);
-            AssetDatabase.SaveAssets();
-            return mesh;
+            // 밟히는 범위를 그림에서 그대로 얻는다(GroundPlate는 크기를 안 적으면 Renderer에서 잰다).
+            // 그림과 판정을 따로 적으면 언젠가 한쪽만 어긋난다 — 그게 이 버그의 원인이었다.
+            if (sr.GetComponent<GroundPlate>() == null)
+                sr.gameObject.AddComponent<GroundPlate>();
         }
 
         private static void EnsureFolder(string path)
@@ -562,6 +506,10 @@ namespace Prototype.EditorTools
 
         private static SpriteRenderer MakePanel(GameObject room, string name, Vector3 localPos,
                                                 Vector3 scale, Color color, int order)
+            => MakePanel(room, name, localPos, Quaternion.identity, scale, color, order);
+
+        private static SpriteRenderer MakePanel(GameObject room, string name, Vector3 localPos,
+                                                Quaternion localRot, Vector3 scale, Color color, int order)
         {
             Transform t = room.transform.Find(name);
             if (t == null)
@@ -581,7 +529,7 @@ namespace Prototype.EditorTools
             sr.sortingOrder = order;
 
             t.localPosition = localPos;
-            t.localRotation = Quaternion.identity;
+            t.localRotation = localRot;
             t.localScale = scale;
 
             EditorUtility.SetDirty(t.gameObject);
@@ -641,11 +589,13 @@ namespace Prototype.EditorTools
 
             cam.orthographic = true;
             cam.orthographicSize = 5f;
-            // 기울이지 않는다 — 깊이는 BeltScrollView가 담당한다.
-            cam.transform.rotation = Quaternion.identity;
-            // 아래 여백을 줄이고 뒷벽을 더 보여준다. size 5 기준 세로 -3.7 ~ 6.3 —
-            // 바닥 아랫변(-2.7)과 벽 윗변(6.7) 사이가 화면에 거의 다 들어온다.
-            cam.transform.position = new Vector3(0f, 1.3f, -10f);
+
+            // 깊이를 보여 주는 일은 카메라가 한다. X축 피치만 — 요·롤은 0이어야
+            // right가 (1,0,0)으로 남아 screenX = x가 되고 깊이가 가로로 새지 않는다.
+            Quaternion rot = Quaternion.Euler(TiltDegrees, 0f, 0f);
+            cam.transform.rotation = rot;
+            cam.transform.position = -(rot * Vector3.forward) * CameraDistance
+                                   +  (rot * Vector3.up) * CameraLift;
 
             // 아이작 구도 — 방 하나가 한 화면. 카메라는 방 중심에 고정한다.
             // 방을 넘나드는 흐름이 붙으면 그때 다시 켠다.

@@ -70,7 +70,8 @@ namespace Prototype
         public static Vector3 RowPosition(Vector3 ground, float height, float headOffset,
                                           int row, float rowStep, float width)
         {
-            Vector3 center = BeltScroll.ToView(ground, height + (headOffset + row * rowStep) * BeltScroll.ScaleAt(ground.z));
+            Vector3 center = BeltScroll.ToView(ground, height)
+                           + BeltScroll.ScreenUp * ((headOffset + row * rowStep) * BeltScroll.ScaleAt(ground.z));
             center.x -= width * 0.5f;
             return center;
         }
@@ -125,7 +126,7 @@ namespace Prototype
             // 남은 시간은 숫자로도 준다. 게이지 길이만으로는 "1초 남았나 3초 남았나"가 안 읽힌다.
             row.text.text = $"{view.label} {view.remain:0.0}";
             row.text.transform.position = new Vector3(left.x + width * 0.5f, left.y, left.z);
-            row.text.transform.rotation = Quaternion.identity;   // 빌보드
+            row.text.transform.rotation = BeltScroll.Billboard;   // 빌보드
             row.textRenderer.sortingOrder = order + 2;
             row.textRenderer.enabled = true;
         }
@@ -143,7 +144,7 @@ namespace Prototype
             }
 
             sr.transform.position = left;
-            sr.transform.rotation = Quaternion.identity;
+            sr.transform.rotation = BeltScroll.Billboard;
             sr.transform.localScale = new Vector3(w, rowHeight, 1f);
             sr.color = color;
             sr.sortingOrder = order;

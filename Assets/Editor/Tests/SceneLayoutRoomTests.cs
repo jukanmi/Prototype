@@ -59,8 +59,11 @@ namespace Prototype.Tests
                         Is.SameAs(root.transform.Find("View")));
             Assert.That(so.FindProperty("depthScalePerUnit").floatValue,
                         Is.EqualTo(0.06f).Within(0.0001f));
-            Assert.That(so.FindProperty("depthToScreenX").floatValue,
-                        Is.EqualTo(0.45f).Within(0.0001f));
+
+            // 그림자는 바닥 평면에 눕는다 — 납작해 보이는 건 카메라 기울기가 만들므로
+            // XY 모두 실제 지름이어야 한다. Y를 눌러 두면 이중으로 눌린다.
+            Assert.That(so.FindProperty("shadowBaseScale").vector3Value.y,
+                        Is.EqualTo(0.9f).Within(0.0001f));
         }
 
         [Test]
@@ -111,7 +114,7 @@ namespace Prototype.Tests
             Assert.That(floor, Is.Not.Null, "Floor 없음");
             Assert.That(horizon, Is.Not.Null, "Horizon 없음");
 
-            // 바닥은 평행사변형이라 MeshRenderer, 나머지는 SpriteRenderer다.
+            // 셋 다 SpriteRenderer다. 바닥은 눕힌 판이라 메시가 필요 없다.
             int wallOrder = wall.GetComponent<Renderer>().sortingOrder;
             int floorOrder = floor.GetComponent<Renderer>().sortingOrder;
             int horizonOrder = horizon.GetComponent<Renderer>().sortingOrder;
@@ -124,35 +127,35 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 바닥이 평행사변형이어야 기울기가 보인다. 뒷변이 앞변보다 오른쪽으로 밀려 있어야 한다.
+        /// <b>이 테스트가 "발판이 발판 노릇을 한다"의 정의다.</b>
+        ///
+        /// 판정은 모든 z에서 x ∈ [-6, 6]인 직사각형이다. 바닥 판도 XZ 평면에 눕힌
+        /// 같은 크기 사각형이어야 걷는 자리와 그림이 어긋나지 않는다.
+        /// 예전엔 화면 가로 밀림 때문에 평행사변형 메시였고, 그래서 뒤쪽으로 걸어가면
+        /// 바닥 그림 밖으로 걸어 나갔다.
         /// </summary>
         [Test]
-        public void BuildRoomVisual_FloorIsAParallelogram()
+        public void BuildRoomVisual_FloorLiesFlatOnTheWalkableRectangle()
         {
             var room = new GameObject("Room");
             spawned.Add(room);
 
             SceneLayoutBuilder.BuildRoomVisual(room);
 
-            Mesh mesh = room.transform.Find("Floor").GetComponent<MeshFilter>().sharedMesh;
-            Assert.That(mesh, Is.Not.Null, "바닥 메시가 없다");
+            Transform floor = room.transform.Find("Floor");
 
-            Vector3[] v = mesh.vertices;
-            Assert.That(v.Length, Is.EqualTo(4));
+            Assert.That(floor.GetComponent<MeshFilter>(), Is.Null, "평행사변형 메시 잔해가 남았다");
+            Assert.That(Quaternion.Angle(floor.localRotation, BeltScrollView.LieOnGround),
+                        Is.LessThan(0.01f), "바닥이 XZ 평면에 눕지 않았다");
 
-            // 0 앞왼, 1 앞오, 2 뒤오, 3 뒤왼 — DepthToScreenX 0.45, RoomHalfZ 3 → ±1.35
-            Assert.That(v[0].x, Is.EqualTo(-6f - 1.35f).Within(0.001f));
-            Assert.That(v[3].x, Is.EqualTo(-6f + 1.35f).Within(0.001f));
-            Assert.That(v[3].x - v[0].x, Is.EqualTo(2f * 1.35f).Within(0.001f), "뒷변이 오른쪽으로 밀려야 한다");
-
-            // 밀려도 폭은 그대로다 — 판정이 모든 z에서 같은 폭이라 좁히면 어긋난다.
-            Assert.That(v[1].x - v[0].x, Is.EqualTo(12f).Within(0.001f), "앞변 폭");
-            Assert.That(v[2].x - v[3].x, Is.EqualTo(12f).Within(0.001f), "뒷변 폭");
+            Assert.That(floor.localPosition, Is.EqualTo(Vector3.zero), "바닥은 방 중심에 있다");
+            Assert.That(floor.localScale.x, Is.EqualTo(12f).Within(0.001f), "폭 = RoomHalfX × 2");
+            Assert.That(floor.localScale.y, Is.EqualTo(6f).Within(0.001f), "깊이 = RoomHalfZ × 2");
         }
 
         /// <summary>벽 아랫변과 바닥 뒷변이 어긋나면 그 틈으로 배경이 뚫려 보인다.</summary>
         [Test]
-        public void BuildRoomVisual_WallSitsExactlyOnFloorBackEdge()
+        public void BuildRoomVisual_WallStandsOnTheFloorBackEdge()
         {
             var room = new GameObject("Room");
             spawned.Add(room);
@@ -161,19 +164,16 @@ namespace Prototype.Tests
 
             Transform wall = room.transform.Find("BackWall");
             Transform horizon = room.transform.Find("Horizon");
-            Mesh mesh = room.transform.Find("Floor").GetComponent<MeshFilter>().sharedMesh;
 
-            // 뒤왼 · 뒤오 꼭짓점의 높이가 곧 바닥 뒷변이다.
-            float floorBack = mesh.vertices[3].y;
-            float wallBottom = wall.localPosition.y - wall.localScale.y * 0.5f;
+            // 뒷변은 z = RoomHalfZ, 바닥면은 y = 0이다. 둘 다 논리 좌표 그대로다.
+            Assert.That(wall.localPosition.z, Is.EqualTo(3f).Within(0.0001f), "뒷벽은 z = RoomHalfZ에 선다");
+            Assert.That(wall.localPosition.y - wall.localScale.y * 0.5f,
+                        Is.EqualTo(0f).Within(0.0001f), "벽 아랫변이 바닥면에 닿아야 한다");
+            Assert.That(horizon.localPosition.z, Is.EqualTo(3f).Within(0.0001f));
 
-            Assert.That(floorBack, Is.EqualTo(2.7f).Within(0.0001f), "바닥 뒷변 = RoomHalfZ × DepthToScreen");
-            Assert.That(wallBottom, Is.EqualTo(floorBack).Within(0.0001f));
-            Assert.That(horizon.localPosition.y, Is.EqualTo(floorBack).Within(0.0001f));
-
-            // 벽과 경계선도 뒷변만큼 옆으로 밀려야 바닥 뒷변 위에 정확히 얹힌다.
-            Assert.That(wall.localPosition.x, Is.EqualTo(1.35f).Within(0.001f));
-            Assert.That(horizon.localPosition.x, Is.EqualTo(1.35f).Within(0.001f));
+            // 밀림이 사라졌으므로 벽도 경계선도 옆으로 안 밀린다.
+            Assert.That(wall.localPosition.x, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(horizon.localPosition.x, Is.EqualTo(0f).Within(0.001f));
         }
 
         [Test]

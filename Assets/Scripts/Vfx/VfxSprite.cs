@@ -69,15 +69,20 @@ namespace Prototype
 
             if (clip.rotateToFacing && hasFacing)
             {
-                // 깊이가 화면 세로로 접히고 가로로도 밀리므로 화면상의 각도가 그만큼 기운다.
-                // 접기를 빼먹으면 대각선 방향 궤적이 캐릭터와 다른 각도로 뜬다.
-                float deg = Mathf.Atan2(facing.z * BeltScroll.DepthToScreen,
-                                        facing.x + facing.z * BeltScroll.DepthToScreenX) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.Euler(0f, 0f, deg);
+                // 카메라가 기울어 있어 바닥 방향이 화면에서 납작해 보인다. 그만큼 각도를 눕혀야
+                // 궤적이 캐릭터가 실제로 가는 쪽과 같은 각도로 뜬다.
+                //
+                // 바닥 벡터 (x, 0, z)의 화면 성분은 right·v = x, up·v = z·sinθ 다.
+                // ScreenUp.z가 곧 sinθ이므로 각도를 따로 들고 있을 필요가 없다.
+                float deg = Mathf.Atan2(facing.z * BeltScroll.ScreenUp.z, facing.x) * Mathf.Rad2Deg;
+
+                // 빌보드로 먼저 카메라를 마주 본 뒤, 그 평면 안에서 각도를 돌린다. 순서를 뒤집으면
+                // 회전축이 월드 Z가 돼 스프라이트가 화면 밖으로 기운다.
+                transform.rotation = BeltScroll.Billboard * Quaternion.Euler(0f, 0f, deg);
             }
             else
             {
-                transform.rotation = Quaternion.identity;
+                transform.rotation = BeltScroll.Billboard;
             }
 
             sr.flipX = clip.flipToFacing && hasFacing && facing.x < 0f;
