@@ -511,16 +511,53 @@ namespace Prototype
             Transform.position = p;
         }
 
-        /// <summary>불릿타임 중 시전자 배치. 위치를 즉시 덮어쓴다.</summary>
-        public void Teleport(Vector3 groundPoint)
-        {
-            BattleLog.Log(LogCategory.Physics, $"{name} 텔레포트 {Transform.position} → {groundPoint}", this);
+        /// <summary>
+        /// 위치를 즉시 덮어쓴다. 태그 교대 · 불릿타임 시전자 배치 · 스킬 접근이 전부 여기를 탄다.
+        ///
+        /// <b>Transform만 옮기면 안 된다.</b> Rigidbody가 <c>Interpolate</c> + <c>Continuous</c>라
+        /// 두 가지가 어긋난다.
+        /// <list type="bullet">
+        /// <item>보간 버퍼가 <b>직전 물리 위치</b>를 그대로 물고 있어 한두 프레임 동안
+        /// 옛 자리에서 새 자리로 미끄러져 보인다.</item>
+        /// <item>Continuous 스윕이 옛 위치에서 새 위치까지를 훑어 그 사이의 벽 · 다른 몸에
+        /// 걸린다. 방을 가로지르는 교대에서 새 몸이 <b>제자리에 안 서는</b> 원인이 이것이다.</item>
+        /// </list>
+        /// 그래서 <see cref="Rigidbody.position"/>을 같이 대입한다 — 그러면 물리 위치가 통째로
+        /// 옮겨 가고 보간도 함께 리셋된다. 속도도 여기서 직접 지운다:
+        /// <see cref="ResetInertia"/>는 우리가 들고 있는 값만 비우고 Rigidbody에 남은
+        /// 실제 속도는 다음 FixedUpdate까지 살아 있다.
+        /// </summary>
+        public void Teleport(Vector3 groundPoint) => Teleport(groundPoint, 0f);
 
+        /// <summary>
+        /// 바닥 좌표에 더해 <paramref name="height"/>만큼 띄워 세운다.
+        ///
+        /// 태그 교대가 쓴다 — 공중에서 교대했는데 새 몸만 바닥에 서면 콤보가 끊긴다.
+        /// 높이가 있으면 <see cref="PhysicsState.Aerial"/>로 들어가고 수직 속도는 0이라
+        /// 그 자리에서 중력을 받아 떨어지기 시작한다(정점에서 바꿔 탄 모양).
+        /// </summary>
+        public void Teleport(Vector3 groundPoint, float height)
+        {
             // 목적지의 발판 높이에 세운다. 발판이 없으면 예전대로 groundY다.
-            groundPoint.y = GroundRegistry.HeightAt(groundPoint, groundY, groundMargin);
-            Transform.position = groundPoint;
+            float ground = GroundRegistry.HeightAt(groundPoint, groundY, groundMargin);
+            float lift = Mathf.Max(0f, height);
+
+            var target = new Vector3(groundPoint.x, ground + lift, groundPoint.z);
+
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} 텔레포트 {Transform.position} → {target}" + (lift > 0.001f ? $" (높이 {lift:0.##})" : ""), this);
+
+            Transform.position = target;
+
+            if (Rigidbody != null)
+            {
+                Rigidbody.position = target;
+                Rigidbody.linearVelocity = Vector3.zero;
+                Rigidbody.angularVelocity = Vector3.zero;
+            }
+
             verticalVelocity = 0f;
-            PhysicsState = PhysicsState.Ground;
+            PhysicsState = lift > 0.001f ? PhysicsState.Aerial : PhysicsState.Ground;
             fellOffLedge = false;
             ResetInertia();
         }

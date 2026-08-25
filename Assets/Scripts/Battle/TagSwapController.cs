@@ -20,11 +20,13 @@ namespace Prototype
     /// 이 컴포넌트는 <b>절대 꺼지지 않는 오브젝트</b>에 붙어야 한다 —
     /// <see cref="BattleCommander"/>·입력과 한 자리에 두는 게 맞다.
     ///
-    /// 불릿타임은 이 시스템을 거치지 않는다. 진입하면 로스터 전원을 세워
-    /// <see cref="ComboExecutor"/>가 지금까지처럼 콤보를 물리고, 실행이 끝나면
-    /// 조작 중인 한 명만 남기고 다시 내린다.
+    /// 불릿타임에도 <b>화면에는 한 명뿐</b>이라는 규칙이 그대로 유지된다.
+    /// 이 컴포넌트가 <see cref="ICasterStage"/>를 구현해 <see cref="ComboExecutor"/>의
+    /// 무대 노릇을 한다 — 카드가 발동되는 순간 그 직업이 조작 캐릭터가 서 있던 자리에
+    /// 등장했다가 슬롯이 끝나면 내려간다. 예전에는 진입 즉시 로스터 전원을 세웠는데,
+    /// 그 시점엔 어떤 카드가 나갈지조차 정해지지 않아 카드를 안 쓰는 직업까지 나왔다.
     /// </summary>
-    public class TagSwapController : MonoBehaviour
+    public class TagSwapController : MonoBehaviour, ICasterStage
     {
         [Header("참조")]
         [SerializeField] private Player player;
@@ -40,9 +42,9 @@ namespace Prototype
         [Tooltip("교대 후 다시 교대할 수 있을 때까지의 시간.")]
         [SerializeField] private float swapCooldown = 1.5f;
 
-        [Tooltip("불릿타임에 전원을 세울 때의 배치. 조작 중인 몸 기준 상대 좌표이고 " +
-                 "그 몸이 보는 방향에 맞춰 좌우가 뒤집힌다.\n\n" +
-                 "로스터 칸이 아니라 <등장 순번>으로 쓴다 — 누가 조작 중이든 대형이 같아야 한다. " +
+        [Tooltip("무대에 둘 이상이 설 때(차징으로 붙잡힌 몸) 비켜서는 자리. " +
+                 "지금 시전 중인 몸은 언제나 앵커 정위치이고, 이 값은 그 앞칸들에만 쓰인다.\n\n" +
+                 "조작 중인 몸 기준 상대 좌표이고 그 몸이 보는 방향에 맞춰 좌우가 뒤집힌다. " +
                  "모자라면 마지막 값을 재사용한다.")]
         [SerializeField]
         private Vector3[] benchOffsets =
@@ -53,8 +55,32 @@ namespace Prototype
             new Vector3( 2.4f, 0f,  0.8f),
         };
 
+        [Tooltip("콤보가 끝나고 조작 캐릭터가 돌아올 자리.\n\n" +
+                 "켜면 마지막 시전자가 끝낸 자리 — 콤보가 적진으로 파고들었는데 플레이어만 " +
+                 "뒤로 튕겨 나가지 않는다. 끄면 콤보를 시작한 제자리로 돌아온다.")]
+        [SerializeField] private bool returnToLastCasterSpot = true;
+
         /// <summary>플레이어 + 동료 4명. Start에서 한 번 만든다.</summary>
         private readonly List<Entity> roster = new List<Entity>();
+
+        /// <summary>지금 무대에 선 몸. <b>마지막 칸이 시전 중인 몸</b>이고 앵커 정위치를 받는다.</summary>
+        private readonly List<Entity> onStage = new List<Entity>();
+
+        /// <summary>
+        /// <see cref="ICasterStage.Exit"/>를 받았지만 아직 안 내린 몸.
+        ///
+        /// 곧바로 내리지 않는 이유는 같은 시전자가 연속 슬롯에 나올 때 한 프레임
+        /// 깜빡이기 때문이다 — 그 사이 <c>OnDisable → ReleaseBody</c>가 돌아
+        /// 다음 슬롯의 스킬 상태가 통째로 날아간다.
+        /// </summary>
+        private readonly List<Entity> leaving = new List<Entity>();
+
+        /// <summary>
+        /// 콤보 내내 고정되는 무대 기준점. 첫 <see cref="ICasterStage.Enter"/>에서 한 번 잡는다.
+        ///
+        /// 슬롯마다 다시 잡으면 직전 시전자가 돌진한 만큼 무대가 맵을 가로질러 흘러간다.
+        /// </summary>
+        private Seat? stageAnchor;
 
         private float cooldownTimer;
 
@@ -68,19 +94,27 @@ namespace Prototype
             public readonly Vector3 Ground;
             public readonly Vector3 Facing;
 
-            public Seat(Vector3 ground, Vector3 facing)
+            /// <summary>
+            /// 바닥에서 뜬 높이. 공중에서 교대했는데 새 몸만 바닥에 서면 콤보가 끊긴다 —
+            /// <see cref="Ground"/>는 Y를 바닥으로 눌러 버리므로 높이를 따로 들고 간다.
+            /// </summary>
+            public readonly float Height;
+
+            public Seat(Vector3 ground, Vector3 facing, float height = 0f)
             {
                 Ground = ground;
                 Facing = facing;
+                Height = height;
             }
 
-            public static Seat Of(Entity e) => new Seat(e.Physics.GroundPosition, e.Physics.Facing);
+            public static Seat Of(Entity e)
+                => new Seat(e.Physics.GroundPosition, e.Physics.Facing, e.Physics.Height);
 
             /// <summary>이 자리 기준의 상대 좌표. 보는 방향이 왼쪽이면 좌우를 뒤집는다.</summary>
             public Seat Offset(Vector3 local)
             {
                 if (Facing.x < 0f) local.x = -local.x;
-                return new Seat(Ground + local, Facing);
+                return new Seat(Ground + local, Facing, Height);
             }
         }
 
@@ -129,7 +163,15 @@ namespace Prototype
             BuildRoster();
 
             if (bulletTime != null)
+            {
                 bulletTime.Tactic.OnPhaseChanged += HandlePhaseChanged;
+
+                // 무대는 이쪽에서 꽂는다. Executor가 태그 시스템을 찾아다니면
+                // 의존이 거꾸로 서고, 스케줄러 없이 도는 에디트모드 테스트가 씬을 타게 된다.
+                if (bulletTime.Executor != null) bulletTime.Executor.Stage = this;
+                else BattleLog.Warn(LogCategory.State,
+                    "ComboExecutor가 없어 무대를 배선하지 못했다 — 불릿타임 시전자가 안 나온다", this);
+            }
 
             SubscribeDeaths();
             InitializeRoster();
@@ -268,45 +310,144 @@ namespace Prototype
 
         private void HandlePhaseChanged(TacticPhase prev, TacticPhase next)
         {
-            if (next == TacticPhase.Freeze)
-            {
-                SummonAll();
-                return;
-            }
+            // Freeze에서는 아무도 세우지 않는다. 어떤 카드가 나갈지는 다음 Order 페이즈에서
+            // 정해지고, 실제 등장은 ComboExecutor가 슬롯마다 ICasterStage로 요청한다.
 
-            // Resolve → RealTime 이 곧 "콤보 실행 완료"다. ResolveState.Tick이
-            // Executor.IsRunning 이 내려가야 넘어오기 때문에, 이 전이보다 먼저 내리면
-            // 시전 도중인 몸이 사라진다.
+            // Resolve → RealTime 이 곧 "콤보 실행 완료"다. 무대는 Executor가 이미 비웠지만,
+            // 타임아웃 · 중단으로 새어 나온 몸이 있을 수 있어 안전망으로 한 번 더 훑는다.
             if (prev == TacticPhase.Resolve && next == TacticPhase.RealTime)
                 BenchOthers();
         }
 
+        // ── 무대(ICasterStage) ──────────────────────────────
+
         /// <summary>
-        /// 로스터 전원을 세운다. 조작 중인 몸은 자리도 조작권도 건드리지 않는다.
+        /// 시전자를 무대에 세운다. 앞 슬롯에서 내려가기로 예약된 몸도 여기서 정리한다.
         ///
-        /// 오프셋을 <b>로스터 칸이 아니라 등장 순번으로</b> 집는 것이 핵심이다.
-        /// 칸 번호로 집으면 조작 중인 몸이 건너뛰어지면서 그 칸의 오프셋이 통째로 비어,
-        /// 누가 조작 중이냐에 따라 대형이 매번 달라진다.
+        /// <b>이미 무대에 있는 몸은 자리를 다시 잡지 않는다</b> — 돌진으로 전진한 시전자가
+        /// 다음 슬롯에서 제자리로 튕겨 돌아가면 콤보가 통째로 어색해진다.
         /// </summary>
-        public void SummonAll()
+        void ICasterStage.Enter(Ally caster)
         {
-            Seat anchor = Current != null ? Seat.Of(Current) : lastSeat;
+            if (caster == null) return;
 
-            int order = 0;
-
-            for (int i = 0; i < roster.Count; i++)
+            // 무대를 처음 세운다: 기준점을 잡고 조작 캐릭터를 내린다.
+            // Bench는 SetActive(false)일 뿐 트랜스폼을 안 건드리므로 앵커는 그대로 유효하다.
+            if (stageAnchor == null)
             {
-                if (i == CurrentIndex) continue;
-                if (!TagSwapRules.IsSelectable(roster, i)) continue;
+                stageAnchor = Current != null ? Seat.Of(Current) : lastSeat;
 
-                Entity e = roster[i];
-                Summon(e, anchor.Offset(OffsetFor(order)));
-                order++;
-
-                // 불려 나온 몸은 유저가 몰지 않는다. 한 프레임이라도 PlayerControl이 켜져 있으면
-                // 같은 입력으로 두 몸이 동시에 움직인다.
-                e.UseControl<AllyControl>();
+                // 조작 중인 몸이 곧 시전자면 껐다 켤 이유가 없다. 태그 교대로 동료를 몰고 있을 때
+                // 그 동료의 카드가 나가는 경우다 — 껐다 켜면 OnDisable → ReleaseBody가 헛돈다.
+                if (!ReferenceEquals(Current, caster)) BenchStage(Current);
             }
+
+            // 예약된 퇴장을 실행한다. 다시 불려 나온 몸은 내리지 않는다.
+            for (int i = leaving.Count - 1; i >= 0; i--)
+            {
+                if (ReferenceEquals(leaving[i], caster)) continue;
+                BenchStage(leaving[i]);
+            }
+            leaving.Clear();
+
+            bool alreadyUp = onStage.Contains(caster);
+
+            // 마지막 칸이 곧 "지금 시전 중"이다. 이미 서 있던 몸도 맨 뒤로 옮긴다.
+            onStage.Remove(caster);
+            onStage.Add(caster);
+
+            if (!alreadyUp)
+                Summon(caster, stageAnchor);
+
+            Reseat();
+
+            // 불려 나온 몸을 유저가 몰면 같은 입력으로 두 몸이 움직인다.
+            if (!ReferenceEquals(caster, Current)) caster.UseControl<AllyControl>();
+
+            // 카메라는 지금 때리는 쪽을 본다. 숨은 조작 캐릭터를 계속 보면
+            // 시전자가 돌진해 나간 뒤 화면에 아무것도 안 남는다.
+            cameraFollow?.SetTarget(caster.transform);
+        }
+
+        /// <summary>
+        /// 할 일이 끝났다고 표시만 한다. 실제로 내려가는 시점은 다음
+        /// <see cref="ICasterStage.Enter"/>나 <see cref="ICasterStage.Clear"/>다.
+        /// </summary>
+        void ICasterStage.Exit(Ally caster)
+        {
+            if (caster == null) return;
+            if (!onStage.Remove(caster)) return;
+
+            if (!leaving.Contains(caster)) leaving.Add(caster);
+        }
+
+        /// <summary>무대를 비우고 조작 캐릭터를 되돌린다.</summary>
+        void ICasterStage.Clear()
+        {
+            // 복귀 자리는 내리기 <b>전에</b> 읽어야 한다. 내린 뒤엔 마지막 시전자가 누구였는지
+            // 알 수 없다.
+            Seat? home = null;
+            if (returnToLastCasterSpot && onStage.Count > 0)
+            {
+                Entity last = onStage[onStage.Count - 1];
+                if (last != null) home = Seat.Of(last);
+            }
+
+            for (int i = 0; i < onStage.Count; i++) BenchStage(onStage[i]);
+            for (int i = 0; i < leaving.Count; i++) BenchStage(leaving[i]);
+
+            onStage.Clear();
+            leaving.Clear();
+
+            // 무대를 세운 적이 없으면 되돌릴 것도 없다 — 조작 캐릭터는 계속 서 있었다.
+            if (stageAnchor == null) return;
+
+            Seat spot = home ?? stageAnchor.Value;
+            stageAnchor = null;
+
+            // Current를 다시 읽는다. 콤보 도중 사망 자동교대가 돌았으면 다른 몸일 수 있다.
+            Entity back = Current;
+            if (back == null) return;
+
+            Summon(back, spot);
+            Possess(back);
+
+            lastSeat = Seat.Of(back);
+            FollowNewBody(back);
+        }
+
+        /// <summary>
+        /// 무대 위 몸들을 앵커 기준으로 다시 앉힌다.
+        ///
+        /// 마지막 칸(시전 중)은 정위치라 손대지 않는다 — 그 좌표에서 스킬의 접근·조준이
+        /// 계산되므로 흔들리면 안 된다. 차징으로 붙잡힌 앞칸만 옆으로 비켜난다.
+        /// </summary>
+        private void Reseat()
+        {
+            if (stageAnchor == null) return;
+
+            Seat anchor = stageAnchor.Value;
+
+            for (int i = 0; i < onStage.Count; i++)
+            {
+                Entity e = onStage[i];
+                if (e == null) continue;
+
+                Vector3 offset = TagSwapRules.StageOffset(i, onStage.Count, benchOffsets);
+                if (offset == Vector3.zero) continue;
+
+                e.Physics.Teleport(anchor.Offset(offset).Ground);
+            }
+        }
+
+        /// <summary>
+        /// 무대에서 내린다. 죽은 몸은 그대로 둔다 —
+        /// 여기서 끄면 사망 연출과 디스폰이 통째로 잘린다(<see cref="BenchOthers"/>와 같은 이유).
+        /// </summary>
+        private void BenchStage(Entity body)
+        {
+            if (body == null || body.Combat == null || body.Combat.IsDead) return;
+            Bench(body);
         }
 
         /// <summary>조작 중인 한 명만 남기고 내린다.</summary>
@@ -335,7 +476,8 @@ namespace Prototype
 
             // Teleport가 접지 · 관성 · 낙하속도를 함께 정리한다. 위치만 대입하면
             // 내려가기 직전의 넉백 속도를 그대로 물고 다시 선다.
-            body.Physics.Teleport(seat.Value.Ground);
+            // 높이까지 넘긴다 — 공중에서 교대하면 새 몸도 같은 높이에서 이어받아야 한다.
+            body.Physics.Teleport(seat.Value.Ground, seat.Value.Height);
 
             // Teleport는 방향을 안 건드린다. 여기서 맞추지 않으면 새 몸이
             // 제 지난 방향 그대로 나와 등을 보이고 선다.
@@ -346,12 +488,6 @@ namespace Prototype
         {
             if (body == null || !body.gameObject.activeSelf) return;
             body.gameObject.SetActive(false);
-        }
-
-        private Vector3 OffsetFor(int index)
-        {
-            if (benchOffsets == null || benchOffsets.Length == 0) return Vector3.zero;
-            return benchOffsets[Mathf.Min(index, benchOffsets.Length - 1)];
         }
 
         // ── 초기화 · 사망 ───────────────────────────────────

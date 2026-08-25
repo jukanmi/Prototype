@@ -25,6 +25,16 @@ namespace Prototype
         /// </summary>
         public ISkillCutin Cutin { get; set; }
 
+        /// <summary>
+        /// 시전자를 화면에 세웠다 내리는 무대. null이면 무대 연출 없이 그대로 시전한다.
+        ///
+        /// <see cref="Cutin"/>과 달리 자식에서 찾지 않는다 — 무대를 구현하는
+        /// <see cref="TagSwapController"/>는 전투 상시 오브젝트에 붙어 있고,
+        /// 그쪽이 <c>Start</c>에서 자기를 꽂아 준다. 의존 방향을 그쪽으로 몰아
+        /// Executor가 태그 시스템을 모르게 유지한다.
+        /// </summary>
+        public ICasterStage Stage { get; set; }
+
         private void Awake()
         {
             if (Cutin == null) Cutin = GetComponentInChildren<ISkillCutin>(true);
@@ -59,6 +69,10 @@ namespace Prototype
             // StopCoroutine으로 잘린 코루틴은 finally가 돌지 않는다.
             // 컷인이 내려놓은 TimeControl.Scale을 여기서 되돌리지 않으면 게임이 영구 정지한다.
             Cutin?.Cancel();
+
+            // 같은 이유로 무대도 여기서 비운다. 안 그러면 불려 나온 시전자가
+            // 실시간 전투에 그대로 남고 조작 캐릭터는 숨은 채로 굳는다.
+            Stage?.Clear();
         }
 
         /// <summary>
@@ -119,6 +133,11 @@ namespace Prototype
                 // 재타겟 경로는 사라졌다. 조준이 좌표만 남기므로 대상이 그사이 죽어도
                 // 시전 순간 SkillState.ResolveTarget이 그 좌표에서 다시 고른다(결정 로그 ⑧).
 
+                // 무대에 세우는 것이 가장 먼저다. 컷인에 시전자가 보여야 하고,
+                // 무엇보다 비활성 오브젝트에 ForceChangeState를 걸면 Update가 안 돌아
+                // 스킬이 영영 안 끝나고 slotTimeout까지 큐가 멈춘다.
+                Stage?.Enter(slot.caster);
+
                 // 컷인은 스킬보다 먼저다. 여기서 시간이 멈추고, 끝나야 다시 흐른다.
                 IEnumerator intro = PlayCutin(in slot);
                 if (intro != null) yield return intro;
@@ -132,6 +151,11 @@ namespace Prototype
 
                 yield return RunSlot(slot);
 
+                // "끝났다"고만 알린다. 실제로 내려가는 건 다음 Enter나 Clear다 —
+                // 여기서 곧바로 내리면 같은 시전자가 이어질 때 한 프레임 깜빡이고,
+                // 그 사이 OnDisable → ReleaseBody가 돌아 다음 슬롯이 통째로 날아간다.
+                Stage?.Exit(slot.caster);
+
                 OnSlotConsumed?.Invoke(slot.card);
 
                 if (slotGap > 0f)
@@ -142,6 +166,10 @@ namespace Prototype
                 yield return ReleaseCharges(pending);
 
             BattleLog.Log(LogCategory.Combo, "<b>콤보 실행 종료</b>", this);
+
+            // 무대를 비우고 조작 캐릭터를 되돌린다. 페이즈가 RealTime으로 넘어가기 전에
+            // 끝나야 유저가 조작을 되찾은 순간 몰 몸이 이미 서 있다.
+            Stage?.Clear();
 
             running = null;
             OnExecuteFinished?.Invoke();
@@ -163,6 +191,14 @@ namespace Prototype
             if (caster == null || caster.Combat.IsDead)
             {
                 BattleLog.Warn(LogCategory.Combo, $"차징 건너뜀 — 시전자 없음 ({data.skillName})", this);
+                return;
+            }
+
+            // RunSlot과 같은 이유 — 꺼진 몸은 모으기가 진행되지 않는다.
+            if (!caster.gameObject.activeInHierarchy)
+            {
+                BattleLog.Warn(LogCategory.Combo,
+                    $"{data.skillName} 차징 건너뜀 — {BattleLog.Name(caster)}가 꺼져 있다. ICasterStage 배선을 확인하라", this);
                 return;
             }
 
@@ -234,6 +270,9 @@ namespace Prototype
                 if (p.caster.StateMachine.CurState == p.state && !p.caster.Combat.IsDead)
                     p.caster.StateMachine.ForceChangeState(p.caster.IdleState);
 
+                // 차징 시전자는 모으는 내내 무대에 붙잡혀 있었다. 여기서야 놓아 준다.
+                Stage?.Exit(p.caster);
+
                 if (slotGap > 0f)
                     yield return WaitScaled(slotGap);
             }
@@ -248,6 +287,16 @@ namespace Prototype
             {
                 BattleLog.Warn(LogCategory.Combo,
                     $"RunSlot 진입 직전 무효화 — data {(data == null ? "없음" : data.skillName)} / caster {BattleLog.Name(caster)}", this);
+                yield break;
+            }
+
+            // 꺼진 몸에 상태를 걸면 Update가 안 돌아 IsFinished가 영영 안 서고,
+            // slotTimeout(초 단위)만큼 콤보가 통째로 멎는다. 무대 배선이 빠졌을 때의 증상이라
+            // 조용히 넘기지 않고 소리를 낸다.
+            if (!caster.gameObject.activeInHierarchy)
+            {
+                BattleLog.Warn(LogCategory.Combo,
+                    $"{data.skillName} 건너뜀 — {BattleLog.Name(caster)}가 꺼져 있다. ICasterStage 배선을 확인하라", this);
                 yield break;
             }
 

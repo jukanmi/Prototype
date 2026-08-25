@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Prototype
 {
@@ -66,6 +67,27 @@ namespace Prototype
 
             Entity e = roster[index];
             return e != null && e.Combat != null && !e.Combat.IsDead;
+        }
+
+        // ── 무대 배치 ───────────────────────────────────────
+
+        /// <summary>
+        /// 무대 위 <paramref name="index"/>번째 몸이 앵커에서 얼마나 비켜설지.
+        ///
+        /// <b>마지막 칸이 정위치(0)다.</b> 무대의 마지막은 곧 지금 시전 중인 몸이고,
+        /// 그 몸은 반드시 조작 캐릭터가 서 있던 자리 그대로여야 한다 —
+        /// 스킬의 접근·조준이 그 좌표에서 계산되기 때문이다.
+        ///
+        /// 앞칸은 차징으로 무대에 붙잡혀 있는 몸들이다. 같은 자리에 겹치면 안 되니
+        /// <paramref name="offsets"/>로 밀어낸다. 모자라면 마지막 값을 재사용한다.
+        /// </summary>
+        public static Vector3 StageOffset(int index, int count, IReadOnlyList<Vector3> offsets)
+        {
+            if (index < 0 || index >= count) return Vector3.zero;
+            if (index == count - 1) return Vector3.zero;          // 시전 중 — 정위치
+            if (offsets == null || offsets.Count == 0) return Vector3.zero;
+
+            return offsets[Math.Min(index, offsets.Count - 1)];
         }
 
         private static int Wrap(int index, int count) => ((index % count) + count) % count;
