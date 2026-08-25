@@ -59,6 +59,9 @@ namespace Prototype
         private static readonly Color DownColor = new Color(1f, 0.5f, 0.5f);
         private static readonly Color ArrowColor = new Color(1f, 0.86f, 0.35f);
 
+        /// <summary>황금 카드의 테두리. 레벨업 화면(<see cref="CardOfferView"/>)과 같은 금색이다.</summary>
+        private static readonly Color GoldFrameColor = new Color(1f, 0.80f, 0.28f);
+
         // ── 카드 상세 패널 ───────────────────────────────
         private const float DetailWidth = 420f;
         /// <summary>줄 높이(28+18+46+18+18) + 간격 16 + 패딩 20.</summary>
@@ -111,6 +114,14 @@ namespace Prototype
             public RectTransform rect;
             /// <summary>카드 전체를 덮는 판. 아트 바깥 테두리 · 하단 상태 띠가 이 색으로 보인다.</summary>
             public Image background;
+
+            /// <summary>
+            /// 황금 카드의 안쪽 판. 배경을 금색으로 칠한 뒤 이 판이 <see cref="ArtInset"/>만큼
+            /// 물러난 자리를 상태색으로 덮어, 딱 그 두께의 금테만 남긴다.
+            /// 일반 카드에서는 꺼져 있어 배경 하나로 그리던 예전 그림 그대로다.
+            /// </summary>
+            public Image inner;
+
             /// <summary>SkillData.icon. 없으면 꺼지고 이름 · 직업 텍스트가 대신 나온다.</summary>
             public Image art;
             public Text nameLabel;
@@ -667,6 +678,13 @@ namespace Prototype
             };
             w.background.color = CardColor;
 
+            // 황금 카드의 안쪽 판. 자식은 부모 위에 그려지므로 카드 <b>뒤에</b> 테두리를 깔 수가 없다 —
+            // 대신 배경을 금색으로 칠하고 이 판이 안쪽을 도로 덮어 링만 남긴다.
+            // 아트와 글자는 이 뒤에 만들어지므로 이 판 위에 온다.
+            w.inner = UiFactory.NewImage(go.transform, "Inner", CardColor);
+            UiFactory.Stretch(w.inner.rectTransform, ArtInset);
+            w.inner.enabled = false;
+
             // 카드 아트 — 상태 띠 위를 채운다. 바깥으로 ArtInset만큼 배경이 테두리로 남는다.
             var artGo = new GameObject("Art", typeof(RectTransform), typeof(Image));
             artGo.transform.SetParent(go.transform, false);
@@ -973,7 +991,7 @@ namespace Prototype
                     w.nameLabel.text = "(빈 카드)";
                     w.subLabel.text = "SkillData 미지정";
                     w.statusLabel.text = string.Empty;
-                    w.background.color = EmptyCardColor;
+                    SetCardColor(w, EmptyCardColor, false);
                     w.group.alpha = 1f;
                     w.group.blocksRaycasts = true;
                     continue;
@@ -1002,12 +1020,15 @@ namespace Prototype
 
                 w.statusLabel.text = BuildStatus(i, in slot, data, aiming, grabbed, cursor, editable, predictor);
 
-                w.background.color = aiming ? AimingCardColor
-                                   : grabbed ? GrabbedCardColor
-                                   : cursor ? CursorCardColor
-                                   : chained ? ChainedCardColor
-                                   : i == 0 ? NextCardColor
-                                   : CardColor;
+                Color face = aiming ? AimingCardColor
+                           : grabbed ? GrabbedCardColor
+                           : cursor ? CursorCardColor
+                           : chained ? ChainedCardColor
+                           : i == 0 ? NextCardColor
+                           : CardColor;
+
+                // 등급은 테두리로, 상태는 면으로. 두 정보를 같은 채널에 실으면 둘 다 안 읽힌다.
+                SetCardColor(w, face, slot.card != null && slot.card.Golden);
 
                 // 조준 대기 중에는 다른 카드를 흐리게 해서 초점을 남긴다.
                 bool dim = _aimingIndex >= 0 && !aiming;
@@ -1020,6 +1041,22 @@ namespace Prototype
             // 색과 글자를 정한 뒤에 자리를 정한다 — 어느 카드가 켜져 있는지 확정돼야
             // 부채꼴을 몇 장짜리로 펼지 정할 수 있다.
             UpdateTargets();
+        }
+
+        /// <summary>
+        /// 카드 면색과 등급 테두리를 한 번에 바른다.
+        ///
+        /// 일반 카드면 두 겹을 꺼서 배경 하나로 그리던 예전 그림 그대로 두고,
+        /// 황금이면 금색 판을 켠 뒤 안쪽만 면색으로 덮어 <see cref="ArtInset"/> 두께의 링을 남긴다.
+        /// </summary>
+        private static void SetCardColor(CardWidgets w, Color face, bool golden)
+        {
+            w.background.color = golden ? GoldFrameColor : face;
+
+            if (w.inner == null) return;
+
+            w.inner.enabled = golden;
+            w.inner.color = face;
         }
 
         // ── 포즈 · 애니메이션 ────────────────────────────

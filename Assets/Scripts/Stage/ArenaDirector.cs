@@ -165,6 +165,11 @@ namespace Prototype
 
             if (phase == Phase.Maintenance)
             {
+                // 전면 UI(레벨업 · 덱 편집)가 떠 있는 동안은 정비 시계를 세우지 않는다.
+                // 안 세우면 카드를 고르는 사이에 문이 열려, 화면을 닫고 나면
+                // 이미 다음 구간이 시작돼 있다.
+                if (GameplayModal.IsOpen) return;
+
                 if (clock >= maintenanceSeconds) Unlock();
                 return;
             }
@@ -255,6 +260,10 @@ namespace Prototype
                                "이 라운드의 적 일부 또는 전부가 나오지 않았다 — 위 에러의 배선을 확인할 것.", this);
 
             Debug.Log($"[Arena {arenaNumber}] 라운드 소탕 — 정비 {maintenanceSeconds:0.#}초");
+
+            // 이 아레나에서 번 경험치를 지금 쓴다. 다음 아레나로 넘어가기 전이어야
+            // "이번 라운드의 보상"으로 읽힌다. 쓸 경험치가 없으면 세션이 스스로 안 연다.
+            LevelUpSession.RequestOpen();
 
             // TODO: 정비 — 죽은 동료 소환, 파티 재배치. 지금은 숨 돌리는 틈이다.
         }

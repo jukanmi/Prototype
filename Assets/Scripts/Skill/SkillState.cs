@@ -273,6 +273,13 @@ namespace Prototype
             if (nextHitIndex >= data.hitDataList.Count) return;
 
             HitData hit = ModifyHit(data.hitDataList[nextHitIndex]);
+
+            // 카드가 실어 보낸 배율(황금 카드)을 <b>ModifyHit 다음에</b> 곱한다.
+            // 차징은 ModifyHit에서 붙으므로 이 순서가 곧 "차징 × 황금"이다.
+            // 넉백은 건드리지 않는다 — 황금은 데미지만 키우는 물건이라, 밀어내는 힘까지
+            // 커지면 콤보 연계 거리가 카드 등급에 따라 달라져 체인이 무너진다.
+            hit.damageData.damage *= ctx.DamageScale;
+
             bool last = nextHitIndex == data.hitDataList.Count - 1;
 
             if (data.IsRanged) LaunchProjectile(in hit);

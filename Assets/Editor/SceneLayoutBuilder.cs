@@ -629,6 +629,17 @@ namespace Prototype.EditorTools
             if (btc.GetComponent<ComboDamageHUD>() == null)
                 Undo.AddComponent<ComboDamageHUD>(btc.gameObject);
 
+            // 라운드가 끝나면 여기가 레벨업 화면을 연다. 화면은 스스로 짓지만
+            // 얻은 카드를 지금 판의 덱에 들이려면 BulletTimeController를 알아야 한다.
+            if (btc.GetComponent<LevelUpSession>() == null)
+            {
+                var session = Undo.AddComponent<LevelUpSession>(btc.gameObject);
+
+                var sessionSo = new SerializedObject(session);
+                sessionSo.FindProperty("bulletTime").objectReferenceValue = btc;
+                sessionSo.ApplyModifiedProperties();
+            }
+
             var so = new SerializedObject(hud);
             so.FindProperty("bulletTime").objectReferenceValue = btc;
             so.FindProperty("targetSelector").objectReferenceValue = Object.FindAnyObjectByType<TargetSelector>();

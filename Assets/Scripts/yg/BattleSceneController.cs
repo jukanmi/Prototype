@@ -90,6 +90,10 @@ namespace Prototype.YG
 
         private void TickOutcome()
         {
+            // 전면 UI(레벨업 · 덱 편집)가 떠 있는 동안은 판정을 멈춘다. 마지막 라운드를
+            // 정리하는 중이라 그대로 두면 카드를 고르는 위로 클리어 화면이 겹쳐 뜬다.
+            if (GameplayModal.IsOpen) return;
+
             if (outcome == StageOutcome.Undecided)
             {
                 Judge();

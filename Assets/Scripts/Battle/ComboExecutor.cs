@@ -209,6 +209,7 @@ namespace Prototype
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
+                damageScale = slot.card != null ? slot.card.DamageScale : 1f,
             };
 
             // 모으는 동안에도 BT는 멈춰 있어야 한다. 해제까지 지휘 상태를 유지한다.
@@ -309,6 +310,7 @@ namespace Prototype
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
+                damageScale = slot.card != null ? slot.card.DamageScale : 1f,
             };
 
             caster.IsCommanded = true;

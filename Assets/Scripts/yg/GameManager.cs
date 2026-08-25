@@ -61,10 +61,30 @@ namespace Prototype.YG
         [Tooltip("비우면 기본 순서(스테이지 1~5)로 채운다.")]
         [SerializeField] private string[] stageScenes;
 
+        [Header("디버그 — 시작 덱")]
+        [Tooltip("런의 첫 전투에서 시작 덱을 어떻게 정할지. 두 번째 스테이지부터는 런 덱이 이어진다.\n\n" +
+                 "· Party — 파티 장착 카드 16장. 게임의 실제 시작이다.\n" +
+                 "· Empty — 테스트 모드. 0장으로 시작해 레벨업으로만 카드가 들어온다.\n" +
+                 "· Pick  — 디버그 모드. 시작할 때 화면에서 카드를 직접 골라 짠다.\n\n" +
+                 "런 단위 설정이라 여기가 스테이지 씬의 BulletTimeController 설정을 이긴다 — " +
+                 "스테이지마다 시작 덱 규칙이 다르면 말이 안 되기 때문이다.")]
+        [SerializeField] private DeckStartupMode deckStartupMode = DeckStartupMode.Party;
+
+        /// <summary>이 런의 시작 덱 규칙. 전투 씬이 물어본다.</summary>
+        public DeckStartupMode DeckStartupMode => deckStartupMode;
+
         // ── 런 데이터 (프로토타입 단계 최소 구성)
         public int  CurrentStageIndex { get; private set; }
-        public int  TotalExp          { get; private set; }
         public bool IsRunActive       { get; private set; }
+
+        /// <summary>
+        /// 경험치 · 레벨 · 런 덱. 씬 오브젝트가 아니라 여기가 들고 있어야
+        /// 스테이지를 넘어가도 레벨업으로 얻은 카드가 살아남는다.
+        /// </summary>
+        public RunProgression Run { get; } = new RunProgression();
+
+        /// <summary>런 누적 경험치. <see cref="Run"/>이 진짜 주인이고 이건 읽는 창구다.</summary>
+        public int TotalExp => Run.Exp;
 
         private void Awake()
         {
@@ -109,8 +129,9 @@ namespace Prototype.YG
         public void StartNewRun()
         {
             CurrentStageIndex = 0;
-            TotalExp          = 0;
             IsRunActive       = true;
+
+            Run.Reset();
 
             RestoreTime();
 
@@ -127,7 +148,7 @@ namespace Prototype.YG
             Debug.Log("[GameManager] 런 종료");
         }
 
-        public void AddExp(int amount) => TotalExp += amount;
+        public void AddExp(int amount) => Run.AddExp(amount);
 
         /// <summary>다음 칸으로 한 칸. 마지막에서는 더 가지 않는다.</summary>
         public void AdvanceStage()

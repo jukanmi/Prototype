@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Prototype.YG;
 using UnityEngine;
 
 namespace Prototype
@@ -52,6 +53,14 @@ namespace Prototype
         [Header("덱")]
         [Tooltip("Start에서 파티 장착 카드로 덱을 짠다. 포스트 배틀 흐름이 붙기 전까지만.")]
         [SerializeField] private bool buildDeckOnStart = true;
+
+        [Tooltip("이 씬만 단독으로 Play할 때 쓰는 시작 덱 규칙.\n\n" +
+                 "Boot 씬을 거쳐 들어오면 GameManager(런의 주인)의 설정이 이긴다 — " +
+                 "여기 값은 무시된다. 시작 덱은 런 단위 결정이라 스테이지마다 다를 수 없다.\n\n" +
+                 "· Party — 파티 장착 카드 16장. 게임의 실제 시작이다.\n" +
+                 "· Empty — 테스트 모드. 0장으로 시작해 레벨업으로만 카드가 들어온다.\n" +
+                 "· Pick  — 디버그 모드. 시작할 때 화면에서 카드를 직접 골라 짠다.")]
+        [SerializeField] private DeckStartupMode standaloneStartupMode = DeckStartupMode.Party;
 
         [Tooltip("동료가 죽으면 그 직업 카드를 덱 · 손패 · 버린 더미에서 전부 걷어낸다. " +
                  "같은 직업 동료가 아직 살아 있으면 남긴다.")]
@@ -167,7 +176,18 @@ namespace Prototype
             // 견본 손패는 덱을 아예 거치지 않는다. 여기서 덱을 지으면
             // "16장이 아니다" 경고만 뜨고 아무도 그 카드를 뽑지 않는다.
             if (buildDeckOnStart && !UsesFixedHand)
-                BuildDeckFromParty();
+            {
+                if (WantsDeckPicker)
+                {
+                    // 화면에서 다 짜면 그쪽이 RebuildDeckAndHand를 부른다.
+                    // 그때까지는 덱도 손패도 비어 있다 — 어차피 조작이 잠겨 있다.
+                    DeckBuilderUI.RequestOpen(this, AvailableSkillPool());
+                    tactic.Begin();
+                    return;
+                }
+
+                BuildDeck();
+            }
 
             // 덱이 0장인 채로 시작하므로 첫 Refill이 Discard 회수 → 셔플을 자동으로 부른다.
             RefillHand();
@@ -338,7 +358,7 @@ namespace Prototype
             hand.Dequeue();
 
             TargetInfo info = slot.aimed && slot.target.IsValid ? slot.target : caster.AutoTarget(data);
-            caster.CastCard(data, in info);
+            caster.CastCard(data, in info, slot.card != null ? slot.card.DamageScale : 1f);
 
             StartSkillCooldown(data);
 
@@ -649,15 +669,117 @@ namespace Prototype
         }
 
         /// <summary>
+        /// 지금 적용되는 시작 덱 규칙.
+        ///
+        /// <b>Boot 씬의 <c>GameManager</c>가 이긴다.</b> 시작 덱은 런 단위 결정이라
+        /// 스테이지마다 다를 수 없고, 스테이지 씬 아홉 개에 같은 스위치를 하나씩 켜 두면
+        /// 한 곳만 어긋나도 "2스테이지부터 갑자기 덱이 달라지는" 식으로만 드러난다.
+        ///
+        /// 인스펙터 값은 <c>GameManager</c>가 없을 때 — 스테이지 씬 단독 실행에서만 쓰인다.
+        /// </summary>
+        private DeckStartupMode StartupMode
+            => GameManager.Instance != null
+                ? GameManager.Instance.DeckStartupMode
+                : standaloneStartupMode;
+
+        /// <summary>
+        /// 시작할 때 화면에서 덱을 짜야 하는가. 디버그 모드이고, 이 런이 아직 시작 덱을
+        /// 정하지 않았을 때만 — 두 번째 스테이지에서 또 물으면 진행이 끊긴다.
+        /// </summary>
+        private bool WantsDeckPicker
+            => StartupMode == DeckStartupMode.Pick && !RunProgression.Current.Seeded;
+
+        /// <summary>
+        /// 지금 카드를 시전할 수 있는 직업들. <see cref="ResolveCaster"/>와 같은 규칙이라
+        /// (살아 있는 동료가 있는 직업) 사망 시 카드를 걷어내는 규칙과 어긋나지 않는다.
+        /// </summary>
+        public List<Role> AvailableRoles()
+        {
+            var roles = new List<Role>(Ally.EquipSlots);
+            if (player == null) return roles;
+
+            foreach (Ally a in player.Party)
+            {
+                if (a == null || a.Combat == null || a.Combat.IsDead) continue;
+                if (!roles.Contains(a.Role)) roles.Add(a.Role);
+            }
+
+            return roles;
+        }
+
+        /// <summary>
+        /// 레벨업 선택지와 디버그 편집기가 뽑을 수 있는 스킬 전부.
+        ///
+        /// <b>덱이 아니라 파티가 기준이다.</b> 지금 든 카드에서 모집단을 긁으면
+        /// 0장으로 시작하는 테스트 모드에서 뽑을 것이 하나도 없어 레벨업이 헛돈다.
+        /// "가진 동료가 쓸 수 있는 카드 전부"가 언제나 후보다.
+        ///
+        /// 직업으로 거르는 이유는 시전자가 없는 카드가 손패 맨 앞을 막기 때문이다 —
+        /// 마법사가 없는데 마법사 카드를 주면 그 카드는 영영 안 나간다.
+        /// </summary>
+        public List<SkillData> AvailableSkillPool()
+        {
+            int ignored = 0;
+            List<ComboCard> partyCards = player != null ? CollectPartyCards(ref ignored) : null;
+
+            return SkillCatalog.Pool(AvailableRoles(), partyCards);
+        }
+
+        /// <summary>덱을 다시 짓고 손패를 채운다. 시작 덱을 화면에서 짠 뒤 그쪽이 부른다.</summary>
+        public void RebuildDeckAndHand()
+        {
+            BuildDeck();
+            RefillHand();
+        }
+
+        /// <summary>
         /// 포스트 배틀에서만 호출. 전투 중 덱 수정은 막는다.
         /// 카드는 <b>Discard에 적재</b>하고 덱은 0장으로 둔다 — 첫 드로우가 회수 · 셔플을 겸한다.
+        ///
+        /// <b>런 덱이 있으면 그것이 이긴다.</b> 파티 장착 카드는 런의 첫 씨앗일 뿐이고,
+        /// 그 뒤로는 레벨업으로 얻은 카드까지 든 <see cref="RunProgression.Cards"/>가 진짜 덱이다.
+        /// 여기서 매번 파티로 새로 짜면 스테이지를 넘어가는 순간 얻은 카드가 전부 사라진다.
         /// </summary>
-        public void BuildDeckFromParty()
+        public void BuildDeck()
         {
             if (player == null) return;
 
-            var cards = new List<ComboCard>(Prototype.Deck.Size);
             int empty = 0;
+            List<ComboCard> partyCards = CollectPartyCards(ref empty);
+
+            // 첫 씬에서 한 번만 씨를 뿌리고, 그 뒤로는 런 덱을 그대로 읽는다.
+            // 테스트 모드는 그 씨앗을 <b>비운다</b> — 0장으로 시작해 레벨업으로만 카드가 들어온다.
+            RunProgression run = RunProgression.Current;
+            run.SeedDeck(StartupMode == DeckStartupMode.Empty ? null : partyCards);
+
+            // 장수가 아니라 Seeded로 가른다. 테스트 모드의 0장 덱을 "아직 안 짰다"로 읽으면
+            // 파티 카드 16장이 도로 부어진다.
+            List<ComboCard> cards = run.Seeded ? new List<ComboCard>(run.Cards) : partyCards;
+
+            deck.Clear();
+            discard.Clear();
+            discard.AddRange(cards);
+
+            BattleLog.Log(LogCategory.Deck,
+                $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작) | 런 Lv.{run.Level}", this);
+
+            if (empty > 0)
+                BattleLog.Warn(LogCategory.Deck,
+                    $"<b>SkillData가 비어 있는 카드 {empty}장을 덱에서 제외했다.</b> " +
+                    "Ally 인스펙터의 Equipped 항목에 스킬 에셋을 지정할 것.", this);
+
+            // 장수는 <b>파티 장착분</b>으로 따진다. 런 덱은 레벨업으로 늘고 합성으로 줄어드는 게
+            // 정상이라 여기서 세면 성장할 때마다 거짓 경고가 뜬다.
+            if (partyCards.Count != Prototype.Deck.Size)
+                BattleLog.Warn(LogCategory.Deck,
+                    $"파티 장착 카드가 {partyCards.Count}장이다(목표 {Prototype.Deck.Size}). " +
+                    "동료 4명 × 장착 4장을 확인할 것.", this);
+        }
+
+        /// <summary>파티 4명이 장착한 카드를 걷는다. SkillData가 빈 카드는 세어서 제외한다.</summary>
+        private List<ComboCard> CollectPartyCards(ref int empty)
+        {
+            var cards = new List<ComboCard>(Prototype.Deck.Size);
 
             foreach (Ally a in player.Party)
             {
@@ -679,21 +801,82 @@ namespace Prototype
                 }
             }
 
-            deck.Clear();
-            discard.Clear();
-            discard.AddRange(cards);
+            return cards;
+        }
+
+        /// <summary>
+        /// 레벨업으로 받은 카드를 지금 판에 들인다.
+        ///
+        /// <b>곧바로 손패에 꽂는다.</b> 버린 더미에 넣으면 덱 열여섯 장을 다 돌 때까지 —
+        /// 사실상 다음 스테이지까지 — 손에 들어오지 않아서, 방금 고른 보상이 아무 일도
+        /// 일으키지 않은 것처럼 보인다. 보상은 고른 그 자리에서 손에 잡혀야 한다.
+        /// </summary>
+        /// <param name="card">받은 카드.</param>
+        /// <param name="fusedFrom">합성이면 재료가 된 스킬. 아니면 null.</param>
+        /// <param name="fuseCount">걷어낼 재료 장수.</param>
+        public void GrantCard(ComboCard card, SkillData fusedFrom = null, int fuseCount = 0)
+        {
+            if (card == null || card.Data == null) return;
+
+            if (fusedFrom != null && fuseCount > 0)
+            {
+                int eaten = ConsumeNormalCopies(fusedFrom, fuseCount);
+
+                BattleLog.Log(LogCategory.Deck,
+                    $"합성 재료 회수 — {fusedFrom.skillName} {eaten}/{fuseCount}장", this);
+            }
+
+            PlaceInHand(card);
+
+            // 합성으로 손패가 빘을 수 있다. 남은 칸은 평소대로 덱에서 채운다.
+            RefillHand();
 
             BattleLog.Log(LogCategory.Deck,
-                $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작)", this);
+                $"카드 획득 — {card.Data.skillName}{(card.Golden ? " <color=#FFD166>(황금)</color>" : "")} " +
+                $"→ 손패 | 덱 {deck.Count} · 손패 {hand.Count} · Discard {discard.Count}", this);
+        }
 
-            if (empty > 0)
-                BattleLog.Warn(LogCategory.Deck,
-                    $"<b>SkillData가 비어 있는 카드 {empty}장을 덱에서 제외했다.</b> " +
-                    "Ally 인스펙터의 Equipped 항목에 스킬 에셋을 지정할 것.", this);
+        /// <summary>
+        /// 카드를 손패에 바로 꽂는다. 손패가 차 있으면 <b>맨 오른쪽</b> 칸을 덱으로 돌려보내고
+        /// 그 자리를 내준다 — 왼쪽부터 발동하므로 오른쪽 끝이 유저의 다음 몇 수에 가장 영향이 적다.
+        /// </summary>
+        private void PlaceInHand(ComboCard card)
+        {
+            if (hand.IsFull)
+            {
+                ComboSlot pushed = hand.RemoveAt(hand.Count - 1);
 
-            if (cards.Count != Prototype.Deck.Size)
-                BattleLog.Warn(LogCategory.Deck,
-                    $"덱 장수가 {cards.Count}장이다(목표 {Prototype.Deck.Size}). 동료 4명 × 장착 4장을 확인할 것.", this);
+                // 밀려난 카드는 잃지 않는다. 덱 아래로 돌아가 제 차례에 다시 나온다.
+                if (pushed.card != null) deck.Add(pushed.card);
+            }
+
+            // 손패가 꽉 찬 채로 여기 오는 경우는 없지만, 실패해도 카드를 잃지는 않는다.
+            if (!hand.Add(card)) discard.Add(card);
+        }
+
+        /// <summary>
+        /// 합성 재료를 지금 판에서 걷어낸다. <b>버린 더미 → 덱 → 손패</b> 순서다 —
+        /// 손패는 유저가 눈으로 짜 둔 순서라 마지막까지 아낀다.
+        /// 황금은 재료가 아니므로 건드리지 않는다.
+        /// </summary>
+        private int ConsumeNormalCopies(SkillData data, int count)
+        {
+            int budget = count;
+
+            bool Match(ComboCard c)
+            {
+                if (budget <= 0) return false;
+                if (c == null || c.Golden || c.Data != data) return false;
+
+                budget--;
+                return true;
+            }
+
+            int removed = discard.RemoveAll(Match);
+            removed += deck.RemoveAll(Match);
+            removed += hand.RemoveAll(Match);
+
+            return removed;
         }
     }
 }

@@ -48,6 +48,18 @@ namespace Prototype
         /// <summary>0이면 미설정으로 보고 1을 준다. 구조체라 기본값이 0이기 때문.</summary>
         public float RadiusScale => radiusScale > 0f ? radiusScale : 1f;
 
+        /// <summary>
+        /// 카드가 실어 보내는 데미지 배율. 황금 카드가 1.5를 넣는다
+        /// (<see cref="ComboCard.DamageScale"/>).
+        ///
+        /// 차징 배율과 <b>다른 층</b>이라 서로 곱해진다 — 차징은 <c>ModifyHit</c>에서,
+        /// 이 값은 그 결과에 곱해진다.
+        /// </summary>
+        public float damageScale;
+
+        /// <summary><see cref="RadiusScale"/>과 같은 이유로 0을 1로 접는다.</summary>
+        public float DamageScale => damageScale > 0f ? damageScale : 1f;
+
         public Combat CasterCombat => caster != null ? caster.Combat : null;
         public Physics CasterPhysics => caster != null ? caster.Physics : null;
 

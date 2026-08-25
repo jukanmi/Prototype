@@ -120,6 +120,10 @@ namespace Prototype
         {
             if (!started || finished) return;
 
+            // 전면 UI(레벨업 · 덱 편집)가 떠 있는 동안은 웨이브 간격을 세지 않는다.
+            // 안 세우면 카드를 고르는 사이에 다음 웨이브가 등 뒤에서 쏟아진다.
+            if (GameplayModal.IsOpen) return;
+
             float dt = TimeControl.DeltaTime;
             if (dt <= 0f) return;
 
@@ -256,6 +260,10 @@ namespace Prototype
         private void CompleteWave()
         {
             Debug.Log($"[StageDirector] 웨이브 {CurrentWaveNumber} 소탕");
+
+            // 아레나 방과 같은 자리다 — 한 묶음을 다 잡은 직후, 다음 묶음이 나오기 전.
+            // 마지막 웨이브에서도 연다. 승리 판정은 세션이 닫힐 때까지 기다린다.
+            LevelUpSession.RequestOpen();
 
             if (waveIndex + 1 >= WaveCount)
             {

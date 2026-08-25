@@ -174,6 +174,21 @@ namespace Prototype
             return true;
         }
 
+        /// <summary>
+        /// 한 칸을 지목해 빼낸다. 오른쪽 칸들이 왼쪽으로 당겨지므로 <b>인덱스가 밀린다</b>.
+        /// 레벨업으로 받은 카드를 손패에 바로 꽂을 때, 밀려날 칸을 빼내는 데 쓴다.
+        /// </summary>
+        public ComboSlot RemoveAt(int idx)
+        {
+            if (idx < 0 || idx >= slots.Count) return default;
+
+            ComboSlot s = slots[idx];
+            slots.RemoveAt(idx);
+
+            OnChanged?.Invoke();
+            return s;
+        }
+
         /// <summary>맨 왼쪽 카드를 꺼낸다. 나머지는 왼쪽으로 당겨진다.</summary>
         public ComboSlot Dequeue()
         {

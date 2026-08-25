@@ -534,6 +534,11 @@ namespace PrototypeEditor
             systemGo.AddComponent<ComboDamageHUD>();
             systemGo.AddComponent<BattleLogSettings>();
 
+            // 라운드 클리어 후 레벨업 화면. 이 씬에는 라운드 디렉터가 없어 스스로 열리지는 않지만,
+            // 붙어 있어야 배선이 두 벌로 갈리지 않는다.
+            var levelUp = systemGo.AddComponent<LevelUpSession>();
+            SetSerialized(levelUp, so => so.FindProperty("bulletTime").objectReferenceValue = bullet);
+
             SetSerialized(bullet, so =>
             {
                 so.FindProperty("player").objectReferenceValue = player.GetComponent<Player>();
