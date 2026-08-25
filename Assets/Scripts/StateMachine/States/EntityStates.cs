@@ -8,7 +8,6 @@ namespace Prototype
         protected readonly Entity Entity;
         protected Physics Physics => Entity.Physics;
         protected Combat Combat => Entity.Combat;
-        protected Control Control => Entity.Control;
 
         protected EntityState(Entity entity)
         {
@@ -24,26 +23,24 @@ namespace Prototype
         /// <summary>이동 · 점프 · 대쉬 · 평타 · 스킬 명령을 공통 처리한다.</summary>
         protected bool HandleCommonCommands()
         {
-            if (Control == null) return false;
-
-            switch (Control.Command)
+            switch (Entity.Command)
             {
                 case Command.Attack:
-                    Control.Consume();
+                    Entity.Consume();
                     Entity.StateMachine.TryChangeState(
                         Physics.PhysicsState == PhysicsState.Aerial ? Entity.AerialAttackState : (IState)Entity.AttackState);
                     return true;
 
                 case Command.Jump:
-                    Control.Consume();
+                    Entity.Consume();
                     Entity.StateMachine.TryChangeState(Entity.JumpState);
                     return true;
 
                 case Command.Dash:
-                    Control.Consume();
-                    Physics.Dash(Control.MoveDirection, Entity.Stats.GetValue(StatType.DashSpeed, 18f));
+                    Entity.Consume();
+                    Physics.Dash(Entity.MoveDirection, Entity.Stats.GetValue(StatType.DashSpeed, 18f));
                     // 패링은 유저가 직접 민 대시에만 열린다. AI 대시까지 무적을 주면 난이도가 통째로 흔들린다.
-                    if (Control is PlayerControl) Combat.BeginParryWindow();
+                    if (Entity.IsPiloted) Combat.BeginParryWindow();
                     return true;
 
                 case Command.Move:
@@ -85,7 +82,7 @@ namespace Prototype
         {
             if (HandleCommonCommands()) return;
 
-            Vector3 dir = Control != null ? Control.MoveDirection : Vector3.zero;
+            Vector3 dir = Entity.MoveDirection;
             if (dir.sqrMagnitude <= 0.0001f)
             {
                 Physics.Move(Vector3.zero, 0f);
@@ -117,12 +114,12 @@ namespace Prototype
         public override void Tick(float dt)
         {
             // 공중에서도 이동은 허용한다.
-            if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
-                Physics.Move(Control.MoveDirection, Entity.Stats.GetValue(StatType.MoveSpeed, 6f) * 0.7f);
+            if (Entity.MoveDirection.sqrMagnitude > 0.0001f)
+                Physics.Move(Entity.MoveDirection, Entity.Stats.GetValue(StatType.MoveSpeed, 6f) * 0.7f);
 
-            if (Control != null && Control.Command == Command.Attack)
+            if (Entity.Command == Command.Attack)
             {
-                Control.Consume();
+                Entity.Consume();
                 Entity.StateMachine.TryChangeState(Entity.AerialAttackState);
                 return;
             }
@@ -160,12 +157,12 @@ namespace Prototype
             Entity.SetActiveAttackStage(0, Entity.GetBasicStageTiming(0).total);
 
             Physics.Move(Vector3.zero, 0f);
-            if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
-                Physics.Face(Control.MoveDirection);
+            if (Entity.MoveDirection.sqrMagnitude > 0.0001f)
+                Physics.Face(Entity.MoveDirection);
 
             // 이 상태로 들어온 그 입력을 버린다. 안 버리면 같은 한 번의 입력이
             // 여기 들어오게 만들고 곧바로 2타 예약까지 해서, 한 번 눌렀는데 두 대가 나간다.
-            Control?.ClearAttackBuffer();
+            Entity.ClearAttackBuffer();
 
             // 예고는 여기서 켜지 않는다 — 켤 시점은 Tick이 "타격까지 남은 시간"으로 판단한다.
             // 쿨 구간에서 이미 켜 뒀으면 그대로 이어진다.
@@ -207,17 +204,17 @@ namespace Prototype
             // "마지막 프레임에 Finish가 Advance를 이겨 콤보가 한 타에서 멈추는" 실수를 눈으로 잡아야 한다.
             // 들여다보기만 한다. 매 틱 소비하면 캔슬 시점 전에 누른 입력이 그 자리에서 증발한다 —
             // 실제로 쓰는 순간에만 비운다.
-            bool buffered = Control != null && Control.HasAttackBuffer;
+            bool buffered = Entity.HasAttackBuffer;
 
             switch (BasicComboRules.Decide(timer, in t, stage, Entity.BasicComboStageCount, buffered))
             {
                 case BasicComboStep.Advance:
-                    Control?.ClearAttackBuffer();
+                    Entity.ClearAttackBuffer();
                     GoToStage(stage + 1);
                     break;
 
                 case BasicComboStep.Restart:
-                    Control?.ClearAttackBuffer();
+                    Entity.ClearAttackBuffer();
                     GoToStage(0);
                     break;
 
@@ -243,8 +240,8 @@ namespace Prototype
             // 타마다 다시 조준할 수 있게 한다. 벨트스크롤에서 1타 뒤에 옆 적으로 못 돌면
             // 콤보가 보상이 아니라 벌이 된다.
             Physics.Move(Vector3.zero, 0f);
-            if (Control != null && Control.MoveDirection.sqrMagnitude > 0.0001f)
-                Physics.Face(Control.MoveDirection);
+            if (Entity.MoveDirection.sqrMagnitude > 0.0001f)
+                Physics.Face(Entity.MoveDirection);
 
             Entity.Animator?.PlayBasicAttackStage(stage, t.total);
 
@@ -293,7 +290,7 @@ namespace Prototype
 
             // 지상 평타와 같은 이유로 이 상태에 들어오게 만든 입력을 버린다.
             // 안 버리면 한 번의 점프 공격이 곧바로 2타까지 예약해 버린다.
-            Control?.ClearAttackBuffer();
+            Entity.ClearAttackBuffer();
 
             FireStage();
         }
@@ -324,17 +321,17 @@ namespace Prototype
             if (prev < t.activeEnd && timer >= t.activeEnd)
                 Entity.BasicAttack?.End();
 
-            bool buffered = Control != null && Control.HasAttackBuffer;
+            bool buffered = Entity.HasAttackBuffer;
 
             switch (BasicComboRules.Decide(timer, in t, stage, Entity.BasicComboStageCount, buffered))
             {
                 case BasicComboStep.Advance:
-                    Control?.ClearAttackBuffer();
+                    Entity.ClearAttackBuffer();
                     GoToStage(stage + 1);
                     break;
 
                 case BasicComboStep.Restart:
-                    Control?.ClearAttackBuffer();
+                    Entity.ClearAttackBuffer();
                     GoToStage(0);
                     break;
 

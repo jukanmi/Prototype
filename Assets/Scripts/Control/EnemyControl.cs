@@ -243,8 +243,7 @@ namespace Prototype
                 return;
             }
 
-            Command = intent.command;
-            MoveDirection = intent.moveDirection;
+            Drive(intent.command, intent.moveDirection);
 
             // 쿨 소모는 여기서 판단한다. 브레인이 별도 플래그를 돌려주면 항상 이 조건과 같은 값이 되어 중복이다.
             if (intent.command == Command.Attack)
@@ -292,8 +291,7 @@ namespace Prototype
 
             if (dir.sqrMagnitude > 0.0001f)
             {
-                Command = Command.Move;
-                MoveDirection = dir;
+                Drive(Command.Move, dir);
             }
 
             return true;

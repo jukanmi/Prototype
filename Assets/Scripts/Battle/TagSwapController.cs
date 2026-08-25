@@ -12,9 +12,8 @@ namespace Prototype
     /// <list type="number">
     /// <item><b>몸 전환</b> — 내려가는 몸은 <c>SetActive(false)</c>, 올라오는 몸은 활성화 후
     /// 직전 자리로 배치. 뒷정리는 <c>OnDisable</c>이 맡는다.</item>
-    /// <item><b>빙의 전환</b> — 올라온 몸이 <see cref="PlayerControl"/>을 쓰게 하고,
-    /// 나머지는 <see cref="AllyControl"/>(자율 BT)로 돌린다.
-    /// <see cref="Entity.UseControl{T}"/>가 그 스위치다.</item>
+    /// <item><b>조종 인계</b> — 씬에 하나뿐인 <see cref="PlayerPilot"/>에게 올라온 몸을 넘긴다.
+    /// 나머지 몸은 아무 처리도 필요 없다 — 조종사가 안 보는 몸은 그냥 안 움직인다.</item>
     /// </list>
     ///
     /// 이 컴포넌트는 <b>절대 꺼지지 않는 오브젝트</b>에 붙어야 한다 —
@@ -37,6 +36,9 @@ namespace Prototype
 
         [Tooltip("비우면 씬에서 찾는다. 조준 기준점을 새 몸으로 옮긴다.")]
         [SerializeField] private TargetSelector targetSelector;
+
+        [Tooltip("비우면 씬에서 찾는다. 유저가 모는 몸을 여기에 넘긴다.")]
+        [SerializeField] private PlayerPilot pilot;
 
         [Header("교대")]
         [Tooltip("교대 후 다시 교대할 수 있을 때까지의 시간.")]
@@ -152,6 +154,11 @@ namespace Prototype
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
             if (cameraFollow == null) cameraFollow = FindAnyObjectByType<CameraFollow>();
             if (targetSelector == null) targetSelector = FindAnyObjectByType<TargetSelector>();
+            if (pilot == null) pilot = FindAnyObjectByType<PlayerPilot>();
+
+            if (pilot == null)
+                BattleLog.Warn(LogCategory.State,
+                    "PlayerPilot이 씬에 없다 — 아무도 몸을 몰지 않는다", this);
         }
 
         /// <summary>
@@ -288,22 +295,15 @@ namespace Prototype
         // ── 빙의 ────────────────────────────────────────────
 
         /// <summary>
-        /// 조작권을 옮긴다. 새 몸은 유저가 몰고, 나머지는 자율 BT로 돌린다.
+        /// 조작권을 옮긴다. <b>조종사가 몸 밖에 하나뿐이라 한 줄이면 끝난다</b> —
+        /// 예전에는 로스터를 전부 돌며 몸마다 붙은 Control을 껐다 켰다(빙의) 했다.
         ///
-        /// 플레이어 몸에는 <see cref="AllyControl"/>이 없다 — 그쪽은
-        /// <see cref="Entity.UseControl{T}"/>가 null을 돌려주며 아무도 안 모는 상태가 되고,
-        /// 불릿타임에 불려 나와도 서 있기만 한다. 의도된 동작이다.
+        /// 나머지 몸은 아무 처리도 필요 없다. 조종사가 안 보는 몸은 그냥 안 움직인다.
+        /// 그게 "불려 나온 시전자가 컷인 도중 제 발로 걸어 다니던" 문제의 해결이다.
         /// </summary>
         private void Possess(Entity incoming)
         {
-            for (int i = 0; i < roster.Count; i++)
-            {
-                Entity e = roster[i];
-                if (e == null) continue;
-
-                if (ReferenceEquals(e, incoming)) e.UseControl<PlayerControl>();
-                else e.UseControl<AllyControl>();
-            }
+            pilot?.Take(incoming);
         }
 
         // ── 불릿타임 ────────────────────────────────────────
@@ -361,8 +361,8 @@ namespace Prototype
 
             Reseat();
 
-            // 불려 나온 몸을 유저가 몰면 같은 입력으로 두 몸이 움직인다.
-            if (!ReferenceEquals(caster, Current)) caster.UseControl<AllyControl>();
+            // 불려 나온 몸에는 아무도 안 붙인다. 조종사는 조작 캐릭터만 보고,
+            // 몸에 자율 BT가 없으므로 시전자는 스킬이 나갈 때까지 가만히 서 있는다.
 
             // 카메라는 지금 때리는 쪽을 본다. 숨은 조작 캐릭터를 계속 보면
             // 시전자가 돌진해 나간 뒤 화면에 아무것도 안 남는다.

@@ -33,7 +33,7 @@ namespace Prototype
         [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간.\n\n" +
                  "예고(!)가 basicAttackWindup의 두 배 동안 떠 있으므로, 그 안에 누른 대시가 " +
                  "타격까지 살아 있으려면 이 값이 넉넉해야 한다.\n" +
-                 "PlayerControl.dashCooldown(0.6)보다 크면 사실상 상시 무적이 되니 그보다는 작게 둘 것.")]
+                 "Pilotable.dashCooldown(0.6)보다 크면 사실상 상시 무적이 되니 그보다는 작게 둘 것.")]
         [SerializeField] private float parryWindow = 0.45f;
         [Tooltip("전방으로 인정할 부채꼴의 전체 폭(도). 180이면 옆구리까지 막고 등 뒤만 통과한다.")]
         [SerializeField] private float parryAngle = 180f;

@@ -77,6 +77,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -221,6 +222,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -455,10 +457,10 @@ GameObject:
   - component: {fileID: 5268225802223588667}
   - component: {fileID: 7445972806141947834}
   - component: {fileID: 4540215255994790702}
-  - component: {fileID: 3260338069519320273}
   - component: {fileID: 2347727313910848887}
   - component: {fileID: 3254890401935831399}
   - component: {fileID: 5208665346919485714}
+  - component: {fileID: 4106221556622777783}
   m_Layer: 10
   m_Name: Player
   m_TagString: Untagged
@@ -551,6 +553,9 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 512
+  groundMargin: 0
+  fallOffLedge: 0
+  ledgeDeathY: -12
   acceleration: 60
   deceleration: 80
   impulseDamping: 8
@@ -558,6 +563,8 @@ MonoBehaviour:
   fallGravityScale: 1
   apexHangTime: 0
   apexVelocityThreshold: 3
+  airLaunchScale: 1.1
+  airHitLift: 4
   rotateToFacing: 1
 --- !u!114 &7445972806141947834
 MonoBehaviour:
@@ -622,6 +629,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 3
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0.3
     guardDamage: 0
     snapZ: 0
@@ -638,6 +646,7 @@ MonoBehaviour:
     mode: 0
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
   - label: "\uC911"
     clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
@@ -651,6 +660,7 @@ MonoBehaviour:
     mode: 0
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
   - label: "\uAC15"
     clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
@@ -664,6 +674,7 @@ MonoBehaviour:
     mode: 2
     knockbackForce: 4.5
     launchForce: 6
+    airLaunchForce: 0
     hitStunDuration: 0.5
   skillAttack: {fileID: 7850888382636613912}
   basicProjectile: {fileID: 0}
@@ -677,20 +688,6 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
---- !u!114 &3260338069519320273
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8689976968062280079}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b2d5608b645e604eb7d616e6f0c9144, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerControl
-  dashCooldown: 0.6
-  attackBufferWindow: 0.25
 --- !u!114 &2347727313910848887
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -712,6 +709,7 @@ MonoBehaviour:
   facingRenderer: {fileID: 6118572367038369068}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
+  shadowLift: 0.01
   sortedRenderers:
   - {fileID: 8715709345951585098}
   - {fileID: 6118572367038369068}
@@ -752,3 +750,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 3254890401935831399}
   crossFade: 0.05
+--- !u!114 &4106221556622777783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8689976968062280079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b998316939a736d4fa2c3b775e5ae07d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
+  dashCooldown: 0.6
+  attackBufferWindow: 0.25

@@ -117,29 +117,46 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void PlayerBody_StillHasPlayerControl()
+        public void PlayerBody_IsPilotable()
         {
-            // 입력은 떼어 냈지만 조작 자체는 남는다. 상태머신은 여전히
-            // Control 의 Command / MoveDirection 을 읽는다.
-            Assert.That(Load(PlayerPath).GetComponent<PlayerControl>(), Is.Not.Null,
-                "PlayerControl 이 사라졌다. Entity 상태머신이 명령을 못 받는다.");
+            // 조종사는 몸 밖에 하나뿐이다. 몸에 남는 건 "몰 수 있다"는 표식과
+            // 그 캐릭터의 조작 수치(대시 쿨 · 선입력 창)뿐이다.
+            Assert.That(Load(PlayerPath).GetComponent<Pilotable>(), Is.Not.Null,
+                "Player 프리팹에 Pilotable 이 없다 — 조종사가 대시 쿨 · 선입력 창을 기본값으로 돌린다.");
         }
 
         [Test]
-        public void AllyBody_HasBothControls()
+        public void AllyBodies_ArePilotable()
         {
-            // 동료도 태그로 조작 대상이 된다. PlayerControl 이 없으면 교대해도 안 움직이고,
-            // AllyControl 이 없으면 불릿타임에 불려 나와서 가만히 서 있는다.
+            // 동료도 태그로 조작 대상이 된다.
             foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (go == null || go.GetComponent<Ally>() == null) continue;
 
-                Assert.That(go.GetComponent<PlayerControl>(), Is.Not.Null,
-                    $"{path} 에 PlayerControl 이 없다 — 교대해도 조작이 안 넘어간다.");
-                Assert.That(go.GetComponent<AllyControl>(), Is.Not.Null,
-                    $"{path} 에 AllyControl 이 없다.");
+                Assert.That(go.GetComponent<Pilotable>(), Is.Not.Null,
+                    $"{path} 에 Pilotable 이 없다 — 교대해도 조작 수치가 기본값으로 돈다.");
+            }
+        }
+
+        /// <summary>
+        /// 빙의 모델의 잔해가 남아 있으면 안 된다. 몸에 조종사가 붙어 있던 시절에는
+        /// 프리팹과 씬이 조용히 어긋났다 — 어떤 몸에는 붙고 어떤 몸에는 안 붙어도
+        /// 게임이 그냥 돌아가 버렸다.
+        /// </summary>
+        [Test]
+        public void Bodies_CarryNoDriverExceptEnemyAi()
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (go == null || go.GetComponent<Entity>() == null) continue;
+
+                foreach (Control c in go.GetComponents<Control>())
+                    Assert.That(c, Is.TypeOf<EnemyControl>(),
+                        $"{path} 에 {c.GetType().Name} 이 붙어 있다 — 몸에 붙는 드라이버는 EnemyControl 뿐이다.");
             }
         }
     }

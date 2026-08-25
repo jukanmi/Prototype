@@ -172,6 +172,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -190,10 +191,10 @@ GameObject:
   - component: {fileID: 3283989239390232723}
   - component: {fileID: 6178053980423428800}
   - component: {fileID: 9215232113246201951}
-  - component: {fileID: 7717689963580079128}
   - component: {fileID: 7635194681133861568}
   - component: {fileID: 8329762577736369492}
   - component: {fileID: 3542221482747386564}
+  - component: {fileID: 4897394032611718660}
   m_Layer: 10
   m_Name: Ally
   m_TagString: Untagged
@@ -286,6 +287,9 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 512
+  groundMargin: 0
+  fallOffLedge: 0
+  ledgeDeathY: -12
   acceleration: 60
   deceleration: 80
   impulseDamping: 8
@@ -293,6 +297,8 @@ MonoBehaviour:
   fallGravityScale: 1
   apexHangTime: 0
   apexVelocityThreshold: 3
+  airLaunchScale: 1.1
+  airHitLift: 4
   rotateToFacing: 1
 --- !u!114 &6178053980423428800
 MonoBehaviour:
@@ -357,6 +363,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     knockbackForce: 3
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0.3
     guardDamage: 0
     snapZ: 0
@@ -373,6 +380,7 @@ MonoBehaviour:
     mode: 0
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
   - label: "\uC911"
     clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
@@ -386,6 +394,7 @@ MonoBehaviour:
     mode: 0
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
   - label: "\uAC15"
     clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
@@ -399,6 +408,7 @@ MonoBehaviour:
     mode: 2
     knockbackForce: 4.5
     launchForce: 6
+    airLaunchForce: 0
     hitStunDuration: 0.5
   skillAttack: {fileID: 4654731296532544185}
   basicProjectile: {fileID: 0}
@@ -419,22 +429,6 @@ MonoBehaviour:
   - data: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
     drawWeight: 1
   realtimeSkillTimeout: 5
---- !u!114 &7717689963580079128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6734300126761519738}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5dcf0f00e3cbeee45880d635de54f4d1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AllyControl
-  attackRange: 2.2
-  attackInterval: 1.2
-  retargetInterval: 0.5
-  leashRange: 12
 --- !u!114 &7635194681133861568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -456,6 +450,7 @@ MonoBehaviour:
   facingRenderer: {fileID: 3572346084441602960}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
+  shadowLift: 0.01
   sortedRenderers:
   - {fileID: 6145137433148996099}
   - {fileID: 3572346084441602960}
@@ -496,6 +491,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 8329762577736369492}
   crossFade: 0.05
+--- !u!114 &4897394032611718660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6734300126761519738}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b998316939a736d4fa2c3b775e5ae07d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
+  dashCooldown: 0.6
+  attackBufferWindow: 0.25
 --- !u!1 &7230559412293541981
 GameObject:
   m_ObjectHideFlags: 0
@@ -573,6 +582,7 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     knockbackForce: 0
     launchForce: 0
+    airLaunchForce: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0

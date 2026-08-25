@@ -397,7 +397,7 @@ namespace PrototypeEditor
             SetSerialized(combat, so => so.FindProperty("maxHealth").floatValue = 150f);
 
             var player = root.AddComponent<Player>();
-            root.AddComponent<PlayerControl>();
+            root.AddComponent<Pilotable>();
 
             SetSerialized(player, so =>
             {
@@ -426,9 +426,8 @@ namespace PrototypeEditor
                 var ally = root.AddComponent<Ally>();
 
                 // 태그 몸은 Control을 둘 다 달고 있고 TagSwapController가 하나를 고른다.
-                // 조작 대상이면 PlayerControl, 아니면 자율 BT다.
-                root.AddComponent<AllyControl>();
-                root.AddComponent<PlayerControl>();
+                // 조종사는 씬에 하나뿐이고 몸 밖에 있다. 몸에는 "몰 수 있다"는 표식만 붙인다.
+                root.AddComponent<Pilotable>();
 
                 List<SkillData> combo = skills.Combo[role];
                 SetSerialized(ally, so =>

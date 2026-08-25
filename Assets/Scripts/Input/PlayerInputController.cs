@@ -8,7 +8,7 @@ namespace Prototype
     /// 입력을 읽는 <b>유일한</b> 곳. 다른 어떤 스크립트도 <c>Keyboard.current</c>·<c>Mouse.current</c>를
     /// 직접 만지지 않는다.
     ///
-    /// 콜백이 아니라 <b>폴링</b>이다. <see cref="PlayerControl.Tick"/>은 Entity.Update가 부르고
+    /// 콜백이 아니라 <b>폴링</b>이다. <see cref="PlayerPilot.Tick"/>은 자기 Update가 부르고
     /// 지휘 입력은 <see cref="BattleCommander"/>가 따로 읽는데, 콜백으로 받으면 이 순서에 맞춰
     /// "이번 프레임에 눌렸다"를 직접 래치해야 한다. <c>WasPressedThisFrame</c>은 프레임 내내
     /// 같은 답을 주므로 누가 몇 번을 읽든 상관없다.

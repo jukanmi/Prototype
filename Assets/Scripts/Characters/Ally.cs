@@ -28,22 +28,9 @@ namespace Prototype
         /// <summary>실시간으로 밀어넣은 스킬의 뒷정리 코루틴. 한 번에 하나만 돈다.</summary>
         private Coroutine releaseRoutine;
 
-        /// <summary>
-        /// 자율 전투 BT. 지금 이 몸을 몰고 있는지와 무관하게 붙어 있다 —
-        /// 조준 기준(<see cref="PreferredTarget"/>)을 여기서 얻기 때문이다.
-        /// </summary>
-        private AllyControl allyControl;
-
         public Role Role => role;
         public Sprite Portrait => portrait;
         public IReadOnlyList<ComboCard> Equipped => equipped;
-        public AllyControl AllyControl => allyControl != null ? allyControl : allyControl = GetComponent<AllyControl>();
-
-        protected override void Awake()
-        {
-            base.Awake();
-            allyControl = GetComponent<AllyControl>();
-        }
 
         /// <summary>
         /// 등록이 <c>Start</c>가 아니라 여기인 이유는 <see cref="TagSwapController"/>가
@@ -169,14 +156,15 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이 동료가 겨눌 적. 지휘 대상이 잡혀 있으면 그쪽을, 없으면 최근접 적을 쓴다.
-        /// 평타 · BT가 보는 기준이다. 스킬 카드는 <see cref="PickTarget"/>을 쓴다 —
-        /// 밀치기는 "가장 먼 적"이어야 하는데 지휘 대상이 그걸 덮으면 안 되기 때문이다.
+        /// 이 동료가 겨눌 적. 최근접 적이다.
+        ///
+        /// 예전에는 자율 BT가 물고 있던 지휘 대상을 먼저 봤다. 그 BT는 조종사가 몸 밖으로
+        /// 나가면서 사라졌다 — 동료는 이제 조작 대상이 아닌 동안 아무 판단도 하지 않는다.
+        ///
+        /// 스킬 카드는 <see cref="PickTarget"/>을 쓴다 — 밀치기는 "가장 먼 적"이어야 하는데
+        /// 이 기준이 그걸 덮으면 안 되기 때문이다.
         /// </summary>
-        public Entity PreferredTarget
-            => allyControl != null && allyControl.Target != null && !allyControl.Target.Combat.IsDead
-                ? allyControl.Target
-                : BattleRegistry.NearestEnemy(transform.position);
+        public Entity PreferredTarget => BattleRegistry.NearestEnemy(transform.position);
 
         /// <summary>
         /// 이 스킬이 겨눌 적. <b>규칙은 둘뿐이다</b> — 가장 가까운 적, 가장 먼 적
