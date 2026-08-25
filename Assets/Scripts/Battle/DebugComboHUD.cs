@@ -48,7 +48,11 @@ namespace Prototype
 
             DrawAimMarker();
 
-            GUILayout.BeginArea(new Rect(10, 10, 460, 580), BuildText(), box);
+            // 좌하단 고정. 화면이 패널보다 짧으면 위로 넘치지 않게 여백에서 멈춘다.
+            const float W = 460f, H = 580f, M = 10f;
+            float top = Mathf.Max(M, Screen.height - H - M);
+
+            GUILayout.BeginArea(new Rect(M, top, W, H), BuildText(), box);
             GUILayout.EndArea();
         }
 
