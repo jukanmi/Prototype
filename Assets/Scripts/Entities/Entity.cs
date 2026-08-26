@@ -219,9 +219,8 @@ namespace Prototype
             : cachedAnimator = GetComponentInChildren<EntityAnimator>(true);
 
         /// <summary>
-        /// 지금 이 몸을 모는 것. <see cref="UseControl{T}"/>가 갈아 끼운다.
-        /// 아무도 안 몰면 null이다 — 태그로 내려간 몸과, 불릿타임에 불려 나왔지만
-        /// 조작 대상이 아닌 몸이 그렇다.
+        /// 이 몸에 붙은 AI 드라이버. 이제 <see cref="EnemyControl"/>뿐이다.
+        /// 유저가 모는 몸은 null이다 — 조종사(<see cref="PlayerPilot"/>)가 밖에서 몬다.
         /// </summary>
         public Control Control { get; private set; }
 
@@ -379,17 +378,11 @@ namespace Prototype
         public GetupState GetupState { get; private set; }
         public DeadState DeadState { get; private set; }
 
-        /// <summary>이 몸에 붙은 모든 Control. 태그 교대가 이 중 하나를 고른다.</summary>
-        private Control[] controls;
-
         protected virtual void Awake()
         {
             cachedPhysics = GetComponent<Physics>();
             cachedCombat = GetComponent<Combat>();
 
-            controls = GetComponents<Control>();
-            // 인스펙터에서 켜 둔 것을 그대로 존중한다. 씬을 그냥 돌렸을 때
-            // 태그 컨트롤러 없이도 예전처럼 움직이게 하기 위한 기본값이다.
             Control = FirstEnabledControl();
 
             StateMachine = new StateMachine { OwnerName = name };
@@ -523,43 +516,6 @@ namespace Prototype
         // ── 빙의 ────────────────────────────────────────────
 
         /// <summary>
-        /// 이 몸을 <typeparamref name="T"/>가 몰게 한다. 나머지 Control은 꺼지고,
-        /// 꺼지는 쪽은 <see cref="Control.Consume"/>로 남은 명령을 비운다 —
-        /// 안 그러면 갈아탄 첫 프레임에 직전 주인이 남긴 평타가 한 번 더 나간다.
-        ///
-        /// 해당 Control이 없으면 <b>아무도 안 모는 상태</b>가 되고 null을 돌려준다.
-        /// 이제 몸에 붙는 드라이버는 <see cref="EnemyControl"/>뿐이라 사실상 적만 쓴다 —
-        /// 유저가 모는 몸은 <see cref="PlayerPilot"/>이 밖에서 몬다.
-        /// </summary>
-        public T UseControl<T>() where T : Control
-        {
-            if (controls == null) controls = GetComponents<Control>();
-
-            T picked = null;
-
-            // 의도는 이제 몸이 들고 있으므로 한 번만 비우면 된다.
-            ClearIntent();
-
-            for (int i = 0; i < controls.Length; i++)
-            {
-                Control c = controls[i];
-                if (c == null) continue;
-
-                if (c is T match)
-                {
-                    picked = match;
-                    c.enabled = true;
-                    continue;
-                }
-
-                c.enabled = false;
-            }
-
-            Control = picked;
-            return picked;
-        }
-
-        /// <summary>
         /// 태그로 내려갈 때의 공통 뒷정리. <b>두 가지를 반드시 되돌려야 한다.</b>
         ///
         /// <list type="number">
@@ -586,10 +542,16 @@ namespace Prototype
             StateMachine?.ForceChangeState(IdleState);
         }
 
+        /// <summary>
+        /// 이 몸을 모는 드라이버. 이제 <see cref="EnemyControl"/>뿐이라 사실상 적만 잡힌다.
+        ///
+        /// <c>enabled</c>를 보는 이유는 인스펙터에서 꺼 둔 AI를 존중하기 위해서다 —
+        /// 훈련용 허수아비처럼 서 있기만 해야 하는 몸이 있다.
+        /// </summary>
         private Control FirstEnabledControl()
         {
-            for (int i = 0; i < controls.Length; i++)
-                if (controls[i] != null && controls[i].enabled) return controls[i];
+            foreach (Control c in GetComponents<Control>())
+                if (c != null && c.enabled) return c;
 
             return null;
         }
