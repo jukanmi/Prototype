@@ -156,35 +156,21 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이 동료가 겨눌 적. 최근접 적이다.
-        ///
-        /// 예전에는 자율 BT가 물고 있던 지휘 대상을 먼저 봤다. 그 BT는 조종사가 몸 밖으로
-        /// 나가면서 사라졌다 — 동료는 이제 조작 대상이 아닌 동안 아무 판단도 하지 않는다.
-        ///
-        /// 스킬 카드는 <see cref="PickTarget"/>을 쓴다 — 밀치기는 "가장 먼 적"이어야 하는데
-        /// 이 기준이 그걸 덮으면 안 되기 때문이다.
-        /// </summary>
-        public Entity PreferredTarget => BattleRegistry.NearestEnemy(transform.position);
-
-        /// <summary>
-        /// 이 스킬이 겨눌 적. <b>규칙은 둘뿐이다</b> — 가장 가까운 적, 가장 먼 적
-        /// (<see cref="SkillData.targetPick"/>). 훑기도 부채꼴도 없다.
-        /// </summary>
-        public Entity PickTarget(SkillData data)
-            => data == null
-                ? PreferredTarget
-                : BattleRegistry.PickEnemy(transform.position, data.targetPick);
-
-        /// <summary>
         /// 유저 조준이 없을 때 쓰는 자동 조준. 대상의 <b>좌표</b>만 뽑아 담는다 —
         /// 손패 카드가 조준 없이 발동할 때 쓴다.
         /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 같은 규칙으로 다시 고른다.
+        ///
+        /// <b>동료의 판단이 아니다.</b> 자율 BT는 조종사가 몸 밖으로 나가면서 사라졌다 —
+        /// 이건 유저가 조준을 생략했을 때 대신 채워 주는 편의 기능이다.
+        ///
+        /// 규칙은 둘뿐이다 — 가장 가까운 적, 가장 먼 적(<see cref="SkillData.targetPick"/>).
+        /// 훑기도 부채꼴도 없다.
         /// </summary>
         public TargetInfo AutoTarget(SkillData data)
         {
             if (data == null) return TargetInfo.None;
 
-            Entity target = PickTarget(data);
+            Entity target = BattleRegistry.PickEnemy(transform.position, data.targetPick);
 
             switch (data.targeting)
             {
