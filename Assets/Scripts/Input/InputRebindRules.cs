@@ -18,7 +18,7 @@ namespace Prototype
     /// </summary>
     public static class InputRebindRules
     {
-        /// <summary>정지 중에도 먹는 Gameplay 액션. 나머지는 PlayerControl의 게이트에 막힌다.</summary>
+        /// <summary>정지 중에도 먹는 Gameplay 액션. 나머지는 조종사(PlayerPilot)의 게이트에 막힌다.</summary>
         private static readonly HashSet<string> CommanderActions = new HashSet<string>
         {
             InputActionNames.Gameplay.BulletTime,

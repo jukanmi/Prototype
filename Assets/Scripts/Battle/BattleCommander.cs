@@ -10,7 +10,7 @@ namespace Prototype
     /// <c>PlayerInput</c> · <see cref="PlayerInputController"/> · <see cref="InputMapSwitcher"/>도
     /// 여기 함께 둔다.
     ///
-    /// 몸을 실제로 움직이는 건 <see cref="PlayerControl"/>이다. 여기는 몸과 무관한 키만 본다.
+    /// 몸을 실제로 움직이는 건 <see cref="PlayerPilot"/>이다. 여기는 몸과 무관한 키만 본다.
     /// </summary>
     public class BattleCommander : MonoBehaviour
     {

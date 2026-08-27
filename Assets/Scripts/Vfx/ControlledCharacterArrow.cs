@@ -76,14 +76,14 @@ namespace Prototype
             if (cachedSwap != null && cachedSwap.Current != null)
                 return cachedSwap.Current;
 
-            // 태그 컨트롤러가 없는 씬을 위한 폴백: 아군 중 PlayerControl을 쥐고 있는 몸
+            // 태그 컨트롤러가 없는 씬을 위한 폴백: 아군 중 조종사가 물고 있는 몸
             var allies = BattleRegistry.Allies;
             if (allies != null)
             {
                 for (int i = 0; i < allies.Count; i++)
                 {
                     Entity e = allies[i];
-                    if (e != null && e.Control is PlayerControl && e.gameObject.activeSelf && !e.Combat.IsDead)
+                    if (e != null && e.IsPiloted && e.gameObject.activeSelf && !e.Combat.IsDead)
                         return e;
                 }
             }

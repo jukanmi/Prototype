@@ -28,22 +28,9 @@ namespace Prototype
         /// <summary>실시간으로 밀어넣은 스킬의 뒷정리 코루틴. 한 번에 하나만 돈다.</summary>
         private Coroutine releaseRoutine;
 
-        /// <summary>
-        /// 자율 전투 BT. 지금 이 몸을 몰고 있는지와 무관하게 붙어 있다 —
-        /// 조준 기준(<see cref="PreferredTarget"/>)을 여기서 얻기 때문이다.
-        /// </summary>
-        private AllyControl allyControl;
-
         public Role Role => role;
         public Sprite Portrait => portrait;
         public IReadOnlyList<ComboCard> Equipped => equipped;
-        public AllyControl AllyControl => allyControl != null ? allyControl : allyControl = GetComponent<AllyControl>();
-
-        protected override void Awake()
-        {
-            base.Awake();
-            allyControl = GetComponent<AllyControl>();
-        }
 
         /// <summary>
         /// 등록이 <c>Start</c>가 아니라 여기인 이유는 <see cref="TagSwapController"/>가
@@ -171,34 +158,21 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이 동료가 겨눌 적. 지휘 대상이 잡혀 있으면 그쪽을, 없으면 최근접 적을 쓴다.
-        /// 평타 · BT가 보는 기준이다. 스킬 카드는 <see cref="PickTarget"/>을 쓴다 —
-        /// 밀치기는 "가장 먼 적"이어야 하는데 지휘 대상이 그걸 덮으면 안 되기 때문이다.
-        /// </summary>
-        public Entity PreferredTarget
-            => allyControl != null && allyControl.Target != null && !allyControl.Target.Combat.IsDead
-                ? allyControl.Target
-                : BattleRegistry.NearestEnemy(transform.position);
-
-        /// <summary>
-        /// 이 스킬이 겨눌 적. <b>규칙은 둘뿐이다</b> — 가장 가까운 적, 가장 먼 적
-        /// (<see cref="SkillData.targetPick"/>). 훑기도 부채꼴도 없다.
-        /// </summary>
-        public Entity PickTarget(SkillData data)
-            => data == null
-                ? PreferredTarget
-                : BattleRegistry.PickEnemy(transform.position, data.targetPick);
-
-        /// <summary>
         /// 유저 조준이 없을 때 쓰는 자동 조준. 대상의 <b>좌표</b>만 뽑아 담는다 —
         /// 손패 카드가 조준 없이 발동할 때 쓴다.
         /// 대상 자체는 시전 순간 <see cref="SkillState.ResolveTarget"/>이 같은 규칙으로 다시 고른다.
+        ///
+        /// <b>동료의 판단이 아니다.</b> 자율 BT는 조종사가 몸 밖으로 나가면서 사라졌다 —
+        /// 이건 유저가 조준을 생략했을 때 대신 채워 주는 편의 기능이다.
+        ///
+        /// 규칙은 둘뿐이다 — 가장 가까운 적, 가장 먼 적(<see cref="SkillData.targetPick"/>).
+        /// 훑기도 부채꼴도 없다.
         /// </summary>
         public TargetInfo AutoTarget(SkillData data)
         {
             if (data == null) return TargetInfo.None;
 
-            Entity target = PickTarget(data);
+            Entity target = BattleRegistry.PickEnemy(transform.position, data.targetPick);
 
             switch (data.targeting)
             {

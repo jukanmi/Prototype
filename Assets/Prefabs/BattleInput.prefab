@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6591301416136622774}
   - component: {fileID: 8887573751772618589}
   - component: {fileID: 3934412128785038699}
+  - component: {fileID: 1992139283966176409}
   m_Layer: 0
   m_Name: BattleInput
   m_TagString: Untagged
@@ -108,6 +109,7 @@ MonoBehaviour:
   bulletTime: {fileID: 0}
   cameraFollow: {fileID: 0}
   targetSelector: {fileID: 0}
+  pilot: {fileID: 0}
   swapCooldown: 1.5
   benchOffsets:
   - {x: -2.4, y: 0, z: -0.8}
@@ -115,6 +117,7 @@ MonoBehaviour:
   - {x: 1.2, y: 0, z: -0.8}
   - {x: 2.4, y: 0, z: 0.8}
   - {x: 3.6, y: 0, z: -0.4}
+  returnToLastCasterSpot: 1
 --- !u!114 &3934412128785038699
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129,3 +132,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BattleCommander
   bulletTime: {fileID: 0}
   swap: {fileID: 0}
+--- !u!114 &1992139283966176409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3888511937950883998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18bc9179a65119843b3ce3d34ee9f77c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerPilot

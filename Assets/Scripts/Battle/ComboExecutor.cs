@@ -8,7 +8,7 @@ namespace Prototype
     /// <summary>
     /// 큐에 쌓인 슬롯을 순서대로 실행한다.
     /// Control을 건드리지 않고 <b>상태머신을 강탈</b>하는 방식(결정 로그 ②).
-    /// AllyControl의 BT는 IsCommanded 동안 정지한다.
+    /// 시전자는 몸에 조종사가 없으므로 스킬이 나갈 때까지 스스로 움직이지 않는다.
     /// </summary>
     public class ComboExecutor : MonoBehaviour
     {

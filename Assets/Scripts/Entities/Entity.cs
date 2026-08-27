@@ -33,7 +33,7 @@ namespace Prototype
         };
 
         [Tooltip("평타 연타 단계. 비워 두면 지금까지의 단발 평타 그대로다 — 적 · 자율 동료가 그렇다.\n\n" +
-                 "채우면 유저가 모는 몸(PlayerControl)만 버튼을 반복해 이어 칠 수 있다.\n" +
+                 "채우면 유저가 모는 몸만 버튼을 반복해 이어 칠 수 있다.\n" +
                  "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
         [SerializeField] private BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
 
@@ -219,9 +219,8 @@ namespace Prototype
             : cachedAnimator = GetComponentInChildren<EntityAnimator>(true);
 
         /// <summary>
-        /// 지금 이 몸을 모는 것. <see cref="UseControl{T}"/>가 갈아 끼운다.
-        /// 아무도 안 몰면 null이다 — 태그로 내려간 몸과, 불릿타임에 불려 나왔지만
-        /// 조작 대상이 아닌 몸이 그렇다.
+        /// 이 몸에 붙은 AI 드라이버. 이제 <see cref="EnemyControl"/>뿐이다.
+        /// 유저가 모는 몸은 null이다 — 조종사(<see cref="PlayerPilot"/>)가 밖에서 몬다.
         /// </summary>
         public Control Control { get; private set; }
 
@@ -229,11 +228,88 @@ namespace Prototype
         /// true면 <b>어떤 Control도 명령을 내지 않는다</b>. <see cref="ComboExecutor"/>가
         /// 상태머신을 강탈하는 동안 켠다(결정 로그 ②).
         ///
-        /// Control이 아니라 여기 있는 이유는 태그 교대 때문이다. 몸을 모는 주체가
-        /// PlayerControl ↔ AllyControl 로 바뀌는데, 지휘 플래그가 Control에 붙어 있으면
-        /// 갈아타는 순간 값이 통째로 사라진다.
+        /// 조종사가 아니라 여기 있는 이유는 태그 교대 때문이다. 조종사는 몸을 갈아타는데,
+        /// 지휘 플래그가 조종사에 붙어 있으면 갈아타는 순간 값이 통째로 사라진다.
         /// </summary>
         public bool IsCommanded { get; set; }
+
+        /// <summary>
+        /// 유저가 지금 이 몸을 몰고 있는가. <see cref="PlayerPilot"/>이 켜고 끈다.
+        ///
+        /// <see cref="IsCommanded"/>와 같은 이유로 여기 있다 — 조종사가 몸 밖에 있으므로
+        /// "이 몸이 조종 대상인가"는 몸이 들고 있어야 한다. 대시 패리처럼
+        /// <b>유저가 몰 때만 열리는 규칙</b>이 이 값을 본다.
+        /// </summary>
+        public bool IsPiloted { get; set; }
+
+        // ── 의도 ────────────────────────────────────────────
+
+        /// <summary>
+        /// 이번 프레임의 명령. 조종사(<see cref="PlayerPilot"/>)나 AI(<see cref="EnemyControl"/>)가
+        /// 채우고 상태머신이 읽어 소비한다.
+        ///
+        /// <b>Control이 아니라 몸이 들고 있다.</b> 조종사가 몸 밖으로 나갔으므로,
+        /// 의도를 조종사가 들고 있으면 몸이 바뀌는 순간 값이 통째로 사라진다 —
+        /// <see cref="IsCommanded"/>를 여기로 올린 것과 같은 이유다.
+        /// </summary>
+        public Command Command { get; private set; } = Command.None;
+
+        /// <summary>이번 프레임의 이동 방향. 벨트스크롤이라 XZ 평면이다.</summary>
+        public Vector3 MoveDirection { get; private set; }
+
+        /// <summary>
+        /// 평타 선입력. 의도의 유효기간을 늘린 것뿐이라 의도와 같은 층에 둔다.
+        ///
+        /// 덤으로 <b>AI는 연타를 칠 수단 자체가 없어진다</b> — <see cref="EnemyControl"/>은
+        /// <see cref="BufferAttack"/>을 부르지 않는다. bool 플래그로 막는 것보다 강한 보장이다.
+        /// </summary>
+        private AttackInputBuffer attackBuffer;
+
+        /// <summary>이번 프레임의 의도를 통째로 갈아 끼운다. 조종사와 AI가 부른다.</summary>
+        public void Drive(Command command, Vector3 moveDirection)
+        {
+            Command = command;
+            MoveDirection = moveDirection;
+        }
+
+        /// <summary>명령만 지운다. <b>이동 방향은 남긴다</b> — 걷는 도중에 명령만 소비되는 경우가 있다.</summary>
+        public void Consume() => Command = Command.None;
+
+        /// <summary>이번 프레임 의도를 비운다. 선입력은 건드리지 않는다.</summary>
+        public void ClearCommand()
+        {
+            Command = Command.None;
+            MoveDirection = Vector3.zero;
+        }
+
+        /// <summary>
+        /// 남은 의도를 통째로 비운다. 몸에서 손을 뗄 때.
+        /// <see cref="Consume"/>는 이동 방향을 남기므로 여기서는 못 쓴다 —
+        /// 태그로 내려간 몸이 마지막 이동 방향을 물고 있으면 다시 섰을 때 혼자 걸어간다.
+        ///
+        /// 선입력도 같이 버린다. 안 그러면 내려간 몸이 물고 있던 입력이
+        /// 다시 섰을 때 터져 아무도 안 누른 평타가 나간다.
+        /// </summary>
+        public void ClearIntent()
+        {
+            ClearCommand();
+            attackBuffer.Clear();
+        }
+
+        /// <summary>선입력을 채운다. 유저 입력을 읽는 쪽만 부른다.</summary>
+        public void BufferAttack(float window) => attackBuffer.Press(window);
+
+        /// <summary>선입력 창을 흘린다. <see cref="ClearCommand"/>와 달리 프레임마다 지워지지 않는다.</summary>
+        public void TickAttackBuffer(float dt) => attackBuffer.Tick(dt);
+
+        /// <summary>선입력이 살아 있는지 들여다본다. 비우지 않는다.</summary>
+        public bool HasAttackBuffer => attackBuffer.HasInput;
+
+        /// <summary>남아 있으면 true를 내고 비운다.</summary>
+        public bool TryConsumeAttackBuffer() => attackBuffer.TryConsume();
+
+        /// <summary>선입력을 버린다. 공격에 들어가는 순간, 그 입력을 두 번 쓰지 않으려고 부른다.</summary>
+        public void ClearAttackBuffer() => attackBuffer.Clear();
 
         /// <summary>
         /// 공격 예고(선딜) 중인가. <b>맞기 전에 읽을 수 있는 유일한 신호</b>다.
@@ -302,17 +378,11 @@ namespace Prototype
         public GetupState GetupState { get; private set; }
         public DeadState DeadState { get; private set; }
 
-        /// <summary>이 몸에 붙은 모든 Control. 태그 교대가 이 중 하나를 고른다.</summary>
-        private Control[] controls;
-
         protected virtual void Awake()
         {
             cachedPhysics = GetComponent<Physics>();
             cachedCombat = GetComponent<Combat>();
 
-            controls = GetComponents<Control>();
-            // 인스펙터에서 켜 둔 것을 그대로 존중한다. 씬을 그냥 돌렸을 때
-            // 태그 컨트롤러 없이도 예전처럼 움직이게 하기 위한 기본값이다.
             Control = FirstEnabledControl();
 
             StateMachine = new StateMachine { OwnerName = name };
@@ -446,41 +516,6 @@ namespace Prototype
         // ── 빙의 ────────────────────────────────────────────
 
         /// <summary>
-        /// 이 몸을 <typeparamref name="T"/>가 몰게 한다. 나머지 Control은 꺼지고,
-        /// 꺼지는 쪽은 <see cref="Control.Consume"/>로 남은 명령을 비운다 —
-        /// 안 그러면 갈아탄 첫 프레임에 직전 주인이 남긴 평타가 한 번 더 나간다.
-        ///
-        /// 해당 Control이 없으면 <b>아무도 안 모는 상태</b>가 되고 null을 돌려준다.
-        /// 플레이어 몸에 <see cref="AllyControl"/>이 없는 게 정상이라 이 경로가 필요하다 —
-        /// 불릿타임에 불려 나온 플레이어 몸은 서 있기만 해야 한다.
-        /// </summary>
-        public T UseControl<T>() where T : Control
-        {
-            if (controls == null) controls = GetComponents<Control>();
-
-            T picked = null;
-
-            for (int i = 0; i < controls.Length; i++)
-            {
-                Control c = controls[i];
-                if (c == null) continue;
-
-                if (c is T match)
-                {
-                    picked = match;
-                    c.enabled = true;
-                    continue;
-                }
-
-                c.ClearIntent();
-                c.enabled = false;
-            }
-
-            Control = picked;
-            return picked;
-        }
-
-        /// <summary>
         /// 태그로 내려갈 때의 공통 뒷정리. <b>두 가지를 반드시 되돌려야 한다.</b>
         ///
         /// <list type="number">
@@ -507,10 +542,16 @@ namespace Prototype
             StateMachine?.ForceChangeState(IdleState);
         }
 
+        /// <summary>
+        /// 이 몸을 모는 드라이버. 이제 <see cref="EnemyControl"/>뿐이라 사실상 적만 잡힌다.
+        ///
+        /// <c>enabled</c>를 보는 이유는 인스펙터에서 꺼 둔 AI를 존중하기 위해서다 —
+        /// 훈련용 허수아비처럼 서 있기만 해야 하는 몸이 있다.
+        /// </summary>
         private Control FirstEnabledControl()
         {
-            for (int i = 0; i < controls.Length; i++)
-                if (controls[i] != null && controls[i].enabled) return controls[i];
+            foreach (Control c in GetComponents<Control>())
+                if (c != null && c.enabled) return c;
 
             return null;
         }
