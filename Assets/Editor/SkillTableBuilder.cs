@@ -225,11 +225,12 @@ namespace Prototype.EditorTools
                         // HitData가 아니라 AirborneEffect로 띄우는 스킬(융기)도 있다.
                         // 첫 타만 보면 둘 다 가짜 경고가 뜬다.
                         //
-                        // 끌어오는 것도 시동으로 친다(사슬견인). 시동기의 정의는 "띄운다"가 아니라
-                        // "콤보를 열어 준다"이고, 적을 손 안으로 모아 오는 것도 그 역할을 한다.
-                        if (!LaunchesByHit(s) && !LaunchesByEffect(s) && !GathersByHit(s))
-                            problems += Warn(s, $"{tag}: 시동기인데 어느 타에도 띄우기(Up · airborneHeight)도 " +
-                                                "끌어오기(TowardCaster)도 없고 AirborneEffect도 없다. 콤보가 안 열린다.");
+                        // 끌어오는 것도, 밀어내는 것도 시동으로 친다(사슬견인 · 대지 강타 · 숄더 차지).
+                        // 시동기의 정의는 "띄운다"가 아니라 "콤보를 열어 준다"이고,
+                        // 적을 손 안으로 모아 오는 것도 벽으로 날려 바운드를 만드는 것도 그 역할을 한다.
+                        if (!LaunchesByHit(s) && !LaunchesByEffect(s) && !GathersByHit(s) && !PushesByHit(s))
+                            problems += Warn(s, $"{tag}: 시동기인데 어느 타에도 띄우기(airborneHeight)도 " +
+                                                "끌어오기 · 밀어내기(pushDistance)도 없고 AirborneEffect도 없다. 콤보가 안 열린다.");
                         break;
 
                     case AttackType.Finisher:
@@ -293,6 +294,18 @@ namespace Prototype.EditorTools
                 Debug.Log($"<b>[검증] 통과</b> — 스킬 {skills.Length}장, 문제 없음");
             else
                 Debug.LogWarning($"<b>[검증] 문제 {problems}건</b> — 위 경고 확인");
+        }
+
+        /// <summary>어느 한 타라도 적을 밀어내는지. 시동기가 벽바운드로 콤보를 여는 경우.</summary>
+        private static bool PushesByHit(SkillData s)
+        {
+            if (s.hitDataList == null) return false;
+
+            for (int i = 0; i < s.hitDataList.Count; i++)
+                if (s.hitDataList[i].mode != KnockbackMode.TowardCaster && s.hitDataList[i].pushDistance > 0f)
+                    return true;
+
+            return false;
         }
 
         /// <summary>어느 한 타라도 적을 끌어오는지. 시동기가 모으기로 콤보를 여는 경우.</summary>

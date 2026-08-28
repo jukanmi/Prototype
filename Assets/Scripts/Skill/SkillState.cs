@@ -104,6 +104,59 @@ namespace Prototype
         protected float EndTime => data.TotalDuration;
 
         /// <summary>
+        /// 지금 이 스킬이 때릴 자리. 선딜부터 후딜까지 계속 true다 — 발동 순간에만 보이면
+        /// "어디로 나갈지"가 아니라 "방금 어디였는지"가 된다(<see cref="AttackRangeIndicator"/>가
+        /// 적 예고를 그리는 것과 같은 발상, <see cref="IEnemySpecialAction.TryGetRange"/> 참고).
+        ///
+        /// 원거리(투사체)는 착탄 지점이 시전 위치와 다르므로 그리지 않는다 —
+        /// 틀린 자리에 그리는 것보다 안 그리는 게 낫다.
+        /// </summary>
+        public virtual bool TryGetRangePreview(out AttackRangePreview range)
+        {
+            range = default;
+            if (finished || data.IsRanged || ctx.caster == null || data.hitDataList.Count == 0)
+                return false;
+
+            float progress = Mathf.Clamp01(timer / Mathf.Max(0.01f, EndTime));
+            HitData hit = data.hitDataList[Mathf.Clamp(nextHitIndex, 0, data.hitDataList.Count - 1)];
+
+            if (data.IsCone)
+            {
+                Physics phys = ctx.CasterPhysics;
+                if (phys == null) return false;
+
+                float radius = ctx.caster.HurtboxSize.x * data.RangeScaleFor(in hit).x;
+                range = AttackRangePreview.FromCone(phys.GroundPosition, phys.Facing, radius,
+                                                     data.castConeAngle, progress);
+                return true;
+            }
+
+            if (!data.UsesRadius)
+            {
+                Physics phys = ctx.CasterPhysics;
+                if (phys == null) return false;
+
+                Vector3 scale = data.RangeScaleFor(in hit);
+                if (scale.x <= 0f || scale.y <= 0f || scale.z <= 0f) return false;
+
+                // Attack.Resize와 같은 규약 — 상자는 몸 앞면(z = size.z * 0.5)에서 시작한다.
+                // 다르면 "표시 밖인데 맞았다"가 된다.
+                Vector3 size = Vector3.Scale(ctx.caster.HurtboxSize, scale);
+                range = AttackRangePreview.FromBox(phys.GroundPosition, phys.Facing,
+                                                   new Vector3(0f, 0f, size.z * 0.5f), size, 0f, progress);
+                return true;
+            }
+
+            if (data.IsAreaSkill)
+            {
+                range = AttackRangePreview.FromCircle(ctx.Origin, data.radius * ctx.RadiusScale, progress);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// 시전 대상을 확정한다. 조준은 <b>좌표</b>만 주므로 그 좌표에서 규칙대로 한 명을 고른다
         /// (<see cref="SkillContext.Origin"/> — GroundPoint면 찍은 자리, 아니면 시전자 자리).
         ///

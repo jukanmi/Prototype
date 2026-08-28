@@ -332,5 +332,74 @@ namespace Prototype.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        // ── 부채꼴 (근접 스킬 castConeAngle) ─────────────
+        // IsCircle이 부채꼴에도 true로 뜨는 건 의도다(radius > 0f 하나로 두 모양을 겸한다) —
+        // 그리는 쪽이 IsCone을 먼저 봐야 부채꼴이 원으로 잘못 그려지지 않는다.
+
+        [Test]
+        public void Cone_IsFlaggedAsCone()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 1f);
+
+            Assert.That(r.IsCone, Is.True);
+            Assert.That(r.radius, Is.EqualTo(4f).Within(0.0001f));
+            Assert.That(r.coneAngle, Is.EqualTo(60f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Cone_AlsoReadsAsCircle_SoDrawerMustCheckConeFirst()
+        {
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 1f).IsCircle, Is.True);
+        }
+
+        [Test]
+        public void PlainCircle_IsNotFlaggedAsCone()
+        {
+            Assert.That(AttackRangePreview.FromCircle(Vector3.zero, 3.2f, 1f).IsCone, Is.False);
+        }
+
+        [Test]
+        public void Cone_CenterIsFlattenedToGround()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(new Vector3(2f, 5f, -3f), Vector3.forward, 4f, 60f, 1f);
+
+            Assert.That(r.center.y, Is.EqualTo(0f));
+            Assert.That(r.center.x, Is.EqualTo(2f).Within(0.0001f));
+            Assert.That(r.center.z, Is.EqualTo(-3f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Cone_NegativeRadiusAndAngle_ClampToZero()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, -4f, -60f, 1f);
+
+            Assert.That(r.radius, Is.EqualTo(0f));
+            Assert.That(r.coneAngle, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Cone_ProgressIsClamped()
+        {
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 9f).progress, Is.EqualTo(1f));
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, -9f).progress, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Cone_FacingIsNormalized()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.right * 9f, 4f, 60f, 1f);
+
+            Assert.That(r.facing.magnitude, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        /// <summary>정지 직후 등으로 방향이 0이어도 부채꼴이 사라지면 안 된다.</summary>
+        [Test]
+        public void Cone_ZeroFacing_FallsBackToForward()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.zero, 4f, 60f, 1f);
+
+            Assert.That(Vector3.Distance(r.facing, Vector3.forward), Is.LessThan(0.001f));
+        }
     }
 }
