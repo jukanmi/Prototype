@@ -19,7 +19,6 @@ namespace Prototype
         [Header("참조")]
         [SerializeField] private Player player;
         [SerializeField] private ComboExecutor executor;
-        [SerializeField] private ComboPredictor predictor;
         [SerializeField] private TargetSelector targetSelector;
 
         [Tooltip("비워도 된다. 없으면 U키가 벤치에 앉은 동료를 불러오지 못하고 예전처럼 거부한다.")]
@@ -153,7 +152,6 @@ namespace Prototype
         public Deck Deck => deck;
         public Hand Hand => hand;
         public Discard Discard => discard;
-        public ComboPredictor Predictor => predictor;
         public ComboExecutor Executor => executor;
 
         public event Action OnEnter;
@@ -164,7 +162,6 @@ namespace Prototype
             Gauge = new Energy(EnergyType.BulletTimeGauge, maxGauge);
             if (player == null) player = FindAnyObjectByType<Player>();
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
-            if (predictor == null) predictor = GetComponentInChildren<ComboPredictor>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
             if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
 
@@ -405,7 +402,6 @@ namespace Prototype
             if (!AllowsCardEdit) return false;
             if (!hand.Swap(a, b)) return false;
 
-            PredictHand();
             return true;
         }
 
@@ -415,12 +411,8 @@ namespace Prototype
             if (!AllowsCardEdit) return false;
             if (!hand.SetTarget(idx, in target)) return false;
 
-            PredictHand();
             return true;
         }
-
-        /// <summary>손패 순서대로 상태 사슬을 시뮬레이션한다. 체인 성립 표시용.</summary>
-        public void PredictHand() => predictor?.Simulate(hand.Slots);
 
         // ── TacticState가 호출하는 실제 동작 ─────────────
         // 페이즈가 "언제"를 결정하고, 여기가 "무엇을"을 담당한다.
@@ -657,7 +649,6 @@ namespace Prototype
             if (executor == null || !executor.IsRunning)
                 RefillHand();
 
-            PredictHand();
             return total;
         }
 

@@ -24,7 +24,7 @@ namespace Prototype
         private const float MinTravel = 0.15f;
 
         [SerializeField] private TargetSelector selector;
-        [SerializeField] private ComboPredictor predictor;
+        [SerializeField] private EnemyRadiusProbe radiusProbe;
 
         [Tooltip("밀려나는 방향. 사거리 원(하늘색)과 구분되도록 따뜻한 색을 쓴다.")]
         [SerializeField] private Color pushColor = new Color(1f, 0.78f, 0.35f, 0.9f);
@@ -52,7 +52,7 @@ namespace Prototype
             used = 0;
 
             if (selector == null) selector = FindAnyObjectByType<TargetSelector>();
-            if (predictor == null) predictor = FindAnyObjectByType<ComboPredictor>();
+            if (radiusProbe == null) radiusProbe = FindAnyObjectByType<EnemyRadiusProbe>();
 
             SkillData data = selector != null && selector.IsSelecting ? selector.Current : null;
 
@@ -101,8 +101,8 @@ namespace Prototype
 
             if (data.UsesRadius)
             {
-                if (predictor != null)
-                    predictor.EnemiesInRadius(selector.CursorPoint, data.radius, victims);
+                if (radiusProbe != null)
+                    radiusProbe.EnemiesInRadius(selector.CursorPoint, data.radius, victims);
                 return;
             }
 

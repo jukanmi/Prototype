@@ -12,7 +12,7 @@ namespace Prototype
     {
         [SerializeField] private Camera cam;
         [SerializeField] private float groundY = 0f;
-        [SerializeField] private ComboPredictor predictor;
+        [SerializeField] private EnemyRadiusProbe radiusProbe;
 
         [Header("키보드 조준")]
         [Tooltip("WASD로 조준점이 움직이는 속도(units/s).")]
@@ -57,7 +57,7 @@ namespace Prototype
         private void Awake()
         {
             if (cam == null) cam = Camera.main;
-            if (predictor == null) predictor = FindAnyObjectByType<ComboPredictor>();
+            if (radiusProbe == null) radiusProbe = FindAnyObjectByType<EnemyRadiusProbe>();
 
             if (cursorOrigin == null)
             {
@@ -163,8 +163,8 @@ namespace Prototype
             // 시간이 멈춰 있어도 조준은 돌아야 한다.
             UpdateCursor();
 
-            if (current.UsesRadius && predictor != null)
-                EnemiesInRange = predictor.CountEnemiesInRadius(CursorPoint, current.radius);
+            if (current.UsesRadius && radiusProbe != null)
+                EnemiesInRange = radiusProbe.CountEnemiesInRadius(CursorPoint, current.radius);
         }
 
         private void UpdateCursor()

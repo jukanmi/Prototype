@@ -176,7 +176,7 @@ namespace PrototypeEditor
         }
 
         private static HitData Hit(float dmg, CombatState next, KnockbackMode mode,
-            float knockback = 0f, float launch = 0f, float stun = 0.3f,
+            float push = 0f, float airborne = 0f, float stun = 0.3f,
             bool snapZ = false, bool otg = false)
         {
             return new HitData
@@ -187,8 +187,8 @@ namespace PrototypeEditor
                 canOtg = otg,
                 mode = mode,
                 fixedDir = Vector3.forward,
-                knockbackForce = knockback,
-                launchForce = launch,
+                pushDistance = push,
+                airborneHeight = airborne,
                 hitStunDuration = stun,
                 snapZ = snapZ,
             };
@@ -213,7 +213,7 @@ namespace PrototypeEditor
 
                 MakeSkill("SK_T3_강철돌진", "강철 돌진", Role.Tanker, AttackType.Charge,
                     CombatState.Neutral, CombatState.LightHit, TargetingType.Direction,
-                    new List<HitData> { Hit(12f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 5f) },
+                    new List<HitData> { Hit(12f, CombatState.LightHit, KnockbackMode.Fixed, push: 0.625f) },
                     new List<ISkillEffect> { new ChargeEffect() }),
 
                 // AttackType.DamageCut 이 사라져 분류만 Strike로 옮겼다. 효과는 그대로 방어형이다.
@@ -238,16 +238,16 @@ namespace PrototypeEditor
 
                 MakeSkill("SK_W3_돌진베기", "돌진 베기", Role.Warrior, AttackType.Strike,
                     CombatState.Neutral, CombatState.LightHit, TargetingType.Direction,
-                    new List<HitData> { Hit(15f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 4f) },
+                    new List<HitData> { Hit(15f, CombatState.LightHit, KnockbackMode.Fixed, push: 0.5f) },
                     new List<ISkillEffect> { new ChargeEffect() }),
 
                 MakeSkill("SK_W4_연참", "연참", Role.Warrior, AttackType.Strike,
                     CombatState.AerialHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>
                     {
-                        Hit(6f, CombatState.AerialHit, KnockbackMode.Up, launch: 4f, stun: 0.35f),
-                        Hit(6f, CombatState.AerialHit, KnockbackMode.Up, launch: 3f, stun: 0.35f),
-                        Hit(8f, CombatState.AerialHit, KnockbackMode.Up, launch: 3f, stun: 0.4f),
+                        Hit(6f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.2667f, stun: 0.35f),
+                        Hit(6f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.15f, stun: 0.35f),
+                        Hit(8f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.15f, stun: 0.4f),
                     }, null, hitInterval: 0.25f),
             };
 
@@ -258,20 +258,20 @@ namespace PrototypeEditor
                     CombatState.AerialHit, CombatState.AerialHit, TargetingType.GroundPoint,
                     new List<HitData>
                     {
-                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, launch: 3f, stun: 0.3f),
-                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, launch: 2.5f, stun: 0.3f),
-                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, launch: 2.5f, stun: 0.3f),
-                        Hit(7f, CombatState.AerialHit, KnockbackMode.Up, launch: 2f, stun: 0.35f),
+                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.15f, stun: 0.3f),
+                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.1042f, stun: 0.3f),
+                        Hit(5f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.1042f, stun: 0.3f),
+                        Hit(7f, CombatState.AerialHit, KnockbackMode.Up, airborne: 0.0667f, stun: 0.35f),
                     }, null, hitInterval: 0.2f),
 
                 MakeSkill("SK_A2_강력사격", "강력 사격", Role.Archer, AttackType.Push,
                     CombatState.AerialHit, CombatState.Knockback, TargetingType.GroundPoint,
-                    new List<HitData> { Hit(18f, CombatState.Knockback, KnockbackMode.AwayFromCaster, knockback: 22f, stun: 0.6f) },
+                    new List<HitData> { Hit(18f, CombatState.Knockback, KnockbackMode.AwayFromCaster, push: 2.75f, stun: 0.6f) },
                     null),
 
                 MakeSkill("SK_A3_상승화살", "상승 화살", Role.Archer, AttackType.Launcher,
                     CombatState.LightHit, CombatState.AerialHit, TargetingType.GroundPoint,
-                    new List<HitData> { Hit(6f, CombatState.AerialHit, KnockbackMode.Up, launch: 12f, stun: 0.6f) },
+                    new List<HitData> { Hit(6f, CombatState.AerialHit, KnockbackMode.Up, airborne: 2.4f, stun: 0.6f) },
                     null, radius: 4f),
 
                 MakeSkill("SK_A4_사출화살", "사출 화살", Role.Archer, AttackType.Launcher,
@@ -295,12 +295,12 @@ namespace PrototypeEditor
 
                 MakeSkill("SK_M3_마력파동", "마력 파동", Role.Wizard, AttackType.Push,
                     CombatState.AerialHit, CombatState.Knockback, TargetingType.GroundPoint,
-                    new List<HitData> { Hit(14f, CombatState.Knockback, KnockbackMode.AwayFromCaster, knockback: 20f, stun: 0.6f) },
+                    new List<HitData> { Hit(14f, CombatState.Knockback, KnockbackMode.AwayFromCaster, push: 2.5f, stun: 0.6f) },
                     null, radius: 4f),
 
                 MakeSkill("SK_M4_흡혈저주", "흡혈 저주", Role.Wizard, AttackType.Strike,
                     CombatState.Neutral, CombatState.LightHit, TargetingType.GroundPoint,
-                    new List<HitData> { Hit(10f, CombatState.LightHit, KnockbackMode.Fixed, knockback: 2f) },
+                    new List<HitData> { Hit(10f, CombatState.LightHit, KnockbackMode.Fixed, push: 0.25f) },
                     new List<ISkillEffect> { new LifestealEffect() }),
             };
 
@@ -525,7 +525,7 @@ namespace PrototypeEditor
             var systemGo = new GameObject("BattleSystem");
             var bullet = systemGo.AddComponent<BulletTimeController>();
             var executor = systemGo.AddComponent<ComboExecutor>();
-            var predictor = systemGo.AddComponent<ComboPredictor>();
+            var radiusProbe = systemGo.AddComponent<EnemyRadiusProbe>();
             var selector = systemGo.AddComponent<TargetSelector>();
             var hud = systemGo.AddComponent<DebugComboHUD>();
             var boardUi = systemGo.AddComponent<ComboBoardUI>();
@@ -542,14 +542,13 @@ namespace PrototypeEditor
             {
                 so.FindProperty("player").objectReferenceValue = player.GetComponent<Player>();
                 so.FindProperty("executor").objectReferenceValue = executor;
-                so.FindProperty("predictor").objectReferenceValue = predictor;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
             });
 
             SetSerialized(selector, so =>
             {
                 so.FindProperty("cam").objectReferenceValue = cam;
-                so.FindProperty("predictor").objectReferenceValue = predictor;
+                so.FindProperty("radiusProbe").objectReferenceValue = radiusProbe;
                 so.FindProperty("groundY").floatValue = 0f;
             });
 

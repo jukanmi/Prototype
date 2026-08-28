@@ -49,14 +49,12 @@ namespace Prototype
         private static readonly Color PanelColor = new Color(0.1f, 0.1f, 0.12f, 0.85f);
         private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.3f);
         private static readonly Color NextCardColor = new Color(0.28f, 0.38f, 0.34f);
-        private static readonly Color ChainedCardColor = new Color(0.24f, 0.42f, 0.26f);
         private static readonly Color AimingCardColor = new Color(0.45f, 0.35f, 0.15f);
         private static readonly Color CursorCardColor = new Color(0.30f, 0.44f, 0.58f);
         private static readonly Color GrabbedCardColor = new Color(0.52f, 0.44f, 0.20f);
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
         private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
-        private static readonly Color DownColor = new Color(1f, 0.5f, 0.5f);
         private static readonly Color ArrowColor = new Color(1f, 0.86f, 0.35f);
 
         /// <summary>황금 카드의 테두리. 레벨업 화면(<see cref="CardOfferView"/>)과 같은 금색이다.</summary>
@@ -591,7 +589,6 @@ namespace Prototype
             {
                 BuildDetailText(_detailPanel.transform, "Kind", 18f, 13, SubColor, FontStyle.Normal),
                 BuildDetailText(_detailPanel.transform, "Desc", 46f, 15, Color.white, FontStyle.Normal),
-                BuildDetailText(_detailPanel.transform, "Chain", 18f, 13, HintColor, FontStyle.Bold),
                 BuildDetailText(_detailPanel.transform, "Cost", 18f, 13, SubColor, FontStyle.Normal),
             };
 
@@ -875,7 +872,7 @@ namespace Prototype
         }
 
         /// <summary>짚은 카드의 상세를 채운다. 짚은 게 없으면 판을 접는다.</summary>
-        private void RefreshDetail(Hand hand, ComboPredictor predictor, int focus, bool editable)
+        private void RefreshDetail(Hand hand, int focus)
         {
             if (_detailPanel == null) return;
 
@@ -894,45 +891,35 @@ namespace Prototype
                     _handPanelRect.anchoredPosition.x,
                     _handPanelRect.anchoredPosition.y + _handPanelRect.rect.height + DetailGap);
 
-            bool chained = editable && predictor != null && predictor.IsChained(hand.Slots, focus);
-            bool down = editable && predictor != null && predictor.IsBlockedByDown(focus);
-
             _detailName.text = data.skillName;
 
-            string[] rows = DetailRows(data, chained, down);
+            string[] rows = DetailRows(data);
             for (int i = 0; i < _detailRows.Length && i < rows.Length; i++)
                 _detailRows[i].text = rows[i];
-
-            _detailRows[2].color = down ? DownColor : HintColor;
         }
 
         /// <summary>
-        /// 상세 패널 본문 네 줄 — 분류 · 설명 · 연계 · 코스트.
+        /// 상세 패널 본문 세 줄 — 분류 · 설명 · 코스트.
         /// 화면과 테스트가 같은 함수를 본다.
         /// </summary>
-        public static string[] DetailRows(SkillData data, bool chained, bool willBeDown)
+        public static string[] DetailRows(SkillData data)
         {
-            if (data == null) return new[] { string.Empty, string.Empty, string.Empty, string.Empty };
-
-            string chain = willBeDown
-                ? "다운 — 무효 (한 대도 안 들어간다)"
-                : $"{data.requireState} → {data.resultState}   [{(chained ? "강화" : "기본")}]";
+            if (data == null) return new[] { string.Empty, string.Empty, string.Empty };
 
             return new[]
             {
                 $"{data.role} · {data.attackType}",
                 string.IsNullOrWhiteSpace(data.description) ? "(설명 없음)" : data.description,
-                chain,
                 $"마나 {data.manaCost:0} · 쿨 {data.cooldown:0.#}초",
             };
         }
 
         /// <summary>상세 패널에 실제로 뜨는 글자 전부. 검증용 단일 창구다.</summary>
-        public static string DetailLines(SkillData data, bool chained, bool willBeDown)
+        public static string DetailLines(SkillData data)
         {
             if (data == null) return string.Empty;
 
-            string[] rows = DetailRows(data, chained, willBeDown);
+            string[] rows = DetailRows(data);
             return data.skillName + System.Environment.NewLine +
                    string.Join(System.Environment.NewLine, rows);
         }
@@ -940,7 +927,6 @@ namespace Prototype
         private void RefreshUI()
         {
             Hand hand = _bulletTime.Hand;
-            ComboPredictor predictor = _bulletTime.Predictor;
             bool editable = _bulletTime.AllowsCardEdit;
 
             // 손패가 줄어 커서가 빈자리를 짚고 있을 수 있다. 그리기 전에 잡는다.
@@ -1016,14 +1002,12 @@ namespace Prototype
                 bool aiming = i == _aimingIndex;
                 bool grabbed = editable && i == _grabbedIndex;
                 bool cursor = editable && _grabbedIndex < 0 && _aimingIndex < 0 && i == _cursorIndex;
-                bool chained = editable && predictor != null && predictor.IsChained(hand.Slots, i);
 
-                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, grabbed, cursor, editable, predictor);
+                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, grabbed, cursor, editable);
 
                 Color face = aiming ? AimingCardColor
                            : grabbed ? GrabbedCardColor
                            : cursor ? CursorCardColor
-                           : chained ? ChainedCardColor
                            : i == 0 ? NextCardColor
                            : CardColor;
 
@@ -1036,7 +1020,7 @@ namespace Prototype
                 w.group.blocksRaycasts = !dim;
             }
 
-            RefreshDetail(hand, predictor, FocusedIndex(editable), editable);
+            RefreshDetail(hand, FocusedIndex(editable));
 
             // 색과 글자를 정한 뒤에 자리를 정한다 — 어느 카드가 켜져 있는지 확정돼야
             // 부채꼴을 몇 장짜리로 펼지 정할 수 있다.
@@ -1226,9 +1210,9 @@ namespace Prototype
             UpdateTargets();
         }
 
-        /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 예측 상태를 합친다.</summary>
+        /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 조준 방식을 합친다.</summary>
         private static string BuildStatus(int index, in ComboSlot slot, SkillData data,
-            bool aiming, bool grabbed, bool cursor, bool editable, ComboPredictor predictor)
+            bool aiming, bool grabbed, bool cursor, bool editable)
         {
             if (aiming) return "조준 중";
             if (grabbed) return "집음 — A/D 이동 · S 놓기";
@@ -1237,17 +1221,6 @@ namespace Prototype
             if (cursor) head = $"▸{head}";
             if (slot.aimed) head += " ◉";
 
-            if (editable && predictor != null && index < predictor.Predicted.Count)
-            {
-                // 다운 무적에 흘리는 슬롯은 상태만 보면 "AerialHit → Down"이라 멀쩡해 보인다.
-                // 한 대도 안 들어간다는 걸 글자로 못 박는다.
-                if (predictor.IsBlockedByDown(index))
-                    return $"{head}  <color=#FF8080>다운 — 무효</color>";
-
-                return $"{head}  → {predictor.Predicted[index]}";
-            }
-
-            // 실시간에는 예측 대신 조준 방식을 알려 준다.
             return data.targeting == TargetingType.None ? head : $"{head}  {data.targeting}";
         }
     }
