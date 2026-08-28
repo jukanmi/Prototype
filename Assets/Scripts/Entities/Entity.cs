@@ -433,7 +433,11 @@ namespace Prototype
         {
             float dt = TimeControl.DeltaTime;
 
-            Control?.Tick(ControlUsesUnscaledTime ? TimeControl.UnscaledDeltaTime : dt);
+            // 등장 연출이 도는 동안에는 AI가 몸을 몰지 않는다. 안 막으면 화면 밖에서
+            // 날아 들어오는 도중에 제 판단으로 걸어 나가 궤적이 어긋난다.
+            // 의도는 그래도 비운다 — 묵혀 두면 착지하는 프레임에 그대로 터진다.
+            if (IsEntering) ClearCommand();
+            else Control?.Tick(ControlUsesUnscaledTime ? TimeControl.UnscaledDeltaTime : dt);
 
             if (dt <= 0f) return;
 
@@ -513,6 +517,19 @@ namespace Prototype
         /// </summary>
         public bool IsTargetable { get; set; } = true;
 
+        /// <summary>
+        /// 지금 화면 밖을 오가는 등장 · 퇴장 연출 중인가(<see cref="EntrancePlayer"/>가 켜고 끈다).
+        ///
+        /// <b><see cref="IsCommanded"/>를 재활용하지 않는 이유가 있다.</b> 그쪽은
+        /// <see cref="ComboExecutor"/>가 슬롯이 끝날 때마다 false로 내린다 —
+        /// 등장이 슬롯 실행과 겹치는 순간 남의 연출을 통째로 풀어 버린다.
+        /// 잠그는 주체가 둘이면 플래그도 둘이어야 한다.
+        ///
+        /// 읽는 곳은 둘이다 — <see cref="Update"/>가 AI를,
+        /// <see cref="PlayerPilot"/>이 유저 입력을 막는다.
+        /// </summary>
+        public bool IsEntering { get; set; }
+
         // ── 빙의 ────────────────────────────────────────────
 
         /// <summary>
@@ -534,6 +551,11 @@ namespace Prototype
         protected void ReleaseBody()
         {
             IsCommanded = false;
+
+            // 등장 연출 도중에 내려간 몸이 잠금을 물고 가면, 다시 섰을 때
+            // 어떤 입력도 안 먹는 몸이 된다 — IsCommanded와 같은 이유다.
+            IsEntering = false;
+
             SetTelegraph(false);
 
             if (Combat.IsDead) return;

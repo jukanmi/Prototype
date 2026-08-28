@@ -298,8 +298,22 @@ namespace Prototype
         /// 지금 조작 중인 몸의 깊이. 돌진전사와 마법사가 이 값을 기준으로 줄을 고른다.
         /// 아무도 없으면 방 한가운데로 본다.
         /// </summary>
-        private static float PlayerDepth()
+        private float PlayerDepth()
         {
+            // 태그 시스템이 있으면 그쪽에 묻는다. <b>"조작 중인 몸"을 아는 것은 그쪽뿐이다.</b>
+            //
+            // 아래 폴백은 등록 목록의 첫 활성 아군을 집는데, 한 번에 한 명만 서 있던 시절엔
+            // 그게 곧 조작 캐릭터였다. 지금은 등퇴장 연출로 <b>두 몸이 동시에 활성인 창</b>이
+            // 생겨서(교대 릴레이 · 슬롯 전환) 목록 순서에 따라 화면 밖으로 나가는 몸의
+            // 깊이를 집을 수 있다. 그러면 그때 뜬 웨이브의 돌진전사가 플레이어가 아닌
+            // 엉뚱한 줄에 정렬되고, 증상은 "가끔 돌진이 안 맞는다"로만 보인다.
+            if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
+
+            // CurrentIndex를 함께 본다. 로스터를 못 만들었거나(Player 미배선) 전멸한 상태면
+            // 그쪽 좌표는 원점이라, 묻는 것보다 아래 폴백이 낫다.
+            if (swap != null && swap.CurrentIndex >= 0) return swap.ControlledGround.z;
+
+            // 태그 컨트롤러가 없는 씬(스킬 시험장 · 훈련장)을 위한 폴백. 예전 동작 그대로다.
             foreach (Entity e in BattleRegistry.Allies)
             {
                 if (e == null || !e.isActiveAndEnabled || e.Combat.IsDead) continue;
@@ -308,5 +322,8 @@ namespace Prototype
 
             return 0f;
         }
+
+        /// <summary>조작 중인 몸을 아는 유일한 자리. 비어 있으면 폴백으로 간다.</summary>
+        private TagSwapController swap;
     }
 }

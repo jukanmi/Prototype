@@ -17,6 +17,10 @@ namespace Prototype
         [Tooltip("스킬이 끝나지 않을 때 강제로 넘기는 상한.")]
         [SerializeField] private float slotTimeout = 5f;
 
+        [Tooltip("시전자가 무대에 올라오기를 기다리는 상한. 등장 연출(0.35초)보다 넉넉해야 하고, " +
+                 "연출이 끝나지 않는 사고에서 콤보가 통째로 멎지 않을 만큼은 짧아야 한다.")]
+        [SerializeField] private float stageEntryTimeout = 2f;
+
         private Coroutine running;
 
         /// <summary>
@@ -141,6 +145,14 @@ namespace Prototype
                 // 컷인은 스킬보다 먼저다. 여기서 시간이 멈추고, 끝나야 다시 흐른다.
                 IEnumerator intro = PlayCutin(in slot);
                 if (intro != null) yield return intro;
+
+                // 시전자가 아직 화면 밖에서 날아오는 중이면 착지를 기다린다.
+                //
+                // 대개 <b>0프레임</b>이다 — 등장은 컷인 길이 안에 묻히도록 잡혀 있고,
+                // 시간이 멈춘 동안에도 스케일 안 된 시계로 진행하기 때문이다.
+                // 그래도 기다리는 이유는 컷인이 꺼져 있거나 짧게 조정된 씬 때문이다:
+                // 그때 이걸 안 보면 스킬이 화면 밖 좌표에서 터진다.
+                yield return WaitForStage();
 
                 if (slot.Data.IsCharge)
                 {
@@ -338,6 +350,30 @@ namespace Prototype
 
             if (caster.StateMachine.CurState == state && !caster.Combat.IsDead)
                 caster.StateMachine.ForceChangeState(caster.IdleState);
+        }
+
+        /// <summary>
+        /// 시전자가 무대에 설 때까지. 무대가 없거나 연출이 없으면 즉시 끝난다.
+        ///
+        /// <b>스케일 안 된 시계로 상한을 센다.</b> 등장 연출도 그쪽 시계로 도는데
+        /// 여기만 게임 시간으로 세면, 컷인이 시간을 늦춘 동안 상한이 거의 흐르지 않아
+        /// 연출이 끝나지 않는 사고에서 콤보가 통째로 멎는다.
+        /// </summary>
+        private IEnumerator WaitForStage()
+        {
+            if (Stage == null) yield break;
+
+            float waited = 0f;
+
+            while (Stage.IsEntering && waited < stageEntryTimeout)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (waited >= stageEntryTimeout)
+                BattleLog.Warn(LogCategory.Combo,
+                    $"시전자 등장 타임아웃 {stageEntryTimeout:0.#}s — 그대로 시전한다", this);
         }
 
         private IEnumerator WaitScaled(float seconds)

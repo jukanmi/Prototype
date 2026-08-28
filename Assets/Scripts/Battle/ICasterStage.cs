@@ -26,6 +26,18 @@ namespace Prototype
         void Enter(Ally caster);
 
         /// <summary>
+        /// 지금 시전자가 아직 무대에 <b>도착하지 않았는가</b>.
+        ///
+        /// <see cref="ComboExecutor"/>가 컷인 뒤에 이 값이 내려갈 때까지 기다린다 —
+        /// 시전자가 화면 밖에서 날아오는 중에 스킬을 걸면, 접근·조준이 계산되는 기준점이
+        /// 아직 화면 밖이라 스킬이 통째로 엉뚱한 데서 터진다.
+        ///
+        /// 무대 연출이 없는 구현은 <b>언제나 false</b>를 돌려주면 된다.
+        /// 그러면 예전처럼 컷인이 끝나는 즉시 시전으로 넘어간다.
+        /// </summary>
+        bool IsEntering { get; }
+
+        /// <summary>
         /// 이 시전자는 할 일이 끝났다고 알린다. <b>즉시 내리지는 않는다</b> —
         /// 실제로 내려가는 시점은 다음 <see cref="Enter"/>나 <see cref="Clear"/>다.
         /// </summary>

@@ -127,6 +127,12 @@ namespace Prototype
         private Seat lastSeat;
 
         /// <summary>
+        /// 등퇴장이 도는 동안 카메라 · 조준이 물려 있는 고정점.
+        /// 처음 필요할 때 만든다(<see cref="FollowSpot"/>).
+        /// </summary>
+        private Transform cameraAnchor;
+
+        /// <summary>
         /// 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 몸마다 클로저를
         /// 하나씩 만든다 — <see cref="BulletTimeController"/>가 쓰는 방식과 같다.
         /// </summary>
@@ -137,8 +143,41 @@ namespace Prototype
 
         public IReadOnlyList<Entity> Roster => roster;
 
+        /// <summary>
+        /// 조작하지 않는 몸들이 화면 밖 어디에서 기다리는가.
+        ///
+        /// <b>여기가 소유한다.</b> 로스터 · 조작 중인 칸을 이미 이쪽이 알고 있어서,
+        /// 다른 데서 또 한 벌을 들면 반드시 어긋난다. 교대 · 시전 등퇴장이 이 좌표를
+        /// 목적지와 출발지로 쓰고, 가장자리 표식이 같은 좌표를 그린다.
+        ///
+        /// <b>처음 물어볼 때 만든다.</b> <c>Start</c>에서 만들면 그 전에 읽는 쪽
+        /// (표식은 <c>[BattleVfx]</c>에서 스스로 깨어난다)이 실행 순서에 따라 null을 잡는다.
+        /// 로스터 목록은 비우기만 하고 갈아 끼우지 않으므로 한 번 묶어 두면 계속 유효하다.
+        /// </summary>
+        public PartyStandby Standby
+        {
+            get
+            {
+                if (standby == null) standby = new PartyStandby(roster);
+                return standby;
+            }
+        }
+
+        private PartyStandby standby;
+
         public Entity Current
             => CurrentIndex >= 0 && CurrentIndex < roster.Count ? roster[CurrentIndex] : null;
+
+        /// <summary>
+        /// 조작 캐릭터가 서 있는 — 등퇴장 연출 중이면 <b>서게 될</b> — 바닥 좌표.
+        ///
+        /// <see cref="Current"/>의 트랜스폼을 직접 읽지 말고 이쪽을 쓸 것.
+        /// 연출이 도는 동안에는 두 몸이 동시에 활성이고 조작 캐릭터는 화면 밖에 있어서,
+        /// 좌표를 몸에서 읽으면 <b>대기 자리</b>가 나온다. 웨이브 배치처럼
+        /// "플레이어가 지금 어디 있나"를 묻는 쪽이 그걸 집으면 규칙이 통째로 어긋난다
+        /// (<see cref="WaveSpawnPlanner.DepthFor"/>).
+        /// </summary>
+        public Vector3 ControlledGround => CurrentSeat().Ground;
 
         public float CooldownRemaining => Mathf.Max(0f, cooldownTimer);
 
@@ -203,6 +242,7 @@ namespace Prototype
         private void BuildRoster()
         {
             roster.Clear();
+
             if (player == null)
             {
                 BattleLog.Warn(LogCategory.State, "Player를 못 찾아 태그 로스터를 못 만들었다", this);
@@ -244,52 +284,126 @@ namespace Prototype
         /// <b>쿨타임을 보지 않는다</b> — 부르는 쪽(U키 카드 · 조작 중인 몸의 사망)은 이미
         /// "이 몸이어야 한다"가 정해진 경로라 여기서 막으면 카드가 통째로 불발된다.
         /// 대신 쿨은 다시 돌린다.
+        ///
+        /// <b>등퇴장 연출도 붙이지 않는다.</b> 부르는 쪽이 <c>UseTopCard</c>인데, 그쪽은
+        /// 여기서 돌아온 <b>같은 프레임에</b> <c>CanCastCard</c>를 본다 — 연출이 돌고 있으면
+        /// 그 검사에서 떨어져 카드는 손패에 남고, 유저에게는 "U를 눌렀는데 아무 일도
+        /// 안 일어났다"로만 보인다. 카드가 주목적이고 교대는 부수효과다.
         /// </summary>
         public bool EnsureActive(Entity body)
         {
             if (body == null) return false;
-            if (ReferenceEquals(body, Current) && body.gameObject.activeSelf) return true;
+
+            if (ReferenceEquals(body, Current) && body.gameObject.activeSelf)
+            {
+                // 이미 조작 중인데 아직 날아오는 중일 수 있다. 그 자리에서 끝내 버린다 —
+                // "0.35초 뒤에 다시 누르라"는 답이 될 수 없고, 화면 밖에서 시전되면 더 나쁘다.
+                EntranceDirector.Finish(body);
+                return true;
+            }
 
             int index = roster.IndexOf(body);
             if (!TagSwapRules.IsSelectable(roster, index)) return false;
 
-            SwapTo(index);
+            SwapTo(index, animate: false);
             return true;
         }
 
-        private void SwapTo(int index)
+        /// <summary>
+        /// <paramref name="animate"/>가 false면 예전처럼 그 자리에서 즉시 바꿔치기한다.
+        /// 카드 즉시 사용과 첫 배치가 그쪽이다 — 둘 다 "지금 당장"이 곧 요구사항이라
+        /// 0.35초를 끼워 넣을 자리가 없다.
+        /// </summary>
+        private void SwapTo(int index, bool animate = true)
         {
             Entity outgoing = Current;
             Entity incoming = roster[index];
 
             // 새 몸은 나가는 몸의 자리와 방향을 그대로 물려받는다. 첫 배치처럼 물려줄
             // 사람이 없으면 제 자리에 그냥 서고, 그 자리가 이후의 기준이 된다.
+            //
+            // <b>연출을 시작하기 전에 읽는다</b> — 퇴장이 시작되면 나가는 몸은 곧바로 움직인다.
             Seat? seat = outgoing != null ? Seat.Of(outgoing) : (Seat?)null;
 
-            if (outgoing != null && !ReferenceEquals(outgoing, incoming))
-                Bench(outgoing);
+            // 물려받을 좌석이 없으면 날아올 목적지도 없다. 첫 배치가 그렇다.
+            // 자기 자신으로 교대하는 경우도 뺀다 — 제 자리로 날아오려고 화면 밖까지
+            // 갔다 돌아오는 그림이 된다.
+            bool relay = animate && seat.HasValue && !ReferenceEquals(outgoing, incoming);
 
-            Summon(incoming, seat);
+            if (outgoing != null && !ReferenceEquals(outgoing, incoming))
+            {
+                if (relay) Leave(outgoing);
+                else Bench(outgoing);
+            }
+
+            if (relay) FlyIn(incoming, seat.Value);
+            else Summon(incoming, seat);
+
+            // 조작권은 <b>즉시</b> 넘긴다. 날아오는 동안 입력이 먹지 않는 것은
+            // Entity.IsEntering이 이미 막고 있으므로, 여기서 미루면 착지 직후 한 프레임을 놓친다.
             Possess(incoming);
 
             CurrentIndex = index;
             cooldownTimer = swapCooldown;
-            lastSeat = Seat.Of(incoming);
 
-            FollowNewBody(incoming);
+            // <b>몸이 아니라 좌석에서 읽는다.</b> 연출 중이라면 incoming은 아직 화면 밖 대기 자리에
+            // 있어서 Seat.Of(incoming)이 그 좌표를 준다 — 그 값이 무대 기준점으로 새면
+            // 다음 콤보가 통째로 화면 밖에서 열린다.
+            lastSeat = seat ?? Seat.Of(incoming);
+
+            // 연출이 있으면 카메라는 FlyIn이 좌석에 묶어 두고, 착지할 때 몸으로 넘긴다.
+            if (!relay) FollowBody(incoming);
 
             BattleLog.Log(LogCategory.State,
                 $"<b>태그 교대</b> {BattleLog.Name(outgoing)} → {BattleLog.Name(incoming)} " +
-                $"(쿨 {swapCooldown:0.#}s)", this);
+                $"(쿨 {swapCooldown:0.#}s{(relay ? ", 등퇴장" : "")})", this);
         }
 
-        /// <summary>카메라와 조준 기준을 새 몸으로 옮긴다.</summary>
-        private void FollowNewBody(Entity body)
+        /// <summary>
+        /// 조작 캐릭터가 <b>서 있어야 할</b> 자리.
+        ///
+        /// 연출 중에는 몸을 읽지 않는다 — 그때 몸은 화면 밖 대기 자리에 있고,
+        /// 착지 목표는 <see cref="lastSeat"/>가 이미 들고 있다. F로 교대한 직후 곧바로
+        /// E를 누르면 실제로 이 창이 열리고, 걸러 내지 않으면 콤보 무대가 통째로 화면 밖에 선다.
+        /// </summary>
+        private Seat CurrentSeat()
+        {
+            Entity body = Current;
+
+            if (body == null || body.IsEntering) return lastSeat;
+
+            return Seat.Of(body);
+        }
+
+        /// <summary>카메라와 조준 기준을 새 몸으로 옮긴다. <b>착지한 뒤에</b> 부른다.</summary>
+        private void FollowBody(Entity body)
         {
             if (body == null) return;
 
             cameraFollow?.SetTarget(body.transform);
             targetSelector?.SetCursorOrigin(body.transform);
+        }
+
+        /// <summary>
+        /// 교대가 도는 동안 카메라를 <b>좌석에 묶어 둔다.</b>
+        ///
+        /// 몸을 따라가게 두면 양쪽이 다 샌다 — 나가는 몸을 계속 보면 카메라가 그대로
+        /// 화면 밖으로 끌려나가고, 들어오는 몸으로 미리 넘기면 아직 화면 밖인 그쪽으로 끌려나간다.
+        /// 교대는 제자리 인계라 <b>카메라는 안 움직이는 것이 맞다</b>.
+        /// </summary>
+        private void FollowSpot(Vector3 ground)
+        {
+            if (cameraAnchor == null)
+            {
+                var go = new GameObject("[TagSwapAnchor]");
+                go.transform.SetParent(transform, false);
+                cameraAnchor = go.transform;
+            }
+
+            cameraAnchor.position = ground;
+
+            cameraFollow?.SetTarget(cameraAnchor);
+            targetSelector?.SetCursorOrigin(cameraAnchor);
         }
 
         // ── 빙의 ────────────────────────────────────────────
@@ -335,18 +449,22 @@ namespace Prototype
             // Bench는 SetActive(false)일 뿐 트랜스폼을 안 건드리므로 앵커는 그대로 유효하다.
             if (stageAnchor == null)
             {
-                stageAnchor = Current != null ? Seat.Of(Current) : lastSeat;
+                stageAnchor = CurrentSeat();
 
                 // 조작 중인 몸이 곧 시전자면 껐다 켤 이유가 없다. 태그 교대로 동료를 몰고 있을 때
                 // 그 동료의 카드가 나가는 경우다 — 껐다 켜면 OnDisable → ReleaseBody가 헛돈다.
-                if (!ReferenceEquals(Current, caster)) BenchStage(Current);
+                if (!ReferenceEquals(Current, caster)) Leave(Current);
             }
 
             // 예약된 퇴장을 실행한다. 다시 불려 나온 몸은 내리지 않는다.
+            //
+            // 여기서 비로소 나가므로 <b>앞 시전자의 퇴장과 이번 시전자의 등장이 겹친다</b> —
+            // 한쪽이 화면 밖으로 빠지는 동안 다른 쪽이 들어오는 릴레이가 된다.
+            // 이 겹침이 곧 슬롯 사이의 빈 시간을 없애 준다.
             for (int i = leaving.Count - 1; i >= 0; i--)
             {
                 if (ReferenceEquals(leaving[i], caster)) continue;
-                BenchStage(leaving[i]);
+                Leave(leaving[i]);
             }
             leaving.Clear();
 
@@ -356,8 +474,10 @@ namespace Prototype
             onStage.Remove(caster);
             onStage.Add(caster);
 
+            // 이미 무대에 있는 몸은 다시 부르지 않는다. 나갔다 들어오면 연속 슬롯마다
+            // 왕복이 생기고, 돌진으로 전진한 시전자가 제자리로 튕겨 돌아간다.
             if (!alreadyUp)
-                Summon(caster, stageAnchor);
+                FlyIn(caster, stageAnchor.Value);
 
             Reseat();
 
@@ -366,7 +486,30 @@ namespace Prototype
 
             // 카메라는 지금 때리는 쪽을 본다. 숨은 조작 캐릭터를 계속 보면
             // 시전자가 돌진해 나간 뒤 화면에 아무것도 안 남는다.
-            cameraFollow?.SetTarget(caster.transform);
+            //
+            // <b>날아오는 동안에는 앵커를 본다</b> — FlyIn이 이미 그렇게 묶어 두고
+            // 착지할 때 시전자로 넘긴다. 이미 서 있던 몸이면 곧바로 넘긴다.
+            if (alreadyUp) FollowBody(caster);
+        }
+
+        /// <summary>
+        /// 지금 시전자가 아직 화면 밖에서 날아오는 중인가.
+        ///
+        /// <see cref="ComboExecutor"/>가 컷인 뒤에 이 값을 보고 기다린다 —
+        /// 착지 자리가 곧 스킬의 접근 · 조준 기준점이라, 도착 전에 시전하면
+        /// 화면 밖에서 스킬이 터진다.
+        ///
+        /// 무대의 마지막 칸이 곧 시전 중인 몸이다(<see cref="onStage"/>).
+        /// </summary>
+        bool ICasterStage.IsEntering
+        {
+            get
+            {
+                if (onStage.Count == 0) return false;
+
+                Entity caster = onStage[onStage.Count - 1];
+                return caster != null && caster.IsEntering;
+            }
         }
 
         /// <summary>
@@ -390,11 +533,14 @@ namespace Prototype
             if (returnToLastCasterSpot && onStage.Count > 0)
             {
                 Entity last = onStage[onStage.Count - 1];
-                if (last != null) home = Seat.Of(last);
+
+                // 아직 날아오는 중인 몸이면 그 좌표는 화면 밖이다. 착지 목표(앵커)를 쓴다 —
+                // 중단(Abort)으로 여기 들어오면 실제로 그 창이 열린다.
+                if (last != null) home = last.IsEntering ? stageAnchor : Seat.Of(last);
             }
 
-            for (int i = 0; i < onStage.Count; i++) BenchStage(onStage[i]);
-            for (int i = 0; i < leaving.Count; i++) BenchStage(leaving[i]);
+            for (int i = 0; i < onStage.Count; i++) Leave(onStage[i]);
+            for (int i = 0; i < leaving.Count; i++) Leave(leaving[i]);
 
             onStage.Clear();
             leaving.Clear();
@@ -409,11 +555,12 @@ namespace Prototype
             Entity back = Current;
             if (back == null) return;
 
-            Summon(back, spot);
+            // 조작 캐릭터도 콤보가 시작될 때 화면 밖으로 나갔다. 같은 자리에서 돌아온다.
+            FlyIn(back, spot);
             Possess(back);
 
-            lastSeat = Seat.Of(back);
-            FollowNewBody(back);
+            // 몸이 아니라 <b>돌아갈 자리</b>에서 읽는다. 지금 back은 아직 대기 자리에 있다.
+            lastSeat = spot;
         }
 
         /// <summary>
@@ -438,16 +585,6 @@ namespace Prototype
 
                 e.Physics.Teleport(anchor.Offset(offset).Ground);
             }
-        }
-
-        /// <summary>
-        /// 무대에서 내린다. 죽은 몸은 그대로 둔다 —
-        /// 여기서 끄면 사망 연출과 디스폰이 통째로 잘린다(<see cref="BenchOthers"/>와 같은 이유).
-        /// </summary>
-        private void BenchStage(Entity body)
-        {
-            if (body == null || body.Combat == null || body.Combat.IsDead) return;
-            Bench(body);
         }
 
         /// <summary>조작 중인 한 명만 남기고 내린다.</summary>
@@ -484,10 +621,81 @@ namespace Prototype
             body.Physics.Face(seat.Value.Facing);
         }
 
+        /// <summary>
+        /// <b>즉시</b> 내린다. 초기화 · 안전망 · 무대 전용이다.
+        /// 연출을 붙여 내리는 쪽은 <see cref="Leave"/>.
+        /// </summary>
         private void Bench(Entity body)
         {
             if (body == null || !body.gameObject.activeSelf) return;
             body.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 화면 밖 <b>자기 대기 자리</b>로 날려 보낸 뒤 내린다.
+        ///
+        /// 목적지가 곧 표식이 뜰 자리다 — 다음에 이 몸은 같은 곳에서 다시 나온다.
+        /// 그래서 좌표가 틀리면 "나간 곳과 다른 데서 들어온다"로 즉시 드러난다.
+        ///
+        /// 죽은 몸은 그대로 둔다. 여기서 날리면 사망 연출과 디스폰이 통째로 잘린다.
+        /// </summary>
+        private void Leave(Entity body)
+        {
+            if (body == null || !body.gameObject.activeSelf) return;
+            if (body.Combat != null && body.Combat.IsDead) return;
+
+            if (!Standby.TryPointFor(body, out Vector3 exit))
+            {
+                // 로스터 밖의 몸이면 물러날 자리가 없다. 예전처럼 그냥 내린다.
+                Bench(body);
+                return;
+            }
+
+            EntranceSpec spec = EntranceSpec.Default(body.Physics.GroundPosition, exit);
+            spec.height = body.Physics.Height;
+
+            // 방향은 비워 둔다 — 진행 방향을 그대로 보므로 화면 밖으로 뛰어 나가는 그림이 된다.
+            spec.unscaled = true;
+            spec.onArrive = () => Bench(body);
+
+            EntranceDirector.Play(body, in spec);
+        }
+
+        /// <summary>
+        /// 대기 자리에서 좌석으로 날아 들어온다.
+        ///
+        /// <b>카메라는 착지한 뒤에 넘긴다.</b> 지금 넘기면 아직 화면 밖인 몸을 따라
+        /// 화면이 통째로 끌려나간다 — 그동안은 좌석을 본다.
+        /// </summary>
+        private void FlyIn(Entity body, in Seat seat)
+        {
+            if (body == null) return;
+
+            body.gameObject.SetActive(true);
+
+            if (!Standby.TryPointFor(body, out Vector3 start))
+            {
+                // 로스터 밖의 몸이면 날아올 자리가 없다. 예전처럼 그 자리에 세운다.
+                Summon(body, seat);
+                FollowBody(body);
+                return;
+            }
+
+            Vector3 home = seat.Ground;
+            FollowSpot(home);
+
+            EntranceSpec spec = EntranceSpec.Default(start, home);
+            spec.facing = seat.Facing;
+            spec.height = seat.Height;
+
+            // 게임 시간으로 굴리면 안 된다. 교대 직후 불릿타임에 들어가면 TimeControl.Scale이
+            // 0으로 내려가, 몸은 화면 밖에 얼어붙고 입력은 잠긴 채로 남는다.
+            // 교대는 조작권 인계라 중간에 멎으면 그대로 게임이 멈춘 것으로 보인다.
+            spec.unscaled = true;
+
+            spec.onArrive = () => FollowBody(body);
+
+            EntranceDirector.Play(body, in spec);
         }
 
         // ── 초기화 · 사망 ───────────────────────────────────
@@ -508,7 +716,9 @@ namespace Prototype
                 return;
             }
 
-            SwapTo(first);
+            // 첫 배치는 교대가 아니다 — 물려받을 좌석도, 나갈 사람도 없다.
+            // 연출을 붙이면 스테이지가 열리자마자 플레이어가 화면 밖에서 날아 들어온다.
+            SwapTo(first, animate: false);
 
             // 시작하자마자 쿨이 도는 건 이상하다. 첫 배치는 교대로 치지 않는다.
             cooldownTimer = 0f;
@@ -558,17 +768,24 @@ namespace Prototype
 
             // SwapTo가 시체를 내리려 들지 않도록 먼저 자리에서 뗀다.
             // 자리는 교대와 같은 규칙 — 쓰러진 곳과 보던 방향을 그대로 물려받는다.
-            Seat seat = Seat.Of(dead);
+            //
+            // 몸이 아니라 좌석에서 읽는다. 날아 들어오는 도중에 도트 피해로 죽으면
+            // 시체가 화면 밖에 있고, 그 좌표를 물려주면 다음 몸이 화면 밖에 서 버린다.
+            Seat seat = CurrentSeat();
             CurrentIndex = -1;
 
-            Summon(roster[next], seat);
+            // 날아오는 도중에 죽었을 수 있다. 안 끊으면 시체의 도착 콜백이 나중에 돌아
+            // 카메라를 <b>시체에게</b> 넘겨 버린다.
+            EntranceDirector.Cancel(dead);
+
+            // 시체는 날려 보내지 않는다 — 사망 연출과 디스폰이 스스로 끝나야 한다.
+            // 들어오는 쪽만 연출을 받는다. 그 0.35초는 판정이 꺼져 있어 안전하기도 하다.
+            FlyIn(roster[next], seat);
             Possess(roster[next]);
 
             CurrentIndex = next;
             cooldownTimer = swapCooldown;
             lastSeat = seat;
-
-            FollowNewBody(roster[next]);
         }
     }
 }

@@ -173,8 +173,14 @@ namespace Prototype
                 // 상태 게이지는 적뿐 아니라 아군도 그린다 — 내 보호막이 언제 풀리는지는
                 // 상대 경직만큼이나 급한 정보다.
                 go.AddComponent<StatusEffectBar>();
-                // 조작 중인 캐릭터 머리 위 화살표 마커
+                // 표식 레이어. 소스를 같은 오브젝트에서 찾아 매 프레임 모아 그린다.
+                // 레이어를 먼저 얹어도 되고 나중이어도 된다 — 소스 탐색은 첫 LateUpdate에서 한다.
+                go.AddComponent<MarkerLayer>();
+                // 조작 중인 캐릭터 머리 위 화살표
                 go.AddComponent<ControlledCharacterArrow>();
+                // 화면 밖에서 대기 중인 동료들. 태그 구조상 한 명만 서므로
+                // 나머지가 어디 있는지는 이 표식 말고는 알 방법이 없다.
+                go.AddComponent<PartyMarkerSource>();
                 return instance;
             }
         }

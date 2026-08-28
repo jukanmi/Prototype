@@ -137,6 +137,11 @@ namespace Prototype
             body.TickAttackBuffer(dt);
             pilotable?.TickCooldowns(dt);
 
+            // 등장 연출 중에는 조작이 먹지 않는다. 화면 밖에서 날아오는 도중에 입력을 받으면
+            // 몸이 두 목표 사이에서 떨고, 착지 자리가 스킬 사거리 기준점이라 그대로 어긋난다.
+            // 선입력 창은 위에서 이미 흘렸다 — 여기서 얼리면 착지하는 순간 묵은 입력이 터진다.
+            if (body.IsEntering) return;
+
             // 지휘 중에는 어떤 명령도 내지 않는다. 상태머신은 Executor 소유다 —
             // 콤보가 도는 동안 조작 대상이 그 몸이면 입력과 시전이 겹친다.
             if (body.IsCommanded) return;

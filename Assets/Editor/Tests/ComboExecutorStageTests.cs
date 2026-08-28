@@ -183,7 +183,12 @@ namespace Prototype.Tests
 
             public int ClearCount;
 
+            /// <summary>true로 두면 Executor가 착지를 기다리는 구간을 그대로 재현할 수 있다.</summary>
+            public bool Entering;
+
             public FakeStage(List<string> log) => this.log = log;
+
+            public bool IsEntering => Entering;
 
             public void Enter(Ally caster) => log.Add("Enter:" + Name(caster));
             public void Exit(Ally caster) => log.Add("Exit:" + Name(caster));

@@ -6,12 +6,9 @@ namespace Prototype
     /// 벽에서 걸어 나오는 동안 <b>판정을 전부 끄고 벽 뒤에 숨긴다.</b>
     /// 진입이 끝나면 스스로 원상복구하고 사라진다.
     ///
-    /// <b>판정을 꺼야 하는 이유가 양쪽 다 있다.</b>
-    /// <list type="bullet">
-    /// <item>벽 안쪽에 서 있는 적이 원거리 공격을 날리면, 플레이어는 보이지도 않는 곳에서 맞는다.</item>
-    /// <item>플레이어가 벽 쪽으로 광역기를 쓰면 아직 안 나온 적이 통째로 잡힌다 —
-    /// 예고를 보고 미리 깔아 두는 것이 최적해가 되어 벽 연출이 무의미해진다.</item>
-    /// </list>
+    /// <b>억제 자체는 <see cref="EntranceGuard"/>가 한다.</b> 동료도 교대·시전으로 화면 밖을
+    /// 오가게 되면서 같은 억제가 양쪽에 필요해졌고, 두 벌로 두면 반드시 한쪽만 고쳐진다.
+    /// 여기 남은 것은 <b>벽 진입선 판정</b> — 언제 벽 앞으로 나와야 하는가뿐이다.
     ///
     /// 시각 처리는 <b>정렬 순서</b>로 한다. 진입 중에는 배경 벽보다 뒤에 그려지다가,
     /// 진입선을 넘는 순간 앞으로 올라온다. 페이드인보다 이쪽이 벨트스크롤 감각에 훨씬 잘 맞는다.
@@ -21,16 +18,14 @@ namespace Prototype
     {
         /// <summary>
         /// 진입 중 정렬 순서에 더하는 값.
-        ///
-        /// 배경(바닥 · 뒷벽)이 -10000 언저리를 쓰고 캐릭터는 -z·100 이라 최저 -300이다.
-        /// 그보다 확실히 뒤로 보내려면 한 자릿수 더 큰 음수여야 한다.
+        /// 실제 값은 <see cref="EntranceGuard.HiddenSortingOffset"/>이 갖고 있다 —
+        /// 이 이름으로 참조하던 코드와 테스트가 있어 창구만 남긴다.
         /// </summary>
-        public const int HiddenSortingOffset = -30000;
+        public const int HiddenSortingOffset = EntranceGuard.HiddenSortingOffset;
 
         private Enemy enemy;
         private EnemyControl control;
-        private BeltScrollView view;
-        private Collider[] bodyColliders;
+        private EntranceGuard guard;
 
         private SpawnWall wall;
         private float entryLine;
@@ -54,13 +49,7 @@ namespace Prototype
 
             Resolve();
 
-            // 조준 후보에서 뺀다. 판정만 끄면 스킬이 여전히 그쪽으로 나가 헛돈다.
-            enemy.IsTargetable = false;
-
-            // 몸통 콜라이더가 곧 피격 판정이다. 끄면 벽도 통과하는데, 벽에서 나오는 중이니 맞다.
-            SetBodyColliders(false);
-
-            if (view != null) view.SortingOffset = HiddenSortingOffset;
+            guard = EntranceGuard.Arm(enemy);
         }
 
         private void Awake() => Resolve();
@@ -69,8 +58,6 @@ namespace Prototype
         {
             if (enemy == null) enemy = GetComponent<Enemy>();
             if (control == null) control = GetComponent<EnemyControl>();
-            if (view == null) view = GetComponent<BeltScrollView>();
-            if (bodyColliders == null) bodyColliders = GetComponents<Collider>();
         }
 
         private void Update()
@@ -82,8 +69,12 @@ namespace Prototype
             if (!crossed && ArenaSpawnPlanner.HasCrossedEntryLine(wall, transform.position, entryLine))
             {
                 crossed = true;
-                if (view != null) view.SortingOffset = 0;
+                guard?.Reveal();
             }
+
+            // 화면 밖에서 날아 들어오는 중이면 걷기가 아직 시작도 안 했다.
+            // 이걸 안 보면 비행 첫 프레임에 control.IsEntering이 false라 그대로 풀려 버린다.
+            if (enemy != null && enemy.IsEntering) return;
 
             // 진입이 끝나는 시점의 유일한 판단 근거. AI가 몸을 가져가는 순간과 같아야 한다.
             if (control != null && control.IsEntering) return;
@@ -97,10 +88,8 @@ namespace Prototype
             if (!armed) return;
             armed = false;
 
-            if (view != null) view.SortingOffset = 0;
-
-            SetBodyColliders(true);
-            if (enemy != null) enemy.IsTargetable = true;
+            if (guard != null) guard.Release();
+            guard = null;
 
             BattleLog.Log(LogCategory.State, $"{name} 진입 완료 — 판정 복구", this);
 
@@ -108,26 +97,17 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 몸통 콜라이더만 만진다. 자식(<see cref="Attack"/> 히트박스)은 건드리지 않는다 —
-        /// 그쪽은 평소에도 꺼져 있고 휘두를 때만 켜지는데, 여기서 강제로 켜면
-        /// 진입 직후에 판정이 한 프레임 새어 나간다.
+        /// 파괴·씬 언로드로 잘려도 조준 목록에 "영영 안 잡히는 적"을 남기지 않는다.
+        /// <see cref="EntranceGuard"/>도 자기 <c>OnDisable</c>에서 같은 일을 하지만,
+        /// 붙잡은 수를 여기서 놓아 줘야 남은 주인이 없을 때 실제로 복구된다.
         /// </summary>
-        private void SetBodyColliders(bool on)
-        {
-            if (bodyColliders == null) return;
-
-            for (int i = 0; i < bodyColliders.Length; i++)
-            {
-                Collider c = bodyColliders[i];
-                if (c == null || c.isTrigger) continue;   // 트리거는 히트박스다
-                c.enabled = on;
-            }
-        }
-
         private void OnDisable()
         {
-            // 파괴·씬 언로드로 잘려도 조준 목록에 "영영 안 잡히는 적"을 남기지 않는다.
-            if (armed && enemy != null) enemy.IsTargetable = true;
+            if (!armed) return;
+            armed = false;
+
+            if (guard != null) guard.Release();
+            guard = null;
         }
     }
 }

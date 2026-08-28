@@ -19,6 +19,12 @@ namespace Prototype
         [Tooltip("보스. 보스 아레나에서만 쓴다.")]
         [SerializeField] private EnemyData bossData;
 
+        [Header("등장 연출")]
+        [Tooltip("화면 밖에서 방 가장자리까지 날아 들어오는 시간. " +
+                 "길면 라운드 클리어가 그만큼 밀리고(진입 중인 적도 인구조사에 잡힌다), " +
+                 "짧으면 결국 팝업으로 보인다.")]
+        [SerializeField] private float entrySeconds = EntranceRules.DefaultSeconds;
+
         [Header("강화 개체")]
         [Tooltip("elite 표시가 붙은 적의 체력 배율.")]
         [SerializeField] private float eliteHealthScale = 2.5f;
@@ -81,6 +87,11 @@ namespace Prototype
         /// <summary>
         /// 벽 뒤에서 걸어 나오는 소환(아레나). 판정을 끈 채 시작해
         /// 목표 셀에 닿으면 스스로 원상복구한다.
+        ///
+        /// <b>여기는 화면 밖 비행을 붙이지 않는다.</b> 이 경로는 이미 벽 안쪽
+        /// (<see cref="ArenaSpawnPlanner.WallInset"/>)에서 시작해 정렬 순서로 벽 뒤에 숨어 있다 —
+        /// "화면 밖에서 나온다"가 이미 성립한다. 비행을 얹어 봐야 벽에 가려 안 보이는 채로
+        /// 저작한 <c>spawnAt</c> 타이밍만 밀린다.
         /// </summary>
         public Enemy SpawnFromWall(EnemyRole role, bool elite, in ArenaSpawnPlan plan)
         {
@@ -96,14 +107,30 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 방 가장자리에서 걸어 들어오는 소환(웨이브). 벽 연출이 없으므로 판정은 처음부터 켜져 있다.
+        /// <b>화면 밖에서</b> 방 가장자리로 날아 들어오는 소환(웨이브).
+        ///
+        /// 예전에는 <see cref="WaveSpawnPlanner.SpawnInset"/>만큼 방 <b>안쪽</b>에서 그냥 나타났다.
+        /// 그 자리가 곧 화면 안이라 몹이 눈앞에서 팝업되는 것으로 보였다 —
+        /// 벽 연출이 있는 아레나(<see cref="SpawnFromWall"/>)와 감각이 통째로 어긋나던 지점이다.
+        ///
+        /// 두 단계로 나뉜다. <b>화면 밖 → 방 가장자리</b>는 <see cref="EntranceDirector"/>가
+        /// 판정을 끈 채 밀어 넣고, 거기서부터 정착 지점까지 <b>걸어 들어가는</b> 기존 연출은
+        /// 그대로다. 정착 규칙(전사 줄 · 돌진 줄 · 마법사 구석)이 곧 레벨 디자인이라 손대지 않는다.
         /// </summary>
         public Enemy SpawnAtEdge(EnemyRole role, bool elite, in SpawnPlacement place)
         {
             Enemy enemy = Create(role, elite, place.spawnPoint);
             if (enemy == null) return null;
 
-            Enter(enemy, place.entryPoint, place.holdSeconds);
+            // 진입 걷기는 착지한 <b>뒤에</b> 시작한다. 지금 걸어 버리면 날아 들어오는 좌표와
+            // 걸어가려는 의도가 같은 프레임에 겹쳐 몸이 두 목표 사이에서 떤다.
+            Vector3 entryPoint = place.entryPoint;
+            float hold = place.holdSeconds;
+
+            EntranceSpec spec = EntranceDirector.PlanEntry(place.spawnPoint, entrySeconds);
+            spec.onArrive = () => Enter(enemy, entryPoint, hold);
+
+            EntranceDirector.Play(enemy, in spec);
             return enemy;
         }
 
