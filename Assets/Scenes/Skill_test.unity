@@ -1441,6 +1441,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 2408822325939789555}
+    - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: useFixedHand
       value: 1
       objectReference: {fileID: 0}
@@ -1460,6 +1464,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CombatManager
       objectReference: {fileID: 0}
+    - target: {fileID: 7207832157962100281, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 2408822325939789555}
     - target: {fileID: 9153631484317662589, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 13.73403
@@ -1947,6 +1955,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 643710685}
   m_SourcePrefab: {fileID: 100100000, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
+--- !u!114 &2408822325939789555 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4540215255994790702, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
+  m_PrefabInstance: {fileID: 2408822325939789554}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1605910559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76821fc79e3226b4f94d7435eb98687e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Player
 --- !u!1001 &7953839148802953713
 PrefabInstance:
   m_ObjectHideFlags: 0
