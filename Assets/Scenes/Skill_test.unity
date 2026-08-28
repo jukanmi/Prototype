@@ -656,14 +656,19 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -897,14 +902,19 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -1010,8 +1020,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b2d5608b645e604eb7d616e6f0c9144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerControl
-  dashCooldown: 0.6
-  attackBufferWindow: 0.25
 --- !u!1 &779222351
 GameObject:
   m_ObjectHideFlags: 0
@@ -1197,7 +1205,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.TargetSelector
   cam: {fileID: 0}
   groundY: 0
-  predictor: {fileID: 0}
+  radiusProbe: {fileID: 0}
   cursorSpeed: 9
   cursorOrigin: {fileID: 0}
 --- !u!114 &1026486059
@@ -1226,7 +1234,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 137b1c003874b7a48b8115425ef36405, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboPredictor
-  executor: {fileID: 0}
 --- !u!114 &1026486062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1241,7 +1248,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BulletTimeController
   player: {fileID: 0}
   executor: {fileID: 0}
-  predictor: {fileID: 0}
   targetSelector: {fileID: 0}
   swap: {fileID: 0}
   maxGauge: 100
@@ -1256,9 +1262,12 @@ MonoBehaviour:
   buildDeckOnStart: 1
   standaloneStartupMode: 0
   purgeCardsOnAllyDeath: 1
-  useFixedHand: 0
+  useFixedHand: 1
   fixedHand:
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 162b0d25154687b634727a49a865b9f3, type: 2}
+  - {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
+  - {fileID: 11400000, guid: 3954f45122497c52fd1298e4a7085217, type: 2}
+  - {fileID: 11400000, guid: b45f6cbcfb91f0b840251be4344009bd, type: 2}
   freezeDuration: 0
 --- !u!4 &1026486063
 Transform:
