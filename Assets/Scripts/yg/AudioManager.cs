@@ -19,6 +19,12 @@ namespace Prototype.YG
         [SerializeField] private AudioClip menuBgm;
         [SerializeField] private AudioClip battleBgm;
 
+        [Header("볼륨 (0~1)")]
+        [Tooltip("전체 볼륨. BGM · SFX 각각의 값에 곱해진다.")]
+        [Range(0f, 1f)][SerializeField] private float masterVolume = 1f;
+        [Range(0f, 1f)][SerializeField] private float bgmVolume = 1f;
+        [Range(0f, 1f)][SerializeField] private float sfxVolume = 1f;
+
         [Header("타격음")]
         [Tooltip("적중할 때마다 이 중 하나가 무작위로 난다. 직전에 난 것은 다시 고르지 않는다.")]
         [SerializeField] private AudioClip[] hitSfx;
@@ -37,6 +43,32 @@ namespace Prototype.YG
             Instance = this;
 
             if (bgmSource != null) bgmSource.loop = true;
+
+            ApplyVolumes();
+        }
+
+        // ── 볼륨 ─────────────────────────────────────────
+
+        /// <summary>0~1. 슬라이더(<see cref="UIManager"/>)가 현재 값을 읽어 자기 위치를 맞춘다.</summary>
+        public float MasterVolume => masterVolume;
+        public float BgmVolume => bgmVolume;
+        public float SfxVolume => sfxVolume;
+
+        public void SetMasterVolume(float value) { masterVolume = Mathf.Clamp01(value); ApplyVolumes(); }
+        public void SetBgmVolume(float value)    { bgmVolume    = Mathf.Clamp01(value); ApplyVolumes(); }
+        public void SetSfxVolume(float value)    { sfxVolume    = Mathf.Clamp01(value); ApplyVolumes(); }
+
+        /// <summary>
+        /// 저장된 값을 실제 <see cref="AudioSource"/>에 민다.
+        /// 마스터를 각 채널에 곱한다 — 마스터만 내려도 둘 다 같이 줄어야 한다.
+        ///
+        /// 소스가 비어 있어도 조용히 넘어간다. 클립처럼 배선이 덜 된 상태에서도
+        /// 프로토타입이 멈추면 안 된다(이 클래스의 기존 규약).
+        /// </summary>
+        private void ApplyVolumes()
+        {
+            if (bgmSource != null) bgmSource.volume = masterVolume * bgmVolume;
+            if (sfxSource != null) sfxSource.volume = masterVolume * sfxVolume;
         }
 
         /// <summary>
