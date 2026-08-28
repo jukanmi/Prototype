@@ -10,23 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_TK\uB300\uC9C0\uAC15\uD0C0"
+  m_Name: "SK_TK\uC204\uB354\uCC28\uC9C0"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uB300\uC9C0 \uAC15\uD0C0"
-  icon: {fileID: 6522445269602988193, guid: a8f0405a06a24f3581100aeadedea1e4, type: 3}
-  description: "\uC9C0\uBA74\uC744 \uAC15\uD0C0\uD574 \uC804\uBC29\uC758 \uC801\uC744 \uAC15\uD558\uAC8C \uBC00\uCCD0\uB0B8\uB2E4."
+  skillName: "\uC204\uB354 \uCC28\uC9C0"
+  icon: {fileID: 0}
+  description: "\uC804\uBC29\uC758 \uC801\uC744 \uBC00\uC5B4\uB0B4\uBA70 \uAC15\uB825\uD558\uAC8C
+    \uB3CC\uC9C4\uD55C\uB2E4."
   role: 0
-  attackType: 1
+  attackType: 2
   requireState: 0
-  resultState: 4
-  castRangeScale: {x: 4, y: 0.3, z: 4}
+  resultState: 1
+  castRangeScale: {x: 3, y: 1, z: 3}
   castConeAngle: 0
   targeting: 0
   radius: 3
   targetPick: 0
-  castTime: 0.35
+  castTime: 0.2
   hitInterval: 0.3
-  recoveryTime: 0.3
+  recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -38,23 +39,24 @@ MonoBehaviour:
   hitDataList:
   - damageData:
       damage: 18
-    aerialDamage: 0.0
-    castDelay: 0.0
+    aerialDamage: 0
+    castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
-    nextState: 3
+    nextState: 1
     canOtg: 0
-    mode: 4
+    mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    pushDistance: 4
-    airborneHeight: 0.0
-    aerialAirborneHeight: 0.0
+    pushDistance: 3
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     capAirborne: 0
-    pullAnchorRatio: 0.0
+    pullAnchorRatio: 0
     hitStunDuration: 0.3
-    guardDamage: 18
+    guardDamage: 0
     snapZ: 0
-  effects: []
+  effects:
+  - rid: 7198291130188562556
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
@@ -67,4 +69,8 @@ MonoBehaviour:
     hitClip: {fileID: 11400000, guid: 60b26e83a57ef3c4fa8045a52be79a93, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7198291130188562556
+      type: {class: ChargeEffect, ns: Prototype, asm: Assembly-CSharp}
+      data:
+        speed: 20
