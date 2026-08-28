@@ -124,8 +124,8 @@ namespace Prototype.Tests
 
             Assert.That(h.nextState, Is.EqualTo(basic.nextState));
             Assert.That(h.mode, Is.EqualTo(basic.mode));
-            Assert.That(h.knockbackForce, Is.EqualTo(basic.knockbackForce));
-            Assert.That(h.launchForce, Is.Zero);
+            Assert.That(h.pushDistance, Is.EqualTo(basic.pushDistance));
+            Assert.That(h.airborneHeight, Is.Zero);
         }
 
         [Test]
@@ -140,15 +140,15 @@ namespace Prototype.Tests
                 overrideReaction = true,
                 nextState = CombatState.AerialHit,
                 mode = KnockbackMode.AwayFromCaster,
-                knockbackForce = 4.5f,
-                launchForce = 6f,
+                pushDistance = 0.5625f,
+                airborneHeight = 0.6f,
                 hitStunDuration = 0.5f,
             };
 
             HitData h = BasicComboRules.BuildStageHit(in basic, in stage);
 
             Assert.That(h.nextState, Is.EqualTo(CombatState.AerialHit));
-            Assert.That(h.launchForce, Is.EqualTo(6f).Within(0.0001f));
+            Assert.That(h.airborneHeight, Is.EqualTo(0.6f).Within(0.0001f));
             Assert.That(h.hitStunDuration, Is.EqualTo(0.5f).Within(0.0001f));
 
             // 타격의 정체성(OTG · 선행 조건)은 단계가 건드리지 않는다 —
@@ -169,7 +169,7 @@ namespace Prototype.Tests
             nextState = CombatState.LightHit,
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
-            knockbackForce = 3f,
+            pushDistance = 0.375f,
             hitStunDuration = 0.3f,
         };
     }

@@ -290,8 +290,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
     hitStunDuration: 0
     snapZ: 0
 --- !u!114 &1455169963318175294

@@ -101,8 +101,8 @@ namespace Prototype.EditorTools
                 last.FindPropertyRelative("overrideReaction").boolValue = true;
                 last.FindPropertyRelative("nextState").enumValueIndex = (int)CombatState.AerialHit;
                 last.FindPropertyRelative("mode").enumValueIndex = (int)KnockbackMode.AwayFromCaster;
-                last.FindPropertyRelative("knockbackForce").floatValue = 4.5f;
-                last.FindPropertyRelative("launchForce").floatValue = 6f;
+                last.FindPropertyRelative("pushDistance").floatValue = 0.5625f;
+                last.FindPropertyRelative("airborneHeight").floatValue = 0.6f;
                 last.FindPropertyRelative("hitStunDuration").floatValue = 0.5f;
 
                 so.ApplyModifiedPropertiesWithoutUndo();
@@ -128,8 +128,8 @@ namespace Prototype.EditorTools
 
             // 마무리 타만 덮어쓴다. 나머지는 basicHit 그대로다.
             stage.FindPropertyRelative("overrideReaction").boolValue = false;
-            stage.FindPropertyRelative("knockbackForce").floatValue = 0f;
-            stage.FindPropertyRelative("launchForce").floatValue = 0f;
+            stage.FindPropertyRelative("pushDistance").floatValue = 0f;
+            stage.FindPropertyRelative("airborneHeight").floatValue = 0f;
             stage.FindPropertyRelative("hitStunDuration").floatValue = 0f;
         }
 

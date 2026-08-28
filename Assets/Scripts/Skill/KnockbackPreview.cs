@@ -59,25 +59,26 @@ namespace Prototype
             {
                 HitData hit = data.hitDataList[i];
 
-                if (hit.knockbackForce > 0f)
+                if (hit.pushDistance > 0f)
                 {
                     moves = true;
 
                     // 실전(Combat.ApplyKnockback)과 같은 오버로드를 쓴다 — 밀치기는 벽이 방향을 정하므로
                     // 벽 레이어를 안 넘기면 화살표만 시전자 반대쪽을 가리킨다.
                     Vector3 dir = hit.ResolveDirection(castOrigin, casterFacing, pos, victim.WallMask);
-                    pos += dir * Travel(in hit, victim, castOrigin, pos, dir);
+                    pos += dir * Travel(in hit, castOrigin, pos, dir, victim.WallMask);
                 }
 
-                // 실전과 같은 선택 규칙 — 이미 떠 있는 대상은 airLaunchForce가 우선한다.
-                float launch = victim.PhysicsState == PhysicsState.Aerial && hit.airLaunchForce > 0f
-                    ? hit.airLaunchForce
-                    : hit.launchForce;
+                // 실전과 같은 선택 규칙 — 이미 떠 있는 대상은 aerialAirborneHeight가 우선한다.
+                float height = victim.PhysicsState == PhysicsState.Aerial && hit.aerialAirborneHeight > 0f
+                    ? hit.aerialAirborneHeight
+                    : hit.airborneHeight;
 
-                if (launch > 0f)
+                if (height > 0f)
                 {
                     moves = true;
-                    apex = Mathf.Max(apex, ApexHeight(launch, victim.Gravity));
+                    // 저작값이 곧 정점이다 — 환산을 거치지 않으므로 화살표와 데이터가 어긋날 자리가 없다.
+                    apex = Mathf.Max(apex, height);
                 }
             }
 
@@ -87,33 +88,39 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>이 타격 하나가 만들어 내는 이동 거리. 모으기는 중심을, 밀치기는 벽을 지나치지 않게 자른다.</summary>
-        private static float Travel(in HitData hit, Physics victim, Vector3 center, Vector3 pos, Vector3 dir)
+        /// <summary>
+        /// 이 타격 하나가 만들어 내는 이동 거리. 모으기는 중심을, 밀치기는 벽을 지나치지 않게 자른다.
+        ///
+        /// <c>pushDistance</c>가 이미 거리라 <b>충격량 왕복이 없다</b> —
+        /// 실전(<see cref="Combat"/>)과 프리뷰가 같은 수를 보고 같은 곳에서 자른다.
+        /// </summary>
+        private static float Travel(in HitData hit, Vector3 center, Vector3 pos, Vector3 dir, LayerMask wallMask)
         {
-            float force = hit.knockbackForce;
+            float travel = hit.pushDistance;
 
-            // Combat.PullClamped와 같은 규칙 — 안 자르면 중심 근처의 적이 반대편으로 튄다.
+            // Combat.PushClamped와 같은 규칙 — 안 자르면 중심 근처의 적이 반대편으로 튄다.
             if (hit.mode == KnockbackMode.TowardCaster)
             {
                 Vector3 flat = center - pos;
                 flat.y = 0f;
-                force = Mathf.Min(force, victim.ImpulseToTravel(flat.magnitude));
+                travel = Mathf.Min(travel, flat.magnitude);
             }
-
-            float travel = victim.TravelForImpulse(force);
 
             // 벽으로 미는 타격은 벽에서 멈춘다. 안 자르면 화살표가 벽을 뚫고 나가
             // "저기까지 날아간다"는 거짓말이 된다 — 실제로는 벽에 닿아 튕긴다.
             if (hit.mode == KnockbackMode.TowardWall)
             {
-                float toWall = WallFinder.DistanceToWall(pos, dir, victim.WallMask);
+                float toWall = WallFinder.DistanceToWall(pos, dir, wallMask);
                 if (!float.IsInfinity(toWall)) travel = Mathf.Min(travel, toWall);
             }
 
             return travel;
         }
 
-        /// <summary>초기 속도 v로 띄웠을 때의 정점 높이. v² / 2g.</summary>
+        /// <summary>
+        /// 초기 속도 v로 띄웠을 때의 정점 높이. v² / 2g.
+        /// <see cref="Physics.LaunchForHeight"/>의 역함수 — 저작값이 실제로 그 높이를 내는지 검증할 때 쓴다.
+        /// </summary>
         public static float ApexHeight(float launchForce, float gravity)
         {
             if (launchForce <= 0f || gravity <= 0.0001f) return 0f;
@@ -128,7 +135,9 @@ namespace Prototype
             for (int i = 0; i < data.hitDataList.Count; i++)
             {
                 HitData hit = data.hitDataList[i];
-                if (hit.knockbackForce > 0f || hit.launchForce > 0f) return true;
+
+                // 내리꽂기(음수 높이)도 대상을 움직인다 — 0만 빼면 마무리기가 프리뷰에서 사라진다.
+                if (hit.pushDistance > 0f || hit.airborneHeight != 0f) return true;
             }
 
             return false;

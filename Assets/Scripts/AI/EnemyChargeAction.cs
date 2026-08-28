@@ -35,7 +35,7 @@ namespace Prototype
             nextState = CombatState.Knockback,
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
-            knockbackForce = 8f,
+            pushDistance = 1f,
             hitStunDuration = 0.3f,
         };
 

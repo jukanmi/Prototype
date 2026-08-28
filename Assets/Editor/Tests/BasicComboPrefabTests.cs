@@ -55,13 +55,13 @@ namespace Prototype.Tests
                 int last = e.BasicComboStageCount - 1;
 
                 for (int i = 0; i < last; i++)
-                    Assert.That(e.BuildBasicHit(i).launchForce, Is.Zero,
+                    Assert.That(e.BuildBasicHit(i).airborneHeight, Is.Zero,
                                 $"{e.name} {i + 1}타가 띄우면 마무리의 값어치가 사라진다");
 
                 HitData finisher = e.BuildBasicHit(last);
-                Assert.That(finisher.launchForce, Is.GreaterThan(0f), $"{e.name}: 마무리가 안 띄운다");
+                Assert.That(finisher.airborneHeight, Is.GreaterThan(0f), $"{e.name}: 마무리가 안 띄운다");
                 Assert.That(finisher.nextState, Is.EqualTo(CombatState.AerialHit),
-                            $"{e.name}: launchForce만 넣으면 몸은 뜨는데 상태가 어긋나 착지 전이가 깨진다");
+                            $"{e.name}: airborneHeight만 넣으면 몸은 뜨는데 상태가 어긋나 착지 전이가 깨진다");
             }
         }
 

@@ -73,7 +73,7 @@ namespace Prototype.Tests
         {
             Wall(new Vector3(5f, 0f, 0f));
 
-            var hit = new HitData { mode = KnockbackMode.TowardWall, knockbackForce = 20f };
+            var hit = new HitData { mode = KnockbackMode.TowardWall, pushDistance = 2.5f };
 
             // 시전자가 대상의 오른쪽에 서 있다 — AwayFromCaster였다면 왼쪽(벽 반대)으로 밀린다.
             Vector3 casterPos = new Vector3(2f, 0f, 0f);
@@ -96,8 +96,8 @@ namespace Prototype.Tests
                             $"{s.name}: 밀치기는 벽으로만 보낸다");
                 Assert.That(s.targetPick, Is.EqualTo(TargetPick.Farthest),
                             $"{s.name}: 가장 먼 적이어야 벽까지 밀 거리가 나온다");
-                Assert.That(s.hitDataList[0].knockbackForce, Is.GreaterThan(0f),
-                            $"{s.name}: 밀 힘이 0이면 벽까지 못 간다");
+                Assert.That(s.hitDataList[0].pushDistance, Is.GreaterThan(0f),
+                            $"{s.name}: 밀 거리가 0이면 벽까지 못 간다");
             }
         }
 

@@ -23,6 +23,22 @@ namespace Prototype
     {
         public DamageData damageData;
 
+        [Tooltip("대상이 공중에 떠 있을 때 대신 쓰는 피해량. 0이면 damage를 그대로 쓴다.\n\n" +
+                 "기획서가 '40 (에어본 된 적) / 25 (기본)'처럼 두 값을 적는 자리다 — " +
+                 "마무리기는 띄워 둔 적을 찍었을 때만 값어치가 있어야 한다.")]
+        public float aerialDamage;
+
+        [Header("타이밍")]
+        [Tooltip("앞 사건(시전 시작 · 앞 타)으로부터 이 타까지의 간격(초).\n\n" +
+                 "0이면 SkillData.hitInterval로 떨어진다 — 간격이 일정한 다단히트는 안 채워도 된다.\n" +
+                 "타마다 선딜이 다른 스킬(연격 0.2 / 0.2 / 0.3)만 여기를 쓴다.")]
+        public float castDelay;
+
+        [Header("시전 범위")]
+        [Tooltip("이 타만의 시전 범위 배수. 0이면 SkillData.castRangeScale로 떨어진다.\n\n" +
+                 "타마다 범위가 다른 스킬(연격 — 벨수록 위로 넓어진다)이 여기를 쓴다.")]
+        public Vector3 castRangeScale;
+
         [Header("상태 전이")]
         [Tooltip("선행 조건. Neutral이면 조건 없음.")]
         public CombatState targetState;
@@ -35,13 +51,35 @@ namespace Prototype
         public KnockbackMode mode;
         [Tooltip("mode == Fixed 일 때만 사용. 시전자 로컬 기준 방향.")]
         public Vector3 fixedDir;
-        public float knockbackForce;
-        public float launchForce;
-        [Tooltip("대상이 이미 떠 있을 때 대신 쓰는 띄우기 힘. 0이면 launchForce를 그대로 쓴다. " +
+
+        [Tooltip("밀어낼 거리(유닛). 기획서 '밀치기 강도' 행을 그대로 적는다. 0이면 안 민다.")]
+        public float pushDistance;
+
+        [Tooltip("띄울 높이(유닛). 기획서 '에어본 강도(높이)' 행을 그대로 적는다. 0이면 안 띄운다.\n\n" +
+                 "<b>음수면 아래로 꽂는다</b> — 같은 크기로 띄울 힘을 반대로 쓴다. " +
+                 "마무리기(내려찍기)의 '수직으로 끌어내리고 다운시킴'이 그 자리다.\n" +
+                 "떠 있는 적만 꽂힌다 — 지상 적은 이미 바닥이라 아무 일도 안 일어나고, " +
+                 "다운은 착지가 만든다(CombatStateRules.OnGroundContact).")]
+        public float airborneHeight;
+
+        [Tooltip("대상이 이미 떠 있을 때 대신 쓰는 띄우기 높이. 0이면 airborneHeight를 그대로 쓴다. " +
                  "지상 첫 타는 히트박스가 닿는 높이까지만 띄우면 되지만, 공중 연계는 이미 올라간 몸을 " +
                  "다시 밀어 올려야 해서 같은 값으로는 모자란다. 두 값을 나눠 두면 시작 높이를 " +
                  "건드리지 않고 공중만 조절할 수 있다.")]
-        public float airLaunchForce;
+        public float aerialAirborneHeight;
+
+        [Tooltip("이미 떠 있는 대상을 airborneHeight 위로는 올리지 않는다.\n\n" +
+                 "기획서 비고 '이 스킬의 에어본 높이를 초과해서 띄우지 않음' 행. " +
+                 "끄면 공중 대상이 맞을수록 조금씩 더 높이 뜬다(Physics.airLaunchScale).\n" +
+                 "내려찍기(음수 높이)에는 걸리지 않는다 — 위로 올리는 타격에만 있는 상한이다.")]
+        public bool capAirborne;
+
+        [Tooltip("TowardCaster(모으기)일 때 끌어올 목표 지점을 시전 범위의 몇 배 앞에 둘지.\n\n" +
+                 "0이면 기준점(시전자 · 찍은 좌표)까지 그대로 끌어온다.\n" +
+                 "기획서 '피격 범위 전방 1/3 지점까지'가 0.333이다 — 시전자 발밑이 아니라 " +
+                 "조금 앞에 모아 두면 후속 광역이 시전자를 비껴간다.")]
+        public float pullAnchorRatio;
+
         public float hitStunDuration;
 
         [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +
@@ -99,7 +137,7 @@ namespace Prototype
                     return d.sqrMagnitude > 0.0001f ? d.normalized : casterForward;
                 }
                 case KnockbackMode.Up:
-                    return Vector3.zero; // 수평 성분 없음. launchForce만 사용.
+                    return Vector3.zero; // 수평 성분 없음. airborneHeight만 사용.
                 case KnockbackMode.Fixed:
                 default:
                 {

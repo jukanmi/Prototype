@@ -116,15 +116,22 @@ namespace Prototype
 
         private float DamageMultiplier => Mathf.Lerp(1f, Data.maxChargeDamageMul, lockedRatio);
 
-        /// <summary>모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.</summary>
+        /// <summary>
+        /// 모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.
+        ///
+        /// <b>배율이 필드마다 다르다</b> — 저작 단위가 힘이 아니라 거리 · 높이이기 때문이다.
+        /// 밀치기 거리는 충격량에 정비례하므로 <c>mul</c>을 그대로 곱하지만,
+        /// 정점 높이는 <c>v²/2g</c>라 속도의 <b>제곱</b>에 비례한다 —
+        /// 여기에도 <c>mul</c>만 곱하면 모은 보람이 예전의 제곱근으로 줄어든다.
+        /// </summary>
         protected override HitData ModifyHit(HitData hit)
         {
             float mul = DamageMultiplier;
 
             hit.damageData.damage *= mul;
-            hit.knockbackForce *= mul;
-            hit.launchForce *= mul;
-            hit.airLaunchForce *= mul;
+            hit.pushDistance *= mul;
+            hit.airborneHeight *= mul * mul;
+            hit.aerialAirborneHeight *= mul * mul;
 
             return hit;
         }

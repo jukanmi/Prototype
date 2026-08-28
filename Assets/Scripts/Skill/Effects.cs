@@ -58,6 +58,53 @@ namespace Prototype
         }
 
         /// <summary>
+        /// <b>전방 부채꼴</b>을 한 번에 때린다. 반경 안이면서 정면에서 <paramref name="angle"/>의
+        /// 절반 안에 든 대상만 맞는다.
+        ///
+        /// 박스 히트박스로는 "앞으로 길게 뻗되 옆으로는 안 닿는" 판정을 만들 수 없다 —
+        /// 길이를 주면 폭도 같이 늘어난다. 사슬처럼 뻗는 스킬이 이 경로를 쓴다.
+        ///
+        /// 각도 검사는 <see cref="CombatStateRules"/>의 정면 판정과 같은 규칙이다(수평만 본다).
+        /// 벨트스크롤이라 높이차로 부채꼴이 빗나가면 저작 의도와 어긋난다.
+        /// </summary>
+        public static int ConeStrike(Vector3 origin, Vector3 facing, float radius, float angle,
+                                     Combat attacker, in HitData hit, in SkillVfx style)
+        {
+            if (attacker == null || radius <= 0f || angle <= 0f) return 0;
+
+            Vector3 flatFacing = new Vector3(facing.x, 0f, facing.z);
+            if (flatFacing.sqrMagnitude <= 0.0001f) return 0;
+            flatFacing.Normalize();
+
+            HitData swing = hit;
+            SkillVfx vfx = style;
+            float half = angle * 0.5f;
+            Vector3 flatOrigin = new Vector3(origin.x, 0f, origin.z);
+
+            int hits = 0;
+
+            OverlapCombats(origin, radius, attacker, c =>
+            {
+                if (c.Physics == null) return;
+
+                Vector3 to = c.Physics.GroundPosition - origin;
+                to.y = 0f;
+                if (to.sqrMagnitude > 0.0001f && Vector3.Angle(flatFacing, to) > half) return;
+
+                if (!attacker.Attack(c, in swing)) return;
+                hits++;
+
+                Vector3 ground = c.Physics.GroundPosition;
+                ground.y = 0f;
+
+                BattleVfx.Impact(ground, c.Physics.Height + ImpactHeight,
+                                 ground - flatOrigin, ImpactRadius, in vfx);
+            });
+
+            return hits;
+        }
+
+        /// <summary>
         /// 중심 반경 안의 Combat을 모은다. 시전자 본인과 <b>같은 진영</b>은 제외한다.
         /// 진영 필터가 없으면 모으기가 동료까지 빨아들인다 — Attack 히트박스와 같은 기준을 쓴다.
         /// </summary>
@@ -98,7 +145,8 @@ namespace Prototype
     public class PullEffect : ISkillEffect
     {
         [SerializeField] private float radius = 4f;
-        [SerializeField] private float force = 12f;
+        [Tooltip("최대로 끌어올 거리(유닛).")]
+        [SerializeField] private float pullDistance = 1.5f;
         [SerializeField] private float damage = 5f;
         [SerializeField] private float hitStun = 0.4f;
 
@@ -118,7 +166,7 @@ namespace Prototype
                 targetState = CombatState.Neutral,
                 nextState = CombatState.LightHit,
                 mode = KnockbackMode.TowardCaster,
-                knockbackForce = force,
+                pushDistance = pullDistance,
                 hitStunDuration = hitStun,
                 // 벨트스크롤에서 Z가 어긋나면 후속 연계가 전부 빗나간다.
                 snapZ = true,
@@ -143,7 +191,8 @@ namespace Prototype
     public class AirborneEffect : ISkillEffect
     {
         [SerializeField] private float radius = 2.5f;
-        [SerializeField] private float launchForce = 12f;
+        [Tooltip("띄울 높이(유닛).")]
+        [SerializeField] private float airborneHeight = 2.4f;
         [SerializeField] private float damage = 8f;
         [SerializeField] private float hitStun = 0.6f;
 
@@ -159,7 +208,7 @@ namespace Prototype
                 damageData = new DamageData(damage),
                 nextState = CombatState.AerialHit,
                 mode = KnockbackMode.Up,
-                launchForce = launchForce,
+                airborneHeight = airborneHeight,
                 hitStunDuration = hitStun,
             }.WithOrigin(center);
 

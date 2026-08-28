@@ -75,8 +75,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -444,7 +444,7 @@ MonoBehaviour:
   parryAngle: 180
   parrySuccessInvuln: 0.3
   parryCounterStun: 0.6
-  parryCounterKnockback: 4
+  parryCounterPush: 0.5
   maxGuard: 60
   defaultGuardDamage: 6
   guardBreakDuration: 4
@@ -478,8 +478,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
-    launchForce: 0
+    pushDistance: 0.375
+    airborneHeight: 0
     hitStunDuration: 0.1
     guardDamage: 0
     snapZ: 0
@@ -606,8 +606,8 @@ MonoBehaviour:
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -638,8 +638,8 @@ MonoBehaviour:
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -670,8 +670,8 @@ MonoBehaviour:
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -702,8 +702,8 @@ MonoBehaviour:
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 0
+      pushDistance: 1.25
+      airborneHeight: 0
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -734,8 +734,8 @@ MonoBehaviour:
       canOtg: 0
       mode: 0
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 3
-      launchForce: 0
+      pushDistance: 0.375
+      airborneHeight: 0
       hitStunDuration: 0.22
       guardDamage: 0
       snapZ: 0
@@ -801,8 +801,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -903,8 +903,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
