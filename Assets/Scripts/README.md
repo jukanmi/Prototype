@@ -27,7 +27,7 @@ Characters/ Player, Ally, Enemy, EnemyData
 Control/    Control, PlayerControl, EnemyControl, AllyControl
 Skill/      SkillData, SkillState, SkillContext, ISkillEffect, Effects, EffectRunner
 Deck/       ComboCard, Deck / Hand / Discard
-Battle/     BulletTimeController, ComboSlotBoard, ComboExecutor, ComboPredictor, TargetSelector
+Battle/     BulletTimeController, ComboSlotBoard, ComboExecutor, EnemyRadiusProbe, TargetSelector
 yg/         씬 흐름 — Boot / MainMenu / Battle 전환 (namespace Prototype.YG, yg/README.md)
 ```
 
@@ -112,7 +112,7 @@ Physics Settings 의 Layer Collision Matrix 에서 상대 진영만 부딪히게
 - `BulletTimeController`
 - `ComboSlotBoard` (slotCount 3~4)
 - `ComboExecutor`
-- `ComboPredictor`
+- `EnemyRadiusProbe`
 - `TargetSelector`
 
 `BulletTimeController` 의 `player` 필드에 Player 를, Player 의 `party` 배열에

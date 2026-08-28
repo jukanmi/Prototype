@@ -23,6 +23,12 @@ namespace Prototype
         private readonly HashSet<Combat> alreadyHit = new HashSet<Combat>();
         private Collider box;
 
+        // 스킬이 자기 시전 범위로 히트박스를 갈아 끼울 수 있다(SkillData.castRangeScale).
+        // 히트박스는 스킬끼리 공유되므로 원래 모양을 여기 기억해 두고 End에서 되돌린다.
+        private Vector3 defaultSize;
+        private Vector3 defaultLocalPos;
+        private bool resized;
+
         // 켜는 순간의 겹침 스윕용. 히트박스가 여러 개 켜져도 한 프레임에 하나씩 도므로 공유해도 된다.
         private static readonly Collider[] SweepBuffer = new Collider[32];
         private int sweepMask;
@@ -46,6 +52,9 @@ namespace Prototype
             if (attacker == null) attacker = GetComponentInParent<Combat>();
             box.enabled = false;
             sweepMask = BuildSweepMask(gameObject.layer);
+
+            defaultSize = box is BoxCollider b ? b.size : Vector3.zero;
+            defaultLocalPos = transform.localPosition;
 
             WarnIfDuplicated();
         }
@@ -74,12 +83,26 @@ namespace Prototype
         /// 스킬이 자기 이펙트 색을 실어 켜는 경우.
         /// vfx가 <c>default</c>면 전역 색으로 떨어진다.
         /// </summary>
-        public void Begin(in HitData data, in SkillVfx vfx)
+        public void Begin(in HitData data, in SkillVfx vfx) => Begin(in data, in vfx, Vector3.zero);
+
+        /// <summary>
+        /// 스킬이 <b>자기 시전 범위</b>로 히트박스를 갈아 끼워 켜는 경우.
+        ///
+        /// <paramref name="size"/>가 0이면 프리팹 모양 그대로다 — 범위를 안 적은 스킬은
+        /// 예전과 똑같이 동작한다. 값이 있으면 크기와 함께 <b>중심도 다시 잡는다</b>:
+        /// 로컬 z를 깊이의 절반에 두어 <b>시전자 몸 앞면에서 시작해 깊이만큼</b> 뻗게 한다.
+        /// 그래야 "시전 범위 = 피격 범위 × 배수"가 화면에서 실제로 재어지는 말이 된다.
+        ///
+        /// 히트박스는 스킬끼리 공유되므로 <see cref="End"/>가 반드시 원복한다 —
+        /// 안 그러면 다음 스킬과 평타가 남의 범위로 때린다.
+        /// </summary>
+        public void Begin(in HitData data, in SkillVfx vfx, Vector3 size)
         {
             hitData = data;
             style = vfx;
             alreadyHit.Clear();
 
+            Resize(size);
             box.enabled = true;
 
             // 이미 겹쳐 있는 대상은 OnTriggerEnter를 다시 받지 못한다 — 새로 "진입"한 게 아니기 때문이다.
@@ -91,8 +114,31 @@ namespace Prototype
             // 그 위에 선을 덧그리면 두 개가 겹쳐 보였다. 연출은 적중 순간에만 낸다.
         }
 
+        /// <summary>이번 타격만 쓰는 크기로 바꾼다. BoxCollider가 아니면 조용히 넘어간다.</summary>
+        private void Resize(Vector3 size)
+        {
+            if (size.x <= 0f || size.y <= 0f || size.z <= 0f) return;
+            if (!(box is BoxCollider b)) return;
+
+            b.size = size;
+            b.center = Vector3.zero;
+            transform.localPosition = new Vector3(defaultLocalPos.x, defaultLocalPos.y, size.z * 0.5f);
+            resized = true;
+        }
+
+        /// <summary><see cref="Resize"/>가 건드린 모양을 프리팹 값으로 되돌린다.</summary>
+        private void RestoreSize()
+        {
+            if (!resized) return;
+
+            if (box is BoxCollider b) b.size = defaultSize;
+            transform.localPosition = defaultLocalPos;
+            resized = false;
+        }
+
         public void End()
         {
+            RestoreSize();
             box.enabled = false;
             alreadyHit.Clear();
         }

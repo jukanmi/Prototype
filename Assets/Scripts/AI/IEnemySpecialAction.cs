@@ -23,13 +23,23 @@ namespace Prototype
         /// <summary>
         /// 0보다 크면 <b>원</b>이다 — 둘레 전부를 때리는 패턴(횡베기).
         /// 이때 <see cref="halfWidth"/> · <see cref="halfLength"/>는 쓰이지 않는다.
+        /// <see cref="coneAngle"/>도 0보다 크면 이 반지름을 부채꼴 반지름으로 같이 쓴다.
         /// </summary>
         public float radius;
+        /// <summary>0보다 크면 부채꼴의 중심각(도). <see cref="radius"/> · <see cref="facing"/>과 함께 쓴다.</summary>
+        public float coneAngle;
         /// <summary>0~1. 타격까지 얼마나 왔는지 — 표시가 진해지는 정도로 쓴다.</summary>
         public float progress;
 
-        /// <summary>원으로 그릴지. 상자를 원으로 그리면 모서리에서 거짓말이 되고, 반대도 마찬가지다.</summary>
+        /// <summary>
+        /// 원으로 그릴지. 상자를 원으로 그리면 모서리에서 거짓말이 되고, 반대도 마찬가지다.
+        /// <see cref="IsCone"/>도 <c>radius &gt; 0f</c>라 같이 true가 된다 — 그리는 쪽은
+        /// <see cref="IsCone"/>을 먼저 검사해야 부채꼴이 원으로 잘못 그려지지 않는다.
+        /// </summary>
         public bool IsCircle => radius > 0f;
+
+        /// <summary>부채꼴로 그릴지. 둘레 전부가 아니라 정면 쪽 각도만 위험하다는 뜻이다.</summary>
+        public bool IsCone => coneAngle > 0f;
 
         /// <summary>
         /// 히트박스 상자 하나를 발자국으로 편다. <b>순수 함수</b> —
@@ -83,6 +93,25 @@ namespace Prototype
                 center = center,
                 facing = Vector3.forward,
                 radius = Mathf.Max(0f, radius),
+                progress = Mathf.Clamp01(progress),
+            };
+        }
+
+        /// <summary>
+        /// 전방 부채꼴 판정(<see cref="EffectUtil.ConeStrike"/>와 같은 모양). 원과 달리
+        /// <b>방향을 받는다</b> — 정면 각도 밖은 안전하다는 뜻이라 시전자가 어디를 보는지가 곧 정보다.
+        /// </summary>
+        public static AttackRangePreview FromCone(Vector3 center, Vector3 facing, float radius,
+                                                   float angleDegrees, float progress)
+        {
+            center.y = 0f;
+
+            return new AttackRangePreview
+            {
+                center = center,
+                facing = Flatten(facing),
+                radius = Mathf.Max(0f, radius),
+                coneAngle = Mathf.Max(0f, angleDegrees),
                 progress = Mathf.Clamp01(progress),
             };
         }

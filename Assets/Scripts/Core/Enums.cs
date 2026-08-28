@@ -47,6 +47,12 @@ namespace Prototype
         Strike,      // 공격기
         Push,        // 밀치기
         Charge,      // 차징
+
+        /// <summary>유지기 — 콤보를 끊지 않고 이어 가는 다단히트. 값이 5번이라 기존 로드는 그대로다.</summary>
+        Sustain,
+
+        /// <summary>마무리 — 띄워 둔 적을 바닥에 꽂아 콤보를 닫는다.</summary>
+        Finisher,
     }
 
     /// <summary>넉백 방향 계산 방식. 방향은 타격 순간에 계산한다.</summary>
@@ -81,6 +87,16 @@ namespace Prototype
     {
         Nearest,
         Farthest,
+
+        /// <summary>
+        /// <b>공중에 뜬 적</b> 중 가장 가까운 하나. 아무도 안 떠 있으면
+        /// <see cref="Nearest"/>로 떨어진다.
+        ///
+        /// 마무리기(내려찍기)가 쓴다 — 콤보의 마지막 타는 띄워 둔 적을 찍어야 값어치가 있는데,
+        /// Nearest로 고르면 바로 옆에 서 있던 다른 적에게 나가 콤보가 끊긴다.
+        /// 값이 2번이라 기존 에셋의 0~1 로드는 그대로다.
+        /// </summary>
+        NearestAerial,
     }
 
     /// <summary>스킬이 요구하는 조준 방식. 불릿타임 중 유저가 직접 지정한다.</summary>

@@ -169,9 +169,6 @@ namespace Prototype
                 return;
             }
 
-            var predicted = bulletTime.Predictor != null ? bulletTime.Predictor.Predicted : null;
-            bool editing = bulletTime.AllowsCardEdit;
-
             for (int i = 0; i < hand.Count; i++)
             {
                 ComboSlot s = hand.Get(i);
@@ -193,13 +190,6 @@ namespace Prototype
                 float cool = bulletTime.SkillCooldownRemaining(d);
                 if (cool > 0f)
                     line += $" <color=#FF8080>쿨 {cool:0.0}s</color>";
-
-                if (editing && predicted != null && i < predicted.Count)
-                {
-                    bool chained = bulletTime.Predictor.IsChained(hand.Slots, i);
-                    string tag = chained ? "<color=#8AFF80>강화</color>" : "<color=#808080>기본</color>";
-                    line += $"  → <b>{predicted[i]}</b> [{tag}]";
-                }
 
                 sb.AppendLine($"  {head} {line}");
             }

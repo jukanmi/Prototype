@@ -84,6 +84,11 @@ namespace Prototype
             // 상한을 넘겨도 더 세지지 않는다. 콤보가 길다고 무한히 강해지면 안 된다.
             chargeTimer = Mathf.Min(chargeTimer + dt, Data.maxChargeTime);
 
+            // Release()와 같은 lerp를 모으는 동안 실시간으로 반영한다 — TryGetRangePreview가
+            // 그대로 읽으므로 범위 표시가 모을수록 눈에 보이게 커진다. 실제 배율 확정은
+            // 여전히 Release()의 lockedRatio다 — 여긴 미리보기용일 뿐.
+            Context.radiusScale = Mathf.Lerp(1f, Data.maxChargeRadiusMul, ChargeRatio);
+
             // 실시간(U키 단발)에는 해제해 줄 주체가 없다 — 큐가 없으니 ComboExecutor도 없다.
             // 머리 위 게이지가 가득 찬 순간이 곧 발동 시점이다. 그대로 두면 만충인 채로
             // 서 있다가 Ally.realtimeSkillTimeout에 잘려 아무것도 안 터진다.
@@ -116,15 +121,22 @@ namespace Prototype
 
         private float DamageMultiplier => Mathf.Lerp(1f, Data.maxChargeDamageMul, lockedRatio);
 
-        /// <summary>모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.</summary>
+        /// <summary>
+        /// 모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.
+        ///
+        /// <b>배율이 필드마다 다르다</b> — 저작 단위가 힘이 아니라 거리 · 높이이기 때문이다.
+        /// 밀치기 거리는 충격량에 정비례하므로 <c>mul</c>을 그대로 곱하지만,
+        /// 정점 높이는 <c>v²/2g</c>라 속도의 <b>제곱</b>에 비례한다 —
+        /// 여기에도 <c>mul</c>만 곱하면 모은 보람이 예전의 제곱근으로 줄어든다.
+        /// </summary>
         protected override HitData ModifyHit(HitData hit)
         {
             float mul = DamageMultiplier;
 
             hit.damageData.damage *= mul;
-            hit.knockbackForce *= mul;
-            hit.launchForce *= mul;
-            hit.airLaunchForce *= mul;
+            hit.pushDistance *= mul;
+            hit.airborneHeight *= mul * mul;
+            hit.aerialAirborneHeight *= mul * mul;
 
             return hit;
         }

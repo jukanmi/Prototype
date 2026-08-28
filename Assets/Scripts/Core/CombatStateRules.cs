@@ -4,8 +4,7 @@ namespace Prototype
 {
     /// <summary>
     /// 전투 상태 전이표를 <b>한 벌만</b> 유지하는 정적 규칙 테이블.
-    /// 실전투 판정(Combat)과 콤보 예측(ComboPredictor)이 같은 함수를 호출하므로
-    /// 두 벌의 로직이 어긋날 일이 없다.
+    /// Combat이 이 함수를 그대로 호출하므로 판정과 표가 어긋날 일이 없다.
     /// </summary>
     public static class CombatStateRules
     {

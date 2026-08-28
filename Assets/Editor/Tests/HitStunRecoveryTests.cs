@@ -8,7 +8,7 @@ namespace Prototype.Tests
     /// 경직 고착 회귀 방지.
     ///
     /// 넉백 · 공중피격 계열은 <c>OnStunEnd</c>가 상태를 바꾸지 않는다 — 착지(<c>Physics.OnLand</c>)로만
-    /// 풀리게 되어 있다. 그런데 지상에 서 있던 대상을 <c>launchForce</c> 없이 밀치면 Aerial로 가지 않아
+    /// 풀리게 되어 있다. 그런데 지상에 서 있던 대상을 <c>airborneHeight</c> 없이 밀치면 Aerial로 가지 않아
     /// OnLand가 영영 오지 않고, 그대로 영구 경직이 된다(EnemyChargeAction · SK_AR2B 등이 그런 타격이다).
     /// </summary>
     public class HitStunRecoveryTests
@@ -64,7 +64,7 @@ namespace Prototype.Tests
             Combat attacker = NewCombat("Attacker");
             Combat victim = NewCombat("Victim");
 
-            attacker.Attack(victim, in GroundLauncherWithoutLaunchForce);
+            attacker.Attack(victim, in GroundLauncherWithoutHeight);
             Assert.That(victim.CombatState, Is.EqualTo(CombatState.AerialHit), "선행 조건: 공중피격 상태다");
 
             victim.Tick(1f);
@@ -133,7 +133,7 @@ namespace Prototype.Tests
 
         // ── 헬퍼 ─────────────────────────────────────────
 
-        /// <summary>지상 넉백. launchForce가 없어 대상이 뜨지 않는다 — 문제의 타격이다.</summary>
+        /// <summary>지상 넉백. airborneHeight가 없어 대상이 뜨지 않는다 — 문제의 타격이다.</summary>
         private static readonly HitData GroundKnockback = new HitData
         {
             damageData = new DamageData(1f),
@@ -141,12 +141,12 @@ namespace Prototype.Tests
             nextState = CombatState.Knockback,
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
-            knockbackForce = 8f,
+            pushDistance = 1f,
             hitStunDuration = 0.5f,
         };
 
-        /// <summary>띄우기를 요청하지만 launchForce가 비어 있는 타격.</summary>
-        private static readonly HitData GroundLauncherWithoutLaunchForce = new HitData
+        /// <summary>띄우기를 요청하지만 airborneHeight가 비어 있는 타격.</summary>
+        private static readonly HitData GroundLauncherWithoutHeight = new HitData
         {
             damageData = new DamageData(1f),
             targetState = CombatState.Neutral,
@@ -162,7 +162,7 @@ namespace Prototype.Tests
             targetState = CombatState.Neutral,
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,
-            launchForce = 12f,
+            airborneHeight = 2.4f,
             hitStunDuration = 0.5f,
         };
 

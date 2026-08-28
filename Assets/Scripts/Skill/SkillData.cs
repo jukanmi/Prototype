@@ -26,6 +26,46 @@ namespace Prototype
         [Tooltip("이 스킬이 만들어 내는 결과 상태. 예측 표시에 쓴다.")]
         public CombatState resultState = CombatState.LightHit;
 
+        [Header("시전 범위 — 시전자 피격 범위 배수")]
+        [Tooltip("근접 히트박스의 크기를 시전자 피격 콜라이더에 대한 배수로 적는다.\n\n" +
+                 "· x — 가로(좌우 폭)\n" +
+                 "· y — 높이\n" +
+                 "· z — 세로(정면 깊이)\n\n" +
+                 "기획서 '시전 범위' 행을 그대로 옮기는 자리다. 0이면 프리팹 SkillHitbox 크기를 그대로 쓴다.\n" +
+                 "장판 · 투사체는 이 값을 보지 않는다 — 그쪽은 radius가 범위다.")]
+        public Vector3 castRangeScale = Vector3.zero;
+
+        /// <summary>시전 범위를 직접 정한 스킬인지. 셋 중 하나라도 0이면 프리팹 기본값으로 떨어진다.</summary>
+        public bool HasCastRange => IsRangeSet(castRangeScale);
+
+        [Tooltip("전방 부채꼴로 판정할 각도(도). 0이면 박스 히트박스를 쓴다.\n\n" +
+                 "부채꼴일 때는 castRangeScale.x가 <b>반지름</b> 배수가 된다 — " +
+                 "기획서 '반지름 = 플레이어 가로 범위 * 4 / 각도 = 60'이 x=4, 각도 60이다.\n" +
+                 "사슬처럼 앞으로 길게 뻗되 옆으로는 안 닿아야 하는 판정에 쓴다.")]
+        [Range(0f, 360f)] public float castConeAngle = 0f;
+
+        /// <summary>전방 부채꼴로 때리는 스킬인지. 각도가 0이면 여전히 박스 히트박스다.</summary>
+        public bool IsCone => castConeAngle > 0f;
+
+        /// <summary>
+        /// 대상 <b>위로</b> 올라가 시전하는지. 기획서 '플레이어가 공중으로 이동 후 타격' 행이다.
+        ///
+        /// 따로 적지 않는다 — 뜬 적을 골라 치는 스킬(<see cref="TargetPick.NearestAerial"/>)은
+        /// 그 적 위로 가는 것 말고 할 게 없다. 올라갈 <b>거리</b>도 새 값이 아니라
+        /// <see cref="ApproachDistance"/>다: "대상에게서 얼마나 떨어져 서나"가 수평이든 수직이든
+        /// 같은 질문이라, 방향만 여기서 정해 주면 된다.
+        /// </summary>
+        public bool CastsAboveTarget => targetPick == TargetPick.NearestAerial;
+
+        /// <summary>
+        /// 이 타가 실제로 쓸 범위 배수. 타별 값이 있으면 그쪽, 없으면 스킬 공통값이다.
+        /// <see cref="ApproachDistance"/>와 같은 "0이면 접어 준다" 규약.
+        /// </summary>
+        public Vector3 RangeScaleFor(in HitData hit)
+            => IsRangeSet(hit.castRangeScale) ? hit.castRangeScale : castRangeScale;
+
+        private static bool IsRangeSet(Vector3 v) => v.x > 0f && v.y > 0f && v.z > 0f;
+
         [Header("조준")]
         public TargetingType targeting = TargetingType.None;
         [Tooltip("GroundPoint 계열의 유효 반경. 프리뷰 원의 크기.")]
@@ -145,13 +185,40 @@ namespace Prototype
         /// <summary>이 스킬이 시동기(띄우기) 인지. 드로우 확률 보정에 쓴다.</summary>
         public bool IsStarterType => attackType == AttackType.Launcher;
 
+        /// <summary>
+        /// <paramref name="index"/>번째 타가 나가는 시각(시전 시작 기준).
+        ///
+        /// <see cref="HitData.castDelay"/>가 있으면 그만큼, 없으면 <see cref="hitInterval"/>만큼
+        /// 앞 사건에서 떨어진다. <b>첫 타의 castDelay는 castTime에 더해진다</b> —
+        /// 기획서가 선딜을 두 단계로 적는 스킬(내려찍기 0.2 이동 + 0.3 시전)이 그 모양이다.
+        ///
+        /// 시전 타임라인의 <b>유일한 출처</b>다. SkillState와 TotalDuration이 같은 함수를 봐야
+        /// 콤보 큐가 잡은 시간과 실제 타격 시각이 어긋나지 않는다.
+        /// </summary>
+        public float HitTime(int index)
+        {
+            float t = castTime;
+            if (hitDataList == null) return t;
+
+            for (int i = 0; i <= index && i < hitDataList.Count; i++)
+            {
+                float delay = hitDataList[i].castDelay;
+
+                // 첫 타만 규칙이 다르다 — 간격이 아니라 castTime 위에 얹는 추가 선딜이다.
+                if (i == 0) t += delay;
+                else t += delay > 0f ? delay : hitInterval;
+            }
+
+            return t;
+        }
+
         /// <summary>전체 소요 시간. 콤보 큐 타이밍 계산에 쓴다.</summary>
         public float TotalDuration
         {
             get
             {
-                int hits = Mathf.Max(1, hitDataList.Count);
-                return castTime + hitInterval * (hits - 1) + recoveryTime;
+                int last = Mathf.Max(0, (hitDataList?.Count ?? 0) - 1);
+                return HitTime(last) + recoveryTime;
             }
         }
     }

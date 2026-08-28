@@ -28,7 +28,7 @@ namespace Prototype
             nextState = CombatState.LightHit,
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
-            knockbackForce = 3f,
+            pushDistance = 0.375f,
             hitStunDuration = 0.3f,
         };
 
@@ -207,6 +207,44 @@ namespace Prototype
         /// </summary>
         public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
         public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
+
+        private Vector3 cachedHurtboxSize;
+
+        /// <summary>
+        /// 이 몸의 <b>피격 범위</b> — 루트에 붙은 트리거 아닌 콜라이더의 크기.
+        /// 기획서가 스킬 범위를 "플레이어 피격 가로 × 2"처럼 <b>배수로</b> 적으므로,
+        /// 그 배수를 실제 유닛으로 바꾸려면 기준이 되는 이 값이 필요하다
+        /// (<see cref="SkillData.castRangeScale"/>).
+        ///
+        /// 몸마다 다르다 — Player · Ally는 (1, 1, 1)이고 Enemy_Dummy는 (1.4, 2.28, 1.4)다.
+        /// 상수로 박지 않고 콜라이더에서 읽는 이유가 그것이다.
+        ///
+        /// <see cref="Physics"/>와 같은 이유로 지연 해석한다. 콜라이더가 없으면 (1, 1, 1) —
+        /// 배수를 그대로 유닛으로 쓰는 셈이라 저작 의도에서 가장 덜 벗어난다.
+        /// </summary>
+        public Vector3 HurtboxSize
+        {
+            get
+            {
+                if (cachedHurtboxSize != Vector3.zero) return cachedHurtboxSize;
+
+                // bounds가 아니라 콜라이더 치수를 직접 읽는다 — bounds는 월드 AABB라
+                // 씬에 서 있지 않은 몸(EditMode 테스트 · 프리팹 편집)에서는 0으로 나온다.
+                cachedHurtboxSize = Vector3.one;
+
+                switch (GetComponent<Collider>())
+                {
+                    case CapsuleCollider cap when !cap.isTrigger:
+                        cachedHurtboxSize = new Vector3(cap.radius * 2f, cap.height, cap.radius * 2f);
+                        break;
+                    case BoxCollider box when !box.isTrigger:
+                        cachedHurtboxSize = box.size;
+                        break;
+                }
+
+                return cachedHurtboxSize;
+            }
+        }
 
         private EntityAnimator cachedAnimator;
 

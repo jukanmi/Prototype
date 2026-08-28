@@ -40,7 +40,7 @@ namespace Prototype
         [Header("중력")]
         [SerializeField] private float gravity = 30f;
         [Tooltip("내려올 때만 곱하는 중력 배율. 1보다 작으면 정점에서 둥실 떠 있다가 천천히 떨어진다.\n" +
-                 "올라가는 속도는 건드리지 않으므로 launchForce 튜닝값이 그대로 유지된다.")]
+                 "올라가는 속도는 건드리지 않으므로 띄우기 높이 튜닝값이 그대로 유지된다.")]
         [Range(0.1f, 2f)][SerializeField] private float fallGravityScale = 1f;
 
         [Tooltip("정점에서 붙잡아 두는 시간(행맨타임). 0이면 사용하지 않는다.\n" +
@@ -50,7 +50,7 @@ namespace Prototype
         [Tooltip("수직 속도가 이 값 이하이면 정점으로 본다.")]
         [SerializeField] private float apexVelocityThreshold = 3f;
 
-        [Tooltip("공중에서 맞았을 때 launchForce에 곱하는 배율. 1보다 크면 공중 연계가 더 높이 뜬다. " +
+        [Tooltip("공중에서 맞았을 때 띄우기 속도에 곱하는 배율. 1보다 크면 공중 연계가 더 높이 뜬다. " +
                  "지상 첫 타는 영향받지 않으므로 띄우기 시작 높이를 건드리지 않고 공중만 조절할 수 있다.")]
         [Range(0.5f, 3f)][SerializeField] private float airLaunchScale = 1.1f;
 
@@ -148,6 +148,16 @@ namespace Prototype
         /// 프리뷰가 "어디까지 밀려나는가"를 그릴 때 쓴다 — 실전과 같은 상수를 봐야 거짓말을 안 한다.
         /// </summary>
         public float TravelForImpulse(float force) => impulseDamping > 0.0001f ? force / impulseDamping : 0f;
+
+        /// <summary>
+        /// 높이 <paramref name="height"/>까지 띄우는 데 필요한 초기 속도 — <c>√(2gh)</c>.
+        /// <see cref="KnockbackPreview.ApexHeight"/>의 역함수다.
+        ///
+        /// 밀치기의 <see cref="ImpulseToTravel"/>와 같은 자리에 둔다 — 저작은 전부 거리 · 높이로 하고
+        /// 힘으로의 환산은 여기 한 곳에서만 일어난다.
+        /// </summary>
+        public float LaunchForHeight(float height)
+            => height > 0f && gravity > 0.0001f ? Mathf.Sqrt(2f * gravity * height) : 0f;
 
         public float VerticalVelocity => verticalVelocity;
 
@@ -288,10 +298,24 @@ namespace Prototype
         /// 수직 충격. 띄우기 전용.
         ///
         /// 공중에서 맞으면 <see cref="airLaunchScale"/>을 곱하고, <b>지금 속도보다 느리게는
-        /// 만들지 않는다</b>. 그냥 덮어쓰면 올라가는 중에 맞은 후속타의 <c>launchForce</c>가
+        /// 만들지 않는다</b>. 그냥 덮어쓰면 올라가는 중에 맞은 후속타의 띄우기 속도가
         /// 현재 상승속도보다 작을 때 몸이 오히려 주저앉았다 — 띄우는 힘이 부족해 보이는 원인이다.
         /// </summary>
-        public void AddLaunch(float force)
+        public void AddLaunch(float force) => AddLaunch(force, 0f);
+
+        /// <summary>
+        /// 정점 상한을 건 띄우기. <paramref name="capHeight"/>가 0보다 크면 이 타격은
+        /// 대상을 <b>발판 위 그 높이보다 높게 올리지 않는다</b>(HitData.capAirborne).
+        ///
+        /// 자를 대상은 속도가 아니라 <b>정점</b>이다 — 공중에서 맞은 몸은 이미 올라간 만큼
+        /// 남은 높이가 줄어 있어서, 같은 속도를 실으면 지상 첫 타보다 높이 뜬다.
+        /// 그래서 "남은 높이로 갈 수 있는 속도"를 구해 거기서 자른다.
+        ///
+        /// 이미 상한을 넘길 궤도라면 <b>현재 속도를 그대로 둔다</b>. 0으로 깎으면
+        /// 올라가던 몸이 이 타격을 맞는 순간 뚝 끊겨 떨어진다 — 초과분은 앞선 타격이 만든 것이지
+        /// 이 타격이 만든 게 아니다.
+        /// </summary>
+        public void AddLaunch(float force, float capHeight)
         {
             if (force <= 0f) return;
 
@@ -299,14 +323,43 @@ namespace Prototype
             float applied = aerial ? force * airLaunchScale : force;
             if (aerial) applied = Mathf.Max(verticalVelocity, applied);
 
-            verticalVelocity = applied;
+            float capped = applied;
+            if (capHeight > 0f && aerial)
+            {
+                float headroom = Mathf.Max(0f, SupportY + capHeight - Transform.position.y);
+                capped = Mathf.Min(applied, Mathf.Max(LaunchForHeight(headroom), verticalVelocity));
+            }
+
+            verticalVelocity = capped;
             PhysicsState = PhysicsState.Aerial;
             // 다시 띄울 때마다 정점 체류를 새로 채운다. 추가타마다 한 번씩 붕 뜬다.
             apexHangLeft = apexHangTime;
 
             BattleLog.Log(LogCategory.Physics,
                 $"{name} 띄우기 force={force:0.#}" +
-                (aerial ? $" → 공중 보정 {applied:0.#} (x{airLaunchScale:0.##})" : string.Empty), this);
+                (aerial ? $" → 공중 보정 {applied:0.#} (x{airLaunchScale:0.##})" : string.Empty) +
+                (capped < applied ? $" → 상한 {capHeight:0.##} 유닛으로 절삭 {capped:0.#}" : string.Empty), this);
+        }
+
+        /// <summary>
+        /// 수직 내리꽂기. 띄우기의 <b>부호 반대</b>다 — 떠 있는 몸을 <paramref name="speed"/>로 지면에 처박는다.
+        /// 호출부는 음수 airborneHeight를 여기로 흘려보낸다(Combat.ResolveLaunch).
+        ///
+        /// <b>지상 대상에는 아무 일도 하지 않는다.</b> 이미 바닥이라 꽂을 높이가 없고,
+        /// 지상까지 걸면 서 있던 적이 이유 없이 다운된다.
+        ///
+        /// 다운 전이는 여기서 만들지 않는다 — 착지 시점에
+        /// <see cref="CombatStateRules.OnGroundContact"/>가 AerialHit을 Down으로 넘긴다.
+        /// 정점 체류(<see cref="apexHangTime"/>)도 같이 지운다. 꽂히는 몸이 공중에 멎으면 안 된다.
+        /// </summary>
+        public void AddSlam(float speed)
+        {
+            if (speed <= 0f || PhysicsState != PhysicsState.Aerial) return;
+
+            verticalVelocity = -speed;
+            apexHangLeft = 0f;
+
+            BattleLog.Log(LogCategory.Physics, $"{name} 내리꽂기 speed={speed:0.#}", this);
         }
 
         /// <summary>지속 힘. 매 프레임 호출해야 유지된다. ex) 몹몰이 장판.</summary>
@@ -321,7 +374,7 @@ namespace Prototype
         /// <b>낙하 중일 때만</b> 수직 속도를 끊는다. 상승 중이면 건드리지 않는다.
         ///
         /// <see cref="ResetInertia"/>는 XZ만 지운다 — 떨어지던 속도가 남으면 같은
-        /// <c>launchForce</c>인데도 뜨는 높이가 매번 달라 공중 연계가 재현되지 않는다.
+        /// <c>airborneHeight</c>인데도 뜨는 높이가 매번 달라 공중 연계가 재현되지 않는다.
         ///
         /// 반대로 올라가는 쪽은 살려 둔다. 상승 중에 0으로 리셋하면 띄워 놓은 몸이
         /// 후속타를 맞는 순간 정점에서 뚝 끊겨 그대로 떨어졌다.

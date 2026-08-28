@@ -545,9 +545,9 @@ namespace Prototype.EditorTools
                 nextState = multi ? CombatState.LightHit : CombatState.Knockback,
                 mode = multi ? KnockbackMode.Fixed : KnockbackMode.AwayFromCaster,
                 fixedDir = Vector3.forward,
-                knockbackForce = multi ? 3f : 10f,
-                launchForce = e.hitboxKind != BossPatternTable.HitboxKind.Basic
-                              && !multi && e.advanceSpeed <= 0f ? 4f : 0f,
+                pushDistance = multi ? 0.375f : 1.25f,
+                airborneHeight = e.hitboxKind != BossPatternTable.HitboxKind.Basic
+                                 && !multi && e.advanceSpeed <= 0f ? 0.267f : 0f,
                 hitStunDuration = multi ? 0.22f : 0.55f,
             };
         }

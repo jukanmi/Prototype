@@ -260,8 +260,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
-    launchForce: 0
+    pushDistance: 0.375
+    airborneHeight: 0
     hitStunDuration: 0.1
     snapZ: 0
   skillAttack: {fileID: 0}
@@ -616,8 +616,8 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
     hitStunDuration: 0
     snapZ: 0
   impactVfx: 1

@@ -10,54 +10,50 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_WZ\uB9C8\uB825\uD0C4\uC5F0\uC0AC"
+  m_Name: "SK_TK\uC0AC\uC2AC\uACAC\uC778"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uB9C8\uB825\uD0C4 \uC5F0\uC0AC"
-  icon: {fileID: -372281747312399792, guid: 5ddf33b4bffa4a258d0ebd7c6c54f632, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 37\uB9CC\uD07C 2\uBC88 \uC90D\uB2C8\uB2E4."
-  role: 3
-  attackType: 2
+  skillName: "\uC0AC\uC2AC\uACAC\uC778"
+  icon: {fileID: 9074754844832482479, guid: 3aa7140f3eff4ccb8c6b3464b1f46080, type: 3}
+  description: "\uC804\uBC29\uC758 \uC801\uC744 \uC0AC\uC2AC\uB85C \uBD99\uC7A1\uC544 \uB04C\uC5B4\uC628\uB2E4."
+  role: 0
+  attackType: 1
   requireState: 0
   resultState: 1
-  targeting: 3
-  radius: 3
+  castRangeScale: {x: 4, y: 1, z: 1}
+  castConeAngle: 60
+  targeting: 0
+  radius: 4
   targetPick: 0
-  castTime: 0.15
+  castTime: 0.3
   hitInterval: 0.3
   recoveryTime: 0.2
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
-  projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
-  projectileSpeed: 24
+  projectile: {fileID: 0}
+  projectileSpeed: 14
   projectileRange: 12
   projectilePierce: 0
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 37
+      damage: 15
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0
-    mode: 2
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 4
-    launchForce: 0
+    mode: 1
+    fixedDir: {x: 0, y: 0, z: 0}
+    pushDistance: 4
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0.3333
     hitStunDuration: 0.3
     guardDamage: 0
-    snapZ: 0
-  - damageData:
-      damage: 37
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 2
-    fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 4
-    launchForce: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
+    snapZ: 1
   effects: []
   cooldown: 5
   manaCost: 20
@@ -67,8 +63,8 @@ MonoBehaviour:
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
-    castClip: {fileID: 11400000, guid: fa70e0a22baf2be4bb0bcfda52f0539a, type: 2}
-    hitClip: {fileID: 11400000, guid: 45dbf04e42403fe43977615e5873aff2, type: 2}
+    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
+    hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
   references:
     version: 2
     RefIds: []

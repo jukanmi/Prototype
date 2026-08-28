@@ -10,22 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_WZ\uC911\uB825\uC7A5"
+  m_Name: "SK_TK\uC62C\uB824\uBCA0\uAE30"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC911\uB825\uC7A5"
-  icon: {fileID: 5986678473436087534, guid: e8425f46a0f04514a61b901a68829b31, type: 3}
-  description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C 15\uB9CC\uD07C \uC8FC\uACE0
-    \uC801\uB4E4\uC744 \uD55C\uACF3\uC73C\uB85C \uBAA8\uC74D\uB2C8\uB2E4."
-  role: 3
-  attackType: 0
+  skillName: "\uC62C\uB824\uBCA0\uAE30"
+  icon: {fileID: 3272272688383436387, guid: 9cd07c1e72074fd58aee94d96bb1d090, type: 3}
+  description: "\uC804\uBC29\uC758 \uC801\uC744 \uC62C\uB824\uBCA0\uC5B4 \uB744\uC6B4\uB2E4."
+  role: 0
+  attackType: 1
   requireState: 0
-  resultState: 1
-  targeting: 1
-  radius: 5
+  resultState: 2
+  castRangeScale: {x: 2, y: 0.6, z: 1.3}
+  castConeAngle: 0
+  targeting: 0
+  radius: 3
   targetPick: 0
-  castTime: 0.35
+  castTime: 0.2
   hitInterval: 0.3
-  recoveryTime: 0.25
+  recoveryTime: 0.2
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -37,18 +38,23 @@ MonoBehaviour:
   hitDataList:
   - damageData:
       damage: 15
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
-    nextState: 1
+    nextState: 2
     canOtg: 0
-    mode: 1
+    mode: 3
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 32
-    launchForce: 0
-    hitStunDuration: 0.4
+    pushDistance: 0
+    airborneHeight: 1.3
+    aerialAirborneHeight: 0
+    capAirborne: 1
+    pullAnchorRatio: 0
+    hitStunDuration: 0.3
     guardDamage: 0
-    snapZ: 1
-  effects:
-  - rid: 7198291130188562566
+    snapZ: 0
+  effects: []
   cooldown: 5
   manaCost: 20
   animation: {fileID: 0}
@@ -57,15 +63,8 @@ MonoBehaviour:
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
-    castClip: {fileID: 11400000, guid: fa70e0a22baf2be4bb0bcfda52f0539a, type: 2}
-    hitClip: {fileID: 11400000, guid: 63271dae05f6a9941a84936d79d6a503, type: 2}
+    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
+    hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
   references:
     version: 2
-    RefIds:
-    - rid: 7198291130188562566
-      type: {class: PullEffect, ns: Prototype, asm: Assembly-CSharp}
-      data:
-        radius: 4
-        force: 32
-        damage: 12
-        hitStun: 0.4
+    RefIds: []

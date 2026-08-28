@@ -127,7 +127,7 @@ namespace Prototype
         public int Count => slots.Count;
         public bool IsFull => slots.Count >= Size;
 
-        /// <summary>ComboPredictor가 그대로 받는다.</summary>
+        /// <summary>ComboBoardUI · ComboExecutor가 그대로 받는다.</summary>
         public IReadOnlyList<ComboSlot> Slots => slots;
 
         public event Action OnChanged;

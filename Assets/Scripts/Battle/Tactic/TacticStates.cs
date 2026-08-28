@@ -49,7 +49,6 @@ namespace Prototype
 
             Ctx.PayEntryCost();
             Ctx.FreezeTime();
-            Ctx.PredictHand();
             Ctx.RaiseEnter();
         }
 

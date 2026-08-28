@@ -420,7 +420,7 @@ namespace Prototype.Tests
             targetState = CombatState.Neutral,
             nextState = CombatState.Knockback,
             mode = KnockbackMode.AwayFromCaster,
-            knockbackForce = 20f,
+            pushDistance = 2.5f,
             hitStunDuration = 0.5f,
         };
 
@@ -430,7 +430,7 @@ namespace Prototype.Tests
             targetState = CombatState.Neutral,
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,
-            launchForce = 12f,
+            airborneHeight = 2.4f,
             hitStunDuration = 0.5f,
         };
 

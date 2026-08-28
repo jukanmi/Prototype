@@ -41,10 +41,14 @@ namespace Prototype
         public bool overrideReaction;
         public CombatState nextState;
         public KnockbackMode mode;
-        public float knockbackForce;
-        public float launchForce;
-        [Tooltip("공중에 뜬 대상에게 쓰는 띄우기 힘. 0이면 launchForce를 그대로 쓴다.")]
-        public float airLaunchForce;
+        [Tooltip("밀어낼 거리(유닛).")]
+        public float pushDistance;
+        [Tooltip("띄울 높이(유닛).")]
+        public float airborneHeight;
+        [Tooltip("공중에 뜬 대상에게 쓰는 띄우기 높이. 0이면 airborneHeight를 그대로 쓴다.")]
+        public float aerialAirborneHeight;
+        [Tooltip("이미 떠 있는 대상을 airborneHeight 위로는 올리지 않는다.")]
+        public bool capAirborne;
         public float hitStunDuration;
     }
 
@@ -110,13 +114,14 @@ namespace Prototype
 
             if (!stage.overrideReaction) return h;
 
-            // 띄우기는 둘을 같이 덮어야 한다. launchForce만 넣으면 몸은 뜨는데
+            // 띄우기는 둘을 같이 덮어야 한다. airborneHeight만 넣으면 몸은 뜨는데
             // 상태가 LightHit로 남아 착지 → 다운 전이가 어긋난다.
             h.nextState = stage.nextState;
             h.mode = stage.mode;
-            h.knockbackForce = stage.knockbackForce;
-            h.launchForce = stage.launchForce;
-            h.airLaunchForce = stage.airLaunchForce;
+            h.pushDistance = stage.pushDistance;
+            h.airborneHeight = stage.airborneHeight;
+            h.aerialAirborneHeight = stage.aerialAirborneHeight;
+            h.capAirborne = stage.capAirborne;
             h.hitStunDuration = Or(stage.hitStunDuration, h.hitStunDuration);
 
             return h;

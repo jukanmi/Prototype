@@ -42,8 +42,8 @@ namespace Prototype
         [SerializeField] private float parrySuccessInvuln = 0.3f;
         [Tooltip("패링당한 공격자가 먹는 경직.")]
         [SerializeField] private float parryCounterStun = 0.6f;
-        [Tooltip("반격 밀치기. 0이면 제자리에서 경직만 먹는다.")]
-        [SerializeField] private float parryCounterKnockback = 4f;
+        [Tooltip("반격 밀치기 거리(유닛). 0이면 제자리에서 경직만 먹는다.")]
+        [SerializeField] private float parryCounterPush = 0.5f;
 
         [Header("가드 (보스)")]
         [Tooltip("가드 게이지 최대치. 단위는 <b>타격 횟수</b>다 — 10이면 열 대 맞고 깨진다.\n\n" +
@@ -262,7 +262,7 @@ namespace Prototype
             if (next == prev)
             {
                 // 넉백 · 공중피격 계열은 착지로만 풀린다. 그런데 OnLand 없이 지면에 서는
-                // 경로가 둘 있다 — launchForce 없는 넉백(애초에 뜨질 않는다)과
+                // 경로가 둘 있다 — 띄우기 없는 넉백(애초에 뜨질 않는다)과
                 // Physics.Teleport(교대 복귀 · 불릿타임 배치). 그대로 두면 경직이 고착되므로
                 // 지면에 있으면 착지와 같게 처리해 다운 흐름에 합류시킨다.
                 if (physics.PhysicsState == PhysicsState.Ground &&
@@ -310,23 +310,42 @@ namespace Prototype
             if (target == null || IsDead) return false;
             if (ReferenceEquals(target, this)) return false;
 
-            if (!target.Hit(in hit, this)) return false;
+            // 공중 보너스는 <b>때리기 직전</b>에 확정한다. 맞은 뒤에 보면 이 타격이 만든
+            // 상태 변화까지 섞여 들어와, 지상에서 맞은 적이 자기 넉백 덕에 보너스를 받는다.
+            HitData resolved = WithAerialDamage(in hit, target);
+
+            if (!target.Hit(in resolved, this)) return false;
 
             if (lifestealRatio > 0f)
             {
-                float heal = hit.damageData.damage * lifestealRatio;
+                float heal = resolved.damageData.damage * lifestealRatio;
                 Health.Recover(heal);
                 BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
             }
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
+                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {resolved.damageData.damage:0.#} | {resolved.mode} | 결과요청 {resolved.nextState}", this);
 
-            OnHitLanded?.Invoke(this, hit);
+            OnHitLanded?.Invoke(this, resolved);
             if (target is Combat victim)
                 OnAnyHitLanded?.Invoke(this, victim);
 
             return true;
+        }
+
+        /// <summary>
+        /// 대상이 떠 있으면 <see cref="HitData.aerialDamage"/>로 갈아 끼운 복사본.
+        /// 값이 0이거나 대상이 지상이면 원본 그대로다 — 기존 스킬은 이 경로를 못 느낀다.
+        /// </summary>
+        private static HitData WithAerialDamage(in HitData hit, IHittable target)
+        {
+            if (hit.aerialDamage <= 0f) return hit;
+            if (!(target is Combat c) || c.Physics == null) return hit;
+            if (c.Physics.PhysicsState != PhysicsState.Aerial) return hit;
+
+            HitData copy = hit;
+            copy.damageData.damage = hit.aerialDamage;
+            return copy;
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────
@@ -496,53 +515,68 @@ namespace Prototype
 
             // 벽 레이어를 같이 넘긴다 — 밀치기(TowardWall)는 시전자가 아니라 벽이 방향을 정한다.
             Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position, physics.WallMask);
-            if (hit.knockbackForce > 0f)
-                physics.AddImpulse(dir, PullClamped(hit, casterPos), resetInertia: false);
+            if (hit.pushDistance > 0f)
+                physics.AddImpulse(dir, physics.ImpulseToTravel(PushClamped(in hit, casterPos)),
+                                   resetInertia: false);
 
             float launch = ResolveLaunch(in hit);
-            if (launch > 0f)
-                physics.AddLaunch(launch);
+
+            // 부호가 방향이다. 위로 올릴 때만 상한이 의미가 있고, 아래로는 그대로 꽂는다.
+            if (launch > 0f) physics.AddLaunch(launch, hit.capAirborne ? hit.airborneHeight : 0f);
+            else if (launch < 0f) physics.AddSlam(-launch);
         }
 
         /// <summary>
-        /// 이번 타격이 실을 띄우기 힘. 대상이 이미 떠 있으면 <c>airLaunchForce</c>를 쓴다.
+        /// 이번 타격이 실을 수직 <b>속도</b>. 양수면 띄우고 음수면 꽂는다 —
+        /// <see cref="HitData.airborneHeight"/>의 부호가 그대로 넘어온다.
         ///
-        /// 값이 0이면 <c>launchForce</c>로 떨어진다 — 기존 애셋 전부가 0으로 로드되므로
-        /// 데이터를 안 채운 스킬은 예전과 똑같이 동작한다.
+        /// 저작은 높이로 하고 환산은 여기서 한 번만 한다. 대상마다 중력이 다를 수 있으므로
+        /// 맞는 쪽의 <see cref="Physics.LaunchForHeight"/>를 쓴다.
+        ///
+        /// 대상이 이미 떠 있으면 <c>aerialAirborneHeight</c>가 우선하고, 0이면
+        /// <c>airborneHeight</c>로 떨어진다.
         ///
         /// 공중 대상에는 마지막으로 <see cref="Physics.AirHitLift"/>를 바닥값으로 깐다.
         /// 띄우기 값이 없는 평타도 한 대마다 조금씩 올려 체공을 벌어 주기 위한 것이다.
         /// <b>지상 대상은 건드리지 않는다</b> — 지상에까지 걸면 모든 평타가 띄우기가 되어
         /// 지상 콤보가 통째로 사라진다.
+        /// <b>내려찍기도 건드리지 않는다</b> — 부양을 깔면 꽂으려던 몸이 도로 떠오른다.
         /// </summary>
         private float ResolveLaunch(in HitData hit)
         {
             if (physics.PhysicsState != PhysicsState.Aerial)
-                return hit.launchForce;
+                return SignedLaunch(hit.airborneHeight);
 
-            float launch = hit.airLaunchForce > 0f ? hit.airLaunchForce : hit.launchForce;
+            float height = hit.aerialAirborneHeight > 0f ? hit.aerialAirborneHeight : hit.airborneHeight;
+            float launch = SignedLaunch(height);
 
-            return Mathf.Max(launch, physics.AirHitLift);
+            return launch < 0f ? launch : Mathf.Max(launch, physics.AirHitLift);
         }
 
+        /// <summary>높이의 크기로 속도를 구하고 부호를 되돌려 준다. 음수 높이 = 아래로.</summary>
+        private float SignedLaunch(float height)
+            => Mathf.Sign(height) * physics.LaunchForHeight(Mathf.Abs(height));
+
         /// <summary>
-        /// 끌어당기기의 충격량을 <b>중심까지의 거리</b>로 잘라 준다.
+        /// 끌어당기기의 이동 거리를 <b>중심까지의 거리</b>로 잘라 준다.
         ///
-        /// <see cref="Physics.AddImpulse"/>는 지수감쇠라 이동거리가 <c>force / impulseDamping</c>로
-        /// 고정된다 — 거리와 무관하다. 그래서 고정값을 쓰면 중심 가까이 있던 적이 중심을 지나쳐
+        /// <see cref="Physics.AddImpulse"/>는 지수감쇠라 이동거리가 충격량에만 비례하고
+        /// 시작 거리와는 무관하다. 그래서 고정값을 쓰면 중심 가까이 있던 적이 중심을 지나쳐
         /// 반대편으로 튀고, 맞은편 적과 교차하면서 오히려 흩어진다.
         ///
-        /// 잘라 두면 <c>knockbackForce</c>는 "최대 끌어올 거리"의 의미가 되고,
-        /// 멀리 있는 적만 힘을 다 쓰므로 전원이 중심에 모인다.
+        /// 잘라 두면 <c>pushDistance</c>는 "최대 끌어올 거리"의 의미가 되고,
+        /// 멀리 있는 적만 거리를 다 쓰므로 전원이 중심에 모인다.
+        ///
+        /// 저작값이 이미 거리라 <b>여기는 거리 공간에서 끝난다</b> — 힘으로의 환산은 호출부 한 곳뿐이다.
         /// </summary>
-        private float PullClamped(in HitData hit, Vector3 center)
+        private float PushClamped(in HitData hit, Vector3 center)
         {
-            if (hit.mode != KnockbackMode.TowardCaster) return hit.knockbackForce;
+            if (hit.mode != KnockbackMode.TowardCaster) return hit.pushDistance;
 
             Vector3 flat = center - transform.position;
             flat.y = 0f;
 
-            return Mathf.Min(hit.knockbackForce, physics.ImpulseToTravel(flat.magnitude));
+            return Mathf.Min(hit.pushDistance, flat.magnitude);
         }
 
         // ── 가드 · 가드브레이크 ──────────────────────────
@@ -703,8 +737,8 @@ namespace Prototype
                 targetState = CombatState.Neutral,
                 nextState = CombatState.LightHit,
                 mode = KnockbackMode.AwayFromCaster,
-                knockbackForce = parryCounterKnockback,
-                launchForce = 0f,
+                pushDistance = parryCounterPush,
+                airborneHeight = 0f,
                 hitStunDuration = parryCounterStun,
             };
 

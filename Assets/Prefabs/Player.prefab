@@ -75,9 +75,9 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -220,9 +220,9 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -593,7 +593,7 @@ MonoBehaviour:
   parryAngle: 180
   parrySuccessInvuln: 0.3
   parryCounterStun: 0.6
-  parryCounterKnockback: 4
+  parryCounterPush: 0.5
   maxGuard: 0
   defaultGuardDamage: 1
   guardBreakDuration: 4
@@ -627,9 +627,9 @@ MonoBehaviour:
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0.375
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     hitStunDuration: 0.3
     guardDamage: 0
     snapZ: 0
@@ -644,9 +644,9 @@ MonoBehaviour:
     overrideReaction: 0
     nextState: 0
     mode: 0
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     hitStunDuration: 0
   - label: "\uC911"
     clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
@@ -658,9 +658,9 @@ MonoBehaviour:
     overrideReaction: 0
     nextState: 0
     mode: 0
-    knockbackForce: 0
-    launchForce: 0
-    airLaunchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
     hitStunDuration: 0
   - label: "\uAC15"
     clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
@@ -672,9 +672,9 @@ MonoBehaviour:
     overrideReaction: 1
     nextState: 2
     mode: 2
-    knockbackForce: 4.5
-    launchForce: 6
-    airLaunchForce: 0
+    pushDistance: 0.5625
+    airborneHeight: 0.6
+    aerialAirborneHeight: 0
     hitStunDuration: 0.5
   skillAttack: {fileID: 7850888382636613912}
   basicProjectile: {fileID: 0}
