@@ -89,16 +89,36 @@ namespace Prototype
             => Farthest(enemies, position, exclude);
 
         /// <summary>
+        /// 지정 좌표에서 가장 가까운 <b>공중에 뜬</b> 적. 아무도 안 떠 있으면 null이다.
+        /// 마무리기가 띄워 둔 적을 우선으로 고를 때 쓴다(<see cref="TargetPick.NearestAerial"/>).
+        /// </summary>
+        public static Entity NearestAerialEnemy(Vector3 position, Entity exclude = null)
+            => Nearest(enemies, position, exclude, aerialOnly: true);
+
+        /// <summary>
         /// 규칙 하나로 적을 고른다. <b>자동 조준의 유일한 창구</b> —
         /// 스킬마다 반경 훑기 · 부채꼴 검사 같은 걸 따로 두면 유저가 어디로 나갈지 예측할 수 없다.
-        /// 가까운 적 아니면 먼 적, 둘뿐이다.
+        ///
+        /// <see cref="TargetPick.NearestAerial"/>만 2단계다 — 뜬 적을 먼저 찾고,
+        /// 없으면 가장 가까운 적으로 떨어진다. 기획서의 "에어본 된 적 &gt; 가장 가까운 적"이 그대로다.
         /// </summary>
         public static Entity PickEnemy(Vector3 position, TargetPick pick, Entity exclude = null)
-            => pick == TargetPick.Farthest
-                ? FarthestEnemy(position, exclude)
-                : NearestEnemy(position, exclude);
+        {
+            switch (pick)
+            {
+                case TargetPick.Farthest:
+                    return FarthestEnemy(position, exclude);
 
-        private static Entity Nearest(List<Entity> list, Vector3 position, Entity exclude)
+                case TargetPick.NearestAerial:
+                    return NearestAerialEnemy(position, exclude) ?? NearestEnemy(position, exclude);
+
+                default:
+                    return NearestEnemy(position, exclude);
+            }
+        }
+
+        private static Entity Nearest(List<Entity> list, Vector3 position, Entity exclude,
+                                     bool aerialOnly = false)
         {
             Entity best = null;
             float bestSqr = float.MaxValue;
@@ -107,6 +127,7 @@ namespace Prototype
             {
                 Entity e = list[i];
                 if (e == null || e == exclude || e.Combat.IsDead || !e.IsTargetable) continue;
+                if (aerialOnly && (e.Physics == null || e.Physics.PhysicsState != PhysicsState.Aerial)) continue;
 
                 float sqr = (e.transform.position - position).sqrMagnitude;
                 if (sqr >= bestSqr) continue;

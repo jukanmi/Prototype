@@ -190,8 +190,7 @@ namespace Prototype.EditorTools
 
                 if (s.hitDataList == null || s.hitDataList.Count == 0)
                 {
-                    problems += Warn(s, $"{tag}: hitDataList가 비었다. ComboPredictor가 상태 전이를 못 읽어 " +
-                                        "슬롯이 항상 '기본'으로 뜨고 실제 판정도 안 나간다.");
+                    problems += Warn(s, $"{tag}: hitDataList가 비었다. 실제 타격 판정이 하나도 안 나간다.");
                     continue;
                 }
 
@@ -225,9 +224,19 @@ namespace Prototype.EditorTools
                         // 어느 타에서 띄우든 상관없다 — 3연타의 <b>마무리</b>로 띄우는 스킬(올려베기)이 있고,
                         // HitData가 아니라 AirborneEffect로 띄우는 스킬(융기)도 있다.
                         // 첫 타만 보면 둘 다 가짜 경고가 뜬다.
-                        if (!LaunchesByHit(s) && !LaunchesByEffect(s))
-                            problems += Warn(s, $"{tag}: 띄우기인데 어느 타에도 Up · launchForce가 없고 " +
-                                                "AirborneEffect도 없다. 안 뜬다.");
+                        //
+                        // 끌어오는 것도 시동으로 친다(사슬견인). 시동기의 정의는 "띄운다"가 아니라
+                        // "콤보를 열어 준다"이고, 적을 손 안으로 모아 오는 것도 그 역할을 한다.
+                        if (!LaunchesByHit(s) && !LaunchesByEffect(s) && !GathersByHit(s))
+                            problems += Warn(s, $"{tag}: 시동기인데 어느 타에도 띄우기(Up · airborneHeight)도 " +
+                                                "끌어오기(TowardCaster)도 없고 AirborneEffect도 없다. 콤보가 안 열린다.");
+                        break;
+
+                    case AttackType.Finisher:
+                        // 마무리는 띄워 둔 적을 바닥에 꽂는 게 일이다. 꽂지 않으면 그냥 공격기다.
+                        if (!SlamsByHit(s))
+                            problems += Warn(s, $"{tag}: 마무리인데 어느 타에도 음수 airborneHeight가 없다. " +
+                                                "대상이 공중에 그대로 남아 콤보가 안 닫힌다.");
                         break;
 
                     case AttackType.Push:
@@ -235,8 +244,8 @@ namespace Prototype.EditorTools
                             problems += Warn(s, $"{tag}: HitData.nextState가 WallBound다. " +
                                                 "벽바운드는 Knockback으로 날아가 벽에 닿아야 생긴다(OnWallContact). " +
                                                 "여기는 Knockback으로 둘 것.");
-                        if (s.hitDataList[0].knockbackForce <= 0f)
-                            problems += Warn(s, $"{tag}: 밀치기인데 knockbackForce가 0이다. 벽까지 못 간다.");
+                        if (s.hitDataList[0].pushDistance <= 0f)
+                            problems += Warn(s, $"{tag}: 밀치기인데 pushDistance가 0이다. 벽까지 못 간다.");
 
                         // 밀치기는 벽으로만 보낸다. AwayFromCaster로 두면 시전자가 어디 섰느냐에 따라
                         // 적이 방 한복판으로 날아가고, 그러면 벽바운드가 운에 맡겨진다.
@@ -286,6 +295,29 @@ namespace Prototype.EditorTools
                 Debug.LogWarning($"<b>[검증] 문제 {problems}건</b> — 위 경고 확인");
         }
 
+        /// <summary>어느 한 타라도 적을 끌어오는지. 시동기가 모으기로 콤보를 여는 경우.</summary>
+        private static bool GathersByHit(SkillData s)
+        {
+            if (s.hitDataList == null) return false;
+
+            for (int i = 0; i < s.hitDataList.Count; i++)
+                if (s.hitDataList[i].mode == KnockbackMode.TowardCaster && s.hitDataList[i].pushDistance > 0f)
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>어느 한 타라도 대상을 바닥에 꽂는지. 음수 높이가 곧 내리꽂기다.</summary>
+        private static bool SlamsByHit(SkillData s)
+        {
+            if (s.hitDataList == null) return false;
+
+            for (int i = 0; i < s.hitDataList.Count; i++)
+                if (s.hitDataList[i].airborneHeight < 0f) return true;
+
+            return false;
+        }
+
         /// <summary>어느 한 타라도 실제로 띄우는지.</summary>
         private static bool LaunchesByHit(SkillData s)
         {
@@ -293,7 +325,7 @@ namespace Prototype.EditorTools
 
             for (int i = 0; i < s.hitDataList.Count; i++)
                 if (s.hitDataList[i].mode == KnockbackMode.Up &&
-                    (s.hitDataList[i].launchForce > 0f || s.hitDataList[i].airLaunchForce > 0f))
+                    (s.hitDataList[i].airborneHeight > 0f || s.hitDataList[i].aerialAirborneHeight > 0f))
                     return true;
 
             return false;
