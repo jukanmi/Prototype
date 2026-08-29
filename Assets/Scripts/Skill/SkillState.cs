@@ -298,7 +298,29 @@ namespace Prototype
         /// 직업을 보지 않는다 — <see cref="SkillData.ApproachDistance"/>가 성격별 거리를 이미 접어 준다.
         /// </summary>
         private bool TryGetCastSpot(Physics phys, out Vector3 spot)
-            => TryApproach(phys.GroundPosition, ctx.target, data.ApproachDistance, out spot);
+        {
+            spot = default;
+            if (ctx.target == null || ctx.target.Physics == null) return false;
+
+            // 이미 닿는 거리면 안 움직인다. ApproachDistance로 재면 맞출 수 있는데도
+            // 사거리 절반까지 끌려 들어간다.
+            Vector3 gap = ctx.target.Physics.GroundPosition - phys.GroundPosition;
+            gap.y = 0f;
+            if (gap.magnitude <= CastReach) return false;
+
+            return TryApproach(phys.GroundPosition, ctx.target, data.ApproachDistance, out spot);
+        }
+
+        /// <summary>제자리에서 맞출 수 있는 거리. 투사체는 사거리, 장판은 반경, 근접은 접근 거리.</summary>
+        private float CastReach
+        {
+            get
+            {
+                if (data.IsRanged) return data.projectileRange;
+                if (IsAreaCaster) return BlastRadius;
+                return data.ApproachDistance;
+            }
+        }
 
         /// <summary>
         /// 대상에게서 <paramref name="distance"/>만큼 떨어진 자리. 오던 쪽에 붙는다 —

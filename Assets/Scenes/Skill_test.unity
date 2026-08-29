@@ -1450,7 +1450,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: fixedHand.Array.size
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: 'fixedHand.Array.data[0]'
@@ -1460,6 +1460,10 @@ PrefabInstance:
       propertyPath: 'fixedHand.Array.data[1]'
       value: 
       objectReference: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
+    - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
+      propertyPath: 'fixedHand.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 098ad9324be2eb94c839183e89538a3b, type: 2}
     - target: {fileID: 2994877569284229203, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: m_Name
       value: CombatManager

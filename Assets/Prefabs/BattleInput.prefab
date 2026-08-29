@@ -111,13 +111,6 @@ MonoBehaviour:
   targetSelector: {fileID: 0}
   pilot: {fileID: 0}
   swapCooldown: 1.5
-  benchOffsets:
-  - {x: -2.4, y: 0, z: -0.8}
-  - {x: -1.2, y: 0, z: 0.8}
-  - {x: 1.2, y: 0, z: -0.8}
-  - {x: 2.4, y: 0, z: 0.8}
-  - {x: 3.6, y: 0, z: -0.4}
-  returnToLastCasterSpot: 1
 --- !u!114 &3934412128785038699
 MonoBehaviour:
   m_ObjectHideFlags: 0

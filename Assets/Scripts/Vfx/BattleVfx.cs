@@ -180,9 +180,6 @@ namespace Prototype
                 go.AddComponent<MarkerLayer>();
                 // 조작 중인 캐릭터 머리 위 화살표
                 go.AddComponent<ControlledCharacterArrow>();
-                // 화면 밖에서 대기 중인 동료들. 태그 구조상 한 명만 서므로
-                // 나머지가 어디 있는지는 이 표식 말고는 알 방법이 없다.
-                go.AddComponent<PartyMarkerSource>();
                 return instance;
             }
         }

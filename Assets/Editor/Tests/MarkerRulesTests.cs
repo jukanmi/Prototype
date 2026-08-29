@@ -22,18 +22,13 @@ namespace Prototype.Tests
 
         // ── 물림 ────────────────────────────────────────
 
-        /// <summary>대기 좌표는 정의상 화면 밖이다. 그 전부가 화면 안으로 들어와야 한다.</summary>
+        /// <summary>화면 밖 좌표는 전부 화면 안으로 들어와야 한다.</summary>
         [Test]
-        public void StandbySlots_AllClampIntoView()
+        public void OffscreenPoints_ClampIntoView()
         {
-            for (int i = 0; i < 5; i++)
-            {
-                Vector3 seat = StandbyRules.Slot(i, CamX, Half);
-                float x = MarkerRules.ClampToEdge(seat.x, CamX, Half);
-
-                Assert.That(EntranceRules.IsOnScreen(x, CamX, Half), Is.True,
-                            $"{i}번 칸 표식이 화면 밖이다 (x={x})");
-            }
+            foreach (float x in new[] { -100f, -12f, 12f, 100f })
+                Assert.That(EntranceRules.IsOnScreen(MarkerRules.ClampToEdge(x, CamX, Half), CamX, Half),
+                            Is.True, $"x={x} 표식이 화면 밖이다");
         }
 
         [Test]
@@ -69,23 +64,6 @@ namespace Prototype.Tests
             Assert.That(a.x, Is.EqualTo(Edge).Within(Eps));
         }
 
-        /// <summary>대기 칸 다섯의 표식이 서로 다른 줄에 선다(같은 쪽끼리).</summary>
-        [Test]
-        public void StandbyMarkers_DoNotStack()
-        {
-            for (int a = 0; a < 5; a++)
-            {
-                for (int b = a + 1; b < 5; b++)
-                {
-                    Vector3 pa = MarkerRules.Anchor(StandbyRules.Slot(a, CamX, Half), CamX, Half);
-                    Vector3 pb = MarkerRules.Anchor(StandbyRules.Slot(b, CamX, Half), CamX, Half);
-
-                    Assert.That(Vector3.Distance(pa, pb), Is.GreaterThan(0.5f),
-                                $"{a}번과 {b}번 표식이 겹친다");
-                }
-            }
-        }
-
         // ── 방향 ────────────────────────────────────────
 
         [Test]
@@ -94,19 +72,6 @@ namespace Prototype.Tests
             Assert.That(MarkerRules.OffscreenSide(0f, CamX, Half), Is.EqualTo(0));
             Assert.That(MarkerRules.OffscreenSide(100f, CamX, Half), Is.EqualTo(1));
             Assert.That(MarkerRules.OffscreenSide(-100f, CamX, Half), Is.EqualTo(-1));
-        }
-
-        /// <summary>대기 칸의 좌우가 그대로 표식의 좌우가 된다.</summary>
-        [Test]
-        public void OffscreenSide_MatchesTheStandbySide()
-        {
-            for (int i = 0; i < 5; i++)
-            {
-                Vector3 seat = StandbyRules.Slot(i, CamX, Half);
-
-                Assert.That(MarkerRules.OffscreenSide(seat.x, CamX, Half),
-                            Is.EqualTo(StandbyRules.SideOf(i)), $"{i}번 칸");
-            }
         }
 
         [Test]
