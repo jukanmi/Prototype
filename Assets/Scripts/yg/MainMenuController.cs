@@ -20,6 +20,15 @@ namespace Prototype.YG
             else Debug.LogError("[MainMenu] quitButton 미연결.");
         }
 
+        /// <summary>
+        /// 파티 선택을 붙인다. 스스로 캔버스를 짓고, 고를 조합이 하나뿐이면 스스로 숨으므로
+        /// 여기서 조건을 볼 것이 없다 — MainMenu 씬을 다시 굽지 않아도 붙는다.
+        /// </summary>
+        private void Start()
+        {
+            PartySelectUI.Create(this);
+        }
+
         private void OnDestroy()
         {
             if (startButton != null) startButton.onClick.RemoveListener(OnStartClicked);

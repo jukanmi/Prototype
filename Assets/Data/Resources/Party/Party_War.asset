@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38c0b9daac702dc439cff2ccc5d9b287, type: 3}
+  m_Name: Party_War
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyMemberData
+  memberId: War
+  displayName: War
+  role: 1
+  portrait: {fileID: 0}
+  equipped:
+  - data: {fileID: 11400000, guid: fca1c060857dab341bd3f3e32c4a69a5, type: 2}
+    drawWeight: 1
+    golden: 0
+  - data: {fileID: 11400000, guid: bbb4fa807ed37584884356d2f2d0b0bd, type: 2}
+    drawWeight: 2
+    golden: 0
+  - data: {fileID: 11400000, guid: b5bdb8717f10aa843960b62ef90ab697, type: 2}
+    drawWeight: 1
+    golden: 0
+  - data: {fileID: 11400000, guid: dc02247b290e86d48a4db0005b619c03, type: 2}
+    drawWeight: 1
+    golden: 0
+  hp: 0
+  atk: 0
+  moveSpeed: 0
+  basicProjectile: {fileID: 0}
+  projectileSpeed: 16
+  projectileRange: 9
+  projectilePierce: 0
+  animatorController: {fileID: 0}
+  bodyScale: 1.06
+  spriteTint: {r: 0.35, g: 1, b: 0.5, a: 1}

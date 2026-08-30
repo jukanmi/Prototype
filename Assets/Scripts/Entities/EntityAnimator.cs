@@ -58,6 +58,36 @@ namespace Prototype
             animator.runtimeAnimatorController = overrides;
         }
 
+        /// <summary>
+        /// 애니메이터 컨트롤러를 갈아 끼운다. 동료마다 다른 모션을 쓰기 위해
+        /// <see cref="PartyAssembler"/>가 부른다.
+        ///
+        /// <b>Awake 보다 먼저 부르는 것이 정상 경로다.</b> Awake 가 컨트롤러를
+        /// <see cref="AnimatorOverrideController"/>로 감싸고 그 위에서 평타 · 스킬 클립을
+        /// 갈아끼우기 때문이다. 늦게 들어온 경우에도 동작하도록 여기서 래핑을 다시 짓는다 —
+        /// 안 그러면 새 컨트롤러가 감싸이지 않은 채로 들어가 <see cref="SwapSkillClip"/>이
+        /// 통째로 무효가 되고, <b>모든 스킬이 플레이스홀더 모션으로 나온다</b>.
+        /// </summary>
+        public void SetController(RuntimeAnimatorController controller)
+        {
+            if (controller == null) return;
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
+            if (animator == null) return;
+
+            animator.runtimeAnimatorController = controller;
+
+            // Awake 를 아직 안 지났으면 여기서 끝. 곧 Awake 가 정상 경로로 감싼다.
+            if (overrides == null) return;
+
+            // 이미 감쌌던 경우 — 래핑과 캐시를 새 컨트롤러 기준으로 다시 짓는다.
+            baseAttackClip = FindClip(controller, AttackState);
+            overrides = new AnimatorOverrideController(controller);
+            animator.runtimeAnimatorController = overrides;
+
+            currentAttackClip = null;
+            currentSkill = null;
+        }
+
         private void Start()
         {
             if (entity == null || entity.StateMachine == null) return;

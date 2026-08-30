@@ -73,6 +73,38 @@ namespace Prototype.YG
         /// <summary>이 런의 시작 덱 규칙. 전투 씬이 물어본다.</summary>
         public DeckStartupMode DeckStartupMode => deckStartupMode;
 
+        [Header("파티")]
+        [Tooltip("메인화면에서 아무것도 고르지 않았을 때 쓸 파티 조합.\n\n" +
+                 "런 단위 결정이라 여기가 스테이지 씬의 PartyAssembler 설정을 이긴다 — " +
+                 "시작 덱 규칙과 같은 이유다. 스테이지마다 파티가 다르면 말이 안 된다.")]
+        [SerializeField] private PartyLoadout defaultLoadout;
+
+        /// <summary>
+        /// 이 런을 굴리는 파티. 스테이지 씬의 <see cref="Prototype.PartyAssembler"/>가 물어본다.
+        ///
+        /// <c>GameManager</c>는 Boot 씬에 상주하고 Boot 씬은 언로드되지 않으므로,
+        /// 스테이지를 넘어가도 이 값은 그대로 살아남는다 — 따로 저장할 곳이 필요 없다.
+        /// </summary>
+        public PartyLoadout Loadout { get; private set; }
+
+        /// <summary>
+        /// 파티를 고른다. 메인화면의 파티 선택이 <see cref="StartNewRun"/> <b>전에</b> 부른다.
+        ///
+        /// <b>런 도중에는 부르지 않는다.</b> 덱은 첫 스테이지에서 파티 카드로 한 번 씨를 뿌린 뒤
+        /// <see cref="Prototype.RunProgression.Seeded"/>가 서서 런 덱이 이긴다 —
+        /// 도중에 파티만 갈아치우면 시전자가 없는 카드가 손패에 남아 U키가 먹통이 된다.
+        /// </summary>
+        public void SelectLoadout(PartyLoadout loadout)
+        {
+            if (IsRunActive)
+            {
+                Debug.LogWarning("[GameManager] 런 도중 파티 교체는 지원하지 않는다 — 무시한다.");
+                return;
+            }
+
+            Loadout = loadout;
+        }
+
         // ── 런 데이터 (프로토타입 단계 최소 구성)
         public int  CurrentStageIndex { get; private set; }
         public bool IsRunActive       { get; private set; }
@@ -130,6 +162,10 @@ namespace Prototype.YG
         {
             CurrentStageIndex = 0;
             IsRunActive       = true;
+
+            // 메인화면에서 안 골랐으면 기본 조합으로 간다. 여기서 확정해 두면
+            // 이후 스테이지의 PartyAssembler 는 매번 같은 답을 받는다.
+            if (Loadout == null) Loadout = defaultLoadout;
 
             Run.Reset();
 

@@ -127,7 +127,7 @@ namespace Prototype.EditorTools
 
             AnimatorController controller = BuildAllyController();
             RigAlly(controller);
-            TintSceneAllies();
+            TintPartyMembers();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -492,26 +492,36 @@ namespace Prototype.EditorTools
         /// <summary>
         /// 동료 4명이 같은 시트를 쓰므로 그대로 두면 누가 탱커인지 구분이 안 된다.
         /// 흰색 쪽으로 크게 섞은 <b>옅은</b> 색만 얹는다 — 진하게 넣으면 도트가 다시 묻힌다.
+        ///
+        /// 예전 이름은 <c>TintSceneAllies</c>였다. 파티가 씬에서 프리팹 안으로 들어가면서
+        /// 칠하는 대상이 씬 인스턴스에서 <see cref="PartyMemberData"/> 에셋으로 바뀌었다.
         /// </summary>
-        private static void TintSceneAllies()
+        private static void TintPartyMembers()
         {
             bool dirty = false;
 
-            foreach (Ally a in Object.FindObjectsByType<Ally>(FindObjectsInactive.Include))
+            // 씬이 아니라 표(PartyMemberData)에 쓴다. 파티는 BattleInput 프리팹 안으로 들어갔고,
+            // 씬 인스턴스에 칠하면 없앤 오버라이드가 씬마다 되살아난다.
+            // 실제로 칠하는 것은 런타임의 PartyAssembler.ApplyTint 다.
+            foreach (string guid in AssetDatabase.FindAssets("t:" + nameof(PartyMemberData)))
             {
-                Transform sprite = a.transform.Find(SpritePath);
-                var sr = sprite != null ? sprite.GetComponent<SpriteRenderer>() : null;
-                if (sr == null) continue;
+                var member = AssetDatabase.LoadAssetAtPath<PartyMemberData>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+                if (member == null) continue;
 
-                sr.color = RoleTint(a.Role);
-                EditorUtility.SetDirty(sr);
+                member.spriteTint = RoleTint(member.role);
+                EditorUtility.SetDirty(member);
                 dirty = true;
             }
 
-            if (!dirty) return;
+            if (!dirty)
+            {
+                Debug.LogWarning("[ArtImportBuilder] PartyMemberData 가 하나도 없다. " +
+                                 "'Prototype ▸ 파티 - 1단계: 씬에서 표 추출'을 먼저 돌릴 것.");
+                return;
+            }
 
-            UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
-            UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
+            AssetDatabase.SaveAssets();
         }
 
         private static Color RoleTint(Role role)

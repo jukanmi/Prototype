@@ -97,6 +97,14 @@ namespace Prototype
         private Seat partySeat;
 
         /// <summary>
+        /// <see cref="SeedSeat"/>로 자리를 받았는가. 받았으면 <b>첫 배치가 그 자리에서</b> 일어난다.
+        ///
+        /// 파티가 프리팹 안으로 들어가면서 필요해졌다 — 예전에는 씬에 놓인 몸의 좌표가 곧
+        /// 시작 자리였지만, 이제 그 좌표는 프리팹 좌표(원점)라 모든 방에서 한가운데서 시작하게 된다.
+        /// </summary>
+        private bool hasSeed;
+
+        /// <summary>
         /// 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 몸마다 클로저를
         /// 하나씩 만든다 — <see cref="BulletTimeController"/>가 쓰는 방식과 같다.
         /// </summary>
@@ -243,8 +251,11 @@ namespace Prototype
             Entity incoming = roster[index];
 
             // 새 몸은 나가는 몸의 자리를 그대로 물려받는다. 파티는 자리를 하나만 쓴다.
-            // 첫 배치처럼 물려줄 사람이 없으면 새 몸이 이미 선 자리가 그 자리가 된다.
-            Seat seat = outgoing != null ? Seat.Of(outgoing) : Seat.Of(incoming);
+            // 물려줄 사람이 없는 첫 배치는 씬이 정한 자리(SeedSeat)를 쓰고,
+            // 그것도 없으면 새 몸이 이미 선 자리가 그 자리가 된다.
+            Seat seat = outgoing != null ? Seat.Of(outgoing)
+                      : hasSeed ? partySeat
+                      : Seat.Of(incoming);
 
             if (outgoing != null && !ReferenceEquals(outgoing, incoming)) Bench(outgoing);
 
@@ -259,6 +270,19 @@ namespace Prototype
             BattleLog.Log(LogCategory.State,
                 $"<b>태그 교대</b> {BattleLog.Name(outgoing)} → {BattleLog.Name(incoming)} " +
                 $"(쿨 {swapCooldown:0.#}s)", this);
+        }
+
+        /// <summary>
+        /// 이 스테이지에서 파티가 처음 설 자리를 받는다. <see cref="PartySpawnPoint"/>를 읽은
+        /// <see cref="PartyAssembler"/>가 <c>Awake</c>에서 부른다 — <see cref="Start"/>보다 앞이다.
+        ///
+        /// <b>방향까지 받는 이유</b>는 <see cref="Prototype.Physics.Teleport"/>가 방향을 안 건드리기
+        /// 때문이다. 자리만 주면 첫 몸이 프리팹에 저장된 방향 그대로 나와 등을 보이고 설 수 있다.
+        /// </summary>
+        public void SeedSeat(Vector3 ground, Vector3 facing)
+        {
+            partySeat = new Seat(ground, facing.sqrMagnitude > 0.0001f ? facing : Vector3.right);
+            hasSeed = true;
         }
 
         /// <summary>파티가 서 있는 자리. 필드에 아무도 없으면 마지막으로 확정된 자리.</summary>

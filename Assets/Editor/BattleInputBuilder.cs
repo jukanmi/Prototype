@@ -5,21 +5,34 @@ using UnityEngine.InputSystem;
 namespace Prototype.EditorTools
 {
     /// <summary>
-    /// 입력 호스트 프리팹을 만든다.
+    /// 전투 호스트 프리팹을 만든다. <b>입력 · 조종 · 태그 교대 · 덱 · 파티</b>가 전부 여기 들어간다.
     ///
-    /// 태그 교대가 몸을 <c>SetActive(false)</c>로 내리기 때문에 입력이 몸에 붙어 있으면
-    /// 교대하는 순간 되돌아올 키까지 죽는다. 그래서 <c>PlayerInput</c> ·
-    /// <see cref="PlayerInputController"/> · <see cref="InputMapSwitcher"/> ·
-    /// <see cref="BattleCommander"/> · <see cref="TagSwapController"/>를
-    /// <b>절대 꺼지지 않는 오브젝트</b> 한 곳에 모은다.
+    /// <b>왜 한 덩어리인가.</b> 예전에는 이 배선이 씬마다 흩어져 있었다 —
+    /// 스테이지 씬 아홉 개가 각각 <c>Player</c> 1 + <c>Ally</c> 4 + <c>CombatManager</c>를
+    /// 따로 들고 있었고, 동료 하나당 프리팹 오버라이드가 51개였다.
+    /// 장착 카드 한 장을 바꾸려면 씬 아홉 개를 열어야 했고, 그중 하나만 어긋나도
+    /// "그 스테이지만 덱이 다르다"로만 드러났다.
     ///
-    /// 손으로 붙이면 <c>defaultActionMap</c>이나 <c>notificationBehavior</c>를 빠뜨리기 쉬워
-    /// 메뉴로 만든다. 검증은 <c>BattleInputPrefabTests</c>가 한다.
+    /// 태그 교대가 몸을 <c>SetActive(false)</c>로 내리기 때문에 입력은 <b>절대 꺼지지 않는
+    /// 오브젝트</b>에 있어야 한다. 그 오브젝트가 파티까지 소유하게 된 것이 이 프리팹이다.
+    ///
+    /// <b>루트는 원점에 고정</b>이다. 자식 몸들만 각자의 <see cref="Prototype.Physics"/>로 움직인다 —
+    /// 루트가 움직이면 출구 판정(월드 x)과 히트박스 배율이 함께 어긋난다.
+    /// 검증은 <c>BattleInputPrefabTests</c> · <c>PartyPrefabTests</c>가 한다.
     /// </summary>
     public static class BattleInputBuilder
     {
         public const string PrefabPath = "Assets/Prefabs/BattleInput.prefab";
+
+        public const string PartyRootName = "Party";
+        public const string SlotPrefix = "Member_";
+
         private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
+        private const string PlayerPrefabPath = "Assets/Prefabs/Player.prefab";
+        private const string AllyPrefabPath = "Assets/Prefabs/Ally.prefab";
+        private const string CombatPrefabPath = "Assets/Prefabs/CombatManager.prefab";
+        private const string DefaultLoadoutPath =
+            "Assets/Data/Resources/" + PartyCatalog.ResourceFolder + "/" + PartyCatalog.DefaultLoadoutName + ".asset";
 
         [MenuItem("Prototype/전투 - 입력 호스트 프리팹 만들기", priority = 30)]
         public static void Build()
@@ -31,8 +44,14 @@ namespace Prototype.EditorTools
                 return;
             }
 
+            GameObject playerPrefab = Require(PlayerPrefabPath);
+            GameObject allyPrefab = Require(AllyPrefabPath);
+            GameObject combatPrefab = Require(CombatPrefabPath);
+            if (playerPrefab == null || allyPrefab == null || combatPrefab == null) return;
+
             var root = new GameObject("BattleInput");
 
+            // ── 입력 ────────────────────────────────────
             var playerInput = root.AddComponent<PlayerInput>();
             playerInput.actions = actions;
 
@@ -46,17 +65,118 @@ namespace Prototype.EditorTools
 
             root.AddComponent<PlayerInputController>();
             root.AddComponent<InputMapSwitcher>();
-            root.AddComponent<TagSwapController>();
+            root.AddComponent<PlayerPilot>();
+            TagSwapController swap = root.AddComponent<TagSwapController>();
             root.AddComponent<BattleCommander>();
+            PartyAssembler assembler = root.AddComponent<PartyAssembler>();
+
+            // ── 파티 ────────────────────────────────────
+            var partyRoot = new GameObject(PartyRootName);
+            partyRoot.transform.SetParent(root.transform, false);
+
+            var playerGo = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, partyRoot.transform);
+            playerGo.name = "Player";
+            playerGo.transform.localPosition = Vector3.zero;
+
+            var slots = new Ally[PartyLoadout.MaxMembers];
+            for (int i = 0; i < slots.Length; i++)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(allyPrefab, partyRoot.transform);
+                go.name = SlotPrefix + i;
+                go.transform.localPosition = Vector3.zero;
+                slots[i] = go.GetComponent<Ally>();
+            }
+
+            // ── 덱 · 콤보 · HUD ─────────────────────────
+            var combatGo = (GameObject)PrefabUtility.InstantiatePrefab(combatPrefab, root.transform);
+            combatGo.name = "CombatManager";
+            combatGo.transform.localPosition = Vector3.zero;
+
+            // ── 배선 ────────────────────────────────────
+            // 슬롯 넷은 프리팹 안에서만 존재한다. FindAnyObjectByType 폴백에 맡기면
+            // 씬에 파티가 없다는 이유로 못 찾는 경로가 생기므로 여기서 직접 꽂는다.
+            Player player = playerGo.GetComponent<Player>();
+
+            Wire(assembler, so =>
+            {
+                so.FindProperty("player").objectReferenceValue = player;
+                so.FindProperty("partyRoot").objectReferenceValue = partyRoot.transform;
+                so.FindProperty("swap").objectReferenceValue = swap;
+                so.FindProperty("standaloneLoadout").objectReferenceValue =
+                    AssetDatabase.LoadAssetAtPath<PartyLoadout>(DefaultLoadoutPath);
+
+                SerializedProperty arr = so.FindProperty("slots");
+                arr.arraySize = slots.Length;
+                for (int i = 0; i < slots.Length; i++)
+                    arr.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
+            });
+
+            var bullet = combatGo.GetComponentInChildren<BulletTimeController>(true);
+            var executor = combatGo.GetComponentInChildren<ComboExecutor>(true);
+            var selector = combatGo.GetComponentInChildren<TargetSelector>(true);
+
+            Wire(swap, so =>
+            {
+                so.FindProperty("player").objectReferenceValue = player;
+                so.FindProperty("bulletTime").objectReferenceValue = bullet;
+                so.FindProperty("targetSelector").objectReferenceValue = selector;
+                so.FindProperty("pilot").objectReferenceValue = root.GetComponent<PlayerPilot>();
+            });
+
+            Wire(bullet, so =>
+            {
+                so.FindProperty("player").objectReferenceValue = player;
+                so.FindProperty("executor").objectReferenceValue = executor;
+                so.FindProperty("targetSelector").objectReferenceValue = selector;
+                so.FindProperty("swap").objectReferenceValue = swap;
+            });
+
+            Wire(root.GetComponent<BattleCommander>(), so =>
+            {
+                so.FindProperty("bulletTime").objectReferenceValue = bullet;
+                so.FindProperty("swap").objectReferenceValue = swap;
+            });
+
+            Wire(combatGo.GetComponentInChildren<DebugComboHUD>(true), so =>
+            {
+                so.FindProperty("player").objectReferenceValue = player;
+                so.FindProperty("bulletTime").objectReferenceValue = bullet;
+                so.FindProperty("targetSelector").objectReferenceValue = selector;
+            });
+
+            // 루트는 원점 · 무회전 · 배율 1. 이게 "물리 간섭 없는 컨테이너"의 전부다.
+            root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            root.transform.localScale = Vector3.one;
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
 
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"[BattleInputBuilder] {PrefabPath} 생성 완료. " +
-                      "씬에 넣고, Player 프리팹에서 PlayerInput · PlayerInputController · " +
-                      "InputMapSwitcher 를 제거할 것.", prefab);
+            Debug.Log($"[BattleInputBuilder] {PrefabPath} 생성 완료 — " +
+                      $"Player 1 + 동료 슬롯 {slots.Length} + CombatManager. " +
+                      "씬에서 Player · Ally · CombatManager 인스턴스를 제거하고 " +
+                      "'Prototype ▸ 파티 - 씬 마이그레이션'을 돌릴 것.", prefab);
+        }
+
+        private static GameObject Require(string path)
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (go == null) Debug.LogError($"[BattleInputBuilder] {path} 를 못 찾았다.");
+            return go;
+        }
+
+        /// <summary>
+        /// <c>private [SerializeField]</c>를 꽂는다. 인스펙터에서 손으로 하면
+        /// 빠뜨려도 게임이 그냥 돌아가 버려 눈치채기 어렵다 — 배선을 코드에 둔다.
+        /// </summary>
+        private static void Wire(Object target, System.Action<SerializedObject> apply)
+        {
+            if (target == null) return;
+
+            var so = new SerializedObject(target);
+            apply(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

@@ -38,22 +38,29 @@ namespace Prototype.EditorTools
 
             int count = 0;
 
-            foreach (Ally ally in Object.FindObjectsByType<Ally>(FindObjectsInactive.Include))
+            // 씬이 아니라 표에 쓴다. 파티는 BattleInput 프리팹 안으로 들어갔고,
+            // 씬 인스턴스에 쓰면 없앤 오버라이드가 씬마다 되살아난다.
+            foreach (string guid in AssetDatabase.FindAssets("t:" + nameof(PartyMemberData)))
             {
-                if (ally.Role != Role.Archer && ally.Role != Role.Wizard) continue;
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var member = AssetDatabase.LoadAssetAtPath<PartyMemberData>(path);
+                if (member == null) continue;
+                if (member.role != Role.Archer && member.role != Role.Wizard) continue;
 
-                var so = new SerializedObject(ally);
-                so.FindProperty("basicProjectile").objectReferenceValue = prefab;
-                so.FindProperty("basicProjectileSpeed").floatValue = ally.Role == Role.Archer ? 20f : 15f;
-                so.FindProperty("basicProjectileRange").floatValue = ally.Role == Role.Archer ? 9f : 8f;
-                so.FindProperty("basicProjectilePierce").intValue = 0;
-                so.ApplyModifiedProperties();
+                member.basicProjectile = prefab;
+                member.projectileSpeed = member.role == Role.Archer ? 20f : 15f;
+                member.projectileRange = member.role == Role.Archer ? 9f : 8f;
+                member.projectilePierce = 0;
 
-                EditorUtility.SetDirty(ally);
+                EditorUtility.SetDirty(member);
                 count++;
 
-                Debug.Log($"[ProjectileBuilder] {ally.name} ({ally.Role}) 평타 → 투사체", ally);
+                Debug.Log($"[ProjectileBuilder] {member.Label} ({member.role}) 평타 → 투사체", member);
             }
+
+            if (count == 0)
+                Debug.LogWarning("[ProjectileBuilder] PartyMemberData 가 하나도 없다. " +
+                                 "'Prototype ▸ 파티 - 1단계: 씬에서 표 추출'을 먼저 돌릴 것.");
 
             return count;
         }

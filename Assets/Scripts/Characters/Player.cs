@@ -22,6 +22,21 @@ namespace Prototype
         public Ally[] Party => party;
 
         /// <summary>
+        /// 파티 명단을 갈아 끼운다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서 부른다 —
+        /// 로드아웃이 안 채운 칸은 몸이 지워지고 여기 <c>null</c>로 남는다.
+        ///
+        /// <b>null 칸은 정상이다.</b> <see cref="TagSwapRules.IsSelectable"/>이 빈 칸을 건너뛰므로
+        /// 3인 파티도 교대 순환이 그대로 돈다.
+        ///
+        /// <c>TagSwapController.BuildRoster</c> · <c>BulletTimeController.BuildDeck</c>이
+        /// <c>Start</c>에서 이 배열을 읽는다. 그 전에 확정돼 있어야 한다.
+        /// </summary>
+        public void SetParty(Ally[] members)
+        {
+            party = members ?? new Ally[0];
+        }
+
+        /// <summary>
         /// <see cref="Ally"/>와 같은 이유로 등록이 Start가 아니라 여기다 —
         /// 태그로 내려간 몸은 꺼져 있으므로 적의 후보에서 빠져야 한다.
         /// </summary>

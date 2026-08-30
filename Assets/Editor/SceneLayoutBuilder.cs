@@ -83,6 +83,8 @@ namespace Prototype.EditorTools
 
             foreach (Entity entity in Object.FindObjectsByType<Entity>(FindObjectsInactive.Include))
             {
+                if (IsInsideBattleInput(entity)) continue;
+
                 Reposition(entity.gameObject);
                 if (RigBeltScrollView(entity.gameObject)) rigged++;
                 RigAttackBox(entity);
@@ -92,7 +94,10 @@ namespace Prototype.EditorTools
 
             // 히트박스가 만들어진 뒤에 레이어를 붙여야 한다.
             foreach (Entity entity in Object.FindObjectsByType<Entity>(FindObjectsInactive.Include))
+            {
+                if (IsInsideBattleInput(entity)) continue;
                 AssignLayers(entity);
+            }
 
             BuildRoom();
             SetupCamera();
@@ -609,12 +614,31 @@ namespace Prototype.EditorTools
         /// 임시 조작기 겸 HUD. 이게 없으면 손패가 화면에 안 그려지고
         /// 카드 집기 · 배치 입력도 아무도 처리하지 않는다.
         /// </summary>
+        /// <summary>
+        /// 이 몸이 <c>BattleInput</c> 프리팹 안에 있는가.
+        ///
+        /// <b>파티는 이 빌더가 손대면 안 된다.</b> 프리팹 인스턴스의 자식을 여기서 옮기거나
+        /// 레이어를 칠하면 씬마다 오버라이드가 되살아난다 — 이 리팩터링이 없앤 바로 그것이다.
+        /// 파티의 자리는 <see cref="PartySpawnPoint"/>가, 레이어는 런타임의
+        /// <see cref="AllyLayers"/>가 맡는다.
+        /// </summary>
+        private static bool IsInsideBattleInput(Component c)
+            => c != null && c.GetComponentInParent<PartyAssembler>(true) != null;
+
         private static void EnsureDebugHud()
         {
             BulletTimeController btc = Object.FindAnyObjectByType<BulletTimeController>();
             if (btc == null)
             {
                 Debug.LogError("[SceneLayoutBuilder] BulletTimeController가 씬에 없다. HUD를 붙일 곳이 없다.");
+                return;
+            }
+
+            // 덱 · HUD 가 BattleInput 안으로 들어갔다. 그쪽은 BattleInputBuilder 가 배선하므로
+            // 여기서 또 만지면 프리팹 인스턴스에 씬 오버라이드가 생긴다.
+            if (IsInsideBattleInput(btc))
+            {
+                Debug.Log("[SceneLayoutBuilder] HUD 는 BattleInput 프리팹 소유다 — 건너뛴다.");
                 return;
             }
 
