@@ -29,7 +29,8 @@ namespace Prototype
         public Sprite portrait;
 
         [Header("장착 카드")]
-        [Tooltip("직업당 6종 중 4장. 파티 4명 × 4장 = 덱 16장(Deck.Size)이 된다.\n" +
+        [Tooltip("직업당 6종 중 4장. 덱 목표 장수는 상수가 아니라 지금 인원 × 4다 — " +
+                 "4인이면 16장, 3인이면 12장이 정상이다(DeckRules.TargetSize).\n" +
                  "여기 든 카드의 SkillData.role 이 위의 role 과 다르면 그 카드는 영영 발동하지 않는다 — " +
                  "BulletTimeController.ResolveCaster 가 직업으로 시전자를 찾기 때문이다.")]
         public List<ComboCard> equipped = new List<ComboCard>(Ally.EquipSlots);

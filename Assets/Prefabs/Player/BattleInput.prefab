@@ -52,6 +52,7 @@ GameObject:
   - component: {fileID: 8887573751772618589}
   - component: {fileID: 3934412128785038699}
   - component: {fileID: 5110503542116373734}
+  - component: {fileID: 6252340255952021515}
   m_Layer: 0
   m_Name: BattleInput
   m_TagString: Untagged
@@ -73,6 +74,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1419850568724524005}
+  - {fileID: 8463187460469309819}
   - {fileID: 9150906497582170388}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -159,6 +161,7 @@ MonoBehaviour:
   player: {fileID: 2194818268894851219}
   bulletTime: {fileID: 1490962342387795252}
   cameraFollow: {fileID: 0}
+  cameraAnchor: {fileID: 331118652805039931}
   targetSelector: {fileID: 4162047843367154618}
   pilot: {fileID: 1992139283966176409}
   swapCooldown: 1.5
@@ -197,6 +200,67 @@ MonoBehaviour:
   partyRoot: {fileID: 1419850568724524005}
   swap: {fileID: 8887573751772618589}
   standaloneLoadout: {fileID: 11400000, guid: fba9e8aabde39ad41be2d9cede68d05e, type: 2}
+--- !u!114 &6252340255952021515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3888511937950883998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f18fc80a43b1c458ce85c4e57c2d2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyHealthHUD
+  swap: {fileID: 8887573751772618589}
+  show: 1
+  showNumbers: 1
+--- !u!1 &8797450137919205497
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8463187460469309819}
+  - component: {fileID: 331118652805039931}
+  m_Layer: 0
+  m_Name: CameraAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8463187460469309819
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8797450137919205497}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2219754581378737675}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &331118652805039931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8797450137919205497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6106d54dde553ba4b8fc9b3e6f11a725, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.CameraAnchor
+  rate: 20
+  follow: {fileID: 0}
 --- !u!1001 &141502403150543977
 PrefabInstance:
   m_ObjectHideFlags: 0

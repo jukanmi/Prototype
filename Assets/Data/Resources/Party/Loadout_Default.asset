@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Loadout_Default
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyLoadout
   loadoutName: "\uAE30\uBCF8 \uD30C\uD2F0"
+  hero: {fileID: 11400000, guid: afce74b4c7ba9d6448475023a3977c29, type: 2}
   members:
   - {fileID: 11400000, guid: c9ab2bec62b64de43824fc24528ca2aa, type: 2}
   - {fileID: 11400000, guid: 0d640a551d9b00240a8e5f7e94641c61, type: 2}

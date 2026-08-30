@@ -33,8 +33,11 @@ namespace Prototype
         [SerializeField] private Player player;
         [SerializeField] private BulletTimeController bulletTime;
 
-        [Tooltip("비우면 씬에서 찾는다. 교대할 때마다 새 몸을 따라가게 만든다.")]
+        [Tooltip("비우면 씬에서 찾는다. 앵커가 없는 씬(스킬 실험용)에서만 쓰는 폴백이다.")]
         [SerializeField] private CameraFollow cameraFollow;
+
+        [Tooltip("카메라가 바라보는 앵커. 있으면 카메라 대상을 직접 안 바꾸고 여기만 옮긴다.")]
+        [SerializeField] private CameraAnchor cameraAnchor;
 
         [Tooltip("비우면 씬에서 찾는다. 조준 기준점을 새 몸으로 옮긴다.")]
         [SerializeField] private TargetSelector targetSelector;
@@ -138,6 +141,7 @@ namespace Prototype
             if (player == null) player = FindAnyObjectByType<Player>();
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
             if (cameraFollow == null) cameraFollow = FindAnyObjectByType<CameraFollow>();
+            if (cameraAnchor == null) cameraAnchor = GetComponentInChildren<CameraAnchor>(true);
             if (targetSelector == null) targetSelector = FindAnyObjectByType<TargetSelector>();
             if (pilot == null) pilot = FindAnyObjectByType<PlayerPilot>();
 
@@ -283,6 +287,14 @@ namespace Prototype
         {
             partySeat = new Seat(ground, facing.sqrMagnitude > 0.0001f ? facing : Vector3.right);
             hasSeed = true;
+
+            // 여기서 직접 찾는다. 부르는 쪽(PartyAssembler)이 실행 순서 -200이라
+            // 이 컴포넌트의 Awake보다 먼저 도착한다 — Awake의 폴백에 기대면 null이다.
+            if (cameraAnchor == null) cameraAnchor = GetComponentInChildren<CameraAnchor>(true);
+
+            // 앵커도 같이 옮긴다. 안 그러면 카메라가 원점에서 스폰 자리까지 한 번 미끄러진다 —
+            // 스테이지가 열리는 첫 0.5초가 통째로 흘러가는 그림이 된다.
+            cameraAnchor?.SnapTo(ground.x);
         }
 
         /// <summary>파티가 서 있는 자리. 필드에 아무도 없으면 마지막으로 확정된 자리.</summary>
@@ -292,12 +304,20 @@ namespace Prototype
             return body != null ? Seat.Of(body) : partySeat;
         }
 
-        /// <summary>카메라와 조준 기준을 새 몸으로 옮긴다. <b>착지한 뒤에</b> 부른다.</summary>
+        /// <summary>
+        /// 카메라와 조준 기준을 새 몸으로 옮긴다. <b>착지한 뒤에</b> 부른다.
+        ///
+        /// <b>조준 기준은 앵커를 안 거친다.</b> 커서 원점이 보간되면 몸보다 늦게 따라와
+        /// 조준이 밀린다 — 카메라는 부드러워야 하고 조준은 즉각적이어야 한다.
+        /// </summary>
         private void FollowBody(Entity body)
         {
             if (body == null) return;
 
-            cameraFollow?.SetTarget(body.transform);
+            // 앵커가 있으면 카메라 대상은 영영 앵커다. 여기서는 무엇을 비출지만 바꾼다.
+            if (cameraAnchor != null) cameraAnchor.SetFocus(body.transform);
+            else cameraFollow?.SetTarget(body.transform);
+
             targetSelector?.SetCursorOrigin(body.transform);
         }
 

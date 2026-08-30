@@ -186,5 +186,51 @@ namespace Prototype.Tests
             Assert.That(blend.TargetMin, Is.EqualTo(33f).Within(Eps));
             Assert.That(blend.TargetMax, Is.EqualTo(45f).Within(Eps));
         }
+
+        // ── 앵커 접근 ───────────────────────────────────
+
+        /// <summary>
+        /// <b>앵커 설계의 전부가 이 한 줄이다.</b> 태그 교대(F)는 새 몸이 같은 자리에 서므로
+        /// 차이가 0이고, 그래서 앵커가 아무것도 안 한다 — 지금과 똑같이 즉각 반응한다.
+        /// "즉시냐 부드럽게냐"를 분기로 나눌 필요가 없는 이유가 여기 있다.
+        /// </summary>
+        [Test]
+        public void Approach_ZeroDistance_DoesNothing()
+        {
+            Assert.That(CameraFrameRules.Approach(5f, 5f, 20f, 0.016f), Is.EqualTo(5f).Within(Eps));
+        }
+
+        /// <summary>거리가 있으면 목표 쪽으로 가되 한 프레임에 닿지는 않는다.</summary>
+        [Test]
+        public void Approach_MovesTowardTargetWithoutOvershoot()
+        {
+            float x = CameraFrameRules.Approach(0f, 10f, 20f, 0.016f);
+
+            Assert.That(x, Is.GreaterThan(0f));
+            Assert.That(x, Is.LessThan(10f), "한 프레임에 목표를 넘어섰다.");
+        }
+
+        /// <summary>
+        /// 프레임률에 안 휜다. 60fps로 두 프레임과 30fps로 한 프레임이 같은 자리에 와야
+        /// 같은 전환이 기기마다 다른 속도로 보이지 않는다.
+        /// </summary>
+        [Test]
+        public void Approach_IsFrameRateIndependent()
+        {
+            float twoFast = CameraFrameRules.Approach(
+                CameraFrameRules.Approach(0f, 10f, 20f, 1f / 60f), 10f, 20f, 1f / 60f);
+
+            float oneSlow = CameraFrameRules.Approach(0f, 10f, 20f, 1f / 30f);
+
+            Assert.That(twoFast, Is.EqualTo(oneSlow).Within(0.01f));
+        }
+
+        /// <summary>dt나 rate가 0이면 곧바로 목표다 — 스냅 경로에서 나눗셈 없이 쓰인다.</summary>
+        [Test]
+        public void Approach_ZeroRateOrDelta_SnapsToTarget()
+        {
+            Assert.That(CameraFrameRules.Approach(0f, 10f, 0f, 0.016f), Is.EqualTo(10f).Within(Eps));
+            Assert.That(CameraFrameRules.Approach(0f, 10f, 20f, 0f), Is.EqualTo(10f).Within(Eps));
+        }
     }
 }

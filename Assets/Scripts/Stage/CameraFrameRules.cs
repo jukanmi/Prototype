@@ -61,5 +61,20 @@ namespace Prototype
         /// </summary>
         public static float HalfWidth(float orthographicSize, float aspect)
             => Mathf.Max(0f, orthographicSize) * Mathf.Max(0.0001f, aspect);
+
+        /// <summary>
+        /// 프레임률에 안 휘는 지수 접근. <c>Lerp(a, b, rate·dt)</c>와 달리 60fps와 30fps에서
+        /// 같은 시간에 같은 거리를 간다.
+        ///
+        /// <b>차이가 0이면 아무 일도 안 한다</b>는 점이 중요하다 — 카메라 앵커가 이걸 쓰는데,
+        /// 태그 교대는 새 몸이 <b>같은 자리</b>에 서므로 차이가 0이고 그래서 지금과 완전히
+        /// 똑같이 즉각 반응한다. 콤보 시전자가 돌진해 나간 자리로 넘어갈 때만 미끄러진다.
+        /// "즉시냐 부드럽게냐"를 분기로 나눌 필요가 없다.
+        /// </summary>
+        public static float Approach(float from, float to, float rate, float dt)
+        {
+            if (rate <= 0f || dt <= 0f) return to;
+            return Mathf.Lerp(from, to, 1f - Mathf.Exp(-rate * dt));
+        }
     }
 }

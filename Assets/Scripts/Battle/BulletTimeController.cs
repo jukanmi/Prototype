@@ -623,6 +623,13 @@ namespace Prototype
 
             BattleLog.Log(LogCategory.Deck, $"<b>{BattleLog.Name(dead)} 사망</b> — {dead.Role} 카드를 걷어낸다", this);
             PurgeRole(dead.Role);
+
+            // 런 덱에서도 걷는다. 여기가 빠지면 이 판에서만 사라지고, 다음 스테이지의
+            // BuildDeck이 RunProgression.Cards를 다시 읽는 순간 통째로 되살아난다.
+            int fromRun = RunProgression.Current.PurgeRole(dead.Role);
+            if (fromRun > 0)
+                BattleLog.Log(LogCategory.Deck,
+                    $"런 덱에서도 {dead.Role} 카드 {fromRun}장 제거 — 다음 스테이지로 안 넘어간다", this);
         }
 
         /// <summary>
@@ -751,8 +758,11 @@ namespace Prototype
             discard.Clear();
             discard.AddRange(cards);
 
+            int members = DeckRules.CountFilled(player.Party);
+
             BattleLog.Log(LogCategory.Deck,
-                $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작) | 런 Lv.{run.Level}", this);
+                $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작) | " +
+                $"동료 {members}명 · 한 바퀴 {DeckRules.CycleHands(cards.Count)}핸드 | 런 Lv.{run.Level}", this);
 
             if (empty > 0)
                 BattleLog.Warn(LogCategory.Deck,
@@ -761,10 +771,13 @@ namespace Prototype
 
             // 장수는 <b>파티 장착분</b>으로 따진다. 런 덱은 레벨업으로 늘고 합성으로 줄어드는 게
             // 정상이라 여기서 세면 성장할 때마다 거짓 경고가 뜬다.
-            if (partyCards.Count != Prototype.Deck.Size)
-                BattleLog.Warn(LogCategory.Deck,
-                    $"파티 장착 카드가 {partyCards.Count}장이다(목표 {Prototype.Deck.Size}). " +
-                    "동료 4명 × 장착 4장을 확인할 것.", this);
+            //
+            // 목표는 상수 16이 아니라 <b>지금 인원 × 4</b>다. 3인 파티는 12장이 정상이고,
+            // 동료가 영구 사망해 슬롯이 비어도 마찬가지다 — 상수와 비교하면 그때부터
+            // 매 스테이지 거짓 경고가 뜬다.
+            string problem = DeckRules.Explain(partyCards.Count, members);
+            if (problem != null)
+                BattleLog.Warn(LogCategory.Deck, $"파티 {problem}", this);
         }
 
         /// <summary>파티 4명이 장착한 카드를 걷는다. SkillData가 빈 카드는 세어서 제외한다.</summary>

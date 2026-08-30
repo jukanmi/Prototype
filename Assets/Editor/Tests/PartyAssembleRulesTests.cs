@@ -193,5 +193,127 @@ namespace Prototype.Tests
 
             Assert.That(PartyAssembleRules.Pick(null, standalone), Is.SameAs(standalone));
         }
+
+        // ── 편성 (파티 선택 화면) ────────────────────────
+
+        [Test]
+        public void Toggle_AddsThenRemoves()
+        {
+            var party = new List<PartyMemberData>();
+            PartyMemberData tan = Member(Role.Tanker);
+
+            Assert.That(PartyAssembleRules.Toggle(party, tan, 4), Is.True);
+            Assert.That(party, Has.Count.EqualTo(1));
+
+            Assert.That(PartyAssembleRules.Toggle(party, tan, 4), Is.True);
+            Assert.That(party, Is.Empty);
+        }
+
+        /// <summary>
+        /// 슬롯 순서가 곧 F키 교대 순환 순서다. 중간을 빼면 뒤가 당겨져야 한다 —
+        /// 빈 칸을 남기면 "3번이 비었는데 4번으로 교대된다"가 되어 순환이 안 읽힌다.
+        /// </summary>
+        [Test]
+        public void Toggle_RemovingMiddle_CompactsOrder()
+        {
+            PartyMemberData a = Member(Role.Tanker), b = Member(Role.Warrior), c = Member(Role.Archer);
+            var party = new List<PartyMemberData> { a, b, c };
+
+            PartyAssembleRules.Toggle(party, b, 4);
+
+            Assert.That(party, Is.EqualTo(new[] { a, c }));
+        }
+
+        /// <summary>
+        /// 가득 찼을 때 새 사람을 누르면 아무 일도 안 한다.
+        /// 조용히 누군가를 밀어내면 방금 뭘 잃었는지 화면에서 알 수가 없다.
+        /// </summary>
+        [Test]
+        public void Toggle_WhenFull_RejectsNewMember()
+        {
+            var party = new List<PartyMemberData>
+            {
+                Member(Role.Tanker), Member(Role.Warrior), Member(Role.Archer), Member(Role.Wizard),
+            };
+
+            Assert.That(PartyAssembleRules.Toggle(party, Member(Role.Tanker), 4), Is.False);
+            Assert.That(party, Has.Count.EqualTo(4));
+        }
+
+        [Test]
+        public void Toggle_WhenFull_StillRemovesExisting()
+        {
+            PartyMemberData wiz = Member(Role.Wizard);
+            var party = new List<PartyMemberData>
+            {
+                Member(Role.Tanker), Member(Role.Warrior), Member(Role.Archer), wiz,
+            };
+
+            Assert.That(PartyAssembleRules.Toggle(party, wiz, 4), Is.True);
+            Assert.That(party, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void DuplicateRoles_ReportsOnlyRepeats()
+        {
+            var party = new List<PartyMemberData>
+            {
+                Member(Role.Tanker), Member(Role.Tanker), Member(Role.Archer),
+            };
+
+            List<Role> dup = PartyAssembleRules.DuplicateRoles(party);
+
+            Assert.That(dup, Is.EqualTo(new[] { Role.Tanker }));
+        }
+
+        [Test]
+        public void CanStart_NeedsAtLeastOneMember()
+        {
+            Assert.That(PartyAssembleRules.CanStart(new List<PartyMemberData>()), Is.False);
+            Assert.That(PartyAssembleRules.CanStart(new PartyMemberData[] { null, null }), Is.False);
+            Assert.That(PartyAssembleRules.CanStart(new[] { Member(Role.Tanker) }), Is.True);
+        }
+
+        // ── 런타임 조합 ─────────────────────────────────
+
+        /// <summary>
+        /// 화면에서 짠 조합은 에셋이 아니라 메모리 인스턴스다.
+        /// 넘긴 순서가 그대로 슬롯 순서(= 교대 순서)여야 한다.
+        /// </summary>
+        [Test]
+        public void CreateRuntime_KeepsPickOrderAndPadsRest()
+        {
+            PartyMemberData a = Member(Role.Wizard), b = Member(Role.Tanker);
+
+            PartyLoadout l = PartyLoadout.CreateRuntime(new[] { a, b });
+            spawned.Add(l);
+
+            Assert.That(l.members.Length, Is.EqualTo(PartyLoadout.MaxMembers));
+            Assert.That(l.members[0], Is.SameAs(a));
+            Assert.That(l.members[1], Is.SameAs(b));
+            Assert.That(l.members[2], Is.Null);
+            Assert.That(l.members[3], Is.Null);
+            Assert.That(l.FilledCount, Is.EqualTo(2));
+        }
+
+        /// <summary>
+        /// 편성 화면은 인스턴스를 하나만 만들어 계속 고쳐 쓴다. 줄어들 때 뒤 칸이
+        /// 안 비워지면 이미 뺀 동료가 파티에 그대로 남는다.
+        /// </summary>
+        [Test]
+        public void Fill_ClearsTrailingSlots()
+        {
+            PartyLoadout l = PartyLoadout.CreateRuntime(new[]
+            {
+                Member(Role.Tanker), Member(Role.Warrior), Member(Role.Archer), Member(Role.Wizard),
+            });
+            spawned.Add(l);
+
+            l.Fill(new[] { Member(Role.Archer) });
+
+            Assert.That(l.FilledCount, Is.EqualTo(1));
+            Assert.That(l.members[1], Is.Null);
+            Assert.That(l.members[3], Is.Null);
+        }
     }
 }

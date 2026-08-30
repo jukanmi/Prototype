@@ -74,12 +74,16 @@ namespace Prototype
         /// 파티 선택 화면이 "이 조합으로 뽑을 수 있는 스킬"을 미리 보여줄 때 쓴다.
         /// </summary>
         public static List<Role> RolesOf(PartyLoadout loadout)
+            => RolesOf(loadout != null ? loadout.members : null);
+
+        public static List<Role> RolesOf(IReadOnlyList<PartyMemberData> party)
         {
             var roles = new List<Role>(PartyLoadout.MaxMembers);
-            if (loadout == null || loadout.members == null) return roles;
+            if (party == null) return roles;
 
-            foreach (PartyMemberData m in loadout.members)
+            for (int i = 0; i < party.Count; i++)
             {
+                PartyMemberData m = party[i];
                 if (m == null || roles.Contains(m.role)) continue;
                 roles.Add(m.role);
             }
@@ -88,16 +92,22 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이 로드아웃이 덱에 넣을 카드 수. <see cref="Deck.Size"/>와 비교해
-        /// 저작 실수를 파티 선택 시점에 잡는다.
+        /// 이 조합이 덱에 넣을 카드 수. <see cref="DeckRules.TargetSize(int)"/>와 비교해
+        /// 저작 실수를 파티 편성 시점에 잡는다 — 전투에 들어가서야 아는 값이 아니다.
+        ///
+        /// <b>상수 16과 비교하지 말 것.</b> 3인 파티는 12장이 정상이다.
         /// </summary>
         public static int CardCount(PartyLoadout loadout)
+            => CardCount(loadout != null ? loadout.members : null);
+
+        public static int CardCount(IReadOnlyList<PartyMemberData> party)
         {
-            if (loadout == null || loadout.members == null) return 0;
+            if (party == null) return 0;
 
             int n = 0;
-            foreach (PartyMemberData m in loadout.members)
+            for (int i = 0; i < party.Count; i++)
             {
+                PartyMemberData m = party[i];
                 if (m == null || m.equipped == null) continue;
 
                 foreach (ComboCard c in m.equipped)
@@ -105,6 +115,74 @@ namespace Prototype
             }
 
             return n;
+        }
+
+        // ── 편성 (파티 선택 화면) ────────────────────────
+
+        /// <summary>
+        /// 명단에서 한 명을 넣거나 뺀다. 이미 있으면 빼고, 없으면 뒤에 붙인다.
+        ///
+        /// <b>고른 순서가 곧 슬롯 순서, 즉 F키 교대 순환 순서다.</b> 중간을 빼면 뒤가 당겨진다 —
+        /// 빈 칸을 남기면 "3번이 비었는데 4번으로 교대된다"가 되어 순환이 안 읽힌다.
+        /// (<see cref="Resolve"/>가 남기는 빈 칸은 <b>뒤쪽</b>에만 생긴다.)
+        ///
+        /// 가득 찬 상태에서 새 사람을 누르면 <b>아무 일도 안 한다</b> — 조용히 누군가를
+        /// 밀어내면 방금 뭘 잃었는지 화면에서 알 수가 없다.
+        /// </summary>
+        /// <returns>명단이 실제로 바뀌었으면 true.</returns>
+        public static bool Toggle(IList<PartyMemberData> party, PartyMemberData member, int max)
+        {
+            if (party == null || member == null) return false;
+
+            int at = party.IndexOf(member);
+            if (at >= 0) { party.RemoveAt(at); return true; }
+
+            if (party.Count >= max) return false;
+
+            party.Add(member);
+            return true;
+        }
+
+        /// <summary>
+        /// 두 번 이상 든 직업. <b>막지는 않는다</b> — 탱커 둘도 정상 동작한다.
+        ///
+        /// 다만 덱이 그 직업으로 기울고(장착 8장), 한 명이 죽어도
+        /// <c>purgeCardsOnAllyDeath</c>가 카드를 안 걷는다(같은 직업이 살아 있으므로).
+        /// 의도한 것이면 그대로 두면 되고, 아니면 화면에서 보고 고칠 수 있어야 한다.
+        /// </summary>
+        public static List<Role> DuplicateRoles(IReadOnlyList<PartyMemberData> party)
+        {
+            var seen = new List<Role>(PartyLoadout.MaxMembers);
+            var dup = new List<Role>();
+            if (party == null) return dup;
+
+            for (int i = 0; i < party.Count; i++)
+            {
+                PartyMemberData m = party[i];
+                if (m == null) continue;
+
+                if (seen.Contains(m.role)) { if (!dup.Contains(m.role)) dup.Add(m.role); }
+                else seen.Add(m.role);
+            }
+
+            return dup;
+        }
+
+        /// <summary>
+        /// 이 조합으로 런을 시작할 수 있는가.
+        ///
+        /// <b>한 명은 있어야 한다.</b> 동료가 0명이면 덱이 0장이라 U키도 불릿타임도
+        /// 아무것도 안 나간다 — 플레이어 몸으로 평타만 치는 판이 된다.
+        /// 그건 버그처럼 보이지, 선택처럼 보이지 않는다.
+        /// </summary>
+        public static bool CanStart(IReadOnlyList<PartyMemberData> party)
+        {
+            if (party == null) return false;
+
+            for (int i = 0; i < party.Count; i++)
+                if (party[i] != null) return true;
+
+            return false;
         }
 
         /// <summary>

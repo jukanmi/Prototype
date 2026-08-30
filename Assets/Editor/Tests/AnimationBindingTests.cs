@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using Prototype.EditorTools;
 
 namespace Prototype.Tests
 {
@@ -15,8 +16,9 @@ namespace Prototype.Tests
     {
         private static readonly string[] PrefabPaths =
         {
-            "Assets/Prefabs/Player.prefab",
-            "Assets/Prefabs/Ally.prefab",
+            // 경로가 아니라 컴포넌트로 찾는다 — 프리팹을 옮겨도 안 끊긴다.
+            PrefabLocator.PlayerPath,
+            PrefabLocator.AllyPath,
             "Assets/Prefabs/enemy.prefab",
             "Assets/Prefabs/Enemy_Melee.prefab",
             "Assets/Prefabs/Enemy_Charger.prefab",

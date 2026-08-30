@@ -25,11 +25,9 @@ namespace Prototype.EditorTools
         /// <summary>정면은 로컬 +Z. 평타 히트박스(z +1)와 같은 자리에서 시작한다.</summary>
         internal static readonly Vector3 SkillHitboxPos = new Vector3(0f, 0f, 1f);
 
-        internal static readonly string[] TargetPrefabs =
-        {
-            "Assets/Prefabs/Ally.prefab",
-            "Assets/Prefabs/Player.prefab",
-        };
+        /// <summary>경로가 아니라 컴포넌트로 찾는다 — 프리팹을 옮겨도 안 끊긴다.</summary>
+        internal static string[] TargetPrefabs
+            => new[] { PrefabLocator.AllyPath, PrefabLocator.PlayerPath };
 
         [MenuItem("Prototype/프리팹 - 스킬 히트박스 붙이기")]
         public static void Build()

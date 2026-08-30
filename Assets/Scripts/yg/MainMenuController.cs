@@ -47,6 +47,17 @@ namespace Prototype.YG
                 return;
             }
 
+            // 파티를 골랐는데 아무도 안 데려가는 조합이면 막는다. 그대로 들어가면 덱이 0장이라
+            // U키도 불릿타임도 아무것도 안 나가고, 그건 선택이 아니라 고장으로 보인다.
+            //
+            // Loadout 이 null 인 것은 <b>안 고른 것</b>이지 빈 것이 아니다 —
+            // 표를 아직 안 구운 상태라 StartNewRun 이 기본 조합으로 채운다.
+            if (gm.Loadout != null && !PartyAssembleRules.CanStart(gm.Loadout.members))
+            {
+                Debug.LogWarning("[MainMenu] 동료를 한 명 이상 골라야 시작할 수 있다.");
+                return;
+            }
+
             gm.StartNewRun();
 
             // 어느 씬을 여는지는 GameManager 의 스테이지 목록이 정한다.

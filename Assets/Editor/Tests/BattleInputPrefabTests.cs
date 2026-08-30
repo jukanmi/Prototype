@@ -2,6 +2,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Prototype.EditorTools;
 
 namespace Prototype.Tests
 {
@@ -15,8 +16,9 @@ namespace Prototype.Tests
     /// </summary>
     public class BattleInputPrefabTests
     {
-        private const string HostPath = "Assets/Prefabs/BattleInput.prefab";
-        private const string PlayerPath = "Assets/Prefabs/Player.prefab";
+        // 경로가 아니라 컴포넌트로 찾는다 — 프리팹을 옮겨도 안 끊긴다.
+        private static string HostPath => PrefabLocator.BattleInputPath;
+        private static string PlayerPath => PrefabLocator.PlayerPath;
         private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
 
         private static GameObject Load(string path)

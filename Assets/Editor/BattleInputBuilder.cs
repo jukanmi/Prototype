@@ -22,15 +22,21 @@ namespace Prototype.EditorTools
     /// </summary>
     public static class BattleInputBuilder
     {
-        public const string PrefabPath = "Assets/Prefabs/BattleInput.prefab";
+        /// <summary>
+        /// 지금 이 프리팹이 있는 자리. <b>옛 경로를 상수로 박지 않는다</b> —
+        /// 프리팹을 폴더로 옮긴 뒤 옛 자리에 다시 구우면 GUID가 달라져
+        /// 씬 아홉 개가 계속 옛 것을 물고, 그 사실이 화면에 전혀 안 드러난다.
+        /// </summary>
+        public static string PrefabPath => PrefabLocator.BattleInputPath;
 
         public const string PartyRootName = "Party";
         public const string SlotPrefix = "Member_";
+        public const string CameraAnchorName = "CameraAnchor";
 
         private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
-        private const string PlayerPrefabPath = "Assets/Prefabs/Player.prefab";
-        private const string AllyPrefabPath = "Assets/Prefabs/Ally.prefab";
-        private const string CombatPrefabPath = "Assets/Prefabs/CombatManager.prefab";
+        private static string PlayerPrefabPath => PrefabLocator.PlayerPath;
+        private static string AllyPrefabPath => PrefabLocator.AllyPath;
+        private static string CombatPrefabPath => PrefabLocator.CombatManagerPath;
         private const string DefaultLoadoutPath =
             "Assets/Data/Resources/" + PartyCatalog.ResourceFolder + "/" + PartyCatalog.DefaultLoadoutName + ".asset";
 
@@ -70,6 +76,10 @@ namespace Prototype.EditorTools
             root.AddComponent<BattleCommander>();
             PartyAssembler assembler = root.AddComponent<PartyAssembler>();
 
+            // 파티 체력 HUD. 로스터의 주인(TagSwapController)과 <b>같은 오브젝트</b>에 둔다 —
+            // 찾을 것도 배선할 것도 없고, 씬이 언로드되면 함께 사라진다.
+            PartyHealthHUD partyHud = root.AddComponent<PartyHealthHUD>();
+
             // ── 파티 ────────────────────────────────────
             var partyRoot = new GameObject(PartyRootName);
             partyRoot.transform.SetParent(root.transform, false);
@@ -86,6 +96,13 @@ namespace Prototype.EditorTools
                 go.transform.localPosition = Vector3.zero;
                 slots[i] = go.GetComponent<Ally>();
             }
+
+            // ── 카메라 앵커 ─────────────────────────────
+            // Party 컨테이너의 <b>형제</b>다. 원점에 박히는 건 루트와 Party 노드뿐이고,
+            // 앵커는 파티 몸들처럼 자유롭게 움직인다.
+            var anchorGo = new GameObject(CameraAnchorName);
+            anchorGo.transform.SetParent(root.transform, false);
+            CameraAnchor anchor = anchorGo.AddComponent<CameraAnchor>();
 
             // ── 덱 · 콤보 · HUD ─────────────────────────
             var combatGo = (GameObject)PrefabUtility.InstantiatePrefab(combatPrefab, root.transform);
@@ -121,6 +138,7 @@ namespace Prototype.EditorTools
                 so.FindProperty("bulletTime").objectReferenceValue = bullet;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
                 so.FindProperty("pilot").objectReferenceValue = root.GetComponent<PlayerPilot>();
+                so.FindProperty("cameraAnchor").objectReferenceValue = anchor;
             });
 
             Wire(bullet, so =>
@@ -136,6 +154,8 @@ namespace Prototype.EditorTools
                 so.FindProperty("bulletTime").objectReferenceValue = bullet;
                 so.FindProperty("swap").objectReferenceValue = swap;
             });
+
+            Wire(partyHud, so => so.FindProperty("swap").objectReferenceValue = swap);
 
             Wire(combatGo.GetComponentInChildren<DebugComboHUD>(true), so =>
             {

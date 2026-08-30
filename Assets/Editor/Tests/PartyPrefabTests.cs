@@ -165,6 +165,62 @@ namespace Prototype.Tests
                 Is.Not.Null, "TagSwapController.player 가 비어 있다 — 로스터가 안 만들어진다.");
         }
 
+        // ── 카메라 앵커 ─────────────────────────────────
+
+        /// <summary>
+        /// 앵커는 <c>Party</c>의 <b>형제</b>여야 한다. Party 안에 넣으면
+        /// <c>PartyPrefabTests.PartyBodies_AreAtLocalOrigin</c>과 컨테이너 불변식에 걸린다 —
+        /// 앵커는 움직이는 것이 일이기 때문이다.
+        /// </summary>
+        [Test]
+        public void Host_HasCameraAnchorOutsideParty()
+        {
+            GameObject host = Host();
+
+            var anchor = host.GetComponentInChildren<CameraAnchor>(true);
+            Assert.That(anchor, Is.Not.Null,
+                "CameraAnchor 가 없다 — 카메라가 몸 트랜스폼을 직접 물게 된다.");
+
+            Assert.That(anchor.transform.parent, Is.EqualTo(host.transform),
+                "CameraAnchor 가 BattleInput 루트의 직계 자식이 아니다.");
+
+            Transform party = host.transform.Find(BattleInputBuilder.PartyRootName);
+            Assert.That(anchor.transform.IsChildOf(party), Is.False,
+                "CameraAnchor 가 Party 컨테이너 안에 있다 — 그 노드는 원점에 고정이다.");
+        }
+
+        /// <summary>
+        /// 배선이 비면 <see cref="TagSwapController"/>가 폴백으로 몸 트랜스폼을 직접 꽂는다.
+        /// 게임은 돌지만 앵커를 만든 이유가 통째로 사라지고, 아무 에러도 안 난다.
+        /// </summary>
+        [Test]
+        public void TagSwap_KnowsCameraAnchor()
+        {
+            var swap = Host().GetComponent<TagSwapController>();
+
+            Assert.That(new SerializedObject(swap).FindProperty("cameraAnchor").objectReferenceValue,
+                Is.Not.Null, "TagSwapController.cameraAnchor 가 비어 있다.");
+        }
+
+        // ── 파티 체력 HUD ───────────────────────────────
+
+        /// <summary>
+        /// 로스터의 주인과 <b>같은 오브젝트</b>에 있어야 한다. 자식이나 다른 오브젝트에 두면
+        /// 찾는 코드가 필요해지고, 그 순간 "가끔 HUD가 안 뜬다"가 생길 자리가 열린다.
+        /// </summary>
+        [Test]
+        public void Host_HasPartyHealthHud()
+        {
+            GameObject host = Host();
+
+            var hud = host.GetComponent<PartyHealthHUD>();
+            Assert.That(hud, Is.Not.Null,
+                "PartyHealthHUD 가 없다 — 파티 체력이 화면에 안 뜬다.");
+
+            Assert.That(new SerializedObject(hud).FindProperty("swap").objectReferenceValue,
+                Is.Not.Null, "PartyHealthHUD.swap 이 비어 있다 — 로스터를 못 읽는다.");
+        }
+
         // ── 몸 ──────────────────────────────────────────
 
         [Test]

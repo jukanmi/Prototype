@@ -26,7 +26,8 @@ namespace Prototype.EditorTools
     {
         private const string DataFolder = "Assets/Data/Resources/" + PartyCatalog.ResourceFolder;
         private const string LoadoutPath = DataFolder + "/" + PartyCatalog.DefaultLoadoutName + ".asset";
-        private const string AllyPrefabPath = "Assets/Prefabs/Ally.prefab";
+        private static string AllyPrefabPath => PrefabLocator.AllyPath;
+        private static string PlayerPrefabPath => PrefabLocator.PlayerPath;
 
         /// <summary>표를 뽑아낼 기준 씬. 아홉 개가 같은 값을 들고 있으므로 하나면 된다.</summary>
         private const string SourceScene = "Assets/Scenes/Level/Stage_01.unity";
@@ -52,16 +53,70 @@ namespace Prototype.EditorTools
 
         // ── 1단계 : 추출 ─────────────────────────────────
 
+        /// <summary>
+        /// 표를 굽는다. <b>여러 번 돌려도 안전하고, 마이그레이션이 끝난 뒤에도 돈다.</b>
+        ///
+        /// 두 상황을 다르게 다룬다:
+        /// <list type="bullet">
+        /// <item><b>아직 마이그레이션 전</b> — 씬을 열어 동료 넷과 주인공을 통째로 뽑는다.</item>
+        /// <item><b>이미 마이그레이션 후</b> — 씬에는 파티가 없다. 동료 표는 이미 있으므로
+        /// 그대로 두고, <b>없는 표만</b> 프리팹에서 굽는다. 씬은 열지도 않는다 —
+        /// 뽑을 것이 없는데 사용자의 열린 씬을 갈아치우면 그게 더 나쁘다.</item>
+        /// </list>
+        ///
+        /// 두 번째 경로가 필요한 이유는 <see cref="PlayerData"/>가 나중에 생겼기 때문이다.
+        /// 씬을 다 옮긴 뒤에 표가 하나 늘면, 그걸 만들 방법이 없어선 안 된다.
+        /// </summary>
         [MenuItem("Prototype/파티 - 1단계: 씬에서 표 추출", priority = 40)]
         public static void Extract()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EnsureFolder(DataFolder);
+
+            var loadout = LoadOrCreate<PartyLoadout>(LoadoutPath);
+            loadout.loadoutName = "기본 파티";
+
+            var report = new List<string>();
+
+            // 동료 표가 이미 있으면 씬을 안 건드린다. 마이그레이션이 끝난 씬에는
+            // 뽑을 파티가 없고, 있는 표를 프리팹 기본값으로 덮어쓰면 저작이 통째로 날아간다.
+            bool extracted = loadout.FilledCount > 0
+                ? ReuseMembers(loadout, report)
+                : ExtractMembersFromScene(loadout, report);
+
+            if (!extracted) return;
+
+            // 주인공 표는 <b>언제나</b> 확인한다. 씬에 Player 가 남아 있으면 거기서,
+            // 아니면 프리팹에서 굽는다 — 어차피 값의 대부분이 "프리팹 값을 그대로 둔다"(0)이다.
+            if (loadout.hero == null) loadout.hero = CaptureHero(HeroSource(), report);
+            else report.Add($"  {loadout.hero.Label,-6} 주인공    이미 있다 — 건너뛴다");
+
+            EditorUtility.SetDirty(loadout);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[PartyMigration] 동료 {loadout.FilledCount}명 · 주인공 " +
+                      $"{(loadout.hero != null ? "있음" : "없음")} — {DataFolder}\n" +
+                      string.Join("\n", report), loadout);
+        }
+
+        /// <summary>이미 구운 표를 그대로 쓴다. 씬을 열지 않는다.</summary>
+        private static bool ReuseMembers(PartyLoadout loadout, List<string> report)
+        {
+            report.Add($"  동료 표 {loadout.FilledCount}개가 이미 있다 — 씬을 열지 않고 건너뛴다.");
+            report.Add("  (동료 저작을 고치려면 씬이 아니라 Assets/Data/Resources/Party 의 에셋을 고칠 것)");
+
+            return true;
+        }
+
+        /// <summary>마이그레이션 전 씬에서 동료 넷을 통째로 뽑는다.</summary>
+        private static bool ExtractMembersFromScene(PartyLoadout loadout, List<string> report)
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return false;
 
             Scene scene = EditorSceneManager.OpenScene(SourceScene, OpenSceneMode.Single);
             if (!scene.IsValid())
             {
                 Debug.LogError($"[PartyMigration] {SourceScene} 를 못 열었다.");
-                return;
+                return false;
             }
 
             var reference = AssetDatabase.LoadAssetAtPath<GameObject>(AllyPrefabPath);
@@ -74,40 +129,47 @@ namespace Prototype.EditorTools
 
             if (player == null)
             {
-                Debug.LogError("[PartyMigration] 씬에 (호스트 프리팹 밖의) Player 가 없다. " +
-                               "이미 마이그레이션된 씬이라면 추출할 것이 없다.");
-                return;
+                Debug.LogError(
+                    $"[PartyMigration] {SourceScene} 에 (호스트 프리팹 밖의) Player 가 없고 " +
+                    $"{LoadoutPath} 의 동료 칸도 비어 있다.\n" +
+                    "  씬은 이미 마이그레이션됐는데 표가 사라진 상태다 — 표를 되살릴 곳이 없다.\n" +
+                    "  git 에서 Assets/Data/Resources/Party 를 복구하거나, 씬을 마이그레이션 전으로 되돌릴 것.");
+                return false;
             }
 
-            EnsureFolder(DataFolder);
-
-            var loadout = LoadOrCreate<PartyLoadout>(LoadoutPath);
-            loadout.loadoutName = "기본 파티";
             loadout.members = new PartyMemberData[PartyLoadout.MaxMembers];
-
-            var report = new List<string>();
 
             for (int i = 0; i < player.Party.Length && i < PartyLoadout.MaxMembers; i++)
             {
                 Ally ally = player.Party[i];
                 if (ally == null) continue;
 
-                string path = $"{DataFolder}/Party_{ally.name}.asset";
-                var data = LoadOrCreate<PartyMemberData>(path);
-
+                var data = LoadOrCreate<PartyMemberData>($"{DataFolder}/Party_{ally.name}.asset");
                 Capture(data, ally, prefabAlly, report);
 
                 EditorUtility.SetDirty(data);
                 loadout.members[i] = data;
             }
 
-            EditorUtility.SetDirty(loadout);
-            AssetDatabase.SaveAssets();
-
-            Debug.Log($"[PartyMigration] 표 {loadout.FilledCount}개 + 로드아웃을 {DataFolder} 에 구웠다.\n" +
-                      string.Join("\n", report), loadout);
-
             WarnAboutDroppedFields();
+            return true;
+        }
+
+        /// <summary>
+        /// 주인공 표를 뽑을 몸. 씬에 남아 있으면 그것, 아니면 <c>Player.prefab</c>.
+        ///
+        /// 프리팹으로 떨어져도 잃는 것이 없다 — 씬의 Player 인스턴스는 프리팹 값을
+        /// 그대로 쓰고 있어서 옮길 오버라이드가 애초에 없다.
+        /// </summary>
+        private static Player HeroSource()
+        {
+            Player loose = FindLoose(Object.FindObjectsByType<Player>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None));
+
+            if (loose != null) return loose;
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            return prefab != null ? prefab.GetComponent<Player>() : null;
         }
 
         /// <summary>
@@ -166,6 +228,59 @@ namespace Prototype.EditorTools
             report.Add($"  {data.memberId,-6} {data.role,-8} 카드 {data.equipped.Count}장 " +
                        $"크기 {data.bodyScale:0.##} " +
                        $"{(data.basicProjectile != null ? "원거리" : "근접")}  {valid}");
+        }
+
+        /// <summary>
+        /// 주인공 표를 굽는다.
+        ///
+        /// <b>거의 전부 0으로 남는다.</b> 씬의 Player 인스턴스는 프리팹 값을 그대로 쓰고 있어서
+        /// 옮길 오버라이드가 없고, 표의 0은 "프리팹 값을 그대로 둔다"는 뜻이기 때문이다
+        /// (<see cref="Player.ApplyData"/>). 지금 이 표의 값은 <c>Player.prefab</c>과 동치다.
+        ///
+        /// 그래도 굽는 이유는 <b>자리를 만들어 두기 위해서</b>다 — 주인공을 둘로 늘리는 순간
+        /// 편성 화면의 주인공 줄이 저절로 나타나고, 그때 이 표에 값을 채우면 된다.
+        /// </summary>
+        private static PlayerData CaptureHero(Player player, List<string> report)
+        {
+            if (player == null)
+            {
+                Debug.LogError($"[PartyMigration] 주인공을 뽑을 몸이 없다 — 씬에도 " +
+                               $"{PlayerPrefabPath} 에도 Player 가 없다.");
+                return null;
+            }
+
+            string path = $"{DataFolder}/Hero_{player.name}.asset";
+            var data = LoadOrCreate<PlayerData>(path);
+
+            data.heroId = player.name;
+            data.displayName = player.name;
+
+            // 프리팹과 같은 값은 안 적는다 — 표의 0은 "건드리지 않는다"는 뜻이라
+            // 나중에 프리팹을 고쳐도 표가 옛 값으로 되돌리지 않는다.
+            data.hp = 0f;
+            data.atk = 0f;
+            data.moveSpeed = 0f;
+            data.basicAttackWindup = 0f;
+            data.basicAttackActiveEnd = 0f;
+            data.basicAttackTotal = 0f;
+            data.dashCooldown = 0f;
+            data.attackBufferWindow = 0f;
+            data.animatorController = null;
+            data.basicComboStages = new BasicAttackStage[0];
+
+            Transform shadow = player.transform.Find("Shadow");
+            data.bodyScale = shadow != null ? Mathf.Round(shadow.localScale.z * 1000f) / 1000f : 1f;
+
+            Transform sprite = player.transform.Find(PartyMemberData.SpritePath);
+            var sr = sprite != null ? sprite.GetComponent<SpriteRenderer>() : null;
+            data.spriteTint = sr != null ? new Color(sr.color.r, sr.color.g, sr.color.b, 1f) : Color.white;
+
+            EditorUtility.SetDirty(data);
+
+            report.Add($"  {data.heroId,-6} 주인공    크기 {data.bodyScale:0.##}  " +
+                       "(나머지는 프리팹 값 그대로 — 표는 자리만 잡는다)");
+
+            return data;
         }
 
         /// <summary>

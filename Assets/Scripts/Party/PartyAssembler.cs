@@ -67,6 +67,54 @@ namespace Prototype
             PlaceParty();
         }
 
+        /// <summary>
+        /// 지난 스테이지에서 물고 온 체력을 되돌린다.
+        ///
+        /// <b>Awake가 아니라 Start인 이유</b>는 <see cref="Combat"/>가 자기 <c>Awake</c>에서
+        /// <see cref="Energy"/>를 만들기 때문이다. 그 전에 비율을 넣으면 곧바로 프리팹의
+        /// <c>maxHealth</c>로 덮인다.
+        ///
+        /// 이 컴포넌트는 실행 순서 -200이라 <c>TagSwapController.Start</c>(0)보다도 먼저 돈다 —
+        /// 첫 몸이 무대에 서기 전에 체력이 확정된다.
+        /// </summary>
+        private void Start()
+        {
+            PartyState state = RunProgression.Current.Party;
+
+            // 첫 스테이지다. 기록이 없는 것과 "만피로 기록됐다"는 구분되어야 하므로
+            // 여기서 끝내되, 무슨 일이 있었는지는 남긴다.
+            if (!state.HasSnapshot)
+            {
+                BattleLog.Log(LogCategory.State,
+                    "파티 상태 기록이 없다 — 첫 스테이지이거나 지난 전환에서 못 찍었다. 전원 만피로 시작한다.", this);
+                return;
+            }
+
+            RestoreHealth(player, state.HeroHpRatio);
+
+            int restored = 0;
+            if (slots != null)
+                foreach (Ally a in slots)
+                {
+                    if (a == null || a.Data == null) continue;
+
+                    RestoreHealth(a, state.HpRatioOf(a.Data));
+                    restored++;
+                }
+
+            BattleLog.Log(LogCategory.State,
+                $"파티 상태 복원 — 동료 {restored}명 · 전사 {state.DeadCount}명 · " +
+                $"주인공 체력 {state.HeroHpRatio:P0}", this);
+        }
+
+        private static void RestoreHealth(Entity body, float ratio)
+        {
+            if (body == null || body.Combat == null || body.Combat.Health == null) return;
+            if (ratio >= 1f) return;   // 기록이 없거나 만피다. 건드릴 것이 없다.
+
+            body.Combat.Health.SetRatio(ratio);
+        }
+
         // ── 조립 ────────────────────────────────────────
 
         /// <summary>
@@ -92,9 +140,21 @@ namespace Prototype
 
                 PartyMemberData member = members[i];
 
-                if (member == null)
+                // 이번 런에서 이미 죽은 동료는 <b>빈 칸과 똑같이</b> 다룬다.
+                //
+                // 죽은 상태로 되살려 세우려면 Combat.Die()를 밖에서 불러야 하고 사망 연출 ·
+                // 레지스트리 · 상태머신이 한 번씩 더 돈다. 슬롯을 지우면 그럴 필요가 없고,
+                // 3인 파티 경로(TagSwapRules의 null 칸 건너뛰기 · CollectPartyCards의 skip ·
+                // AvailableRoles에서 빠짐 · DeckRules의 목표 축소)가 전부 그대로 성립한다.
+                bool lostInRun = member != null && RunProgression.Current.Party.IsDead(member);
+
+                if (member == null || lostInRun)
                 {
-                    // 빈 칸. TagSwapRules 가 null 칸을 건너뛰므로 3인 파티가 그대로 돈다.
+                    if (lostInRun)
+                        BattleLog.Log(LogCategory.State,
+                            $"{member.Label} — 이번 런에서 전사했다. 슬롯을 비운다.", this);
+
+                    // TagSwapRules 가 null 칸을 건너뛰므로 인원이 줄어든 파티가 그대로 돈다.
                     slot.gameObject.SetActive(false);
                     Destroy(slot.gameObject);
                     slots[i] = null;
@@ -111,6 +171,7 @@ namespace Prototype
 
             if (player != null)
             {
+                InjectHero(player, Loadout != null ? Loadout.hero : null);
                 player.SetParty(party);
                 AllyLayers.Apply(player.gameObject);
             }
@@ -119,6 +180,28 @@ namespace Prototype
                 BattleLog.Warn(LogCategory.State,
                     "PartyAssembler 에 Player 가 안 꽂혀 있다 — 태그 로스터가 통째로 안 만들어진다.", this);
             }
+        }
+
+        /// <summary>
+        /// 주인공에 표를 꽂는다. 실제 적용은 <see cref="Player.ApplyData"/>가 Awake 에서 한다.
+        ///
+        /// 표가 없어도 정상이다 — 주인공이 하나뿐인 동안은 프리팹 고정값과 같은 값이라
+        /// 로드아웃에 안 꽂아도 지금까지와 똑같이 돈다.
+        /// </summary>
+        private void InjectHero(Player hero, PlayerData data)
+        {
+            if (data == null) return;
+
+            hero.SetData(data);
+
+            if (data.animatorController != null)
+            {
+                var anim = hero.GetComponent<EntityAnimator>();
+                if (anim != null) anim.SetController(data.animatorController);
+            }
+
+            ApplyBodyScale(hero.transform, data.bodyScale);
+            ApplyTint(hero.transform, data.spriteTint);
         }
 
         /// <summary>동료 하나에 표를 꽂는다. 실제 적용은 <see cref="Ally.ApplyData"/>가 Awake 에서 한다.</summary>

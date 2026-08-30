@@ -100,6 +100,21 @@ namespace Prototype
                 round = ArenaRoundCatalog.For(stageNumber, arenaNumber);
 
             if (spawner == null) spawner = GetComponent<EnemySpawnService>();
+
+            // 소환기는 <b>다른 오브젝트</b>에 있다. 빌더가 StageRunner 호스트에 붙이고
+            // 이쪽에 참조를 꽂아 주는데, 그 호스트를 프리팹으로 만드는 순간
+            // 씬 오브젝트를 가리키던 이 참조가 통째로 끊긴다 — 프리팹 에셋은
+            // 씬 오브젝트를 참조할 수 없기 때문이다.
+            //
+            // 그래서 같은 오브젝트만 보는 위 폴백으로는 못 잡는다. 스테이지에 소환기는
+            // 하나뿐이므로 씬에서 찾는 것이 안전하다.
+            if (spawner == null) spawner = FindAnyObjectByType<EnemySpawnService>();
+
+            if (spawner == null)
+                Debug.LogError(
+                    $"[Arena {arenaNumber}] EnemySpawnService 를 못 찾았다 — " +
+                    "이 아레나는 라운드를 열어도 적이 한 기도 안 나온다. " +
+                    "씬에 StageRunner(소환기 포함)가 있는지 확인할 것.", this);
         }
 
         // ── 진입 · 락 ───────────────────────────────────
@@ -210,6 +225,12 @@ namespace Prototype
 
                 if (spawner == null)
                 {
+                    // 조용히 세기만 하면 "적이 안 나온다"만 남고 이유가 화면에 없다.
+                    // 예약 하나가 통째로 사라지는 것이므로 첫 실패에서 한 번 외친다.
+                    if (spawnFailures == 0)
+                        Debug.LogError($"[Arena {arenaNumber}] 소환기가 없어 예약 {pending.Count + 1}기를 " +
+                                       "전부 버린다 — 라운드가 시작은 하지만 적이 안 나온다.", this);
+
                     spawnFailures++;
                     continue;
                 }

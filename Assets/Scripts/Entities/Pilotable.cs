@@ -38,5 +38,20 @@ namespace Prototype
         {
             if (dashTimer > 0f) dashTimer -= dt;
         }
+
+        /// <summary>
+        /// 표에서 조작 수치를 받는다. <b>0은 "건드리지 않는다"</b>는 뜻이다 —
+        /// 표에 안 적힌 값까지 덮으면 프리팹 설정이 조용히 지워진다.
+        ///
+        /// 여기 든 두 값이 <see cref="PlayerData"/>에서 가장 중요한 항목이다.
+        /// 주인공을 고른다는 말의 실질이 대시 쿨과 선입력 창이기 때문이다.
+        /// </summary>
+        public void ApplyData(PlayerData data)
+        {
+            if (data == null) return;
+
+            if (data.dashCooldown > 0f) dashCooldown = data.dashCooldown;
+            if (data.attackBufferWindow > 0f) attackBufferWindow = data.attackBufferWindow;
+        }
     }
 }

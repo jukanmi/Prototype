@@ -27,6 +27,9 @@ namespace Prototype
         /// <summary>지금 플레이어가 있는 구간. 로그·디버그용.</summary>
         public int CurrentSection { get; private set; } = -1;
 
+        /// <summary>짝 없는 아레나를 이미 외친 구간. 매 프레임 같은 에러를 쏟지 않는다.</summary>
+        private readonly HashSet<int> warnedMissingArena = new HashSet<int>();
+
         public IReadOnlyList<StageSection> Sections => sections;
 
         // ── 승패 판정이 물어보는 것 ──────────────────────
@@ -58,6 +61,42 @@ namespace Prototype
         {
             if (bounds == null) bounds = StageBounds.Instance;
             if (bounds == null) bounds = FindAnyObjectByType<StageBounds>();
+
+            EnsureArenas();
+        }
+
+        /// <summary>
+        /// 아레나 목록이 비었으면 씬에서 주워 담는다.
+        ///
+        /// <b>이 컴포넌트가 프리팹이 되면 이 배열은 반드시 끊긴다.</b> 아레나는 씬 오브젝트이고
+        /// 프리팹 에셋은 씬 오브젝트를 참조할 수 없어서, 호스트를 프리팹으로 만드는 순간
+        /// <c>arenas</c>가 <c>[null, null]</c>이 된다. 그러면 <see cref="ArenaAt"/>가 언제나
+        /// null을 돌려주고 <c>Begin()</c>이 한 번도 안 불려 <b>적이 하나도 안 나온다</b> —
+        /// 그런데 구간 경계는 프리팹에 남아 있어서 카메라 락은 정상으로 걸린다.
+        /// 방은 멀쩡해 보이고 문도 안 닫히고 적만 없다.
+        ///
+        /// 짝은 인덱스가 아니라 <b>왼쪽 경계</b>로 맞추므로(<see cref="ArenaAt"/>)
+        /// 주워 담는 순서는 상관없다.
+        /// </summary>
+        private void EnsureArenas()
+        {
+            if (HasAnyArena()) return;
+
+            arenas = FindObjectsByType<ArenaDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            if (arenas.Length > 0)
+                BattleLog.Log(LogCategory.State,
+                    $"{name}: 아레나 배선이 비어 있어 씬에서 {arenas.Length}개를 찾아 채웠다.", this);
+        }
+
+        private bool HasAnyArena()
+        {
+            if (arenas == null) return false;
+
+            for (int i = 0; i < arenas.Length; i++)
+                if (arenas[i] != null) return true;
+
+            return false;
         }
 
         private void Start()
@@ -118,7 +157,21 @@ namespace Prototype
             if (section.kind != SectionKind.Arena) return;
 
             ArenaDirector arena = ArenaAt(section.minX);
-            arena?.Begin();   // 이미 시작했거나 끝난 아레나는 스스로 무시한다
+
+            if (arena == null)
+            {
+                // 여기서 조용히 넘어가면 "방은 멀쩡한데 적만 없다"가 되고, 화면에 단서가 없다.
+                // 구간마다 매 프레임 불리는 자리라 한 번만 외친다.
+                if (warnedMissingArena.Add(index))
+                    Debug.LogError(
+                        $"[StageRunner] 구간 {index}(아레나, 왼쪽 경계 {section.minX:0.##})에 맞는 " +
+                        "ArenaDirector 가 없다 — 이 방은 라운드가 열리지 않아 적이 안 나온다. " +
+                        "아레나의 minX 가 구간의 minX 와 같은지 확인할 것.", this);
+
+                return;
+            }
+
+            arena.Begin();   // 이미 시작했거나 끝난 아레나는 스스로 무시한다
         }
 
         /// <summary>지금 라운드가 도는 아레나. 없으면 null.</summary>

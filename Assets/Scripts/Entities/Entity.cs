@@ -72,6 +72,36 @@ namespace Prototype
             basicProjectilePierce = Mathf.Max(0, pierce);
         }
 
+        /// <summary>
+        /// 평타 타이밍을 갈아 끼운다. <see cref="ConfigureBasicProjectile"/>과 같은 자리이고
+        /// 같은 이유로 연다 — 표(<see cref="PlayerData"/>)와 에디터 생성기가 같은 경로를 쓰게.
+        ///
+        /// <b>0 이하는 "건드리지 않는다"</b>는 뜻이다. 표에 안 적힌 값까지 덮으면
+        /// 프리팹 설정이 조용히 지워진다.
+        ///
+        /// 순서(<c>windup &lt; activeEnd &lt; total</c>)는 여기서 강제하지 않는다 —
+        /// <see cref="Start"/>가 이미 경고를 내고, 여기서 조용히 고치면 그 경고가 안 뜬다.
+        /// </summary>
+        public void ConfigureBasicAttack(float windup, float activeEnd, float total)
+        {
+            if (windup > 0f) basicAttackWindup = windup;
+            if (activeEnd > 0f) basicAttackActiveEnd = activeEnd;
+            if (total > 0f) basicAttackTotal = total;
+        }
+
+        /// <summary>
+        /// 평타 연타 단계를 갈아 끼운다. <c>null</c>이나 빈 배열은 무시한다 —
+        /// 표에 안 적었다고 프리팹의 연타가 사라지면 안 된다.
+        ///
+        /// <b>Awake보다 먼저</b> 불러야 안전하다. <see cref="EntityAnimator"/>가 Awake에서
+        /// 1타 클립을 잡아 두고 그 위에 오버라이드를 씌우기 때문이다.
+        /// </summary>
+        public void ConfigureBasicCombo(BasicAttackStage[] stages)
+        {
+            if (stages == null || stages.Length == 0) return;
+            basicComboStages = stages;
+        }
+
         [Header("사망")]
         [Tooltip("쓰러진 채로 남아 있는 시간. 이 뒤에 서서히 사라진다.")]
         [SerializeField] private float despawnDelay = 1f;

@@ -26,12 +26,43 @@ namespace Prototype
         private static PartyLoadout[] cached;
         private static bool loaded;
 
+        private static PartyMemberData[] members;
+        private static bool membersLoaded;
+
         /// <summary>Domain Reload가 꺼져 있으면 static이 플레이 세션을 넘어 살아남는다.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
             cached = null;
             loaded = false;
+            members = null;
+            membersLoaded = false;
+            heroes = null;
+            heroesLoaded = false;
+        }
+
+        /// <summary>
+        /// 데려갈 수 있는 동료 전부. 파티 편성 화면의 명단이다.
+        ///
+        /// <b>직업 · 이름 순으로 정렬한다.</b> <c>Resources.LoadAll</c>은 순서를 보장하지 않아
+        /// 그대로 두면 에셋을 하나 추가할 때마다 화면의 줄 순서가 바뀐다.
+        /// </summary>
+        public static IReadOnlyList<PartyMemberData> AllMembers()
+        {
+            if (membersLoaded) return members;
+
+            membersLoaded = true;
+            members = Resources.LoadAll<PartyMemberData>(ResourceFolder) ?? new PartyMemberData[0];
+
+            System.Array.Sort(members, (a, b) =>
+            {
+                if (a == null || b == null) return a == b ? 0 : (a == null ? 1 : -1);
+
+                int byRole = a.role.CompareTo(b.role);
+                return byRole != 0 ? byRole : string.CompareOrdinal(a.Label, b.Label);
+            });
+
+            return members;
         }
 
         /// <summary>고를 수 있는 조합 전부. 없으면 빈 배열 — null 검사를 흩뿌리지 않는다.</summary>
@@ -42,6 +73,29 @@ namespace Prototype
             loaded = true;
             cached = Resources.LoadAll<PartyLoadout>(ResourceFolder) ?? new PartyLoadout[0];
             return cached;
+        }
+
+        private static PlayerData[] heroes;
+        private static bool heroesLoaded;
+
+        /// <summary>
+        /// 고를 수 있는 주인공 전부. 지금은 하나뿐이라 편성 화면이 이 줄을 감춘다 —
+        /// 둘 이상이 되는 순간 저절로 나타난다.
+        /// </summary>
+        public static IReadOnlyList<PlayerData> AllHeroes()
+        {
+            if (heroesLoaded) return heroes;
+
+            heroesLoaded = true;
+            heroes = Resources.LoadAll<PlayerData>(ResourceFolder) ?? new PlayerData[0];
+
+            System.Array.Sort(heroes, (a, b) =>
+            {
+                if (a == null || b == null) return a == b ? 0 : (a == null ? 1 : -1);
+                return string.CompareOrdinal(a.Label, b.Label);
+            });
+
+            return heroes;
         }
 
         /// <summary>

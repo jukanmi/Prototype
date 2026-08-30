@@ -201,11 +201,45 @@ namespace Prototype.YG
         private void GoToNextStage()
         {
             if (isExiting || isRestarting) return;
+
+            // 몸이 아직 씬에 있을 때 찍는다. 전환이 시작되면 물어볼 곳이 없다.
+            CapturePartyState();
+
             if (!GameManager.Instance.GoToNextStage(SceneName, OnBattleReloaded)) return;
 
             isExiting = true;   // 전환이 끝날 때까지 이 씬의 판정을 멈춘다
             CleanupStage();
             ClearStatics();
+        }
+
+        /// <summary>
+        /// 파티의 잔여 체력 · 생사를 런 데이터에 찍는다. <b>스테이지를 클리어하고 넘어갈 때만</b> 부른다.
+        ///
+        /// 그 시점 선택이 곧 재시작 규칙이다 — 패배 후 같은 스테이지를 다시 하면
+        /// <b>그 스테이지를 시작할 때의 기록</b>이 그대로 다시 읽힌다. 되돌리는 코드가 필요 없고,
+        /// 전멸해서 진 판이 "동료가 전부 영구 사망한 채로 재시작"이 되지도 않는다.
+        ///
+        /// 동료의 사망은 런이 끝날 때까지 영구다. 다음 스테이지에서
+        /// <see cref="Prototype.PartyAssembler"/>가 그 슬롯을 아예 비운다.
+        /// </summary>
+        private static void CapturePartyState()
+        {
+            // <b>비활성까지 본다.</b> 태그로 내려간 몸은 SetActive(false)라, 동료로 교대한 채
+            // 출구를 넘으면 주인공이 꺼져 있다. 인자 없는 FindAnyObjectByType 은 비활성
+            // GameObject 를 거르므로 그때 null 이 오고, 주인공 하나를 못 찾은 대가로
+            // <b>파티 다섯 명분 기록이 통째로 날아간다</b> — Capture 가 주인공을 통해
+            // 동료를 훑기 때문이다. 증상은 "다음 스테이지에서 전원 만피"다.
+            Player[] found = FindObjectsByType<Player>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            if (found.Length == 0)
+            {
+                Debug.LogError("[Battle] Player 를 못 찾아 파티 상태를 못 찍었다 — " +
+                               "다음 스테이지에서 전원이 만피로 부활한다.");
+                return;
+            }
+
+            RunProgression.Current.Party.Capture(found[0]);
         }
 
         /// <summary>패배 후 [이 스테이지 재시작]. 스테이지 번호는 유지된다.</summary>

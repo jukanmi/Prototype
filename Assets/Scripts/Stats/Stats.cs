@@ -68,6 +68,19 @@ namespace Prototype
             return true;
         }
 
+        /// <summary>
+        /// 비율로 현재값을 맞춘다. 스테이지를 넘어온 체력을 복원할 때 쓴다
+        /// (<see cref="PartyState"/>).
+        ///
+        /// <b>절대값이 아니라 비율인 이유</b>는 최대치가 변하기 때문이다 —
+        /// 레벨업이 최대 체력을 올리면 지난 스테이지의 절대값은 의미를 잃는다.
+        /// </summary>
+        public void SetRatio(float ratio)
+        {
+            curValue = Mathf.Clamp01(ratio) * maxValue;
+            OnChanged?.Invoke(this);
+        }
+
         public void SetMax(float newMax, bool refill = false)
         {
             maxValue = Mathf.Max(0f, newMax);

@@ -38,7 +38,7 @@ namespace Prototype.EditorTools
         private const string AnimFolder = "Assets/Data/Animation";
         private const string ResFolder = "Assets/Data/Resources";
         private const string AllyControllerPath = AnimFolder + "/AllyAnimator.controller";
-        private const string AllyPrefabPath = "Assets/Prefabs/Ally.prefab";
+        private static string AllyPrefabPath => PrefabLocator.AllyPath;
 
         /// <summary>클립이 물리는 자식. <see cref="AnimationBuilder"/>와 같은 경로여야 한다.</summary>
         private const string SpritePath = "View/Sprite";

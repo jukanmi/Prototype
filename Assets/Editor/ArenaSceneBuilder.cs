@@ -458,18 +458,19 @@ namespace Prototype.EditorTools
 
             follow.enabled = true;
 
-            Player player = Object.FindAnyObjectByType<Player>();
-            if (player != null) follow.SetTarget(player.transform);
-
+            // 대상은 여기서 안 꽂는다. 파티가 BattleInput 프리팹 안으로 들어가면서
+            // 카메라는 CameraAnchor 하나만 보게 됐고, 그 배선은 CameraAnchor.Start가 한다
+            // (몸이 아니라 앵커를 봐야 콤보 시전자 전환에서 카메라가 안 튄다).
+            //
+            // <b>fixedY · fixedZ를 더 이상 안 건드린다.</b> 그 필드는 Rig(x) 계산으로 대체되며
+            // 사라졌는데 여기가 안 따라와서, FindProperty가 null을 돌려주고
+            // .floatValue에서 NullReferenceException이 났다 — 그 줄이 아래 배선보다 앞이라
+            // 터지면 카메라 설정이 통째로 안 들어갔다. 구도는 distance · framingLift가 정한다.
             var so = new SerializedObject(follow);
-            // SceneLayoutBuilder가 잡아 둔 구도를 그대로 유지한다.
-            so.FindProperty("fixedY").floatValue = cam.transform.position.y;
-            so.FindProperty("fixedZ").floatValue = cam.transform.position.z;
             so.FindProperty("deadZoneHalfWidth").floatValue = 1.5f;
             // 고정 경계는 안 쓴다 — StageBounds가 매 프레임 넘겨 준다.
             so.FindProperty("minX").floatValue = 0f;
             so.FindProperty("maxX").floatValue = 0f;
-            if (player != null) so.FindProperty("target").objectReferenceValue = player.transform;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(follow);

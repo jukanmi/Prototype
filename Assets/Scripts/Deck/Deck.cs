@@ -11,6 +11,15 @@ namespace Prototype
     [Serializable]
     public class Deck
     {
+        /// <summary>
+        /// <b>만석 기준값</b> — 동료 4명 × 장착 4장. 스킬 표를 짤 때의 기준이다
+        /// (<c>SkillTableBuilder</c>).
+        ///
+        /// <b>런타임 검사에 이 상수를 쓰지 말 것.</b> 3인 파티나 동료가 영구 사망한 뒤에는
+        /// 목표가 12장·8장으로 줄고, 그때도 덱은 정상으로 굴러간다
+        /// (<see cref="Draw"/>가 버린 더미를 회수한다). 지금 인원 기준의 목표는
+        /// <see cref="DeckRules.TargetSize(int)"/>가 준다.
+        /// </summary>
         public const int Size = 16;
 
         [SerializeField] private List<ComboCard> cards = new List<ComboCard>();

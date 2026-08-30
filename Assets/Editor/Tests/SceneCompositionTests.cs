@@ -131,6 +131,99 @@ namespace Prototype.Tests
             }
         }
 
+        // ── 아레나 배선 ─────────────────────────────────
+
+        /// <summary>
+        /// 아레나 구간마다 짝이 되는 <see cref="ArenaDirector"/>가 있어야 하고,
+        /// 그 아레나가 <see cref="EnemySpawnService"/>에 닿을 수 있어야 한다.
+        ///
+        /// <b>이 검사가 없어서 스테이지 2·5에서 적이 통째로 안 나왔다.</b> 관리자들을
+        /// 프리팹으로 만드는 순간 <c>StageRunner.arenas</c>와 <c>ArenaDirector.spawner</c>가
+        /// 함께 끊겼는데(프리팹 에셋은 씬 오브젝트를 참조할 수 없다), 구간 경계는 프리팹에
+        /// 남아 있어서 <b>카메라 락은 정상으로 걸렸다</b> — 방도 문도 멀쩡하고 적만 없었다.
+        ///
+        /// 런타임 폴백이 생긴 지금도 이 검사를 남긴다. 폴백은 안전망이지 저작 규약이 아니고,
+        /// 여기서 걸리면 "왜 폴백이 도는가"를 굽는 시점에 알 수 있다.
+        /// </summary>
+        [Test]
+        public void ArenaStages_HaveDirectorAndSpawnerForEverySection()
+        {
+            foreach (string path in Scenes())
+            {
+                Open(path);
+
+                var runner = Object.FindAnyObjectByType<StageRunner>();
+                if (runner == null) continue;   // 웨이브 스테이지 — 아레나가 없는 게 정상이다
+
+                ArenaDirector[] arenas = Object.FindObjectsByType<ArenaDirector>(
+                    FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+                bool hasSpawner = Object.FindAnyObjectByType<EnemySpawnService>() != null;
+
+                Assert.That(hasSpawner, Is.True,
+                    $"{path} 에 EnemySpawnService 가 없다 — 아레나가 열려도 적이 안 나온다.");
+
+                foreach (StageSection section in runner.Sections)
+                {
+                    if (section.kind != SectionKind.Arena) continue;
+
+                    bool matched = false;
+                    foreach (ArenaDirector a in arenas)
+                        if (a != null && Mathf.Approximately(a.TriggerLine, section.minX)) matched = true;
+
+                    Assert.That(matched, Is.True,
+                        $"{path} 의 아레나 구간(왼쪽 경계 {section.minX:0.##})에 맞는 " +
+                        "ArenaDirector 가 없다 — 그 방은 라운드가 안 열려 적이 안 나온다.");
+                }
+
+                Assert.That(arenas.Length, Is.GreaterThan(0),
+                    $"{path} 에 ArenaDirector 가 하나도 없다.");
+            }
+        }
+
+        // ── 카메라 ──────────────────────────────────────
+
+        /// <summary>
+        /// 스테이지 카메라는 <b>두 형태 중 하나</b>여야 한다:
+        /// <list type="number">
+        /// <item><c>CameraFollow</c>가 <b>꺼져 있다</b> — 방 하나가 한 화면인 아이작 구도.
+        /// 카메라 자리는 씬에 구워져 있고 아무도 안 건드린다(웨이브 스테이지).</item>
+        /// <item><c>CameraFollow</c>가 켜져 있고 <b>경계를 아는 쪽이 있다</b> —
+        /// <see cref="StageBounds"/>든 인스펙터의 min/max든(아레나 스테이지).</item>
+        /// </list>
+        ///
+        /// 켜져 있는데 경계가 없으면 카메라가 방 밖을 그대로 보여 준다. 그 상태는
+        /// "왜 벽 너머가 보이지"로만 드러나고 원인이 카메라 설정이라는 단서가 없다.
+        ///
+        /// <b>이 검사가 없어서 실제로 한 번 깨졌다.</b> <c>CameraAnchor</c>가 꺼진
+        /// <c>CameraFollow</c>를 <c>null</c>이 아니라는 이유로 잡아 <c>SnapToTarget</c>을
+        /// 불렀고, 1스테이지 카메라가 파티 스폰 자리로 3유닛 끌려갔다.
+        /// </summary>
+        [Test]
+        public void Stages_CameraIsEitherFixedOrBounded()
+        {
+            foreach (string path in Scenes())
+            {
+                Open(path);
+
+                foreach (CameraFollow follow in Object.FindObjectsByType<CameraFollow>(
+                             FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (!follow.enabled) continue;   // 고정 구도 — 정상이다
+
+                    bool hasBounds = Object.FindAnyObjectByType<StageBounds>() != null;
+
+                    var so = new SerializedObject(follow);
+                    float min = so.FindProperty("minX").floatValue;
+                    float max = so.FindProperty("maxX").floatValue;
+
+                    Assert.That(hasBounds || max > min, Is.True,
+                        $"{path} 의 CameraFollow 가 켜져 있는데 경계를 아는 쪽이 없다 — " +
+                        "StageBounds 를 놓거나 minX/maxX 를 채울 것. 지금은 방 밖이 그대로 보인다.");
+                }
+            }
+        }
+
         // ── 스폰 자리 ───────────────────────────────────
 
         /// <summary>

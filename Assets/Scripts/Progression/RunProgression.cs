@@ -153,6 +153,29 @@ namespace Prototype
             return added;
         }
 
+        /// <summary>
+        /// 한 직업의 카드를 <b>런 덱</b>에서 걷어낸다. 동료가 죽어 그 직업 시전자가
+        /// 하나도 안 남았을 때 <c>BulletTimeController.HandleAllyDied</c>가 부른다.
+        ///
+        /// <b>그 판의 덱만 정리하면 부족하다.</b> <c>BulletTimeController.PurgeRole</c>은
+        /// 지금 씬의 덱 · 손패 · 버린 더미를 비우지만, 다음 스테이지의 <c>BuildDeck</c>은
+        /// 여기 있는 <see cref="Cards"/>를 다시 읽는다 — 여기서 안 걷으면 죽은 동료의 카드가
+        /// 스테이지가 바뀌는 순간 통째로 되살아난다.
+        /// </summary>
+        public int PurgeRole(Role role)
+        {
+            int removed = cards.RemoveAll(c => c != null && c.Data != null && c.Data.role == role);
+            if (removed > 0) OnChanged?.Invoke();
+
+            return removed;
+        }
+
+        /// <summary>
+        /// 스테이지를 넘어가는 파티의 몸 상태 — 잔여 체력과 생사.
+        /// 런 덱과 같은 이유로 여기 산다(씬 오브젝트가 아니어야 스테이지를 넘어간다).
+        /// </summary>
+        public PartyState Party { get; } = new PartyState();
+
         /// <summary>새 런. <c>GameManager.StartNewRun</c>이 부른다.</summary>
         public void Reset()
         {
@@ -160,6 +183,9 @@ namespace Prototype
             Level = ExpRules.FirstLevel;
             Seeded = false;
             cards.Clear();
+
+            // 빠뜨리기 쉬운 자리다 — 안 비우면 새 런이 지난 런의 시체를 물고 시작한다.
+            Party.Clear();
 
             OnChanged?.Invoke();
         }

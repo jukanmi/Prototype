@@ -20,11 +20,9 @@ namespace Prototype.EditorTools
     {
         private const string AnimFolder = "Assets/Data/Animation";
 
-        internal static readonly string[] TargetPrefabs =
-        {
-            "Assets/Prefabs/Player.prefab",
-            "Assets/Prefabs/Ally.prefab",
-        };
+        /// <summary>경로가 아니라 컴포넌트로 찾는다 — 프리팹을 옮겨도 안 끊긴다.</summary>
+        internal static string[] TargetPrefabs
+            => new[] { PrefabLocator.PlayerPath, PrefabLocator.AllyPath };
 
         /// <summary>단계 수. 에셋 시트가 3장이라 3타다.</summary>
         internal const int StageCount = 3;

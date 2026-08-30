@@ -86,19 +86,22 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 덱은 파티 카드 16장(<see cref="Deck.Size"/>)을 기준으로 만들어진다.
-        /// 모자라도 게임은 돌지만 손패가 자주 마르므로 경고 대신 테스트로 잡는다.
+        /// 덱 장수는 <b>인원 × 4</b>여야 한다. 상수 16이 아니다 —
+        /// 3인 로드아웃은 12장이 정상이고, 그걸 오류로 잡으면 3인 파티를 저작할 수 없다.
+        ///
+        /// 여기 걸리는 것은 "4인인데 15장" 같은 <b>빈 장착 칸</b>뿐이다.
         /// </summary>
         [Test]
-        public void FullLoadout_SeedsFullDeck()
+        public void EveryLoadout_CardCountMatchesMemberCount()
         {
             foreach (PartyLoadout l in All<PartyLoadout>())
             {
-                if (l == null || l.FilledCount < PartyLoadout.MaxMembers) continue;
+                if (l == null) continue;
 
-                Assert.That(PartyAssembleRules.CardCount(l), Is.EqualTo(Deck.Size),
-                    $"{AssetDatabase.GetAssetPath(l)} 이 덱에 넣을 카드가 " +
-                    $"{PartyAssembleRules.CardCount(l)}장이다(목표 {Deck.Size}장).");
+                string problem = DeckRules.Explain(PartyAssembleRules.CardCount(l), l.FilledCount);
+
+                Assert.That(problem, Is.Null,
+                    $"{AssetDatabase.GetAssetPath(l)} — {problem}");
             }
         }
     }
