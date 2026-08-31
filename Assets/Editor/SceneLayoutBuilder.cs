@@ -576,9 +576,7 @@ namespace Prototype.EditorTools
             if (atk == null) atk = Undo.AddComponent<Attack>(child.gameObject);
             atk.Attacker = entity.Combat != null ? entity.Combat : entity.GetComponent<Combat>();
 
-            var so = new SerializedObject(entity);
-            so.FindProperty("basicAttack").objectReferenceValue = atk;
-            so.ApplyModifiedProperties();
+            BasicAttackProfiles.SetHitbox(entity.gameObject, atk);
 
             EditorUtility.SetDirty(atk);
             EditorUtility.SetDirty(entity);

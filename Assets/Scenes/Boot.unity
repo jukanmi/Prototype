@@ -428,6 +428,7 @@ MonoBehaviour:
   - Stage_04
   - Stage_05
   deckStartupMode: 2
+  defaultLoadout: {fileID: 0}
 --- !u!4 &773120535
 Transform:
   m_ObjectHideFlags: 0
@@ -750,11 +751,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 938136955107011479, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -858
+      value: -637
       objectReference: {fileID: 0}
     - target: {fileID: 938136955107011479, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -477
+      value: -335
       objectReference: {fileID: 0}
     - target: {fileID: 1515453672293263686, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_LocalPosition.x
@@ -798,11 +799,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2489929325467014438, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -858
+      value: -637
       objectReference: {fileID: 0}
     - target: {fileID: 2489929325467014438, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -497
+      value: -355
       objectReference: {fileID: 0}
     - target: {fileID: 3197514632415731283, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_Name
@@ -810,11 +811,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4075893139580632256, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -858
+      value: -637
       objectReference: {fileID: 0}
     - target: {fileID: 4075893139580632256, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -457
+      value: -315
       objectReference: {fileID: 0}
     - target: {fileID: 5323478153162513116, guid: b8015181fecb46b4095ce59163354cf3, type: 3}
       propertyPath: m_AnchorMax.y

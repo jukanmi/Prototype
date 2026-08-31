@@ -76,8 +76,6 @@ namespace Prototype
         Continue,
         /// <summary>다음 타로 넘어간다.</summary>
         Advance,
-        /// <summary>마지막 타를 끝내고 1타부터 다시 시작한다.</summary>
-        Restart,
         /// <summary>평타를 마치고 Idle로 나간다.</summary>
         Finish,
     }
@@ -143,10 +141,11 @@ namespace Prototype
 
             if (timer < t.total) return BasicComboStep.Continue;
 
-            // 마무리는 캔슬을 허용하지 않는다 — 긴 후딜을 지워 버리면 "강타는 무겁다"가 거짓말이 된다.
-            // 다 기다린 뒤에 선입력이 살아 있으면 1타부터 다시 돈다.
-            if (buffered && last && stageCount > 1) return BasicComboStep.Restart;
-
+            // 마무리는 캔슬도 이어치기도 없다. 예전에는 후딜이 끝나는 순간 선입력이 살아 있으면
+            // 1타부터 다시 돌았는데, 선입력 창(0.25s)이 마무리 후딜(0.7s)보다 짧아도
+            // 두들기는 동안에는 창이 계속 채워져 평타가 영영 안 끝났다 —
+            // 상태를 못 벗어나니 Idle 전이도, 콤보를 끊는 어떤 판단도 돌지 않는다.
+            // 3타를 다 쓰면 무조건 Idle로 나간다. 다시 치려면 새로 눌러야 한다.
             return BasicComboStep.Finish;
         }
     }

@@ -10,8 +10,7 @@ namespace Prototype.EditorTools
     /// (r 0.5 · h 2)로 떨어진다. 그 캡슐은 1·2타가 밀어낸 거리(force 4 / impulseDamping 8 = 0.5유닛)
     /// 밖으로 대상을 내보내므로 <b>다단히트 후속타가 통째로 씹힌다</b>.
     ///
-    /// <see cref="TestSceneBuilder"/>는 이미 2.4 × 2 × 2.4 박스를 만들어 물리고 있다 —
-    /// 프리팹만 그 규약을 안 따라왔다. 여기서 맞춘다.
+    /// 그래서 2.4 × 2 × 2.4 박스를 따로 만들어 물린다 — 밀어낸 0.5유닛을 덮고도 남는 크기다.
     ///
     /// 멱등이다. 이미 붙어 있으면 크기·연결만 확인하고 끝낸다.
     /// </summary>
@@ -20,7 +19,7 @@ namespace Prototype.EditorTools
         /// <summary>재실행 때 이 이름으로 찾는다.</summary>
         internal const string SkillHitboxName = "SkillHitbox";
 
-        // 평타 캡슐(r 0.5)보다 확실히 커야 한다. TestSceneBuilder의 동료 규약과 같은 값.
+        // 평타 캡슐(r 0.5)보다 확실히 커야 한다. 동료 히트박스 규약의 원본 수치다.
         internal static readonly Vector3 SkillHitboxSize = new Vector3(2.4f, 2f, 2.4f);
         /// <summary>정면은 로컬 +Z. 평타 히트박스(z +1)와 같은 자리에서 시작한다.</summary>
         internal static readonly Vector3 SkillHitboxPos = new Vector3(0f, 0f, 1f);
@@ -148,21 +147,11 @@ namespace Prototype.EditorTools
             return basic != null ? basic.gameObject.layer : root.layer;
         }
 
-        /// <summary><c>skillAttack</c> 필드에 물린다. private 필드라 SerializedObject로 간다.</summary>
+        /// <summary>
+        /// 프로필의 <c>skillAttack</c> 필드에 물린다. 값이 그대로면 false —
+        /// 부르는 쪽이 "몇 개를 바꿨나"를 센다.
+        /// </summary>
         private static bool Link(GameObject root, Attack hitbox)
-        {
-            var entity = root.GetComponent<Entity>();
-            if (entity == null) return false;
-
-            var so = new SerializedObject(entity);
-            SerializedProperty prop = so.FindProperty("skillAttack");
-            if (prop == null) return false;
-
-            if (prop.objectReferenceValue == hitbox) return false;
-
-            prop.objectReferenceValue = hitbox;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            return true;
-        }
+            => BasicAttackProfiles.SetSkillHitbox(root, hitbox);
     }
 }

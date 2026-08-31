@@ -70,6 +70,9 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -77,6 +80,9 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     pushDistance: 0
     airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -151,6 +157,9 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -158,6 +167,9 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     pushDistance: 0
     airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -303,6 +315,9 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -310,6 +325,9 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 0}
     pushDistance: 0
     airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -354,6 +372,7 @@ GameObject:
   - component: {fileID: 8451363438122436910}
   - component: {fileID: 2166338593295735553}
   - component: {fileID: 3699865121402104453}
+  - component: {fileID: 5050689268428343027}
   m_Layer: 11
   m_Name: Enemy_Dummy
   m_TagString: Untagged
@@ -447,6 +466,9 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 512
+  groundMargin: 0
+  fallOffLedge: 0
+  ledgeDeathY: -12
   acceleration: 60
   deceleration: 80
   impulseDamping: 8
@@ -454,6 +476,8 @@ MonoBehaviour:
   fallGravityScale: 0.22
   apexHangTime: 0.35
   apexVelocityThreshold: 3
+  airLaunchScale: 1.1
+  airHitLift: 4
   rotateToFacing: 1
 --- !u!114 &6389607987898319337
 MonoBehaviour:
@@ -504,13 +528,19 @@ MonoBehaviour:
     stats: []
   energies:
     energies: []
-  basicAttack: {fileID: 928207317559844012}
-  basicAttackWindup: 0.18
-  basicAttackActiveEnd: 0.36
-  basicAttackTotal: 0.55
-  basicHit:
+  despawnDelay: 1
+  despawnFade: 0.5
+  legacyBasicAttack: {fileID: 928207317559844012}
+  legacySkillAttack: {fileID: 0}
+  legacyWindup: 0.18
+  legacyActiveEnd: 0.36
+  legacyTotal: 0.55
+  legacyBasicHit:
     damageData:
       damage: 10
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -518,17 +548,17 @@ MonoBehaviour:
     fixedDir: {x: 0, y: 0, z: 1}
     pushDistance: 0.375
     airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0.1
     guardDamage: 0
     snapZ: 0
-  basicComboStages: []
-  skillAttack: {fileID: 0}
-  basicProjectile: {fileID: 0}
-  basicProjectileSpeed: 16
-  basicProjectileRange: 9
-  basicProjectilePierce: 0
-  despawnDelay: 1
-  despawnFade: 0.5
+  legacyComboStages: []
+  legacyProjectile: {fileID: 0}
+  legacyProjectileSpeed: 16
+  legacyProjectileRange: 9
+  legacyProjectilePierce: 0
   data: {fileID: 11400000, guid: 6ab67761862f19a4db21f2ad6ebfa58b, type: 2}
 --- !u!114 &5738019088423971617
 MonoBehaviour:
@@ -572,6 +602,7 @@ MonoBehaviour:
   facingRenderer: {fileID: 3530728151109146223}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
+  shadowLift: 0.01
   sortedRenderers:
   - {fileID: 5778298974547048951}
   - {fileID: 3530728151109146223}
@@ -627,6 +658,46 @@ MonoBehaviour:
   healthFloor: 0.5
   returnDelay: 2.5
   cycleGap: 2
+--- !u!114 &5050689268428343027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6104322899143957944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8b08696a9f41ba4696dbc2c2d83df3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyBasicAttack
+  basicAttack: {fileID: 928207317559844012}
+  skillAttack: {fileID: 0}
+  windup: 0.18
+  activeEnd: 0.36
+  total: 0.55
+  basicHit:
+    damageData:
+      damage: 10
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0.375
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.1
+    guardDamage: 0
+    snapZ: 0
+  projectile: {fileID: 0}
+  projectileSpeed: 16
+  projectileRange: 9
+  projectilePierce: 0
 --- !u!1 &6247916175885266214
 GameObject:
   m_ObjectHideFlags: 0

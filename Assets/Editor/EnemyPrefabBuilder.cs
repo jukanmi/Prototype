@@ -10,7 +10,7 @@ namespace Prototype.EditorTools
     /// 브레인 · 데이터 · 머티리얼을 갈아끼운다. 원본은 절대 건드리지 않는다 —
     /// 씬이 그 GUID를 참조하고 있다.
     ///
-    /// 지오메트리는 <see cref="TestSceneBuilder"/>의 규약으로 맞춘다:
+    /// 지오메트리 규약은 아래 상수가 원본이다:
     /// <b>정면은 로컬 +Z</b>(Physics.Apply가 LookRotation으로 돌리는 축),
     /// 몸통은 center (0,1,0) / height 2, 히트박스는 (0, 0.9, +1). 손으로 만든 옛 프리팹처럼
     /// ±X에 히트박스를 두면 회전 후 깊이축으로 빠져 옆에 선 대상에게 영영 닿지 않는다.
@@ -30,7 +30,7 @@ namespace Prototype.EditorTools
         /// <summary>돌진 히트박스 자식 이름. 재실행 때 이 이름으로 찾아 갱신한다.</summary>
         private const string ChargeHitboxName = "ChargeHitbox";
 
-        // ── 지오메트리 규약 (TestSceneBuilder와 동일) ──
+        // ── 지오메트리 규약 (적 프리팹의 원본 수치) ──
         private static readonly Vector3 BodyCenter = new Vector3(0f, 1f, 0f);
         private static readonly Vector3 BasicHitboxPos = new Vector3(0f, 0.9f, 1f);
         private static readonly Vector3 BasicHitboxSize = new Vector3(1.3f, 1.4f, 1.4f);
@@ -226,7 +226,7 @@ namespace Prototype.EditorTools
             return data;
         }
 
-        /// <summary>몸통 메쉬용 머티리얼. 셰이더 선택은 TestSceneBuilder와 같게 맞춘다.</summary>
+        /// <summary>몸통 메쉬용 머티리얼. URP가 없는 프로젝트에서도 열리게 Standard로 떨어진다.</summary>
         private static Material EnsureMaterial(Variant v)
         {
             string path = $"{MaterialFolder}/M_Enemy_{v.id}.mat";
@@ -253,7 +253,7 @@ namespace Prototype.EditorTools
 
         /// <summary>
         /// 몸통. 루트는 Facing 방향으로 Y축 회전하므로 스프라이트를 붙이면 옆면이 보여 사라진다.
-        /// TestSceneBuilder처럼 캡슐 메쉬를 쓰고, 정면 확인용 마커를 같이 붙인다.
+        /// 그래서 캡슐 메쉬를 쓰고, 정면 확인용 마커를 같이 붙인다.
         /// </summary>
         private static void BuildBody(GameObject root, Material material)
         {
@@ -353,8 +353,10 @@ namespace Prototype.EditorTools
             // private [SerializeField]는 SerializedObject로만 안전하게 건드린다.
             var so = new SerializedObject(enemy);
             so.FindProperty("data").objectReferenceValue = data;
-            so.FindProperty("basicAttack").objectReferenceValue = hitbox;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            // 평타는 프로필 컴포넌트가 든다. 없으면 여기서 EnemyBasicAttack이 붙는다.
+            BasicAttackProfiles.SetHitbox(root, hitbox);
 
             // 데이터 주입 없이 프리팹만 씬에 끌어다 놔도 원거리로 동작해야 한다.
             if (v.ranged && projectilePrefab != null)
