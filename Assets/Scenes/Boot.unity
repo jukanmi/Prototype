@@ -427,7 +427,7 @@ MonoBehaviour:
   - Stage_03
   - Stage_04
   - Stage_05
-  deckStartupMode: 2
+  deckStartupMode: 1
   defaultLoadout: {fileID: 0}
 --- !u!4 &773120535
 Transform:

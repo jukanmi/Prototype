@@ -59,7 +59,7 @@ MonoBehaviour:
   effects: []
   cooldown: 5
   manaCost: 20
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: beb4e910fbfd19b4eb5736606b0d4d2a, type: 2}
   vfx:
     custom: 0
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
