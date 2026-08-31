@@ -21,6 +21,12 @@ namespace Prototype
         private GUIStyle box;
         private readonly StringBuilder sb = new StringBuilder();
 
+        /// <summary>파티 명단의 주인. <see cref="PartyAssembler"/>가 Awake(-200)에서 꽂는다.</summary>
+        public void SetHero(Player hero)
+        {
+            if (hero != null) player = hero;
+        }
+
         private void Awake()
         {
             if (bulletTime == null) bulletTime = GetComponent<BulletTimeController>();

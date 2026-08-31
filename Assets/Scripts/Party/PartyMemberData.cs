@@ -28,6 +28,14 @@ namespace Prototype
         [Tooltip("컷인에 뜨는 얼굴. 비우면 직업 색 박스로 대체된다.")]
         public Sprite portrait;
 
+        [Header("몸")]
+        [Tooltip("이 동료의 프리팹. 루트에 Ally 컴포넌트가 있어야 한다.\n" +
+                 "비우면 PartyAssembler 의 기본 Ally 프리팹으로 떨어진다.\n\n" +
+                 "여기에 제 프리팹을 꽂으면 아래 외형 칸(bodyScale · spriteTint · animatorController)은 " +
+                 "대개 필요 없다 — 그건 공용 Ally 프리팹 하나를 색과 크기로만 구분하던 시절의 통로다. " +
+                 "체형 · 콜라이더 · 애니메이션 구조가 다른 동료는 프리팹 쪽이 답이다.")]
+        public GameObject prefab;
+
         [Header("장착 카드")]
         [Tooltip("직업당 6종 중 4장. 덱 목표 장수는 상수가 아니라 지금 인원 × 4다 — " +
                  "4인이면 16장, 3인이면 12장이 정상이다(DeckRules.TargetSize).\n" +
@@ -57,7 +65,8 @@ namespace Prototype
         [Header("외형")]
         [Tooltip("비우면 Ally 프리팹의 컨트롤러를 그대로 쓴다.\n" +
                  "EntityAnimator 가 Awake 에서 이걸 AnimatorOverrideController 로 감싸므로, " +
-                 "주입은 반드시 그 전에 끝나야 한다 — PartyAssembler 가 -200 에서 도는 이유다.")]
+                 "주입은 반드시 그 전에 끝나야 한다 — PartyAssembler 가 몸을 비활성 상태로 만들어 " +
+                 "표를 꽂은 뒤에 깨우는 이유다.")]
         public RuntimeAnimatorController animatorController;
 
         [Tooltip("몸 크기 배수. 1이면 프리팹 그대로.\n" +

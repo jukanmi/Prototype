@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Arc
   role: 2
   portrait: {fileID: 0}
+  prefab: {fileID: 6431140714613573192, guid: 32c6410915bdb0a4398a8344af5ba8e2, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
     drawWeight: 1
@@ -37,5 +38,5 @@ MonoBehaviour:
   projectileRange: 9
   projectilePierce: 0
   animatorController: {fileID: 0}
-  bodyScale: 0.88
-  spriteTint: {r: 0.35, g: 1, b: 0.5, a: 1}
+  bodyScale: 1
+  spriteTint: {r: 1, g: 1, b: 1, a: 1}

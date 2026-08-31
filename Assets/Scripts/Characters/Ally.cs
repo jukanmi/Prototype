@@ -14,8 +14,10 @@ namespace Prototype
 
         [Header("표")]
         [Tooltip("이 동료의 수치 · 장착 · 외형. 비우면 아래 인스펙터 값이 그대로 쓰인다.\n\n" +
-                 "PartyAssembler 가 Awake(-200)에서 꽂아 주고, 이 컴포넌트의 Awake 가 적용한다. " +
-                 "Enemy ↔ EnemyData 와 같은 관계다.")]
+                 "PartyAssembler 가 이 몸을 만들면서 꽂아 주고, 이 컴포넌트의 Awake 가 적용한다. " +
+                 "Enemy ↔ EnemyData 와 같은 관계다.\n\n" +
+                 "몸 자체는 PartyMemberData.prefab 이 정한다 — 동료 전용 프리팹을 따로 만들어 두면 " +
+                 "체형 · 콜라이더 · 애니메이션 계층을 자유롭게 짤 수 있다.")]
         [SerializeField] private PartyMemberData data;
 
         [Header("정체성")]
@@ -43,7 +45,11 @@ namespace Prototype
 
         /// <summary>
         /// 표를 꽂는다. <b>이 컴포넌트의 <c>Awake</c>보다 먼저</b> 불려야 한다 —
-        /// 적용은 Awake 가 하기 때문이다. <see cref="PartyAssembler"/>가 실행 순서 -200에서 부른다.
+        /// 적용은 Awake 가 하기 때문이다.
+        ///
+        /// <see cref="PartyAssembler"/>가 그 순서를 <b>구조로</b> 보장한다: 몸을 비활성 임시
+        /// 부모 밑에서 만들어(그러면 Unity 가 Awake 를 안 부른다) 여기를 부른 다음,
+        /// 파티 컨테이너로 옮기며 깨운다.
         /// </summary>
         public void SetData(PartyMemberData source) => data = source;
 

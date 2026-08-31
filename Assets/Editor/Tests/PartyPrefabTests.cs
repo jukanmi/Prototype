@@ -82,22 +82,34 @@ namespace Prototype.Tests
                 "PartyAssembler 가 없다 — 로드아웃이 아무 데서도 안 읽힌다.");
         }
 
+        /// <summary>
+        /// <b>몸이 구워져 있으면 안 된다.</b> 동료마다 제 프리팹을 쓰게 되면서
+        /// 여기 남은 몸은 전부 유령이 된다 — 로드아웃이 만든 진짜 파티와 나란히 서서
+        /// 동료가 다섯 명이 되고, 덱이 20장이 되고, 교대 순환에 이름 없는 칸이 낀다.
+        /// </summary>
         [Test]
-        public void Party_ContainsOnePlayerAndFourAllySlots()
+        public void Party_IsAnEmptyContainer()
         {
             GameObject host = Host();
 
-            Assert.That(host.GetComponentsInChildren<Player>(true).Length, Is.EqualTo(1),
-                "파티에 Player 가 정확히 하나가 아니다 — 태그 로스터 0번 슬롯이다.");
+            Transform party = host.transform.Find(BattleInputBuilder.PartyRootName);
+            Assert.That(party, Is.Not.Null, $"'{BattleInputBuilder.PartyRootName}' 컨테이너가 없다.");
 
-            Assert.That(host.GetComponentsInChildren<Ally>(true).Length,
-                Is.EqualTo(PartyLoadout.MaxMembers),
-                $"동료 슬롯이 {PartyLoadout.MaxMembers}칸이 아니다.");
+            Assert.That(host.GetComponentsInChildren<Player>(true), Is.Empty,
+                "BattleInput 안에 Player 가 구워져 있다 — 몸은 PartyAssembler 가 런타임에 만든다. " +
+                "'Prototype ▸ 전투 - 입력 호스트 프리팹 만들기'를 다시 돌릴 것.");
+
+            Assert.That(host.GetComponentsInChildren<Ally>(true), Is.Empty,
+                "BattleInput 안에 Ally 가 구워져 있다 — 로드아웃이 만든 파티와 겹쳐 " +
+                "동료가 다섯 명이 되고 덱이 20장이 된다.");
         }
 
         /// <summary>
-        /// 슬롯 배선이 비면 <see cref="PartyAssembler"/>가 조용히 아무것도 안 한다 —
-        /// 프리팹 기본값 파티가 그대로 서고, 로드아웃은 무시된다.
+        /// 배선이 비면 <see cref="PartyAssembler"/>가 조용히 아무것도 안 한다 —
+        /// 몸이 하나도 안 서고, 화면에는 "아무도 안 나온다"로만 보인다.
+        ///
+        /// <b>기본 프리팹 둘이 핵심</b>이다. 표(<see cref="PartyMemberData.prefab"/>)가
+        /// 비어 있는 것은 정상이고, 그때 여기로 떨어진다.
         /// </summary>
         [Test]
         public void Assembler_HasEveryReferenceWired()
@@ -107,20 +119,34 @@ namespace Prototype.Tests
 
             var so = new SerializedObject(assembler);
 
-            Assert.That(so.FindProperty("player").objectReferenceValue, Is.Not.Null,
-                "PartyAssembler.player 가 비어 있다.");
+            Assert.That(so.FindProperty("defaultPlayerPrefab").objectReferenceValue, Is.Not.Null,
+                "PartyAssembler.defaultPlayerPrefab 이 비어 있다 — " +
+                "PlayerData 에 프리팹이 없으면 주인공이 아예 안 선다.");
+            Assert.That(so.FindProperty("defaultAllyPrefab").objectReferenceValue, Is.Not.Null,
+                "PartyAssembler.defaultAllyPrefab 이 비어 있다 — " +
+                "PartyMemberData 에 프리팹이 없는 동료가 통째로 빠진다.");
             Assert.That(so.FindProperty("partyRoot").objectReferenceValue, Is.Not.Null,
                 "PartyAssembler.partyRoot 가 비어 있다.");
             Assert.That(so.FindProperty("swap").objectReferenceValue, Is.Not.Null,
                 "PartyAssembler.swap 이 비어 있다 — 시작 자리가 안 넘어가 파티가 원점에서 시작한다.");
+            Assert.That(so.FindProperty("bulletTime").objectReferenceValue, Is.Not.Null,
+                "PartyAssembler.bulletTime 이 비어 있다 — 덱이 파티 카드를 못 걷어 손패가 빈다.");
+        }
 
-            SerializedProperty slots = so.FindProperty("slots");
-            Assert.That(slots.arraySize, Is.EqualTo(PartyLoadout.MaxMembers),
-                "PartyAssembler.slots 의 칸 수가 다르다.");
+        /// <summary>
+        /// 기본 프리팹의 루트에 컴포넌트가 없으면 <see cref="PartyAssembler"/>가 만든 몸을
+        /// 그 자리에서 도로 버린다. 빌더가 <c>GetComponent</c>로 꽂으므로 보통은 맞지만,
+        /// 손으로 다른 프리팹을 꽂았을 때 잡히는 건 여기뿐이다.
+        /// </summary>
+        [Test]
+        public void Assembler_DefaultPrefabsCarryTheirComponents()
+        {
+            var so = new SerializedObject(Host().GetComponent<PartyAssembler>());
 
-            for (int i = 0; i < slots.arraySize; i++)
-                Assert.That(slots.GetArrayElementAtIndex(i).objectReferenceValue, Is.Not.Null,
-                    $"PartyAssembler.slots[{i}] 가 비어 있다.");
+            Assert.That(so.FindProperty("defaultPlayerPrefab").objectReferenceValue,
+                Is.InstanceOf<Player>(), "defaultPlayerPrefab 이 Player 가 아니다.");
+            Assert.That(so.FindProperty("defaultAllyPrefab").objectReferenceValue,
+                Is.InstanceOf<Ally>(), "defaultAllyPrefab 이 Ally 가 아니다.");
         }
 
         /// <summary>덱 · 콤보 · 컷인이 전부 여기 안에 있어야 씬에서 배선이 사라진다.</summary>
@@ -138,38 +164,27 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 덱을 짜는 쪽이 파티를 못 찾으면 손패가 통째로 빈다.
-        /// 슬롯 넷은 프리팹 안에만 있어 <c>FindAnyObjectByType</c> 폴백으로는 못 잡는 경로가 있다.
+        /// <c>player</c> 는 이제 여기서 검사하지 않는다 — 주인공이 런타임 생성물이라
+        /// 프리팹에 꽂을 인스턴스가 없고, <see cref="PartyAssembler"/>가
+        /// <c>Awake</c>(-200)에서 <c>SetHero</c>로 밀어 넣는다.
+        /// 그 주입이 성립하는지는 <see cref="Assembler_HasEveryReferenceWired"/>가 본다.
         /// </summary>
         [Test]
-        public void BulletTime_KnowsPlayerAndSwap()
+        public void BulletTime_KnowsSwap()
         {
             var bullet = Host().GetComponentInChildren<BulletTimeController>(true);
             Assert.That(bullet, Is.Not.Null);
 
-            var so = new SerializedObject(bullet);
-
-            Assert.That(so.FindProperty("player").objectReferenceValue, Is.Not.Null,
-                "BulletTimeController.player 가 비어 있다 — 덱이 파티 카드를 못 걷는다.");
-            Assert.That(so.FindProperty("swap").objectReferenceValue, Is.Not.Null,
+            Assert.That(new SerializedObject(bullet).FindProperty("swap").objectReferenceValue,
+                Is.Not.Null,
                 "BulletTimeController.swap 이 비어 있다 — U키가 벤치에 앉은 동료를 못 불러온다.");
-        }
-
-        [Test]
-        public void TagSwap_KnowsPlayer()
-        {
-            var swap = Host().GetComponent<TagSwapController>();
-            Assert.That(swap, Is.Not.Null);
-
-            Assert.That(new SerializedObject(swap).FindProperty("player").objectReferenceValue,
-                Is.Not.Null, "TagSwapController.player 가 비어 있다 — 로스터가 안 만들어진다.");
         }
 
         // ── 카메라 앵커 ─────────────────────────────────
 
         /// <summary>
         /// 앵커는 <c>Party</c>의 <b>형제</b>여야 한다. Party 안에 넣으면
-        /// <c>PartyPrefabTests.PartyBodies_AreAtLocalOrigin</c>과 컨테이너 불변식에 걸린다 —
+        /// <c>PartyRoot_IsAtOriginWithIdentityTransform</c>의 컨테이너 불변식에 걸린다 —
         /// 앵커는 움직이는 것이 일이기 때문이다.
         /// </summary>
         [Test]
@@ -221,43 +236,5 @@ namespace Prototype.Tests
                 Is.Not.Null, "PartyHealthHUD.swap 이 비어 있다 — 로스터를 못 읽는다.");
         }
 
-        // ── 몸 ──────────────────────────────────────────
-
-        [Test]
-        public void PartyBodies_AreAtLocalOrigin()
-        {
-            // 자리는 파티가 하나만 쓴다(TagSwapController.partySeat). 슬롯마다 좌표를 두면
-            // 프리팹과 실제 자리가 어긋나 "교대할 때만 순간이동" 처럼 보인다.
-            foreach (Entity e in Host().GetComponentsInChildren<Entity>(true))
-                Assert.That(e.transform.localPosition, Is.EqualTo(Vector3.zero),
-                    $"{e.name} 이(가) 프리팹 안에서 원점이 아니다.");
-        }
-
-        /// <summary>
-        /// 레이어가 틀리면 <see cref="Attack"/>이 충돌 매트릭스를 그대로 읽어
-        /// <b>아군이 적을 통과한다</b> — 스킬이 나가고 이펙트도 뜨는데 데미지만 없다.
-        /// 런타임에는 <see cref="AllyLayers"/>가 보장하지만, 프리팹이 맞으면 한 겹 더 안전하다.
-        /// </summary>
-        [Test]
-        public void PartyBodies_UseAllyLayers()
-        {
-            int hurt = LayerMask.NameToLayer(AllyLayers.HurtboxLayer);
-            int hit = LayerMask.NameToLayer(AllyLayers.HitboxLayer);
-
-            Assert.That(hurt, Is.GreaterThanOrEqualTo(0),
-                $"프로젝트에 '{AllyLayers.HurtboxLayer}' 레이어가 없다.");
-            Assert.That(hit, Is.GreaterThanOrEqualTo(0),
-                $"프로젝트에 '{AllyLayers.HitboxLayer}' 레이어가 없다.");
-
-            foreach (Entity e in Host().GetComponentsInChildren<Entity>(true))
-            {
-                Assert.That(e.gameObject.layer, Is.EqualTo(hurt),
-                    $"{e.name} 의 몸통 레이어가 {AllyLayers.HurtboxLayer} 가 아니다.");
-
-                foreach (Attack a in e.GetComponentsInChildren<Attack>(true))
-                    Assert.That(a.gameObject.layer, Is.EqualTo(hit),
-                        $"{e.name}/{a.name} 의 레이어가 {AllyLayers.HitboxLayer} 가 아니다.");
-            }
-        }
     }
 }

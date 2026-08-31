@@ -29,7 +29,7 @@ namespace Prototype
 
         /// <summary>
         /// 파티 명단을 갈아 끼운다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서 부른다 —
-        /// 로드아웃이 안 채운 칸은 몸이 지워지고 여기 <c>null</c>로 남는다.
+        /// 로드아웃이 안 채운 칸은 <b>몸을 아예 안 만들고</b> 여기 <c>null</c>로 남는다.
         ///
         /// <b>null 칸은 정상이다.</b> <see cref="TagSwapRules.IsSelectable"/>이 빈 칸을 건너뛰므로
         /// 3인 파티도 교대 순환이 그대로 돈다.
@@ -47,7 +47,8 @@ namespace Prototype
 
         /// <summary>
         /// 표를 꽂는다. <b>이 컴포넌트의 <c>Awake</c>보다 먼저</b> 불려야 한다 —
-        /// 적용은 Awake 가 하기 때문이다. <see cref="PartyAssembler"/>가 실행 순서 -200에서 부른다.
+        /// 적용은 Awake 가 하기 때문이다. <see cref="PartyAssembler"/>가 몸을 비활성 상태로
+        /// 만들어 여기를 부른 뒤 깨우므로, 그 순서는 구조로 보장된다.
         /// </summary>
         public void SetData(PlayerData source) => data = source;
 

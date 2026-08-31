@@ -157,6 +157,17 @@ namespace Prototype
         public event Action OnEnter;
         public event Action OnExit;
 
+        /// <summary>
+        /// 파티 명단의 주인을 꽂는다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서
+        /// 부르므로 이 컴포넌트의 <see cref="Awake"/>(0)보다 먼저 도착한다.
+        ///
+        /// 이 참조로 <c>CollectPartyCards</c>가 덱을 짓는다 — 비면 손패가 통째로 빈다.
+        /// </summary>
+        public void SetHero(Player hero)
+        {
+            if (hero != null) player = hero;
+        }
+
         private void Awake()
         {
             Gauge = new Energy(EnergyType.BulletTimeGauge, maxGauge);

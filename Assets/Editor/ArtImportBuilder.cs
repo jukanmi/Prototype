@@ -495,10 +495,15 @@ namespace Prototype.EditorTools
         ///
         /// 예전 이름은 <c>TintSceneAllies</c>였다. 파티가 씬에서 프리팹 안으로 들어가면서
         /// 칠하는 대상이 씬 인스턴스에서 <see cref="PartyMemberData"/> 에셋으로 바뀌었다.
+        ///
+        /// <b>제 프리팹을 가진 표는 건너뛴다.</b> 그쪽은 색이 프리팹 안에 있고
+        /// (<c>AllyPrefabBuilder</c>가 칠한다), 여기서 표에 색을 다시 넣으면
+        /// <see cref="PartyAssembler"/>가 그 위에 한 번 더 덧칠한다.
         /// </summary>
         private static void TintPartyMembers()
         {
             bool dirty = false;
+            int skipped = 0;
 
             // 씬이 아니라 표(PartyMemberData)에 쓴다. 파티는 BattleInput 프리팹 안으로 들어갔고,
             // 씬 인스턴스에 칠하면 없앤 오버라이드가 씬마다 되살아난다.
@@ -509,6 +514,14 @@ namespace Prototype.EditorTools
                     AssetDatabase.GUIDToAssetPath(guid));
                 if (member == null) continue;
 
+                // 프리팹이 있으면 색은 그쪽이 주인이다. 표를 흰색으로 두는 것이 곧
+                // "칠하지 않는다"는 뜻이다(PartyAssembler.ApplyTint).
+                if (member.prefab != null)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 member.spriteTint = RoleTint(member.role);
                 EditorUtility.SetDirty(member);
                 dirty = true;
@@ -516,6 +529,13 @@ namespace Prototype.EditorTools
 
             if (!dirty)
             {
+                if (skipped > 0)
+                {
+                    Debug.Log($"[ArtImportBuilder] 동료 {skipped}명이 제 프리팹을 갖고 있다 — " +
+                              "색은 그 프리팹이 들고 있으므로 표는 건드리지 않았다.");
+                    return;
+                }
+
                 Debug.LogWarning("[ArtImportBuilder] PartyMemberData 가 하나도 없다. " +
                                  "'Prototype ▸ 파티 - 1단계: 씬에서 표 추출'을 먼저 돌릴 것.");
                 return;
@@ -524,7 +544,11 @@ namespace Prototype.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        private static Color RoleTint(Role role)
+        /// <summary>
+        /// 직업 색. <c>AllyPrefabBuilder</c>도 같은 값을 써야 표로 칠하던 동료와
+        /// 프리팹으로 칠한 동료가 나란히 섰을 때 색이 갈리지 않는다.
+        /// </summary>
+        internal static Color RoleTint(Role role)
         {
             Color c;
             switch (role)

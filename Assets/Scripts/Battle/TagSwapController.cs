@@ -136,8 +136,22 @@ namespace Prototype
                && bulletTime != null
                && bulletTime.Phase == TacticPhase.RealTime;
 
+        /// <summary>
+        /// 로스터 0번을 꽂는다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서 부르므로
+        /// 이 컴포넌트의 <see cref="Awake"/>(0)보다 <b>먼저</b> 도착하고, 아래 폴백은 건너뛴다.
+        ///
+        /// 동료마다 프리팹이 갈리면서 필요해졌다 — 주인공이 런타임 생성물이 되어
+        /// <c>BattleInputBuilder</c>가 프리팹에 구워 두던 참조가 더는 없다.
+        /// </summary>
+        public void SetHero(Player hero)
+        {
+            if (hero != null) player = hero;
+        }
+
         private void Awake()
         {
+            // 폴백은 남긴다. 파티 없이 도는 스킬 실험 씬이 이 줄로 살아 있고,
+            // PartyAssembler 가 -200 에서 몸을 먼저 만들므로 여기서도 안전하게 잡힌다.
             if (player == null) player = FindAnyObjectByType<Player>();
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
             if (cameraFollow == null) cameraFollow = FindAnyObjectByType<CameraFollow>();

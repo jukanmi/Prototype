@@ -30,7 +30,6 @@ namespace Prototype.EditorTools
         public static string PrefabPath => PrefabLocator.BattleInputPath;
 
         public const string PartyRootName = "Party";
-        public const string SlotPrefix = "Member_";
         public const string CameraAnchorName = "CameraAnchor";
 
         private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
@@ -81,21 +80,11 @@ namespace Prototype.EditorTools
             PartyHealthHUD partyHud = root.AddComponent<PartyHealthHUD>();
 
             // ── 파티 ────────────────────────────────────
+            // <b>빈 컨테이너</b>다. 몸은 런타임에 PartyAssembler 가 만든다 —
+            // 동료마다 제 프리팹을 쓰므로 여기서 구울 수 있는 "공통 슬롯"이 더는 없다.
+            // 기본 프리팹 둘만 참조로 꽂아 두고, 표에 프리팹이 없을 때 그리로 떨어진다.
             var partyRoot = new GameObject(PartyRootName);
             partyRoot.transform.SetParent(root.transform, false);
-
-            var playerGo = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, partyRoot.transform);
-            playerGo.name = "Player";
-            playerGo.transform.localPosition = Vector3.zero;
-
-            var slots = new Ally[PartyLoadout.MaxMembers];
-            for (int i = 0; i < slots.Length; i++)
-            {
-                var go = (GameObject)PrefabUtility.InstantiatePrefab(allyPrefab, partyRoot.transform);
-                go.name = SlotPrefix + i;
-                go.transform.localPosition = Vector3.zero;
-                slots[i] = go.GetComponent<Ally>();
-            }
 
             // ── 카메라 앵커 ─────────────────────────────
             // Party 컨테이너의 <b>형제</b>다. 원점에 박히는 건 루트와 Party 노드뿐이고,
@@ -110,31 +99,26 @@ namespace Prototype.EditorTools
             combatGo.transform.localPosition = Vector3.zero;
 
             // ── 배선 ────────────────────────────────────
-            // 슬롯 넷은 프리팹 안에서만 존재한다. FindAnyObjectByType 폴백에 맡기면
-            // 씬에 파티가 없다는 이유로 못 찾는 경로가 생기므로 여기서 직접 꽂는다.
-            Player player = playerGo.GetComponent<Player>();
-
-            Wire(assembler, so =>
-            {
-                so.FindProperty("player").objectReferenceValue = player;
-                so.FindProperty("partyRoot").objectReferenceValue = partyRoot.transform;
-                so.FindProperty("swap").objectReferenceValue = swap;
-                so.FindProperty("standaloneLoadout").objectReferenceValue =
-                    AssetDatabase.LoadAssetAtPath<PartyLoadout>(DefaultLoadoutPath);
-
-                SerializedProperty arr = so.FindProperty("slots");
-                arr.arraySize = slots.Length;
-                for (int i = 0; i < slots.Length; i++)
-                    arr.GetArrayElementAtIndex(i).objectReferenceValue = slots[i];
-            });
-
+            // 몸은 런타임 생성물이라 여기서 꽂을 인스턴스가 없다. 대신 <b>기본 프리팹</b>을
+            // 꽂는다 — PartyMemberData.prefab · PlayerData.prefab 이 비었을 때 쓰는 폴백이고,
+            // 이게 없으면 표가 프리팹을 안 지정한 순간 파티가 통째로 안 선다.
             var bullet = combatGo.GetComponentInChildren<BulletTimeController>(true);
             var executor = combatGo.GetComponentInChildren<ComboExecutor>(true);
             var selector = combatGo.GetComponentInChildren<TargetSelector>(true);
 
+            Wire(assembler, so =>
+            {
+                so.FindProperty("defaultPlayerPrefab").objectReferenceValue = playerPrefab.GetComponent<Player>();
+                so.FindProperty("defaultAllyPrefab").objectReferenceValue = allyPrefab.GetComponent<Ally>();
+                so.FindProperty("partyRoot").objectReferenceValue = partyRoot.transform;
+                so.FindProperty("swap").objectReferenceValue = swap;
+                so.FindProperty("bulletTime").objectReferenceValue = bullet;
+                so.FindProperty("standaloneLoadout").objectReferenceValue =
+                    AssetDatabase.LoadAssetAtPath<PartyLoadout>(DefaultLoadoutPath);
+            });
+
             Wire(swap, so =>
             {
-                so.FindProperty("player").objectReferenceValue = player;
                 so.FindProperty("bulletTime").objectReferenceValue = bullet;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
                 so.FindProperty("pilot").objectReferenceValue = root.GetComponent<PlayerPilot>();
@@ -143,7 +127,6 @@ namespace Prototype.EditorTools
 
             Wire(bullet, so =>
             {
-                so.FindProperty("player").objectReferenceValue = player;
                 so.FindProperty("executor").objectReferenceValue = executor;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
                 so.FindProperty("swap").objectReferenceValue = swap;
@@ -159,7 +142,6 @@ namespace Prototype.EditorTools
 
             Wire(combatGo.GetComponentInChildren<DebugComboHUD>(true), so =>
             {
-                so.FindProperty("player").objectReferenceValue = player;
                 so.FindProperty("bulletTime").objectReferenceValue = bullet;
                 so.FindProperty("targetSelector").objectReferenceValue = selector;
             });
@@ -174,7 +156,7 @@ namespace Prototype.EditorTools
             AssetDatabase.SaveAssets();
 
             Debug.Log($"[BattleInputBuilder] {PrefabPath} 생성 완료 — " +
-                      $"Player 1 + 동료 슬롯 {slots.Length} + CombatManager. " +
+                      "빈 Party 컨테이너 + CombatManager. 몸은 런타임에 로드아웃대로 만들어진다. " +
                       "씬에서 Player · Ally · CombatManager 인스턴스를 제거하고 " +
                       "'Prototype ▸ 파티 - 씬 마이그레이션'을 돌릴 것.", prefab);
         }

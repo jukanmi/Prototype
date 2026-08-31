@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Wiz
   role: 3
   portrait: {fileID: 0}
+  prefab: {fileID: 4491905594061447380, guid: 7fcaa6c618a95274293c7b2c05b24128, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: fedc606f064276b4cbeaa8761ea43011, type: 2}
     drawWeight: 1
@@ -37,5 +38,5 @@ MonoBehaviour:
   projectileRange: 8
   projectilePierce: 0
   animatorController: {fileID: 0}
-  bodyScale: 1.12
-  spriteTint: {r: 0.35, g: 1, b: 0.5, a: 1}
+  bodyScale: 1
+  spriteTint: {r: 1, g: 1, b: 1, a: 1}

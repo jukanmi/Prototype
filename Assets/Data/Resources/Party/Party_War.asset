@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: War
   role: 1
   portrait: {fileID: 0}
+  prefab: {fileID: 2659944987478458666, guid: f994c8d5dc644a744b1f348d88067811, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: fca1c060857dab341bd3f3e32c4a69a5, type: 2}
     drawWeight: 1
@@ -37,5 +38,5 @@ MonoBehaviour:
   projectileRange: 9
   projectilePierce: 0
   animatorController: {fileID: 0}
-  bodyScale: 1.06
-  spriteTint: {r: 0.35, g: 1, b: 0.5, a: 1}
+  bodyScale: 1
+  spriteTint: {r: 1, g: 1, b: 1, a: 1}

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Tan
   role: 0
   portrait: {fileID: 0}
+  prefab: {fileID: 8200739034675296833, guid: 15d90f13e75ad3a439ad0b23e66e3f29, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: fd740031699e49f38758fb01b7bb4b57, type: 2}
     drawWeight: 1
@@ -37,5 +38,5 @@ MonoBehaviour:
   projectileRange: 9
   projectilePierce: 0
   animatorController: {fileID: 0}
-  bodyScale: 0.94
-  spriteTint: {r: 0.35, g: 1, b: 0.5, a: 1}
+  bodyScale: 1
+  spriteTint: {r: 1, g: 1, b: 1, a: 1}

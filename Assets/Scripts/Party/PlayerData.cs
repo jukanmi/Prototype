@@ -26,6 +26,11 @@ namespace Prototype
         [Tooltip("파티 편성 화면과 컷인에 뜨는 얼굴.")]
         public Sprite portrait;
 
+        [Header("몸")]
+        [Tooltip("이 주인공의 프리팹. 루트에 Player 컴포넌트가 있어야 한다.\n" +
+                 "비우면 PartyAssembler 의 기본 Player 프리팹으로 떨어진다.")]
+        public GameObject prefab;
+
         [Header("전투 — 0이면 프리팹 값을 그대로 둔다")]
         public float hp;
         public float atk;
@@ -55,7 +60,8 @@ namespace Prototype
         [Header("외형")]
         [Tooltip("비우면 Player 프리팹의 컨트롤러를 그대로 쓴다.\n" +
                  "EntityAnimator 가 Awake 에서 이걸 AnimatorOverrideController 로 감싸므로, " +
-                 "주입은 반드시 그 전에 끝나야 한다 — PartyAssembler 가 -200 에서 도는 이유다.")]
+                 "주입은 반드시 그 전에 끝나야 한다 — PartyAssembler 가 몸을 비활성 상태로 만들어 " +
+                 "표를 꽂은 뒤에 깨우는 이유다.")]
         public RuntimeAnimatorController animatorController;
 
         [Tooltip("몸 크기 배수. 1이면 프리팹 그대로.")]

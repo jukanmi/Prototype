@@ -28,7 +28,17 @@ namespace Prototype.EditorTools
         private const string BattleInputFallback = SearchRoot + "/BattleInput.prefab";
 
         public static string PlayerPath => Locate<Player>("Player");
+
+        /// <summary>
+        /// <b>공용</b> 동료 프리팹. 동료마다 제 프리팹을 갖게 되면서 루트에 <see cref="Ally"/>를
+        /// 가진 프리팹이 여럿이 됐으므로, 이름이 정확히 <c>Ally</c>인 것을 우선한다.
+        ///
+        /// 이 구분이 없으면 <c>BattleInputBuilder</c>가 <c>defaultAllyPrefab</c>에
+        /// <b>마법사 몸</b>을 꽂아 놓고도 아무 말을 안 한다 — 프리팹이 없는 표가
+        /// 전부 마법사 몸으로 서고, 그 사실은 화면에서 "왜 탱커가 마법사처럼 생겼지"로만 보인다.
+        /// </summary>
         public static string AllyPath => Locate<Ally>("Ally");
+
         public static string CombatManagerPath => Locate<BulletTimeController>("CombatManager");
 
         /// <summary>
@@ -60,9 +70,16 @@ namespace Prototype.EditorTools
         /// <c>LoadAssetAtPath</c>를 하고 null 검사를 이미 갖고 있다.
         /// </summary>
         private static string Locate<T>(string legacyName) where T : Component
-            => Find<T>() ?? $"{SearchRoot}/{legacyName}.prefab";
+            => Find<T>(legacyName) ?? $"{SearchRoot}/{legacyName}.prefab";
 
-        private static string Find<T>() where T : Component
+        /// <summary>
+        /// <paramref name="preferredName"/>이 주어지면 <b>파일 이름이 정확히 그것인</b> 프리팹을
+        /// 먼저 고른다. 없을 때만 아무거나 하나를 쓰고 경고한다.
+        ///
+        /// 이름 우선이 없으면 <c>FindAssets</c>의 순서가 곧 답이 되는데, 그 순서는 보장되지 않는다 —
+        /// 어제와 오늘의 빌드가 서로 다른 프리팹을 기본으로 물고도 둘 다 조용히 성공한다.
+        /// </summary>
+        private static string Find<T>(string preferredName = null) where T : Component
         {
             var hits = new List<string>();
 
@@ -77,11 +94,17 @@ namespace Prototype.EditorTools
             }
 
             if (hits.Count == 0) return null;
+            if (hits.Count == 1) return hits[0];
 
-            if (hits.Count > 1)
-                Debug.LogWarning(
-                    $"[PrefabLocator] 루트에 {typeof(T).Name}을(를) 가진 프리팹이 {hits.Count}개다 — " +
-                    $"'{hits[0]}'을(를) 쓴다. 나머지: {string.Join(", ", hits.GetRange(1, hits.Count - 1))}");
+            if (!string.IsNullOrEmpty(preferredName))
+                foreach (string path in hits)
+                    if (System.IO.Path.GetFileNameWithoutExtension(path) == preferredName)
+                        return path;
+
+            Debug.LogWarning(
+                $"[PrefabLocator] 루트에 {typeof(T).Name}을(를) 가진 프리팹이 {hits.Count}개인데 " +
+                $"'{preferredName}.prefab' 이 없다 — '{hits[0]}'을(를) 쓴다. " +
+                $"나머지: {string.Join(", ", hits.GetRange(1, hits.Count - 1))}");
 
             return hits[0];
         }

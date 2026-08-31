@@ -6,38 +6,49 @@ namespace Prototype
     /// <summary>
     /// 파티를 조립한다. <c>BattleInput</c> 프리팹 루트에 붙는다.
     ///
-    /// <b>동료를 만들지 않는다 — 이미 있는 슬롯에 데이터를 꽂는다.</b>
-    /// 이게 이 설계에서 가장 중요한 선택이고, 이유는 실행 순서다:
-    /// <see cref="Player"/>를 <c>FindAnyObjectByType</c>으로 찾는 곳이 다섯 군데 있고
-    /// (<see cref="TagSwapController"/> · <see cref="BulletTimeController"/> ·
-    /// <see cref="TargetSelector"/> · <see cref="CameraFollow"/> · <see cref="DebugComboHUD"/>)
-    /// 전부 <c>Awake</c>에서 돈다. 런타임에 <c>Instantiate</c>로 만들면 그 다섯이 통째로
-    /// "생성 전에 찾는" 순서 버그가 되고, 증상은 "가끔 카메라가 안 따라감 / 덱이 빔"이라
-    /// 재현이 안 된다. 슬롯을 프리팹 안에 실체로 두면 그 다섯 줄을 한 줄도 안 건드려도 된다.
+    /// <b>동료마다 제 프리팹을 인스턴스화한다.</b> 예전에는 프리팹 안에 <see cref="Ally"/> 더미
+    /// 슬롯 4칸을 미리 구워 두고 거기에 표만 꽂았다. 그 구조는 실행 순서 문제를 확실히 없애 주는
+    /// 대신, <b>동료 넷이 전부 같은 몸</b>이어야 한다는 값을 치렀다 — 체형 · 콜라이더 · 애니메이션
+    /// 계층이 다른 동료를 만들 자리가 없었고, 씬 뷰에서 누가 누구인지도 안 보였다.
     ///
-    /// 그래서 여기가 하는 일은 <b>주입 · 정리 · 배치</b> 셋뿐이다.
+    /// 지금은 <see cref="PartyMemberData.prefab"/> · <see cref="PlayerData.prefab"/>이 몸을 정하고
+    /// 여기가 그것을 만든다. 비어 있으면 <see cref="defaultAllyPrefab"/> ·
+    /// <see cref="defaultPlayerPrefab"/>으로 떨어지므로 기존 표는 하나도 안 깨진다.
     ///
-    /// <b>실행 순서 -200.</b> <see cref="Ally"/>(0) · <see cref="EntityAnimator"/>(0)보다 먼저
-    /// 돌아야 한다 — 전자는 <c>Awake</c>에서 <c>data</c>를 읽고, 후자는 <c>Awake</c>에서
-    /// 애니메이터 컨트롤러를 <c>AnimatorOverrideController</c>로 감싸 버리기 때문이다.
-    /// <see cref="PlayerPilot"/>(-100)보다도 앞이다.
+    /// <b>몸은 꺼진 채로 태어난다.</b> <c>Instantiate</c>는 활성 오브젝트의 <c>Awake</c>를
+    /// 그 자리에서 부른다 — 만들고 나서 표를 꽂으면 <see cref="Ally.ApplyData"/>가 이미 지나간
+    /// 뒤라 아무것도 안 먹는다. 그래서 <c>~Staging</c>(비활성 임시 부모) 밑에서 만들고,
+    /// 표를 꽂은 다음 <see cref="partyRoot"/>로 옮기며 깨운다. 이 순서가 이 클래스의 핵심이다.
+    ///
+    /// <b>실행 순서 -200을 유지한다.</b> 프리팹화로 없어진 것이 아니다:
+    /// <list type="bullet">
+    /// <item><see cref="Awake"/>가 만든 몸이 <c>TagSwapController</c> · <c>BulletTimeController</c> ·
+    /// <c>CameraFollow</c> · <c>TargetSelector</c> · <c>DebugComboHUD</c>(전부 0)의 <c>Awake</c>보다
+    /// <b>먼저</b> 존재해야 한다. 그 다섯의 <c>FindAnyObjectByType&lt;Player&gt;</c> 폴백이
+    /// 살아 있는 이유이자, 그것이 안전한 이유다.</item>
+    /// <item><see cref="Start"/>의 체력 복원이 <c>TagSwapController.Start</c>(0)의
+    /// 로스터 초기화보다 먼저 끝나야 한다.</item>
+    /// </list>
     /// </summary>
     [DefaultExecutionOrder(-200)]
     public class PartyAssembler : MonoBehaviour
     {
-        [Header("슬롯 — 프리팹 안의 몸들")]
-        [Tooltip("태그 로스터 0번. 항상 있어야 한다.")]
-        [SerializeField] private Player player;
+        [Header("기본 몸 — 표에 프리팹이 없을 때 쓴다")]
+        [Tooltip("PlayerData.prefab 이 비었을 때 쓸 주인공 프리팹.")]
+        [SerializeField] private Player defaultPlayerPrefab;
 
-        [Tooltip("동료 슬롯 4칸. PartyLoadout 이 안 채운 칸은 Awake 에서 지운다.")]
-        [SerializeField] private Ally[] slots = new Ally[PartyLoadout.MaxMembers];
+        [Tooltip("PartyMemberData.prefab 이 비었을 때 쓸 동료 프리팹.")]
+        [SerializeField] private Ally defaultAllyPrefab;
 
-        [Tooltip("몸들을 담는 컨테이너. 이 노드와 루트는 항상 원점 · 무회전 · 배율 1이어야 한다.")]
+        [Tooltip("만든 몸들을 담는 컨테이너. 이 노드와 루트는 항상 원점 · 무회전 · 배율 1이어야 한다.")]
         [SerializeField] private Transform partyRoot;
 
         [Header("배선")]
-        [Tooltip("비우면 같은 오브젝트에서 찾는다.")]
+        [Tooltip("비우면 같은 오브젝트에서 찾는다. 만든 주인공을 여기에 밀어 넣는다.")]
         [SerializeField] private TagSwapController swap;
+
+        [Tooltip("비우면 자식에서 찾는다. 만든 주인공을 여기에 밀어 넣는다 — 덱이 파티 카드를 걷는다.")]
+        [SerializeField] private BulletTimeController bulletTime;
 
         [Header("단독 실행")]
         [Tooltip("Boot 씬을 거치지 않고 스테이지 씬만 Play 할 때 쓸 파티.\n\n" +
@@ -48,9 +59,20 @@ namespace Prototype
         /// <summary>실제로 쓰인 조합. 파티 선택 UI · 디버그 HUD가 읽는다.</summary>
         public PartyLoadout Loadout { get; private set; }
 
+        /// <summary>이번 스테이지에 실제로 선 주인공. <see cref="Awake"/> 이후에만 유효하다.</summary>
+        public Player Hero { get; private set; }
+
+        /// <summary>이번 스테이지에 실제로 선 동료 4칸. 안 채워진 칸은 <c>null</c>이다.</summary>
+        public Ally[] Members { get; private set; } = new Ally[PartyLoadout.MaxMembers];
+
+        /// <summary>몸을 꺼진 채로 만들기 위한 임시 부모. <see cref="BuildParty"/> 끝에 버린다.</summary>
+        private Transform stage;
+
         private void Awake()
         {
             if (swap == null) swap = GetComponent<TagSwapController>();
+            if (bulletTime == null) bulletTime = GetComponentInChildren<BulletTimeController>(true);
+            if (partyRoot == null) partyRoot = transform;
 
             EnforceContainerTransform();
 
@@ -60,7 +82,7 @@ namespace Prototype
 
             if (Loadout == null)
                 BattleLog.Warn(LogCategory.State,
-                    "PartyLoadout 이 없다 — 슬롯이 프리팹 기본값 그대로 선다. " +
+                    "PartyLoadout 이 없다 — 기본 프리팹으로 주인공만 선다. " +
                     "BattleInput 의 PartyAssembler 에 standaloneLoadout 을 꽂을 것.", this);
 
             BuildParty();
@@ -90,17 +112,16 @@ namespace Prototype
                 return;
             }
 
-            RestoreHealth(player, state.HeroHpRatio);
+            RestoreHealth(Hero, state.HeroHpRatio);
 
             int restored = 0;
-            if (slots != null)
-                foreach (Ally a in slots)
-                {
-                    if (a == null || a.Data == null) continue;
+            foreach (Ally a in Members)
+            {
+                if (a == null || a.Data == null) continue;
 
-                    RestoreHealth(a, state.HpRatioOf(a.Data));
-                    restored++;
-                }
+                RestoreHealth(a, state.HpRatioOf(a.Data));
+                restored++;
+            }
 
             BattleLog.Log(LogCategory.State,
                 $"파티 상태 복원 — 동료 {restored}명 · 전사 {state.DeadCount}명 · " +
@@ -118,117 +139,196 @@ namespace Prototype
         // ── 조립 ────────────────────────────────────────
 
         /// <summary>
-        /// 슬롯에 데이터를 꽂고, 로드아웃이 안 채운 칸은 지운다.
+        /// 로드아웃대로 몸을 만든다.
         ///
-        /// 지우는 순서가 중요하다 — <c>SetActive(false)</c>를 <b>먼저</b> 한다.
-        /// 그냥 <c>Destroy</c>만 하면 그 몸은 이번 프레임에 <c>Awake</c> · <c>OnEnable</c>을
-        /// 마치고 나서 파괴된다. <c>Ally.OnEnable</c>이 <see cref="BattleRegistry"/>에
-        /// 등록하므로, 한 프레임 동안 <b>있지도 않을 동료를 적 AI가 타겟으로 잡는다.</b>
-        /// 비활성화가 먼저면 Unity 는 그 몸의 Awake 를 아예 부르지 않는다.
+        /// <b>빈 칸과 전사한 동료는 아예 안 만든다.</b> 슬롯 시절에는 미리 구워진 몸을
+        /// 지워야 했고, 그때 <c>SetActive(false)</c>를 <c>Destroy</c>보다 <b>먼저</b> 해야 한다는
+        /// 함정이 있었다 — 안 그러면 그 몸이 한 프레임 동안 <see cref="BattleRegistry"/>에 올라
+        /// 있지도 않을 동료를 적 AI가 타겟으로 잡았다. 만들지 않으면 그 함정 자체가 없다.
+        ///
+        /// 죽은 동료를 빈 칸과 똑같이 다루는 이유는 그대로다 — 죽은 상태로 세우려면
+        /// 사망 연출 · 레지스트리 · 상태머신이 한 번씩 더 돌아야 하는데, 3인 파티 경로
+        /// (<c>TagSwapRules</c>의 null 칸 건너뛰기 · <c>CollectPartyCards</c>의 skip ·
+        /// <c>AvailableRoles</c>에서 빠짐 · <c>DeckRules</c>의 목표 축소)가 이미 전부 성립한다.
         /// </summary>
         private void BuildParty()
         {
-            if (slots == null) return;
+            OpenStage();
 
-            PartyMemberData[] members = PartyAssembleRules.Resolve(Loadout, slots.Length);
-            var party = new Ally[slots.Length];
+            Hero = BuildHero();
+            Members = BuildMembers();
 
-            for (int i = 0; i < slots.Length; i++)
+            if (Hero != null) Hero.SetParty(Members);
+            else BattleLog.Warn(LogCategory.State,
+                "주인공 프리팹이 없다 — 태그 로스터가 통째로 안 만들어진다. " +
+                "PartyAssembler 의 defaultPlayerPrefab 을 꽂거나 PlayerData 에 프리팹을 넣을 것.", this);
+
+            CloseStage();
+            PushReferences();
+        }
+
+        private Player BuildHero()
+        {
+            PlayerData data = Loadout != null ? Loadout.hero : null;
+
+            GameObject source = Resolve(data != null ? data.prefab : null,
+                                        defaultPlayerPrefab != null ? defaultPlayerPrefab.gameObject : null);
+            if (source == null) return null;
+
+            var hero = Spawn<Player>(source, "Player");
+            if (hero == null) return null;
+
+            // 표가 없어도 정상이다 — 주인공이 하나뿐인 동안은 프리팹 고정값과 같은 값이라
+            // 로드아웃에 안 꽂아도 지금까지와 똑같이 돈다.
+            if (data != null)
             {
-                Ally slot = slots[i];
-                if (slot == null) continue;
+                hero.SetData(data);
+                hero.name = !string.IsNullOrEmpty(data.heroId) ? data.heroId : data.Label;
+                ApplyLook(hero.transform, data.animatorController, data.bodyScale, data.spriteTint);
+            }
 
-                PartyMemberData member = members[i];
+            AllyLayers.Apply(hero.gameObject);
+            Wake(hero.gameObject);
 
-                // 이번 런에서 이미 죽은 동료는 <b>빈 칸과 똑같이</b> 다룬다.
-                //
-                // 죽은 상태로 되살려 세우려면 Combat.Die()를 밖에서 불러야 하고 사망 연출 ·
-                // 레지스트리 · 상태머신이 한 번씩 더 돈다. 슬롯을 지우면 그럴 필요가 없고,
-                // 3인 파티 경로(TagSwapRules의 null 칸 건너뛰기 · CollectPartyCards의 skip ·
-                // AvailableRoles에서 빠짐 · DeckRules의 목표 축소)가 전부 그대로 성립한다.
-                bool lostInRun = member != null && RunProgression.Current.Party.IsDead(member);
+            return hero;
+        }
 
-                if (member == null || lostInRun)
+        private Ally[] BuildMembers()
+        {
+            var party = new Ally[PartyLoadout.MaxMembers];
+            PartyMemberData[] picked = PartyAssembleRules.Resolve(Loadout, party.Length);
+
+            for (int i = 0; i < party.Length; i++)
+            {
+                PartyMemberData member = picked[i];
+                if (member == null) continue;
+
+                if (RunProgression.Current.Party.IsDead(member))
                 {
-                    if (lostInRun)
-                        BattleLog.Log(LogCategory.State,
-                            $"{member.Label} — 이번 런에서 전사했다. 슬롯을 비운다.", this);
-
-                    // TagSwapRules 가 null 칸을 건너뛰므로 인원이 줄어든 파티가 그대로 돈다.
-                    slot.gameObject.SetActive(false);
-                    Destroy(slot.gameObject);
-                    slots[i] = null;
+                    BattleLog.Log(LogCategory.State,
+                        $"{member.Label} — 이번 런에서 전사했다. 몸을 만들지 않는다.", this);
                     continue;
                 }
 
                 if (!PartyAssembleRules.IsValid(member, out string reason))
-                    BattleLog.Warn(LogCategory.Deck,
-                        $"파티 저작 오류 — {reason}", slot);
+                    BattleLog.Warn(LogCategory.Deck, $"파티 저작 오류 — {reason}", this);
 
-                Inject(slot, member);
-                party[i] = slot;
+                GameObject source = Resolve(member.prefab,
+                                            defaultAllyPrefab != null ? defaultAllyPrefab.gameObject : null);
+                if (source == null)
+                {
+                    BattleLog.Warn(LogCategory.State,
+                        $"{member.Label} 의 몸을 만들 프리팹이 없다 — 이 칸을 비운다. " +
+                        "PartyMemberData.prefab 을 채우거나 defaultAllyPrefab 을 꽂을 것.", this);
+                    continue;
+                }
+
+                Ally ally = Spawn<Ally>(source, member.memberId);
+                if (ally == null) continue;
+
+                ally.SetData(member);
+                ally.name = !string.IsNullOrEmpty(member.memberId) ? member.memberId : member.Label;
+                ApplyLook(ally.transform, member.animatorController, member.bodyScale, member.spriteTint);
+
+                // 레이어는 프리팹이 아니라 여기가 보장한다. 동료마다 프리팹이 갈리면서
+                // "그 동료만 적을 통과한다"가 생길 자리가 넷으로 늘었다 — 한 곳에서 칠한다.
+                AllyLayers.Apply(ally.gameObject);
+                Wake(ally.gameObject);
+
+                party[i] = ally;
             }
 
-            if (player != null)
-            {
-                InjectHero(player, Loadout != null ? Loadout.hero : null);
-                player.SetParty(party);
-                AllyLayers.Apply(player.gameObject);
-            }
-            else
+            return party;
+        }
+
+        /// <summary>표의 프리팹이 우선, 없으면 기본 프리팹. 둘 다 없으면 null.</summary>
+        private static GameObject Resolve(GameObject custom, GameObject fallback)
+            => custom != null ? custom : fallback;
+
+        // ── 생성 · 기상 ─────────────────────────────────
+
+        /// <summary>
+        /// 꺼진 임시 부모를 연다. 여기 밑에서 태어난 몸은 <c>activeInHierarchy</c>가 false라
+        /// Unity 가 <c>Awake</c>를 아예 안 부른다 — 표를 꽂을 틈이 그 사이다.
+        /// </summary>
+        private void OpenStage()
+        {
+            var go = new GameObject("~Staging");
+            go.SetActive(false);
+            go.transform.SetParent(partyRoot, false);
+            stage = go.transform;
+        }
+
+        private void CloseStage()
+        {
+            if (stage == null) return;
+
+            // 몸은 전부 Wake 에서 partyRoot 로 옮겨 갔다. 남은 것은 빈 껍데기뿐이다.
+            Destroy(stage.gameObject);
+            stage = null;
+        }
+
+        /// <summary>
+        /// 프리팹 하나를 <b>꺼진 채로</b> 만든다. 루트에 <typeparamref name="T"/>가 없으면
+        /// 만든 것을 도로 버리고 null 을 돌려준다 — 저작 실수가 조용히 넘어가면
+        /// 증상은 "그 동료만 아무것도 안 한다"로만 나온다.
+        /// </summary>
+        private T Spawn<T>(GameObject source, string label) where T : Component
+        {
+            GameObject go = Instantiate(source, stage);
+
+            var body = go.GetComponent<T>();
+            if (body == null)
             {
                 BattleLog.Warn(LogCategory.State,
-                    "PartyAssembler 에 Player 가 안 꽂혀 있다 — 태그 로스터가 통째로 안 만들어진다.", this);
+                    $"{source.name} 의 루트에 {typeof(T).Name} 이(가) 없다 — " +
+                    $"'{label}' 자리를 비운다.", this);
+
+                Destroy(go);
+                return null;
             }
+
+            go.name = !string.IsNullOrEmpty(label) ? label : source.name;
+            return body;
         }
 
         /// <summary>
-        /// 주인공에 표를 꽂는다. 실제 적용은 <see cref="Player.ApplyData"/>가 Awake 에서 한다.
+        /// 몸을 <see cref="partyRoot"/>로 옮기며 깨운다. 이 줄이 <c>Awake</c> ·
+        /// <c>OnEnable</c>을 부르므로, <b>표는 이 앞에서 전부 꽂혀 있어야 한다.</b>
         ///
-        /// 표가 없어도 정상이다 — 주인공이 하나뿐인 동안은 프리팹 고정값과 같은 값이라
-        /// 로드아웃에 안 꽂아도 지금까지와 똑같이 돈다.
+        /// 프리팹이 꺼진 채로 저장돼 있어도 여기서 켠다 — 그런 프리팹은 영영 안 깨어나고,
+        /// 화면에는 "그 동료만 안 나온다"로만 보인다.
         /// </summary>
-        private void InjectHero(Player hero, PlayerData data)
+        private void Wake(GameObject body)
         {
-            if (data == null) return;
-
-            hero.SetData(data);
-
-            if (data.animatorController != null)
-            {
-                var anim = hero.GetComponent<EntityAnimator>();
-                if (anim != null) anim.SetController(data.animatorController);
-            }
-
-            ApplyBodyScale(hero.transform, data.bodyScale);
-            ApplyTint(hero.transform, data.spriteTint);
+            body.transform.SetParent(partyRoot, false);
+            body.transform.localPosition = Vector3.zero;
+            body.SetActive(true);
         }
 
-        /// <summary>동료 하나에 표를 꽂는다. 실제 적용은 <see cref="Ally.ApplyData"/>가 Awake 에서 한다.</summary>
-        private void Inject(Ally slot, PartyMemberData member)
-        {
-            slot.SetData(member);
-            slot.name = !string.IsNullOrEmpty(member.memberId) ? member.memberId : member.Label;
+        // ── 외형 ────────────────────────────────────────
 
-            // 애니메이터만 여기서 직접 꽂는다. EntityAnimator.Awake 가 컨트롤러를
+        /// <summary>
+        /// 공용 프리팹 하나를 색과 크기로 구분하던 시절의 통로. 제 프리팹을 가진 동료는
+        /// 이 값들이 기본값(1 · 흰색 · null)이라 여기가 전부 통과한다.
+        /// </summary>
+        private static void ApplyLook(Transform body, RuntimeAnimatorController controller,
+                                      float bodyScale, Color tint)
+        {
+            // 애니메이터는 반드시 Awake 전에 꽂는다. EntityAnimator.Awake 가 컨트롤러를
             // AnimatorOverrideController 로 감싸므로 그 뒤에 바꾸면 스킬 클립 교체가 통째로 어긋난다.
-            if (member.animatorController != null)
+            if (controller != null)
             {
-                var anim = slot.GetComponent<EntityAnimator>();
-                if (anim != null) anim.SetController(member.animatorController);
+                var anim = body.GetComponent<EntityAnimator>();
+                if (anim != null) anim.SetController(controller);
             }
 
-            ApplyBodyScale(slot.transform, member.bodyScale);
-            ApplyTint(slot.transform, member.spriteTint);
-
-            // 레이어는 프리팹이 아니라 여기가 보장한다. 지금까지는 SceneLayoutBuilder 가
-            // 씬을 구울 때 칠했는데, 파티가 씬에서 빠지면 그 빌더는 파티를 못 본다.
-            AllyLayers.Apply(slot.gameObject);
+            ApplyBodyScale(body, bodyScale);
+            ApplyTint(body, tint);
         }
 
         /// <summary>
-        /// 몸 크기. 씬에서 <c>View</c> · <c>Shadow</c>를 각각 키우던 값을 하나로 모은 것이다.
-        /// 루트를 키우지 않는 이유는 루트에 콜라이더(피격 범위)가 붙어 있고,
+        /// 몸 크기. 루트를 키우지 않는 이유는 루트에 콜라이더(피격 범위)가 붙어 있고,
         /// 그 치수를 <see cref="Entity.HurtboxSize"/>가 읽어 <b>스킬 사거리 배수</b>로 쓰기 때문이다
         /// (<c>SkillData.castRangeScale</c>) — 루트를 키우면 몸집이 큰 동료의 스킬만 사거리가 늘어난다.
         ///
@@ -264,6 +364,33 @@ namespace Prototype
             sr.color = new Color(tint.r, tint.g, tint.b, sr.color.a);
         }
 
+        // ── 주입 ────────────────────────────────────────
+
+        /// <summary>
+        /// 만든 주인공을 그를 필요로 하는 곳에 <b>밀어 넣는다</b>.
+        ///
+        /// 슬롯 시절에는 이 참조들이 <c>BattleInputBuilder</c>가 프리팹에 구워 둔 것이었다.
+        /// 몸이 런타임 생성물이 되면서 그 참조가 사라졌으므로 여기가 대신 채운다 —
+        /// 받는 쪽의 <c>FindAnyObjectByType</c> 폴백은 <b>안전망으로 남긴다</b>.
+        /// 파티 없이 도는 스킬 실험 씬이 그 폴백으로 살아 있다.
+        /// </summary>
+        private void PushReferences()
+        {
+            if (Hero == null) return;
+
+            if (swap != null) swap.SetHero(Hero);
+            else BattleLog.Warn(LogCategory.State,
+                "TagSwapController 가 없다 — 태그 로스터가 안 만들어진다.", this);
+
+            if (bulletTime != null)
+            {
+                bulletTime.SetHero(Hero);
+                bulletTime.GetComponent<DebugComboHUD>()?.SetHero(Hero);
+            }
+            else BattleLog.Warn(LogCategory.State,
+                "BulletTimeController 가 없다 — 덱이 파티 카드를 못 걷는다.", this);
+        }
+
         // ── 배치 ────────────────────────────────────────
 
         /// <summary>
@@ -280,11 +407,10 @@ namespace Prototype
         {
             PartySpawnPoint.Resolve(out Vector3 ground, out Vector3 facing);
 
-            if (player != null) player.transform.position = ground;
+            if (Hero != null) Hero.transform.position = ground;
 
-            if (slots != null)
-                foreach (Ally a in slots)
-                    if (a != null) a.transform.position = ground;
+            foreach (Ally a in Members)
+                if (a != null) a.transform.position = ground;
 
             if (swap != null) swap.SeedSeat(ground, facing);
             else BattleLog.Warn(LogCategory.State,
