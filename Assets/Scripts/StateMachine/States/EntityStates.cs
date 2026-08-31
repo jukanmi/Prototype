@@ -213,11 +213,6 @@ namespace Prototype
                     GoToStage(stage + 1);
                     break;
 
-                case BasicComboStep.Restart:
-                    Entity.ClearAttackBuffer();
-                    GoToStage(0);
-                    break;
-
                 case BasicComboStep.Finish:
                     Entity.StateMachine.TryChangeState(Entity.IdleState);
                     break;
@@ -269,7 +264,7 @@ namespace Prototype
     /// 올라가도 한 대밖에 못 넣었고, 공중 콤보의 마무리를 전부 스킬에 기대야 했다.
     ///
     /// 지상과 다른 점은 <b>끝나는 조건</b> 하나다 — 착지하면 몇 타째든 그 자리에서 끝난다.
-    /// 마지막 타를 다 쓰면 <see cref="BasicComboStep.Restart"/>로 1타부터 다시 도는 것도 같다.
+    /// 마지막 타를 다 쓰면 <see cref="BasicComboStep.Finish"/>로 Idle에 나가는 것도 같다.
     /// </summary>
     public class AerialAttackState : EntityState
     {
@@ -328,11 +323,6 @@ namespace Prototype
                 case BasicComboStep.Advance:
                     Entity.ClearAttackBuffer();
                     GoToStage(stage + 1);
-                    break;
-
-                case BasicComboStep.Restart:
-                    Entity.ClearAttackBuffer();
-                    GoToStage(0);
                     break;
 
                 case BasicComboStep.Finish:

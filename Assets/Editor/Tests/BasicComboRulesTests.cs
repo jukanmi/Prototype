@@ -71,18 +71,19 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void LastStage_DoesNotCancel_ButRestartsAfterRecovery()
+        public void LastStage_DoesNotCancel_AndAlwaysFinishes()
         {
             // 마무리는 캔슬 불가 — 긴 후딜을 지워 버리면 "강타는 무겁다"가 거짓말이 된다.
             Assert.That(Step(0.25f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Continue));
 
-            // 다 기다린 뒤에 선입력이 살아 있으면 1타부터 다시 돈다.
-            Assert.That(Step(0.32f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Restart));
+            // 선입력이 살아 있어도 1타로 되돌아가지 않는다. 되돌아가면 두들기는 동안
+            // 평타가 상태를 못 벗어나 무한히 돈다 — 3연타가 아니라 영구 연타가 된다.
+            Assert.That(Step(0.32f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Finish));
             Assert.That(Step(0.32f, 2, 3, buffered: false), Is.EqualTo(BasicComboStep.Finish));
         }
 
         [Test]
-        public void SingleStage_NeverAdvancesOrRestarts()
+        public void SingleStage_NeverAdvances()
         {
             // 콤보를 저작하지 않은 몸(적 · 자율 동료)은 예전과 완전히 같은 경로를 탄다.
             Assert.That(Step(0.25f, 0, 1, buffered: true), Is.EqualTo(BasicComboStep.Continue));

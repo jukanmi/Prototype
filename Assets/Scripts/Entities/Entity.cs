@@ -13,81 +13,64 @@ namespace Prototype
         [SerializeField] private Stats stats = new Stats();
         [SerializeField] private Energies energies = new Energies();
 
-        [Header("평타")]
-        [SerializeField] private Attack basicAttack;
-        [Tooltip("선딜. 이 시점에 히트박스가 켜진다.")]
-        [SerializeField] private float basicAttackWindup = 0.12f;
-        [Tooltip("히트박스가 꺼지는 시점.")]
-        [SerializeField] private float basicAttackActiveEnd = 0.24f;
-        [Tooltip("후딜 포함 전체 길이.")]
-        [SerializeField] private float basicAttackTotal = 0.45f;
-        [SerializeField] private HitData basicHit = new HitData
+        // ── 평타 ────────────────────────────────────────
+        //
+        // 값은 전부 BasicAttackProfile 컴포넌트가 든다(AllyBasicAttack · EnemyBasicAttack).
+        // 여기 남은 것은 호출부가 계속 Entity 하나만 보게 하는 위임뿐이다 —
+        // AttackState · EntityAnimator · EnemyControl 이 프로필을 직접 알 이유가 없다.
+
+        private BasicAttackProfile profileCache;
+
+        /// <summary>
+        /// 이 몸의 평타 한 벌. 안 붙어 있으면 null이고, 그 몸은 <b>평타가 없다</b> —
+        /// <see cref="Start"/>가 경고를 낸다. 아래 위임들이 전부 null을 견디는 이유가 이것이다.
+        /// 조용히 기본값으로 도는 것보다 "안 때린다"가 배선 실수를 빨리 드러낸다.
+        ///
+        /// <b>캐시를 직렬화하지 않는다.</b> EditMode 테스트가 프리팹 에셋에서 이 API를
+        /// 그대로 부르는데(Awake가 안 돈다), 직렬화 필드에 캐시하면 그 조회가
+        /// 에셋을 더럽혀 테스트가 프로젝트를 바꾼다.
+        /// </summary>
+        public BasicAttackProfile AttackProfile
         {
-            damageData = new DamageData(10f),
-            targetState = CombatState.Neutral,
-            nextState = CombatState.LightHit,
-            mode = KnockbackMode.Fixed,
-            fixedDir = Vector3.forward,
-            pushDistance = 0.375f,
-            hitStunDuration = 0.3f,
-        };
+            get
+            {
+                if (profileCache == null) profileCache = GetComponent<BasicAttackProfile>();
+                return profileCache;
+            }
+        }
 
-        [Tooltip("평타 연타 단계. 비워 두면 지금까지의 단발 평타 그대로다 — 적 · 자율 동료가 그렇다.\n\n" +
-                 "채우면 유저가 모는 몸만 버튼을 반복해 이어 칠 수 있다.\n" +
-                 "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
-        [SerializeField] private BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
+        public Attack BasicAttack => AttackProfile != null ? AttackProfile.Hitbox : null;
+        public Attack SkillAttack => AttackProfile != null ? AttackProfile.SkillHitbox : null;
 
-        [Tooltip("스킬 전용 히트박스. 비우면 평타 히트박스를 재사용한다.")]
-        [SerializeField] private Attack skillAttack;
-
-        [Header("평타 — 원거리")]
-        [Tooltip("넣으면 평타가 투사체가 된다. 비우면 앞에 히트박스를 켜는 근접 평타.")]
-        [SerializeField] private Projectile basicProjectile;
-        [SerializeField] private float basicProjectileSpeed = 16f;
-        [SerializeField] private float basicProjectileRange = 9f;
-        [SerializeField] private int basicProjectilePierce = 0;
+        public float BasicAttackWindup => AttackProfile != null ? AttackProfile.Windup : 0f;
+        public float BasicAttackActiveEnd => AttackProfile != null ? AttackProfile.ActiveEnd : 0f;
+        public float BasicAttackTotal => AttackProfile != null ? AttackProfile.Total : 0f;
 
         /// <summary>평타가 날아가는지. AttackState가 이걸로 갈린다.</summary>
-        public bool BasicIsRanged => basicProjectile != null;
+        public bool BasicIsRanged => AttackProfile != null && AttackProfile.IsRanged;
 
         /// <summary>
         /// 원거리 평타의 유효 사거리. AI가 이 거리에서 멈춰 선다.
         /// 최대 사거리보다 짧게 잡아 가장자리에서 헛쏘지 않게 한다.
         /// </summary>
-        public float BasicAttackReach => basicProjectileRange * 0.8f;
+        public float BasicAttackReach => AttackProfile != null ? AttackProfile.Reach : 0f;
 
-        public float BasicProjectileSpeed => basicProjectileSpeed;
-        public float BasicProjectileRange => basicProjectileRange;
-        public int BasicProjectilePierce => basicProjectilePierce;
+        public float BasicProjectileSpeed => AttackProfile != null ? AttackProfile.ProjectileSpeed : 0f;
+        public float BasicProjectileRange => AttackProfile != null ? AttackProfile.ProjectileRange : 0f;
+        public int BasicProjectilePierce => AttackProfile != null ? AttackProfile.ProjectilePierce : 0;
 
         /// <summary>
         /// 평타를 투사체로 바꾼다. EnemyData 주입과 에디터 생성기가 같은 경로를 쓰도록 API로 연다.
-        /// 0 이하 값은 조용히 최소값으로 올린다 — 저작 실수로 제자리에 서는 투사체를 만들지 않는다.
         /// </summary>
         public void ConfigureBasicProjectile(Projectile prefab, float speed, float range, int pierce)
-        {
-            basicProjectile = prefab;
-            basicProjectileSpeed = Mathf.Max(0.1f, speed);
-            basicProjectileRange = Mathf.Max(0.5f, range);
-            basicProjectilePierce = Mathf.Max(0, pierce);
-        }
+            => AttackProfile?.ConfigureProjectile(prefab, speed, range, pierce);
 
         /// <summary>
-        /// 평타 타이밍을 갈아 끼운다. <see cref="ConfigureBasicProjectile"/>과 같은 자리이고
-        /// 같은 이유로 연다 — 표(<see cref="PlayerData"/>)와 에디터 생성기가 같은 경로를 쓰게.
-        ///
-        /// <b>0 이하는 "건드리지 않는다"</b>는 뜻이다. 표에 안 적힌 값까지 덮으면
-        /// 프리팹 설정이 조용히 지워진다.
-        ///
-        /// 순서(<c>windup &lt; activeEnd &lt; total</c>)는 여기서 강제하지 않는다 —
-        /// <see cref="Start"/>가 이미 경고를 내고, 여기서 조용히 고치면 그 경고가 안 뜬다.
+        /// 평타 타이밍을 갈아 끼운다. <b>0 이하는 "건드리지 않는다"</b>는 뜻이다 —
+        /// 표에 안 적힌 값까지 덮으면 프리팹 설정이 조용히 지워진다.
         /// </summary>
         public void ConfigureBasicAttack(float windup, float activeEnd, float total)
-        {
-            if (windup > 0f) basicAttackWindup = windup;
-            if (activeEnd > 0f) basicAttackActiveEnd = activeEnd;
-            if (total > 0f) basicAttackTotal = total;
-        }
+            => AttackProfile?.Configure(windup, activeEnd, total);
 
         /// <summary>
         /// 평타 연타 단계를 갈아 끼운다. <c>null</c>이나 빈 배열은 무시한다 —
@@ -95,12 +78,12 @@ namespace Prototype
         ///
         /// <b>Awake보다 먼저</b> 불러야 안전하다. <see cref="EntityAnimator"/>가 Awake에서
         /// 1타 클립을 잡아 두고 그 위에 오버라이드를 씌우기 때문이다.
+        ///
+        /// 단발 프로필(<see cref="EnemyBasicAttack"/>)이 붙은 몸은 조용히 무시한다 —
+        /// 적에게 연타를 먹이는 경로가 데이터 주입으로 열리면 안 된다.
         /// </summary>
         public void ConfigureBasicCombo(BasicAttackStage[] stages)
-        {
-            if (stages == null || stages.Length == 0) return;
-            basicComboStages = stages;
-        }
+            => AttackProfile?.ConfigureCombo(stages);
 
         [Header("사망")]
         [Tooltip("쓰러진 채로 남아 있는 시간. 이 뒤에 서서히 사라진다.")]
@@ -111,12 +94,6 @@ namespace Prototype
         public float DespawnDelay => despawnDelay;
         public float DespawnFade => despawnFade;
 
-        public Attack BasicAttack => basicAttack;
-        public Attack SkillAttack => skillAttack != null ? skillAttack : basicAttack;
-        public float BasicAttackWindup => basicAttackWindup;
-        public float BasicAttackActiveEnd => basicAttackActiveEnd;
-        public float BasicAttackTotal => basicAttackTotal;
-
         /// <summary>평타 HitData에 현재 공격력을 실어 새로 만든다. 원본은 건드리지 않는다.</summary>
         public HitData BuildBasicHit() => BuildBasicHit(0);
 
@@ -125,37 +102,27 @@ namespace Prototype
         /// 무인자 버전이 여기로 위임하므로 원거리 · 공중 평타 호출부는 손댈 필요가 없다.
         /// </summary>
         public HitData BuildBasicHit(int stage)
-        {
-            HitData h = basicHit;
-            h.damageData.damage = stats.GetValue(StatType.AttackPower, h.damageData.damage);
-
-            if (!HasComboStage(stage)) return h;
-
-            return BasicComboRules.BuildStageHit(in h, in basicComboStages[stage]);
-        }
+            => AttackProfile != null ? AttackProfile.Build(stats, stage) : default;
 
         // ── 평타 연타 ────────────────────────────────────
 
         /// <summary>연타 단계 수. 저작하지 않았으면 1 — 단발이라는 뜻이다.</summary>
-        public int BasicComboStageCount => basicComboStages != null && basicComboStages.Length > 0
-            ? basicComboStages.Length
-            : 1;
+        public int BasicComboStageCount => AttackProfile != null ? AttackProfile.StageCount : 1;
 
         /// <summary>연타를 저작한 몸인지.</summary>
         public bool HasBasicCombo => BasicComboStageCount > 1;
 
-        private bool HasComboStage(int stage)
-            => basicComboStages != null && stage >= 0 && stage < basicComboStages.Length;
-
         /// <summary>이 단계에 재생할 클립. 비워 뒀으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
         public AnimationClip GetBasicStageClip(int stage)
-            => HasComboStage(stage) ? basicComboStages[stage].clip : null;
+            => AttackProfile != null ? AttackProfile.ClipFor(stage) : null;
 
         /// <summary>단계 타이밍. 0으로 비워 둔 값은 기본 평타 값으로 접어서 돌려준다.</summary>
         public BasicAttackTiming GetBasicStageTiming(int stage)
         {
-            BasicAttackStage s = HasComboStage(stage) ? basicComboStages[stage] : default;
-            return BasicComboRules.ResolveTiming(in s, basicAttackWindup, basicAttackActiveEnd, basicAttackTotal);
+            if (AttackProfile != null) return AttackProfile.TimingFor(stage);
+
+            BasicAttackStage none = default;
+            return BasicComboRules.ResolveTiming(in none, 0f, 0f, 0f);
         }
 
         /// <summary>
@@ -171,7 +138,7 @@ namespace Prototype
         public void SetActiveAttackStage(int stage, float total)
         {
             ActiveAttackStage = stage;
-            ActiveAttackTotal = total > 0f ? total : basicAttackTotal;
+            ActiveAttackTotal = total > 0f ? total : BasicAttackTotal;
         }
 
         /// <summary>
@@ -180,7 +147,8 @@ namespace Prototype
         /// </summary>
         public void FireBasicProjectile()
         {
-            if (basicProjectile == null || Physics == null) return;
+            Projectile prefab = AttackProfile != null ? AttackProfile.Projectile : null;
+            if (prefab == null || Physics == null) return;
 
             Vector3 from = Physics.GroundPosition;
             Entity target = BattleRegistry.NearestOpponent(this);
@@ -190,13 +158,14 @@ namespace Prototype
                 : Physics.Facing;
 
             // 히트박스 레이어를 물려받아야 충돌 매트릭스가 맞는다.
-            int layer = basicAttack != null ? basicAttack.gameObject.layer : gameObject.layer;
+            Attack box = BasicAttack;
+            int layer = box != null ? box.gameObject.layer : gameObject.layer;
 
-            Projectile shot = Instantiate(basicProjectile);
+            Projectile shot = Instantiate(prefab);
             HitData hit = BuildBasicHit();
 
             shot.Launch(Combat, in hit, from, dir,
-                        basicProjectileSpeed, basicProjectileRange, basicProjectilePierce,
+                        BasicProjectileSpeed, BasicProjectileRange, BasicProjectilePierce,
                         Physics.WallMask, layer, height: BasicProjectileHeight(shot, target));
 
             // 쏘는 순간 방향을 맞춰 준다. 히트박스 자식과 스프라이트가 따라 돈다.
@@ -455,8 +424,7 @@ namespace Prototype
 
             StateMachine = new StateMachine { OwnerName = name };
 
-            if (basicAttack == null) basicAttack = GetComponentInChildren<Attack>(true);
-            if (basicAttack != null && basicAttack.Attacker == null) basicAttack.Attacker = Combat;
+            AttackProfile?.ResolveHitbox(Combat);
 
             EnsureDefaults();
             BuildStates();
@@ -464,31 +432,30 @@ namespace Prototype
 
         protected virtual void Start()
         {
+            string profile = AttackProfile != null ? AttackProfile.GetType().Name : "없음(옛 배선)";
+
             BattleLog.Log(LogCategory.State,
                 $"{name} 준비 완료 | {GetType().Name} | Control {(Control != null ? Control.GetType().Name : "없음")} | " +
-                $"HP {Combat.Health.MaxValue:0.#} | 평타 히트박스 {(basicAttack != null ? "O" : "X")} | 스킬 히트박스 {(skillAttack != null ? "O" : "X")}",
+                $"HP {Combat.Health.MaxValue:0.#} | 평타 {profile} | " +
+                $"평타 히트박스 {(BasicAttack != null ? "O" : "X")} | " +
+                $"스킬 히트박스 {(SkillAttack != null ? "O" : "X")}",
                 this);
 
             StateMachine.ForceChangeState(IdleState);
 
-            // 선딜이 전체 길이보다 길면 AttackState가 히트박스를 켜기 전에 끝난다 —
-            // 공격이 조용히 사라지고 모션만 남는다. 예고를 길게 잡다가 밟기 쉬운 함정이라 경고한다.
-            if (basicAttackWindup >= basicAttackTotal)
-                BattleLog.Warn(LogCategory.Combat,
-                    $"{name}: 평타 선딜({basicAttackWindup:0.##}s)이 전체 길이({basicAttackTotal:0.##}s) 이상이다. " +
-                    "히트박스가 켜지지 않는다 — windup < activeEnd < total 순서를 지킬 것.", this);
-
-            // 연타는 단계마다 같은 함정을 밟을 수 있다. 폴백을 먹인 뒤의 값으로 본다.
-            for (int i = 0; i < BasicComboStageCount && HasBasicCombo; i++)
+            if (AttackProfile != null)
             {
-                BasicAttackTiming t = GetBasicStageTiming(i);
-                if (t.windup < t.activeEnd && t.activeEnd <= t.total) continue;
-
-                BattleLog.Warn(LogCategory.Combat,
-                    $"{name}: 평타 {i + 1}타 타이밍이 어긋났다 " +
-                    $"(선딜 {t.windup:0.##} / 판정끝 {t.activeEnd:0.##} / 전체 {t.total:0.##}). " +
-                    "windup < activeEnd <= total 순서를 지킬 것.", this);
+                AttackProfile.Validate(this);
+                return;
             }
+
+            // 프로필이 없으면 이 몸은 평타를 못 친다. 조용히 0으로 도는 것보다 여기서 말한다 —
+            // AttackState에 들어가긴 하는데 히트박스를 켜는 시점이 오지 않아, 화면에서는
+            // "가끔 안 때린다"로만 보인다.
+            BattleLog.Warn(LogCategory.Combat,
+                $"{name}: 평타 프로필이 없다 — 이 몸은 평타를 못 친다. " +
+                $"{(this is Enemy ? nameof(EnemyBasicAttack) : nameof(AllyBasicAttack))}을 같은 " +
+                "GameObject에 붙일 것.", this);
         }
 
         /// <summary>

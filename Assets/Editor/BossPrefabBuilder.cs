@@ -419,11 +419,11 @@ namespace Prototype.EditorTools
             // private [SerializeField]는 SerializedObject로만 안전하게 건드린다.
             var so = new SerializedObject(enemy);
             so.FindProperty("data").objectReferenceValue = data;
-            so.FindProperty("basicAttack").objectReferenceValue = basicHitbox;
-            so.FindProperty("basicAttackWindup").floatValue = BasicWindup;
-            so.FindProperty("basicAttackActiveEnd").floatValue = BasicActiveEnd;
-            so.FindProperty("basicAttackTotal").floatValue = BasicTotal;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            // 평타는 Entity가 아니라 프로필 컴포넌트가 든다. 없으면 여기서 붙는다.
+            BasicAttackProfiles.SetHitbox(root, basicHitbox);
+            BasicAttackProfiles.SetTiming(root, BasicWindup, BasicActiveEnd, BasicTotal);
 
             EditorUtility.SetDirty(enemy);
         }

@@ -28,7 +28,7 @@ namespace Prototype.Tests
         {
             foreach (Entity e in ComboEntities())
                 Assert.That(e.BasicComboStageCount, Is.EqualTo(BasicComboBuilder.StageCount),
-                            $"{e.name}: 3연타 단계가 없다 — Prototype ▸ 평타 - 3연타 클립 굽기 + 프리팹 배선 을 실행할 것");
+                            $"{e.name}: 3연타 단계가 없다 — 프리팹 인스펙터의 Entity ▸ basicComboStages 를 채울 것");
         }
 
         [Test]
@@ -97,6 +97,31 @@ namespace Prototype.Tests
                                 $"{e.name} {i + 1}타가 앞 타와 같은 클립이다 — 세 타가 같은 그림으로 보인다");
                 }
             }
+        }
+
+        /// <summary>
+        /// 마무리 클립이 <b>한 번만</b> 휘두르는지. 원본 시트(<c>_AttackCombo2hit</c>)는 두 스윙이라
+        /// 통째로 구우면 판정 3번에 그림 4번이 된다 — 찍기 · 횡베기 · 찍기 · 횡베기.
+        /// 프레임 수를 세는 게 "그림이 HitData를 따라간다"를 코드로 확인할 수 있는 유일한 지점이다.
+        /// </summary>
+        [Test]
+        public void Finisher_ShowsOneSwing()
+        {
+            string path = $"Assets/Data/Animation/{BasicComboBuilder.Stage3Clip}.anim";
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+            Assert.That(clip, Is.Not.Null, $"{path}가 없다 — Prototype ▸ 평타 - 3연타 클립 굽기 를 실행할 것");
+
+            EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+            Assert.That(bindings, Is.Not.Empty, $"{path}에 스프라이트 커브가 없다");
+
+            ObjectReferenceKeyframe[] keys = AnimationUtility.GetObjectReferenceCurve(clip, bindings[0]);
+
+            // 굽는 쪽이 마지막 프레임을 한 칸 더 찍어 제 몫의 시간을 준다(ArtImportBuilder.BuildSpriteClip).
+            int expected = BasicComboBuilder.Stage3To - BasicComboBuilder.Stage3From + 2;
+
+            Assert.That(keys.Length, Is.EqualTo(expected),
+                        $"{BasicComboBuilder.Stage3Clip}이 {keys.Length - 1}프레임이다 — " +
+                        "시트를 통째로 구우면 마무리 한 타에 두 번 휘두른다");
         }
 
         [Test]

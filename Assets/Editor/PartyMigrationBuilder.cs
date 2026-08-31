@@ -284,14 +284,11 @@ namespace Prototype.EditorTools
         }
 
         /// <summary>
-        /// <see cref="Entity"/>가 투사체 프리팹을 밖으로 안 열어 준다. 표를 굽는 1회성 경로라
-        /// 여기서만 직렬화 필드를 직접 읽는다 — 런타임 코드에는 넣지 않는다.
+        /// 평타 투사체. <see cref="BasicAttackProfile"/>이 그대로 열어 주므로
+        /// 직렬화 필드를 손으로 뒤질 일이 없어졌다.
         /// </summary>
         private static Projectile GetProjectile(Ally ally)
-        {
-            var so = new SerializedObject(ally);
-            return so.FindProperty("basicProjectile").objectReferenceValue as Projectile;
-        }
+            => ally != null && ally.AttackProfile != null ? ally.AttackProfile.Projectile : null;
 
         /// <summary>
         /// 옮기지 않고 <b>버리는</b> 값을 알린다. 조용히 사라지면 나중에
