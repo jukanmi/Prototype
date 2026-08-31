@@ -125,7 +125,7 @@ namespace Prototype.EditorTools
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             root.transform.localScale = Vector3.one;
 
-            ApplyBodyScale(root.transform, scale);
+            ApplyBodyScale(root, scale);
             ApplyTint(root.transform, tint);
             AllyLayers.Apply(root);
 
@@ -157,21 +157,43 @@ namespace Prototype.EditorTools
         // ── 외형 ────────────────────────────────────────
 
         /// <summary>
-        /// <c>PartyAssembler.ApplyBodyScale</c>과 <b>같은 규칙</b>이어야 한다 —
-        /// 여기서 굽는 것이 거기서 얹던 것과 다르면 프리팹을 꽂는 순간 크기가 바뀐다.
-        /// 루트가 아니라 <c>View</c> · <c>Shadow</c>를 키우는 것이 그 규칙의 전부다.
+        /// 몸 크기를 <see cref="BeltScrollView"/>에 굽는다. <c>PartyAssembler.ApplyBodyScale</c>과
+        /// <b>같은 자리</b>여야 한다 — 여기서 굽는 것이 거기서 얹던 것과 다르면
+        /// 프리팹을 꽂는 순간 크기가 바뀐다.
+        ///
+        /// <b><c>View</c> · <c>Shadow</c>의 localScale 에 쓰면 안 된다.</b> 그 두 노드는
+        /// <see cref="BeltScrollView"/>가 깊이 배율로 매 프레임 통째로 덮어쓰므로,
+        /// 거기 구운 값은 프리팹 인스펙터에만 남고 재생하는 순간 사라진다.
         /// </summary>
-        private static void ApplyBodyScale(Transform body, float scale)
+        private static void ApplyBodyScale(GameObject body, float scale)
         {
             if (Mathf.Approximately(scale, 1f) || scale <= 0f) return;
 
-            Scale(body.Find("View"), scale);
-            Scale(body.Find("Shadow"), scale);
+            var view = body.GetComponent<BeltScrollView>();
+            if (view == null)
+            {
+                Debug.LogWarning($"[AllyPrefabBuilder] {body.name} 에 BeltScrollView 가 없다 — " +
+                                 $"몸 배율 {scale:0.##}를 굽지 못했다.");
+                return;
+            }
+
+            Wire(view, so =>
+            {
+                SerializedProperty p = so.FindProperty("bodyScale");
+                float now = p.floatValue > 0f ? p.floatValue : 1f;
+
+                // 대입이 아니라 곱이다. 기준 프리팹이 이미 제 배수를 들고 있을 수 있다.
+                p.floatValue = now * scale;
+            });
         }
 
-        private static void Scale(Transform t, float scale)
+        private static void Wire(Object target, System.Action<SerializedObject> apply)
         {
-            if (t != null) t.localScale *= scale;
+            if (target == null) return;
+
+            var so = new SerializedObject(target);
+            apply(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

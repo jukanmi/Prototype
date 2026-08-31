@@ -355,7 +355,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.94, y: 0.94, z: 0.94}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7579661548221108592}
@@ -388,7 +388,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0.9, z: 0}
-  m_LocalScale: {x: 0.84599996, y: 0.329, z: 0.94}
+  m_LocalScale: {x: 0.9, y: 0.35, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8646345965603172207}
@@ -471,6 +471,7 @@ GameObject:
   - component: {fileID: 3354323018604674952}
   - component: {fileID: 2756566443688264239}
   - component: {fileID: 1301811588826824651}
+  - component: {fileID: 9082212432555488492}
   m_Layer: 10
   m_Name: Ally_Tan
   m_TagString: Untagged
@@ -625,80 +626,6 @@ MonoBehaviour:
     stats: []
   energies:
     energies: []
-  basicAttack: {fileID: 8696284622463952200}
-  basicAttackWindup: 0.5
-  basicAttackActiveEnd: 0.65
-  basicAttackTotal: 0.9
-  basicHit:
-    damageData:
-      damage: 10
-    aerialDamage: 0
-    castDelay: 0
-    castRangeScale: {x: 0, y: 0, z: 0}
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    pushDistance: 0.375
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    pullAnchorRatio: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
-  basicComboStages:
-  - label: "\uC57D"
-    clip: {fileID: 7400000, guid: bfe234f40cc3fa04996361a4e08d0bfb, type: 2}
-    windup: 0.1
-    activeEnd: 0.2
-    total: 0.32
-    cancelStart: 0.2
-    damageMultiplier: 0.9
-    overrideReaction: 0
-    nextState: 0
-    mode: 0
-    pushDistance: 0
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    hitStunDuration: 0
-  - label: "\uC911"
-    clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
-    windup: 0.12
-    activeEnd: 0.24
-    total: 0.4
-    cancelStart: 0.24
-    damageMultiplier: 1.1
-    overrideReaction: 0
-    nextState: 0
-    mode: 0
-    pushDistance: 0
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    hitStunDuration: 0
-  - label: "\uAC15"
-    clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
-    windup: 0.18
-    activeEnd: 0.34
-    total: 0.7
-    cancelStart: 0
-    damageMultiplier: 1.8
-    overrideReaction: 1
-    nextState: 2
-    mode: 2
-    pushDistance: 0.5625
-    airborneHeight: 0.6
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    hitStunDuration: 0.5
-  skillAttack: {fileID: 9107130087434627855}
-  basicProjectile: {fileID: 0}
-  basicProjectileSpeed: 16
-  basicProjectileRange: 9
-  basicProjectilePierce: 0
   despawnDelay: 1
   despawnFade: 0.5
   data: {fileID: 0}
@@ -734,9 +661,11 @@ MonoBehaviour:
   depthRoot: {fileID: 5089551948600836162}
   shadow: {fileID: 5371621752041563193}
   depthScalePerUnit: 0.06
+  bodyScale: 0.94
   spriteOffsetY: 0
   flipToFacing: 1
   facingRenderer: {fileID: 7385173863770795031}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -794,3 +723,89 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
   dashCooldown: 0.6
   attackBufferWindow: 0.25
+--- !u!114 &9082212432555488492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8200739034675296833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AllyBasicAttack
+  basicAttack: {fileID: 8696284622463952200}
+  skillAttack: {fileID: 9107130087434627855}
+  windup: 0.5
+  activeEnd: 0.65
+  total: 0.9
+  basicHit:
+    damageData:
+      damage: 10
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0.375
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.3
+    guardDamage: 0
+    snapZ: 0
+  projectile: {fileID: 0}
+  projectileSpeed: 16
+  projectileRange: 9
+  projectilePierce: 0
+  stages:
+  - label: "\uC57D"
+    clip: {fileID: 7400000, guid: bfe234f40cc3fa04996361a4e08d0bfb, type: 2}
+    windup: 0.1
+    activeEnd: 0.2
+    total: 0.32
+    cancelStart: 0.2
+    damageMultiplier: 0.9
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0
+  - label: "\uC911"
+    clip: {fileID: 7400000, guid: 51592d6e87d6d954483dddbba597eefb, type: 2}
+    windup: 0.12
+    activeEnd: 0.24
+    total: 0.4
+    cancelStart: 0.24
+    damageMultiplier: 1.1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0
+  - label: "\uAC15"
+    clip: {fileID: 7400000, guid: a68b790a43d93424aa449ae1292842b7, type: 2}
+    windup: 0.18
+    activeEnd: 0.34
+    total: 0.7
+    cancelStart: 0
+    damageMultiplier: 1.8
+    overrideReaction: 1
+    nextState: 2
+    mode: 2
+    pushDistance: 0.5625
+    airborneHeight: 0.6
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0.5

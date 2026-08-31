@@ -26,12 +26,24 @@ namespace Prototype
         [SerializeField] private Transform shadow;
         [Tooltip("깊이(Z) 1당 줄어드는 표시 배율. 0이면 크기가 일정하다. 모든 인스턴스가 같은 값이어야 한다.")]
         [SerializeField] private float depthScalePerUnit = 0.06f;
+        [Tooltip("이 몸만의 크기 배수. 1이면 프리팹 그대로.\n\n" +
+                 "<b>여기가 몸 크기의 유일한 자리다.</b> depthRoot 와 shadow 의 localScale 은 " +
+                 "매 프레임 이 컴포넌트가 통째로 덮어쓰므로, 거기 직접 쓴 값은 " +
+                 "에디터에서만 보이고 재생하는 순간 사라진다.\n\n" +
+                 "루트는 안 키운다 — 루트 콜라이더 치수를 Entity.HurtboxSize 가 읽어 " +
+                 "스킬 사거리 배수로 쓰기 때문에(SkillData.castRangeScale), " +
+                 "루트를 키우면 몸집 큰 동료의 스킬만 사거리가 늘어난다.")]
+        [SerializeField] private float bodyScale = 1f;
         [Tooltip("발이 바닥에 닿아 보이도록 스프라이트를 화면 위로 올리는 양. 보통 스프라이트 높이의 절반. 피벗이 발밑이면 0.")]
         [SerializeField] private float spriteOffsetY = 0.5f;
         [Tooltip("바라보는 쪽으로 스프라이트를 좌우 반전한다. 옆에서 본 시트에 필요하다.")]
         [SerializeField] private bool flipToFacing = false;
         [Tooltip("반전시킬 렌더러. 비우면 sprite에서 찾는다.")]
         [SerializeField] private SpriteRenderer facingRenderer;
+        [Tooltip("좌우 반전을 <b>배율</b>로 거는 노드. 뼈대 리그처럼 렌더러가 여럿이면 " +
+                 "flipX 는 부위마다 제자리에서 뒤집혀 몸이 흩어진다 — 그때 모델 루트를 여기 꽂는다.\n\n" +
+                 "depthRoot 를 꽂으면 안 된다. 그 노드의 배율은 깊이 배율이 매 프레임 덮어쓴다.")]
+        [SerializeField] private Transform facingRoot;
         [Tooltip("그림자 기본 배율. 바닥 평면에 눕히므로 XY 모두 실제 지름이다 — 납작하게 보이는 건 카메라가 만든다.")]
         [SerializeField] private Vector3 shadowBaseScale = new Vector3(0.9f, 0.9f, 1f);
         [Tooltip("높이에 따라 그림자를 줄여 체공감을 준다.")]
@@ -60,6 +72,24 @@ namespace Prototype
         /// </summary>
         public int SortingOffset { get; set; }
 
+        /// <summary>
+        /// 이 몸만의 크기 배수를 꽂는다. <see cref="PartyAssembler"/>가
+        /// <see cref="PartyMemberData.bodyScale"/>을 여기로 넘긴다.
+        ///
+        /// <b>트랜스폼에 직접 쓰지 말 것.</b> <c>depthRoot</c>와 <c>shadow</c>의 배율은
+        /// 이 컴포넌트가 매 프레임 덮어쓴다 — 거기 쓴 값은 에디터에서만 보이고
+        /// 재생하는 순간 사라진다. 그게 이 통로가 생긴 이유다.
+        ///
+        /// <b>덮어쓰지 않고 곱한다.</b> 프리팹이 이미 제 배수를 들고 있을 수 있다
+        /// (아트팩 PPU 보정 같은 것). 대입하면 그게 조용히 지워진다.
+        /// </summary>
+        public void MultiplyBodyScale(float factor)
+        {
+            if (factor <= 0f || Mathf.Approximately(factor, 1f)) return;
+
+            bodyScale = (bodyScale > 0f ? bodyScale : 1f) * factor;
+        }
+
         private Physics physics;
 
         private void Awake()
@@ -87,7 +117,9 @@ namespace Prototype
             float height = Mathf.Max(0f, physics.Height);
 
             // depthRoot가 없는 프리팹은 예전 동작 그대로 둔다 — 배율 1.
-            float scale = depthRoot != null ? BeltScroll.ScaleAt(ground.z) : 1f;
+            // 몸 배율은 깊이 배율에 곱해서 함께 싣는다. 따로 두면 어느 한쪽이 다른 쪽을 덮는다.
+            float body = bodyScale > 0f ? bodyScale : 1f;
+            float scale = depthRoot != null ? BeltScroll.ScaleAt(ground.z) * body : 1f;
 
             // 발밑 보정은 <b>화면 위</b>로 올린다. 월드 Y로 올리면 기울기만큼(cosθ) 짧아져
             // 뒤쪽 캐릭터의 발이 그림자에 파묻힌다.
@@ -118,13 +150,17 @@ namespace Prototype
 
                 // 빌보드로 회전을 지웠으니 방향은 좌우 반전으로만 표현된다.
                 // 시트는 오른쪽을 보고 그려져 있다.
-                if (flipToFacing)
+                if (flipToFacing && facingRoot == null)
                 {
                     if (facingRenderer == null) facingRenderer = sprite.GetComponent<SpriteRenderer>();
                     if (facingRenderer != null && Mathf.Abs(physics.Facing.x) > 0.0001f)
                         facingRenderer.flipX = physics.Facing.x < 0f;
                 }
             }
+
+            // 뼈대 리그는 노드 배율로 뒤집는다. sprite 가 없어도 돌아야 하므로 밖에 둔다.
+            if (flipToFacing && facingRoot != null && Mathf.Abs(physics.Facing.x) > 0.0001f)
+                FaceByScale(facingRoot, physics.Facing.x < 0f);
 
             if (shadow != null)
             {
@@ -137,6 +173,20 @@ namespace Prototype
             }
 
             ApplySorting(ground.z);
+        }
+
+        /// <summary>
+        /// X 배율의 <b>부호만</b> 바꾼다. 크기는 건드리지 않는다 —
+        /// 리그를 키워 둔 배율이 반전할 때마다 지워지면 안 된다.
+        /// </summary>
+        private static void FaceByScale(Transform t, bool left)
+        {
+            Vector3 s = t.localScale;
+            float want = left ? -Mathf.Abs(s.x) : Mathf.Abs(s.x);
+
+            if (Mathf.Approximately(s.x, want)) return;
+
+            t.localScale = new Vector3(want, s.y, s.z);
         }
 
         private void ApplySorting(float z)

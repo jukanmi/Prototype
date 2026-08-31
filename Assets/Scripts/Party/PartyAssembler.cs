@@ -328,23 +328,31 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 몸 크기. 루트를 키우지 않는 이유는 루트에 콜라이더(피격 범위)가 붙어 있고,
-        /// 그 치수를 <see cref="Entity.HurtboxSize"/>가 읽어 <b>스킬 사거리 배수</b>로 쓰기 때문이다
-        /// (<c>SkillData.castRangeScale</c>) — 루트를 키우면 몸집이 큰 동료의 스킬만 사거리가 늘어난다.
+        /// 몸 크기. <see cref="BeltScrollView"/>에 넘긴다 — <b>트랜스폼에 직접 쓰면 안 된다.</b>
         ///
-        /// <b>한 번만 불러야 한다.</b> 현재 배율에 곱하므로 두 번 부르면 제곱이 된다.
+        /// 예전에는 여기서 <c>View</c>와 <c>Shadow</c>의 <c>localScale</c>에 직접 곱했다.
+        /// 그 두 노드의 배율은 <see cref="BeltScrollView"/>가 깊이 배율로 <b>매 프레임 통째로
+        /// 덮어쓰는</b> 자리라, 값은 프리팹 인스펙터에만 남고 재생하는 순간 사라졌다 —
+        /// <c>bodyScale</c>이 오래도록 아무 효과가 없었던 이유이고, 에러가 아니라
+        /// "왜 다 똑같이 보이지"로만 드러나서 오래 안 잡혔다.
+        ///
+        /// 루트를 안 키우는 원칙은 그대로다. 루트 콜라이더 치수를
+        /// <see cref="Entity.HurtboxSize"/>가 읽어 <b>스킬 사거리 배수</b>로 쓰기 때문에
+        /// (<c>SkillData.castRangeScale</c>), 루트를 키우면 몸집이 큰 동료의 스킬만 사거리가 늘어난다.
         /// </summary>
         private static void ApplyBodyScale(Transform body, float scale)
         {
             if (body == null || Mathf.Approximately(scale, 1f) || scale <= 0f) return;
 
-            Scale(body.Find("View"), scale);
-            Scale(body.Find("Shadow"), scale);
-        }
+            var view = body.GetComponent<BeltScrollView>();
+            if (view != null)
+            {
+                view.MultiplyBodyScale(scale);
+                return;
+            }
 
-        private static void Scale(Transform t, float scale)
-        {
-            if (t != null) t.localScale *= scale;
+            BattleLog.Warn(LogCategory.State,
+                $"{body.name}: BeltScrollView 가 없어 몸 배율 {scale:0.##}를 적용하지 못했다.", body);
         }
 
         /// <summary>

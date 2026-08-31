@@ -151,6 +151,36 @@ namespace Prototype.Tests
         }
 
         /// <summary>
+        /// <b><see cref="BeltScrollView"/>가 매 프레임 덮어쓰는 노드에는 크기를 담을 수 없다.</b>
+        ///
+        /// <c>depthRoot</c>(보통 <c>View</c>)와 <c>shadow</c>의 <c>localScale</c>은 깊이 배율이
+        /// 통째로 대입하는 자리다. 거기 1이 아닌 값을 구우면 <b>프리팹 인스펙터에서는 보이는데
+        /// 재생하면 사라진다</b> — <c>bodyScale</c>이 오래도록 아무 효과가 없었던 실제 원인이고,
+        /// 에러가 아니라 "왜 다 똑같이 보이지"로만 드러나 오래 안 잡혔다.
+        ///
+        /// 몸 크기는 <c>BeltScrollView.bodyScale</c>에 넣는다. 여기서 막는 것은
+        /// <b>다시 트랜스폼에 쓰는 것</b>이다.
+        /// </summary>
+        [Test]
+        public void Bodies_DoNotBakeScaleIntoDepthRoot()
+        {
+            foreach ((string path, GameObject go) in Bodies())
+            {
+                var view = go.GetComponent<BeltScrollView>();
+                if (view == null) continue;
+
+                var t = new SerializedObject(view)
+                    .FindProperty("depthRoot").objectReferenceValue as Transform;
+                if (t == null) continue;
+
+                Assert.That(t.localScale, Is.EqualTo(Vector3.one),
+                    $"{path} 의 depthRoot('{t.name}') 배율이 1이 아니다 ({t.localScale}) — " +
+                    "BeltScrollView 가 깊이 배율로 매 프레임 대입하는 자리라 재생하면 사라진다. " +
+                    "몸 크기는 BeltScrollView.bodyScale 에, 아트 단위 보정은 그 아래 자식 노드에 넣을 것.");
+            }
+        }
+
+        /// <summary>
         /// 꺼진 채로 저장된 프리팹은 조립기가 <c>SetActive(true)</c>로 살려 주지만,
         /// 그건 안전망이지 저작 의도가 아니다. 여기서 한 번 짚어 준다 —
         /// 꺼진 프리팹은 씬에 직접 끌어다 놓았을 때 아무 일도 안 일어난다.
