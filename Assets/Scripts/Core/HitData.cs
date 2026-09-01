@@ -82,6 +82,15 @@ namespace Prototype
 
         public float hitStunDuration;
 
+        [Tooltip("이 타격이 거는 행동 불능. None이면 안 건다.\n\n" +
+                 "위의 hitStunDuration(피격 경직)과 다른 축이다 — 경직은 다음 타격이 덮어쓰는 " +
+                 "짧은 반응이고, 이쪽은 debuffDuration이 다 갈 때까지 남는다. " +
+                 "0으로 로드되는 기존 애셋은 None이라 동작이 그대로다.")]
+        public Debuff debuff;
+
+        [Tooltip("행동 불능 지속시간. 같은 디버프가 이미 걸려 있으면 긴 쪽이 남는다.")]
+        public float debuffDuration;
+
         [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +
                  "0을 기본으로 둔 이유는 기존 애셋 전부가 0으로 로드되기 때문이다 — " +
                  "데이터를 안 채워도 동작하고, 가드 파괴가 특기인 스킬만 값을 준다.")]

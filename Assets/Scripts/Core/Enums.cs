@@ -136,14 +136,45 @@ namespace Prototype
     /// <summary>
     /// 지속시간을 갖고 걸렸다 풀리는 상태. <see cref="StatusEffects"/>가 목록으로 들고 있다.
     ///
-    /// 경직 계열은 여기 없다 — 그건 <see cref="CombatState"/>가 이미 갖고 있고,
-    /// 두 벌로 갈리면 머리 위 글자와 게이지가 서로 다른 이름을 부르게 된다.
+    /// <b>피격 경직은 여기 없다</b> — 그건 <see cref="CombatState"/>의 일이다. 반대로
+    /// 스턴 · 빙결은 여기 있다. 둘의 차이는 "누가 덮어쓸 수 있는가"다: 경직은 다음 타격이
+    /// 덮어쓰는 짧은 반응이고(그래서 벽스턴 1.2초가 뒤이은 평타 0.3초에 지워졌다),
+    /// 디버프는 시간이 다 갈 때까지 남는다.
     /// </summary>
     public enum StatusKind
     {
         Shield,
         DamageCut,
         Lifesteal,
+
+        /// <summary>행동 불능. 시간은 여기가 재고, 몸은 <see cref="StunState"/>가 붙잡는다.</summary>
+        Stun,
+
+        /// <summary>완전 정지. 스턴과 규칙이 같고 지속시간 · 연출만 다르다.</summary>
+        Freeze,
+    }
+
+    /// <summary>
+    /// 행동 불능 계열을 한 벌의 비트로 접은 것. <see cref="StatusKind"/>가 "무엇이 걸렸나"라면
+    /// 이쪽은 "그래서 지금 뭘 못 하나"다 — 판정하는 쪽이 종류를 몰라도 되게 하려고 나눴다.
+    ///
+    /// <b>불릿타임에는 안 닳는다.</b> <see cref="StatusEffects"/>를 굴리는 <see cref="Combat.Tick"/>이
+    /// 스케일된 dt를 받기 때문인데, 이건 사고가 아니라 의도다 — 불릿타임은 유저가 카드를 고르는
+    /// 시간이라 실시간으로 녹으면 오래 고민한 쪽이 벌을 받는다.
+    /// </summary>
+    [System.Flags]
+    public enum Debuff
+    {
+        None   = 0,
+        Stun   = 1 << 0,
+        Freeze = 1 << 1,
+
+        /// <summary>제 의지로 움직이는 것을 막는 것 전부. 지금은 둘 다지만, 앞으로 붙을
+        /// 둔화 · 침묵처럼 <b>행동은 되는</b> 디버프를 여기서 걸러 내기 위해 따로 둔다.</summary>
+        ActionBlocking = Stun | Freeze,
+
+        /// <summary>모든 디버프. "버프는 남기고 디버프만 지운다"고 말할 때 쓰는 마스크.</summary>
+        All = Stun | Freeze,
     }
 
     /// <summary>진영. 히트박스가 아군을 때리지 않도록 거르는 기준.</summary>

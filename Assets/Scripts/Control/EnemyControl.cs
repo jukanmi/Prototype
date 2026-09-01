@@ -205,7 +205,12 @@ namespace Prototype
             }
 
             // 경직·사망 중에는 특수 행동이 이어지면 안 된다. 무적 관통처럼 보인다.
-            if (Owner != null && CombatStateRules.IsStunned(Owner.Combat.CombatState))
+            //
+            // 디버프(스턴 · 빙결)도 같이 본다. 아래 IsBusy 게이트가 행동은 이미 막지만
+            // 그건 return일 뿐이라 <b>공격권을 쥔 채</b> 굳는다 — 얼어붙은 적 하나가
+            // 토큰을 붙들고 있으면 멀쩡한 다른 적들이 덤비지 못한다.
+            if (Owner != null && (CombatStateRules.IsStunned(Owner.Combat.CombatState) ||
+                                  Owner.HasDebuff(Debuff.ActionBlocking)))
             {
                 if (special != null) special.Cancel();
                 Owner.SetTelegraph(false);   // 맞은 순간 예고는 없던 일이 된다

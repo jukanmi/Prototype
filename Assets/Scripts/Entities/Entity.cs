@@ -207,6 +207,11 @@ namespace Prototype
         public Physics Physics => cachedPhysics != null ? cachedPhysics : cachedPhysics = GetComponent<Physics>();
         public Combat Combat => cachedCombat != null ? cachedCombat : cachedCombat = GetComponent<Combat>();
 
+        /// <summary>지금 걸린 디버프 비트. Combat이 없는 몸(프리팹 조각)은 아무것도 안 걸린 것으로 본다.</summary>
+        public Debuff Debuffs => Combat != null ? Combat.Debuffs : Debuff.None;
+
+        public bool HasDebuff(Debuff mask) => (Debuffs & mask) != 0;
+
         private Vector3 cachedHurtboxSize;
 
         /// <summary>
@@ -411,6 +416,8 @@ namespace Prototype
         public AerialAttackState AerialAttackState { get; private set; }
         public HitState HitState { get; private set; }
         public AerialHitState AerialHitState { get; private set; }
+        public StunState StunState { get; private set; }
+        public FrozenState FrozenState { get; private set; }
         public DownState DownState { get; private set; }
         public GetupState GetupState { get; private set; }
         public DeadState DeadState { get; private set; }
@@ -501,6 +508,8 @@ namespace Prototype
             AerialAttackState = new AerialAttackState(this);
             HitState = new HitState(this);
             AerialHitState = new AerialHitState(this);
+            StunState = new StunState(this);
+            FrozenState = new FrozenState(this);
             DownState = new DownState(this);
             GetupState = new GetupState(this);
             DeadState = new DeadState(this);
@@ -596,6 +605,7 @@ namespace Prototype
             if (Combat.IsDead) return;
 
             Combat.ClearHitStun();
+            Combat.ClearDebuffs();
             StateMachine?.ForceChangeState(IdleState);
         }
 
