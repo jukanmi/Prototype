@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_TK\uC5F0\uACA9"
+  m_Name: "SK_WR\uC11C\uB9BF\uBC1C"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC5F0\uACA9"
+  skillName: "\uC11C\uB9BF\uBC1C"
   icon: {fileID: 0}
-  description: "\uC804\uBC29\uC758 \uC801\uC744 \uBE60\uB974\uAC8C 3\uBC88 \uBCA4\uB2E4."
-  role: 0
-  attackType: 5
+  description: "\uB0C9\uAE30\uC758 \uD798\uC744 \uC9C0\uBA74\uC5D0 \uB0B4\uB9AC\uCC0D\uC5B4
+    \uC804\uBC29\uC5D0 \uC5BC\uC74C\uAC00\uC2DC\uB97C \uB9CC\uB4E4\uC5B4 \uACF5\uACA9\uD55C\uB2E4."
+  role: 1
+  attackType: 2
   requireState: 0
   resultState: 1
-  castRangeScale: {x: 2, y: 0.65, z: 1.5}
-  castConeAngle: 0
+  castRangeScale: {x: 4.5, y: 1, z: 1}
+  castConeAngle: 40
   targeting: 0
   radius: 3
   targetPick: 0
-  castTime: 0.2
+  castTime: 0.3
   hitInterval: 0.2
   recoveryTime: 0.2
   maxChargeTime: 2.5
@@ -39,7 +40,7 @@ MonoBehaviour:
   - damageData:
       damage: 10
     castDelay: 0
-    castRangeScale: {x: 2, y: 0.65, z: 1.5}
+    castRangeScale: {x: 4.5, y: 0.3, z: 1}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -51,12 +52,14 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 2
+    debuffDuration: 1.5
     guardDamage: 0
     snapZ: 0
   - damageData:
-      damage: 12
-    castDelay: 0.2
-    castRangeScale: {x: 2, y: 0.8, z: 1.5}
+      damage: 20
+    castDelay: 0
+    castRangeScale: {x: 4.5, y: 1.3, z: 1}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -67,24 +70,9 @@ MonoBehaviour:
     aerialAirborneHeight: 0
     capAirborne: 0
     pullAnchorRatio: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
-  - damageData:
-      damage: 13
-    castDelay: 0.3
-    castRangeScale: {x: 1.8, y: 1.1, z: 1.5}
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    pushDistance: 0
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    pullAnchorRatio: 0
-    hitStunDuration: 0.3
+    hitStunDuration: 0.5
+    debuff: 2
+    debuffDuration: 3
     guardDamage: 0
     snapZ: 0
   effects: []
@@ -92,12 +80,12 @@ MonoBehaviour:
   manaCost: 20
   animation: {fileID: 0}
   vfx:
-    custom: 0
-    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
-    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    custom: 1
+    impact: {r: 0.561, g: 0.89, b: 0.961, a: 1}
+    shock: {r: 0.561, g: 0.89, b: 0.961, a: 0.75}
     scale: 1
     castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
-    hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
+    hitClip: {fileID: 11400000, guid: 60b26e83a57ef3c4fa8045a52be79a93, type: 2}
   references:
     version: 2
     RefIds: []

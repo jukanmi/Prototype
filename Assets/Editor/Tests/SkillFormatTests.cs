@@ -216,45 +216,21 @@ namespace Prototype.Tests
                         "한 축이라도 0이면 미지정이다 — 두께 0짜리 히트박스를 만들지 않는다");
         }
 
-        // ── 마무리기: 조건부 데미지 · 내리꽂기 (내려찍기) ─
+        // ── 마무리기: 내리꽂기 (내려찍기) ──────────────────
 
         [Test]
-        public void AerialDamage_AppliesOnlyToAirborneTargets()
+        public void Slam_DealsDamageToTarget()
         {
             Combat attacker = NewCombat("Attacker");
-            Combat grounded = NewCombat("Grounded");
             Combat airborne = NewCombat("Airborne");
             Plain(airborne);
             Airborne(airborne);
 
-            float groundedBefore = grounded.Health.CurValue;
             float airborneBefore = airborne.Health.CurValue;
-
-            attacker.Attack(grounded, in Slam);
             attacker.Attack(airborne, in Slam);
 
-            Assert.That(groundedBefore - grounded.Health.CurValue, Is.EqualTo(25f).Within(0.001f),
-                        "지상 적은 기본 피해 25");
             Assert.That(airborneBefore - airborne.Health.CurValue, Is.EqualTo(40f).Within(0.001f),
-                        "떠 있는 적만 에어본 피해 40 — 마무리기의 값어치가 여기 있다");
-        }
-
-        [Test]
-        public void NoAerialDamage_KeepsBaseDamage()
-        {
-            Combat attacker = NewCombat("Attacker");
-            Combat victim = NewCombat("Victim");
-            Plain(victim);
-            Airborne(victim);
-
-            HitData plain = Slam;
-            plain.aerialDamage = 0f;
-
-            float before = victim.Health.CurValue;
-            attacker.Attack(victim, in plain);
-
-            Assert.That(before - victim.Health.CurValue, Is.EqualTo(25f).Within(0.001f),
-                        "값을 안 채운 스킬은 상태와 무관하게 damage 하나로 간다");
+                        "내려찍기 마무리 피해 40");
         }
 
         [Test]
@@ -327,11 +303,10 @@ namespace Prototype.Tests
             hitStunDuration = 0.3f,
         };
 
-        /// <summary>내려찍기 한 타. 25 / 에어본 40 · 아래로 6.667(속도 20) · 경직 없음.</summary>
+        /// <summary>내려찍기 한 타. 40 · 아래로 6.667(속도 20) · 경직 없음.</summary>
         private static readonly HitData Slam = new HitData
         {
-            damageData = new DamageData(25f),
-            aerialDamage = 40f,
+            damageData = new DamageData(40f),
             targetState = CombatState.Neutral,
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,

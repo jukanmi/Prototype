@@ -23,11 +23,6 @@ namespace Prototype
     {
         public DamageData damageData;
 
-        [Tooltip("대상이 공중에 떠 있을 때 대신 쓰는 피해량. 0이면 damage를 그대로 쓴다.\n\n" +
-                 "기획서가 '40 (에어본 된 적) / 25 (기본)'처럼 두 값을 적는 자리다 — " +
-                 "마무리기는 띄워 둔 적을 찍었을 때만 값어치가 있어야 한다.")]
-        public float aerialDamage;
-
         [Header("타이밍")]
         [Tooltip("앞 사건(시전 시작 · 앞 타)으로부터 이 타까지의 간격(초).\n\n" +
                  "0이면 SkillData.hitInterval로 떨어진다 — 간격이 일정한 다단히트는 안 채워도 된다.\n" +
@@ -81,6 +76,15 @@ namespace Prototype
         public float pullAnchorRatio;
 
         public float hitStunDuration;
+
+        [Tooltip("이 타격이 거는 행동 불능. None이면 안 건다.\n\n" +
+                 "위의 hitStunDuration(피격 경직)과 다른 축이다 — 경직은 다음 타격이 덮어쓰는 " +
+                 "짧은 반응이고, 이쪽은 debuffDuration이 다 갈 때까지 남는다. " +
+                 "0으로 로드되는 기존 애셋은 None이라 동작이 그대로다.")]
+        public Debuff debuff;
+
+        [Tooltip("행동 불능 지속시간. 같은 디버프가 이미 걸려 있으면 긴 쪽이 남는다.")]
+        public float debuffDuration;
 
         [Tooltip("이 타격이 깎는 가드 게이지(보스 전용). 0이면 상대의 defaultGuardDamage를 쓴다.\n\n" +
                  "0을 기본으로 둔 이유는 기존 애셋 전부가 0으로 로드되기 때문이다 — " +

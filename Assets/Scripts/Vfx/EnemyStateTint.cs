@@ -38,6 +38,7 @@ namespace Prototype
             {
                 combat.OnCombatStateChanged += HandleStateChanged;
                 combat.OnGuardBreakChanged += HandleOverlayChanged;
+                combat.OnDebuffsChanged += HandleDebuffsChanged;
             }
 
             if (owner != null) owner.OnTelegraphChanged += HandleOverlayChanged;
@@ -49,6 +50,7 @@ namespace Prototype
             {
                 combat.OnCombatStateChanged -= HandleStateChanged;
                 combat.OnGuardBreakChanged -= HandleOverlayChanged;
+                combat.OnDebuffsChanged -= HandleDebuffsChanged;
             }
 
             if (owner != null) owner.OnTelegraphChanged -= HandleOverlayChanged;
@@ -66,6 +68,10 @@ namespace Prototype
         private void HandleOverlayChanged(bool on)
             => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
 
+        /// <summary>디버프도 겹침 표시다. 시그니처만 달라 어댑터를 하나 더 둔다.</summary>
+        private void HandleDebuffsChanged(Debuff mask)
+            => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
+
         /// <summary>
         /// 상태와 예고를 색에 반영한다.
         /// Neutral · Dead로 돌아오고 예고도 꺼지면 <see cref="CombatStateVisuals.Tint"/>가
@@ -79,13 +85,19 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 겹쳐 그릴 표시. 아머가 예고를 이긴다 — 아머 중에는 어차피 못 끊으므로
-        /// "지금 패링하면 된다"는 신호를 주면 거짓말이 된다.
+        /// 겹쳐 그릴 표시. 빙결 &gt; 스턴 &gt; 아머 &gt; 예고 순이다.
+        ///
+        /// 디버프가 아머를 이기는 이유: 얼어붙은 보스가 금색이면 "때려도 안 밀린다"는
+        /// 거짓말이 된다 — 굳은 몸은 오히려 밀린다.
+        /// 아머가 예고를 이기는 이유: 아머 중에는 어차피 못 끊으므로
+        /// "지금 패링하면 된다"는 신호를 주면 역시 거짓말이 된다.
         ///
         /// 가드브레이크는 색을 주지 않는다(<see cref="CombatStateVisuals.GuardBreakLabel"/> 참고).
         /// </summary>
         private CombatOverlay ResolveOverlay()
         {
+            if (combat != null && combat.HasDebuff(Debuff.Freeze)) return CombatOverlay.Frozen;
+            if (combat != null && combat.HasDebuff(Debuff.Stun)) return CombatOverlay.Stunned;
             if (combat != null && combat.IsSuperArmored) return CombatOverlay.SuperArmor;
             if (owner != null && owner.IsTelegraphing) return CombatOverlay.Telegraph;
 

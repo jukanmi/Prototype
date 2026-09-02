@@ -16,7 +16,7 @@ namespace Prototype
         [SerializeField] private float downDuration = 1.2f;
         [SerializeField] private float getupDuration = 0.4f;
 
-        [Header("벽 바운드")]
+        [Header("벽 바운드 · 벽 스턴")]
         [Tooltip("반발 계수. 1이면 들어온 속도 그대로 튕긴다.")]
         [SerializeField] private float wallRestitution = 1.5f;
         [Tooltip("최소 반사 속력. 살살 닿아도 이만큼은 튕긴다.")]
@@ -28,6 +28,10 @@ namespace Prototype
         [SerializeField] private float wallMaxLaunch = 15f;
         [Tooltip("연속 재바운드 방지. 이 시간 안에는 다시 튕기지 않는다.")]
         [SerializeField] private float wallBounceCooldown = 0.2f;
+        [Tooltip("약경직(LightHit) 상태에서 벽 스턴을 유발하는 최소 충돌 속도.")]
+        [SerializeField] private float wallStunSpeedThreshold = 8f;
+        [Tooltip("벽 스턴 지속 시간.")]
+        [SerializeField] private float wallStunDuration = 1.2f;
 
         [Header("대시 패링")]
         [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간.\n\n" +
@@ -85,8 +89,11 @@ namespace Prototype
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
 
-        /// <summary>지속시간이 있는 상태(보호막 · 피해감소 · 흡혈). 지속시간과 원복을 한 곳에서 든다.</summary>
+        /// <summary>지속시간이 있는 상태(보호막 · 피해감소 · 흡혈 · 스턴 · 빙결). 지속시간과 원복을 한 곳에서 든다.</summary>
         private readonly StatusEffects statuses = new StatusEffects();
+
+        /// <summary>마지막으로 알린 디버프 마스크. 달라졌을 때만 <see cref="OnDebuffsChanged"/>를 쏜다.</summary>
+        private Debuff lastDebuffs;
 
         public CombatState CombatState { get; private set; } = CombatState.Neutral;
 
@@ -159,6 +166,17 @@ namespace Prototype
         }
         /// <summary>지금 걸려 있는 지속 상태. 화면 표시(<see cref="StatusEffectBar"/>)와 스킬 효과가 같이 본다.</summary>
         public StatusEffects Statuses => statuses;
+
+        /// <summary>지금 걸린 디버프 비트.</summary>
+        public Debuff Debuffs => statuses.Debuffs;
+
+        public bool HasDebuff(Debuff mask) => (statuses.Debuffs & mask) != 0;
+
+        /// <summary>
+        /// 디버프 마스크가 실제로 달라졌을 때만. 몸 색을 칠하는 쪽(<see cref="EnemyStateTint"/>)이
+        /// 매 프레임 묻지 않게 하려고 있다 — 버프가 걸리고 풀릴 때마다 다시 칠할 이유는 없다.
+        /// </summary>
+        public event Action<Debuff> OnDebuffsChanged;
 
         /// <summary>남은 경직 시간. 다운 · 기상도 같은 타이머를 쓴다.</summary>
         public float StunRemaining => Mathf.Max(0f, stunTimer);
@@ -248,6 +266,10 @@ namespace Prototype
             // 뒤에 두면 경직 중인 캐릭터의 버프만 시간이 안 간다.
             statuses.Tick(dt);
 
+            // 경직 복구보다 먼저 본다. 아래 stunTimer 분기가 early return을 타므로
+            // 뒤에 두면 경직 중인 몸은 디버프에 영영 안 굳고, 풀릴 때도 안 풀린다.
+            SyncDebuffState();
+
             // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
             // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
             // 여기서 끊으면 복구 검사가 다시는 돌지 않아 경직이 영구히 남는다.
@@ -293,6 +315,86 @@ namespace Prototype
                 owner.StateMachine.TryChangeState(owner.IdleState);
         }
 
+        // ── 디버프 (스턴 · 빙결) ─────────────────────────
+
+        /// <summary>
+        /// 디버프를 건다. <b>거는 유일한 창구</b>다 — <see cref="StatusEffects.Apply"/>를 직접 부르면
+        /// 사망 검사와 로그가 빠지고, 무엇보다 "누가 걸었나"를 찾을 곳이 흩어진다.
+        ///
+        /// <b>상태 전이는 여기서 하지 않는다.</b> <see cref="SyncDebuffState"/>가 프레임마다 맞춘다 —
+        /// 걸린 순간에 밀어 넣으면 슈퍼아머 시전(차징) 중에는 전이가 거부되고 그걸로 끝이라,
+        /// 시전이 끝난 뒤에도 몸이 멀쩡히 걸어 다닌다.
+        ///
+        /// 스택 규칙은 <see cref="StatusEffects.Apply"/> 그대로 <b>긴 쪽이 남는다</b>.
+        /// 벽스턴 1.2초 위에 스킬 스턴 0.5초를 얹어도 1.2초다.
+        /// </summary>
+        public void ApplyDebuff(Debuff mask, float duration)
+        {
+            if (IsDead || mask == Debuff.None || duration <= 0f) return;
+
+            for (int i = 0; i < StatusRules.Bits.Length; i++)
+            {
+                Debuff bit = StatusRules.Bits[i];
+                if ((mask & bit) == 0) continue;
+                if (!StatusRules.TryStatusOf(bit, out StatusKind kind)) continue;
+
+                statuses.Apply(kind, duration);
+
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <b>{StatusEffectVisuals.Label(kind)}</b> {duration:0.##}s " +
+                    $"(남은 {statuses.Remaining(kind):0.##}s)", this);
+            }
+
+            // 굳는 그림은 다음 Tick을 기다리지 않고 이번 프레임에 시작한다.
+            SyncDebuffState();
+        }
+
+        /// <summary>
+        /// 디버프와 상태머신을 맞춘다. 들어가고 나가는 판정이 여기 <b>한 곳에만</b> 있다 —
+        /// 상태 쪽에서도 재면 규칙이 두 벌이 되고, 그 둘은 반드시 언젠가 어긋난다.
+        /// </summary>
+        private void SyncDebuffState()
+        {
+            NotifyDebuffsChanged();
+
+            Entity body = Owner;
+            if (IsDead || body == null || body.StateMachine == null) return;
+
+            // 빙결이 스턴을 덮는다. 둘 다 걸렸을 때 화면에 나갈 그림은 하나여야 한다.
+            IState want = statuses.Has(StatusKind.Freeze) ? (IState)body.FrozenState
+                        : statuses.Has(StatusKind.Stun)   ? body.StunState
+                        : null;
+
+            if (want != null)
+            {
+                // 경직 중에는 손대지 않는다. HitState를 빼앗으면 피격 반응이 한 프레임 만에 사라진다.
+                // 경직이 끝나면 HitState가 스스로 Idle로 나가고, 그 다음 프레임에 여기가 붙잡는다.
+                // 슈퍼아머도 같은 이유로 TryChangeState다 — 거부당하면 다음 프레임에 다시 묻는다.
+                if (!CombatStateRules.IsStunned(CombatState))
+                    body.StateMachine.TryChangeState(want);
+
+                return;
+            }
+
+            // 스스로는 중단 불가라 Try로는 못 나온다.
+            if (body.StateMachine.CurState == body.StunState || body.StateMachine.CurState == body.FrozenState)
+                body.StateMachine.ForceChangeState(body.IdleState);
+        }
+
+        /// <summary>
+        /// 마스크가 실제로 달라졌을 때만 알린다. 구독 대신 <see cref="Tick"/>에서 비교하는 이유는
+        /// <see cref="StatusEffects"/>가 Awake를 안 거치는 경로(에디터 테스트 · 생성기)에서도
+        /// 만들어지기 때문이다 — 구독을 Awake에 두면 그 경로에서 조용히 빠진다.
+        /// </summary>
+        private void NotifyDebuffsChanged()
+        {
+            Debuff now = statuses.Debuffs;
+            if (now == lastDebuffs) return;
+
+            lastDebuffs = now;
+            OnDebuffsChanged?.Invoke(now);
+        }
+
         // ── 때리는 쪽 ───────────────────────────────────
 
         /// <summary>
@@ -310,42 +412,23 @@ namespace Prototype
             if (target == null || IsDead) return false;
             if (ReferenceEquals(target, this)) return false;
 
-            // 공중 보너스는 <b>때리기 직전</b>에 확정한다. 맞은 뒤에 보면 이 타격이 만든
-            // 상태 변화까지 섞여 들어와, 지상에서 맞은 적이 자기 넉백 덕에 보너스를 받는다.
-            HitData resolved = WithAerialDamage(in hit, target);
-
-            if (!target.Hit(in resolved, this)) return false;
+            if (!target.Hit(in hit, this)) return false;
 
             if (lifestealRatio > 0f)
             {
-                float heal = resolved.damageData.damage * lifestealRatio;
+                float heal = hit.damageData.damage * lifestealRatio;
                 Health.Recover(heal);
                 BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
             }
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {resolved.damageData.damage:0.#} | {resolved.mode} | 결과요청 {resolved.nextState}", this);
+                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
 
-            OnHitLanded?.Invoke(this, resolved);
+            OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
                 OnAnyHitLanded?.Invoke(this, victim);
 
             return true;
-        }
-
-        /// <summary>
-        /// 대상이 떠 있으면 <see cref="HitData.aerialDamage"/>로 갈아 끼운 복사본.
-        /// 값이 0이거나 대상이 지상이면 원본 그대로다 — 기존 스킬은 이 경로를 못 느낀다.
-        /// </summary>
-        private static HitData WithAerialDamage(in HitData hit, IHittable target)
-        {
-            if (hit.aerialDamage <= 0f) return hit;
-            if (!(target is Combat c) || c.Physics == null) return hit;
-            if (c.Physics.PhysicsState != PhysicsState.Aerial) return hit;
-
-            HitData copy = hit;
-            copy.damageData.damage = hit.aerialDamage;
-            return copy;
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────
@@ -401,24 +484,39 @@ namespace Prototype
                 return true;
             }
 
+            // 디버프로 이미 굳어 있는 몸. 상태머신은 StunState · FrozenState가 쥐고 있어
+            // 어떤 피격 반응도 거부하는데, 그걸 슈퍼아머로 읽으면 넉백까지 사라져
+            // 얼린 적을 벽으로 밀어붙이는 그림이 통째로 죽는다. 그래서 <b>전이만</b> 건너뛰고
+            // 데미지 · 넉백은 그대로 먹인다.
+            bool locked = HasDebuff(Debuff.ActionBlocking);
+
             // 슈퍼아머: 상태머신이 전이를 거부하면 경직 · 넉백을 적용하지 않는다.
             // 데미지는 이미 들어갔다(결정 로그 ③).
             CombatState next = CombatStateRules.Next(CombatState, in hit, airHitCount);
-            if (owner != null && !owner.RequestHitReaction(next))
+            if (!locked && owner != null && !owner.RequestHitReaction(next))
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#FFD166>슈퍼아머</color> — 경직·넉백 무시 (데미지만 적용)", this);
                 return true;
             }
 
-            ApplyKnockback(in hit, attacker);
+            Vector3 pushDir = ApplyKnockback(in hit, attacker);
 
             CombatState before = CombatState;
-            SetCombatState(next);
 
-            SetStunTimer(hit.hitStunDuration);
+            if (!locked)
+            {
+                SetCombatState(next);
+                SetStunTimer(hit.hitStunDuration);
+            }
 
-            if (next == CombatState.AerialHit)
+            // 저작된 디버프. 굳어 있어도 다시 건다 — 긴 쪽이 남으므로 재시전이 시간을 잘라 내지 않는다.
+            ApplyDebuff(hit.debuff, hit.debuffDuration);
+
+            // 두 축이 갈라져 있어 순서는 더는 의미가 없다. 벽 스턴은 경직이 아니라 디버프를 건다.
+            TryWallStun(in hit, pushDir);
+
+            if (!locked && next == CombatState.AerialHit)
             {
                 airHitCount++;
                 // 맞을수록 무겁게 떨어뜨리던 가중치는 걷어냈다 — 조기 착지가 다운을 부르고
@@ -428,9 +526,12 @@ namespace Prototype
             }
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} 피격 | {before} → <b>{next}</b> | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s", this);
+                locked
+                    ? $"{name} 피격 | <b>{CombatState}</b> 유지(디버프) | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 넉백만 적용"
+                    : $"{name} 피격 | {before} → <b>{next}</b> | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s",
+                this);
 
-            OnHitTaken?.Invoke(hit, next);
+            OnHitTaken?.Invoke(hit, locked ? CombatState : next);
             return true;
         }
 
@@ -498,7 +599,8 @@ namespace Prototype
             return false;
         }
 
-        private void ApplyKnockback(in HitData hit, Combat attacker)
+        /// <returns>이번 타격이 실제로 민 방향(수평 단위벡터). 밀지 않았으면 0벡터.</returns>
+        private Vector3 ApplyKnockback(in HitData hit, Combat attacker)
         {
             TryResolveHitOrigin(in hit, attacker, out Vector3 casterPos);
             Vector3 casterFwd = attacker != null ? attacker.Physics.Facing : physics.Facing;
@@ -524,6 +626,57 @@ namespace Prototype
             // 부호가 방향이다. 위로 올릴 때만 상한이 의미가 있고, 아래로는 그대로 꽂는다.
             if (launch > 0f) physics.AddLaunch(launch, hit.capAirborne ? hit.airborneHeight : 0f);
             else if (launch < 0f) physics.AddSlam(-launch);
+
+            return dir;
+        }
+
+        /// <summary>
+        /// 벽 스턴 판정. 밀려 나가기 전에 <b>때린 순간</b> 결정한다.
+        ///
+        /// 접촉 순간의 실측 속도로 재던 때는 두 군데에서 샜다. 하나는 감쇠 —
+        /// <see cref="Physics.AddImpulse"/>가 지수감쇠라 벽에 닿을 때쯤이면 속도가 이미
+        /// 문턱 아래다(밀림 3m · 감쇠 8이면 2m를 밀린 순간 속도가 8 밑으로 떨어진다).
+        /// 다른 하나는 <b>이미 벽에 붙어 있는 적</b> — <c>OnCollisionEnter</c>가 새로 뜨지 않아
+        /// 아무리 세게 밀어도 판정 자체가 열리지 않았다. 벽에 몰아붙이고 치는 게
+        /// 숄더차지의 그림인데 거기서만 안 걸렸다.
+        ///
+        /// 그래서 저작값이 만들어 낼 <b>예상 충돌 속도</b>로 잰다. 지수감쇠는
+        /// 속도 = 감쇠계수 × 남은 거리라, 벽까지의 거리만 알면 값이 그대로 나온다.
+        /// 실제로 안 움직여도(=거리 0) 밀어 넣은 힘 전부가 충돌 속도가 된다.
+        /// </summary>
+        private void TryWallStun(in HitData hit, Vector3 dir)
+        {
+            // 띄우기 · 넉백은 벽 바운드가 가져간다. 벽 스턴은 약경직 전용이다.
+            if (CombatState != CombatState.LightHit) return;
+            if (hit.pushDistance <= 0f || wallBounceTimer > 0f) return;
+
+            dir.y = 0f;
+            if (dir.sqrMagnitude <= 0.0001f) return;
+            dir.Normalize();
+
+            // 레이는 몸 중심에서 나가 반지름만큼 길게 잡힌다 — 그만큼 보수적으로 판정된다.
+            float gap = WallFinder.DistanceToWall(physics.GroundPosition, dir, physics.WallMask);
+            if (gap >= hit.pushDistance) return;   // 벽까지 못 간다(벽이 없으면 무한대)
+
+            float impact = physics.ImpulseDamping * (hit.pushDistance - gap);
+            if (impact < wallStunSpeedThreshold) return;
+
+            // 뒤따라올 실제 접촉이 한 번 더 때리지 않게 막는다 — 판정은 여기 한 번뿐이다.
+            wallBounceTimer = wallBounceCooldown;
+
+            // 경직(SetStunTimer)이 아니라 디버프다. 경직으로 걸면 0.2초 뒤 들어오는 평타의
+            // hitStunDuration이 1.2초를 그대로 덮어써 벽에 처박은 보람이 사라진다.
+            ApplyDebuff(Debuff.Stun, wallStunDuration);
+
+            Vector3 point = physics.GroundPosition + dir * gap;
+            point.y = transform.position.y;
+
+            EmitWallVfx(new Physics.WallHit(-dir, point, impact),
+                        Mathf.Clamp01(impact / Mathf.Max(0.01f, wallHardSpeed)));
+
+            BattleLog.Log(LogCategory.Physics,
+                $"{name} <b>벽 스턴</b> | 벽까지 {gap:0.##}m · 예상 충돌 {impact:0.#} " +
+                $"(문턱 {wallStunSpeedThreshold:0.#} · 스턴 {wallStunDuration:0.##}s)", this);
         }
 
         /// <summary>
@@ -779,6 +932,8 @@ namespace Prototype
             // 벽 모서리에서 접촉이 연달아 들어오면 같은 자리에서 계속 튕긴다.
             if (wallBounceTimer > 0f) return;
 
+            // 벽 스턴(약경직 + 강한 밀림)은 여기서 재지 않는다 — 감쇠 때문에 접촉 순간 속도가
+            // 이미 문턱 아래이고, 벽에 붙은 적은 접촉 이벤트조차 안 뜬다. <see cref="TryWallStun"/> 참고.
             CombatState next = CombatStateRules.OnWallContact(CombatState);
             if (next == CombatState) return;
 
@@ -834,6 +989,23 @@ namespace Prototype
             airHitCount = 0;
 
             SetCombatState(CombatState.Neutral);
+        }
+
+        /// <summary>
+        /// 디버프만 푼다. 버프는 남긴다 — 필드 밖에서 보호막이 녹으면 안 된다는
+        /// <see cref="StatusEffects"/>의 원칙 그대로다.
+        ///
+        /// <see cref="ClearHitStun"/>과 <b>따로 두는 이유</b>: 그쪽은 가드 브레이크
+        /// (<see cref="BreakGuard"/>)도 부른다. 거기서 같이 지우면 가드를 깨는 순간
+        /// 방금 건 스턴이 사라져, 가장 무방비여야 할 구간이 오히려 안전해진다.
+        ///
+        /// 반대로 <b>벤치</b>에서는 반드시 지워야 한다. 꺼진 몸은 <see cref="Tick"/>이 멈춰
+        /// 시간이 안 가므로, 교대로 내려가 디버프를 피하거나 영영 얼어 있는 몸이 된다.
+        /// </summary>
+        public void ClearDebuffs()
+        {
+            statuses.Cancel(Debuff.All);
+            NotifyDebuffsChanged();
         }
 
         /// <summary>기상 완료. 공중 콤보 카운트를 여기서만 되돌린다(결정 로그 ⑦).</summary>

@@ -386,6 +386,55 @@ namespace Prototype
         }
     }
 
+    /// <summary>
+    /// 행동 불능(스턴). <b>시간은 <see cref="StatusEffects"/>가 재고 여기는 몸만 붙잡는다</b> —
+    /// 타이머를 상태에도 두면 화면과 게이지가 서로 다른 숫자를 부른다.
+    ///
+    /// 게이팅이 이 클래스의 존재 이유다. <see cref="CanBeInterrupted"/>가 false면
+    /// <see cref="Entity.IsBusy"/>가 true가 되어 입력(PlayerPilot) · AI(EnemyControl) ·
+    /// 카드 시전(Ally.CanCastCard)이 <b>이미 있는 게이트</b>로 전부 막힌다. 그리고
+    /// 여기가 <c>HandleCommonCommands</c>를 부르지 않으므로 이동 · 점프 · 대시 · 평타도 같이 죽는다.
+    ///
+    /// 들어오고 나가는 판정은 <see cref="Combat"/>의 정합 루프 한 곳에만 있다.
+    /// 여기서도 재면 규칙이 두 벌이 된다.
+    /// </summary>
+    public class StunState : EntityState
+    {
+        public StunState(Entity entity) : base(entity) { }
+
+        public override bool CanBeInterrupted => false;
+
+        public override void Enter()
+        {
+            // Move(zero)지 ResetInertia가 아니다. 관성을 지우면 넉백까지 먹어
+            // 굳은 적을 벽으로 밀어붙이는 그림이 사라진다(HitState.Enter와 같은 처리).
+            Physics.Move(Vector3.zero, 0f);
+        }
+
+        public override void Tick(float dt) { }
+    }
+
+    /// <summary>
+    /// 빙결. <see cref="StunState"/>와 규칙이 같고 지속시간 · 연출만 다르다.
+    ///
+    /// 코드가 같은데도 클래스를 나눈 이유: 둘은 같은 것의 두 이름이 아니라 서로 다른 저작 단위다.
+    /// "빙결 대상은 다음 타격에 추가 피해" 같은 게 붙을 자리를 미리 갈라 둔 것이고,
+    /// 그때 <see cref="StunState"/>를 건드리지 않아야 한다.
+    /// </summary>
+    public class FrozenState : EntityState
+    {
+        public FrozenState(Entity entity) : base(entity) { }
+
+        public override bool CanBeInterrupted => false;
+
+        public override void Enter()
+        {
+            Physics.Move(Vector3.zero, 0f);
+        }
+
+        public override void Tick(float dt) { }
+    }
+
     /// <summary>공중 피격 · 넉백 · 벽 바운드. 착지 판정은 Physics가 알린다.</summary>
     public class AerialHitState : EntityState
     {

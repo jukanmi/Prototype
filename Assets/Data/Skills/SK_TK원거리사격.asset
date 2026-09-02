@@ -40,7 +40,6 @@ MonoBehaviour:
   hitDataList:
   - damageData:
       damage: 18
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0

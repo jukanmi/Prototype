@@ -10,23 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_TK\uC5F0\uACA9"
+  m_Name: "SK_WR\uD68C\uC804\uBCA0\uAE30"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
-  skillName: "\uC5F0\uACA9"
+  skillName: "\uD68C\uC804 \uBCA0\uAE30"
   icon: {fileID: 0}
-  description: "\uC804\uBC29\uC758 \uC801\uC744 \uBE60\uB974\uAC8C 3\uBC88 \uBCA4\uB2E4."
-  role: 0
+  description: "\uBE60\uB974\uAC8C \uD68C\uC804\uD558\uBA70 \uB3CC\uB824 \uBCA4\uB2E4."
+  role: 1
   attackType: 5
   requireState: 0
   resultState: 1
-  castRangeScale: {x: 2, y: 0.65, z: 1.5}
-  castConeAngle: 0
+  castRangeScale: {x: 1, y: 1.1, z: 1}
+  castConeAngle: 360
   targeting: 0
   radius: 3
   targetPick: 0
   castTime: 0.2
-  hitInterval: 0.2
-  recoveryTime: 0.2
+  hitInterval: 0.1
+  recoveryTime: 0.25
   maxChargeTime: 2.5
   maxChargeDamageMul: 2.5
   maxChargeRadiusMul: 1.6
@@ -37,26 +37,9 @@ MonoBehaviour:
   approachDistance: 0
   hitDataList:
   - damageData:
-      damage: 10
-    castDelay: 0
-    castRangeScale: {x: 2, y: 0.65, z: 1.5}
-    targetState: 0
-    nextState: 1
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    pushDistance: 0
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    pullAnchorRatio: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
-  - damageData:
       damage: 12
-    castDelay: 0.2
-    castRangeScale: {x: 2, y: 0.8, z: 1.5}
+    castDelay: 0
+    castRangeScale: {x: 5, y: 1.1, z: 4}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -68,12 +51,14 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   - damageData:
-      damage: 13
-    castDelay: 0.3
-    castRangeScale: {x: 1.8, y: 1.1, z: 1.5}
+      damage: 15
+    castDelay: 0.4
+    castRangeScale: {x: 5, y: 1.1, z: 4}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -85,6 +70,27 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+  - damageData:
+      damage: 20
+    castDelay: 0.4
+    castRangeScale: {x: 5, y: 1.1, z: 4}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   effects: []
@@ -96,8 +102,8 @@ MonoBehaviour:
     impact: {r: 1, g: 0.86, b: 0.45, a: 1}
     shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
     scale: 1
-    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
-    hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
+    castClip: {fileID: 11400000, guid: e1c281ab22f3b69488fdc4db4fd2a2fb, type: 2}
+    hitClip: {fileID: 11400000, guid: a5ee25fbe6ac1ca47b5fb9a82faa91a0, type: 2}
   references:
     version: 2
     RefIds: []

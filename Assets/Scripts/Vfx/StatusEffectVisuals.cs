@@ -44,6 +44,8 @@ namespace Prototype
         private static readonly Color ShieldColor = new Color(0.361f, 0.855f, 0.804f);       // #5CDACD
         private static readonly Color DamageCutColor = new Color(0.678f, 0.780f, 1f);        // #ADC7FF
         private static readonly Color LifestealColor = new Color(0.804f, 0.294f, 0.427f);    // #CD4B6D
+        private static readonly Color StunColor = new Color(1f, 0.878f, 0.400f);             // #FFE066
+        private static readonly Color FreezeColor = new Color(0.561f, 0.890f, 0.961f);       // #8FE3F5
 
         public static string Label(StatusKind kind)
         {
@@ -52,6 +54,8 @@ namespace Prototype
                 case StatusKind.Shield: return "보호막";
                 case StatusKind.DamageCut: return "피해감소";
                 case StatusKind.Lifesteal: return "흡혈";
+                case StatusKind.Stun: return "스턴";
+                case StatusKind.Freeze: return "빙결";
                 default: return kind.ToString();
             }
         }
@@ -63,6 +67,8 @@ namespace Prototype
                 case StatusKind.Shield: return ShieldColor;
                 case StatusKind.DamageCut: return DamageCutColor;
                 case StatusKind.Lifesteal: return LifestealColor;
+                case StatusKind.Stun: return StunColor;
+                case StatusKind.Freeze: return FreezeColor;
                 default: return Color.white;
             }
         }
@@ -94,17 +100,24 @@ namespace Prototype
                 into.Add(new StatusView(InvulnerableLabel, InvulnerableColor,
                                         combat.ParryInvulnRemaining, combat.ParryInvulnDuration));
 
+            // 목록을 두 번 돈다 — 디버프가 버프보다 아래(몸에 가까운 쪽)로 간다.
+            // 걸린 순서대로 그리면 스턴이 버프 셋 위에 붙어 MaxRows에 잘려 나가는데,
+            // "지금 얘가 굳어 있나"는 남은 보호막보다 급하게 읽어야 하는 값이다.
             IReadOnlyList<StatusEffects.Entry> active = combat.Statuses.Active;
+
             for (int i = 0; i < active.Count && into.Count < MaxRows; i++)
-            {
-                StatusEffects.Entry e = active[i];
-                into.Add(new StatusView(Label(e.kind), StatusColor(e.kind), e.remain, e.duration));
-            }
+                if (StatusRules.IsDebuff(active[i].kind)) AddRow(active[i], into);
+
+            for (int i = 0; i < active.Count && into.Count < MaxRows; i++)
+                if (!StatusRules.IsDebuff(active[i].kind)) AddRow(active[i], into);
 
             // 경직 + 무적 + 버프가 한꺼번에 걸리면 상한을 넘을 수 있다. 위(나중에 걸린 버프)부터 자른다.
             if (into.Count > MaxRows) into.RemoveRange(MaxRows, into.Count - MaxRows);
 
             return into.Count;
         }
+
+        private static void AddRow(StatusEffects.Entry e, List<StatusView> into)
+            => into.Add(new StatusView(Label(e.kind), StatusColor(e.kind), e.remain, e.duration));
     }
 }

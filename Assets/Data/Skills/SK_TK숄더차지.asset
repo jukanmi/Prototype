@@ -39,7 +39,6 @@ MonoBehaviour:
   hitDataList:
   - damageData:
       damage: 18
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -47,12 +46,14 @@ MonoBehaviour:
     canOtg: 0
     mode: 2
     fixedDir: {x: 0, y: 0, z: 0}
-    pushDistance: 3
+    pushDistance: 6
     airborneHeight: 0
     aerialAirborneHeight: 0
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   effects:

@@ -13,6 +13,10 @@ namespace Prototype
         Telegraph,
         /// <summary>보스 슈퍼아머. 때려도 밀리지 않는 구간.</summary>
         SuperArmor,
+        /// <summary>스턴 디버프. <see cref="CombatState"/>가 아니라 <see cref="Debuff"/> 축이라 여기 있다.</summary>
+        Stunned,
+        /// <summary>빙결 디버프.</summary>
+        Frozen,
     }
 
     /// <summary>
@@ -54,6 +58,10 @@ namespace Prototype
 
         /// <summary>슈퍼아머. 로그가 쓰던 색과 같게 둔다 — 화면과 콘솔이 같은 것을 가리켜야 한다.</summary>
         private static readonly Color SuperArmorColor = new Color(1f, 0.820f, 0.400f); // #FFD166
+
+        /// <summary>스턴 · 빙결. 머리 위 게이지(<see cref="StatusEffectVisuals"/>)와 같은 색을 쓴다.</summary>
+        private static readonly Color StunnedColor = new Color(1f, 0.878f, 0.400f);    // #FFE066
+        private static readonly Color FrozenColor = new Color(0.561f, 0.890f, 0.961f); // #8FE3F5
 
         /// <summary>예고 중에 머리 위에 띄울 글자. 색만으로는 색약자가 구분하지 못한다.</summary>
         public const string TelegraphLabel = "!";
@@ -112,10 +120,14 @@ namespace Prototype
             => Tint(baseColor, state, CombatOverlay.None);
 
         /// <summary>
-        /// 겹침 표시까지 반영한 색. 우선순위는 <b>전투 상태 &gt; 아머 &gt; 예고 &gt; 기본</b>이다.
+        /// 겹침 표시까지 반영한 색. 우선순위는 <b>전투 상태 &gt; 빙결 · 스턴 &gt; 아머 &gt; 예고 &gt; 기본</b>이다.
         ///
         /// 전투 상태가 가장 위인 이유: 예고 중에 맞으면 특수 행동이 취소되므로(EnemyControl)
-        /// 그 순간 화면도 피격을 보여야 한다. 아머 중에는 애초에 경직이 안 걸려 충돌이 드물다.
+        /// 그 순간 화면도 피격을 보여야 한다. 그래서 굳어 있는 적이 맞으면 얼음색이 잠깐
+        /// 흰색으로 번쩍였다 돌아온다 — 버그가 아니라 "얼어 있는데 지금 맞았다"는 정보다.
+        ///
+        /// 디버프가 아머보다 위인 이유: 얼어붙은 보스가 금색으로 보이면 거짓말이다.
+        /// 아머는 "때려도 안 밀린다"는 뜻인데, 굳은 몸은 오히려 밀린다.
         /// </summary>
         public static Color Tint(Color baseColor, CombatState state, CombatOverlay overlay)
         {
@@ -126,6 +138,10 @@ namespace Prototype
 
             switch (overlay)
             {
+                case CombatOverlay.Frozen:
+                    return Mix(baseColor, FrozenColor, TintStrength);
+                case CombatOverlay.Stunned:
+                    return Mix(baseColor, StunnedColor, TintStrength);
                 case CombatOverlay.SuperArmor:
                     return Mix(baseColor, SuperArmorColor, TintStrength);
                 case CombatOverlay.Telegraph:
