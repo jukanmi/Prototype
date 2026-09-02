@@ -412,42 +412,23 @@ namespace Prototype
             if (target == null || IsDead) return false;
             if (ReferenceEquals(target, this)) return false;
 
-            // 공중 보너스는 <b>때리기 직전</b>에 확정한다. 맞은 뒤에 보면 이 타격이 만든
-            // 상태 변화까지 섞여 들어와, 지상에서 맞은 적이 자기 넉백 덕에 보너스를 받는다.
-            HitData resolved = WithAerialDamage(in hit, target);
-
-            if (!target.Hit(in resolved, this)) return false;
+            if (!target.Hit(in hit, this)) return false;
 
             if (lifestealRatio > 0f)
             {
-                float heal = resolved.damageData.damage * lifestealRatio;
+                float heal = hit.damageData.damage * lifestealRatio;
                 Health.Recover(heal);
                 BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
             }
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {resolved.damageData.damage:0.#} | {resolved.mode} | 결과요청 {resolved.nextState}", this);
+                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
 
-            OnHitLanded?.Invoke(this, resolved);
+            OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
                 OnAnyHitLanded?.Invoke(this, victim);
 
             return true;
-        }
-
-        /// <summary>
-        /// 대상이 떠 있으면 <see cref="HitData.aerialDamage"/>로 갈아 끼운 복사본.
-        /// 값이 0이거나 대상이 지상이면 원본 그대로다 — 기존 스킬은 이 경로를 못 느낀다.
-        /// </summary>
-        private static HitData WithAerialDamage(in HitData hit, IHittable target)
-        {
-            if (hit.aerialDamage <= 0f) return hit;
-            if (!(target is Combat c) || c.Physics == null) return hit;
-            if (c.Physics.PhysicsState != PhysicsState.Aerial) return hit;
-
-            HitData copy = hit;
-            copy.damageData.damage = hit.aerialDamage;
-            return copy;
         }
 
         // ── 맞는 쪽 ─────────────────────────────────────

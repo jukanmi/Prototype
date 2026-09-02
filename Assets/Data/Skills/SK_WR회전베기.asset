@@ -38,7 +38,6 @@ MonoBehaviour:
   hitDataList:
   - damageData:
       damage: 12
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 5, y: 1.1, z: 4}
     targetState: 0
@@ -58,7 +57,6 @@ MonoBehaviour:
     snapZ: 0
   - damageData:
       damage: 15
-    aerialDamage: 0
     castDelay: 0.4
     castRangeScale: {x: 5, y: 1.1, z: 4}
     targetState: 0
@@ -78,7 +76,6 @@ MonoBehaviour:
     snapZ: 0
   - damageData:
       damage: 20
-    aerialDamage: 0
     castDelay: 0.4
     castRangeScale: {x: 5, y: 1.1, z: 4}
     targetState: 0

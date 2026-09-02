@@ -23,11 +23,6 @@ namespace Prototype
     {
         public DamageData damageData;
 
-        [Tooltip("대상이 공중에 떠 있을 때 대신 쓰는 피해량. 0이면 damage를 그대로 쓴다.\n\n" +
-                 "기획서가 '40 (에어본 된 적) / 25 (기본)'처럼 두 값을 적는 자리다 — " +
-                 "마무리기는 띄워 둔 적을 찍었을 때만 값어치가 있어야 한다.")]
-        public float aerialDamage;
-
         [Header("타이밍")]
         [Tooltip("앞 사건(시전 시작 · 앞 타)으로부터 이 타까지의 간격(초).\n\n" +
                  "0이면 SkillData.hitInterval로 떨어진다 — 간격이 일정한 다단히트는 안 채워도 된다.\n" +
