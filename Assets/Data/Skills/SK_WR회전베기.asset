@@ -19,7 +19,7 @@ MonoBehaviour:
   attackType: 5
   requireState: 0
   resultState: 1
-  castRangeScale: {x: 1, y: 1.1, z: 1}
+  castRangeScale: {x: 5, y: 1.1, z: 4}
   castConeAngle: 360
   targeting: 0
   radius: 3
@@ -39,7 +39,7 @@ MonoBehaviour:
   - damageData:
       damage: 12
     castDelay: 0
-    castRangeScale: {x: 5, y: 1.1, z: 4}
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -58,7 +58,7 @@ MonoBehaviour:
   - damageData:
       damage: 15
     castDelay: 0.4
-    castRangeScale: {x: 5, y: 1.1, z: 4}
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -77,7 +77,7 @@ MonoBehaviour:
   - damageData:
       damage: 20
     castDelay: 0.4
-    castRangeScale: {x: 5, y: 1.1, z: 4}
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0

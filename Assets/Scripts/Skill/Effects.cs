@@ -58,6 +58,52 @@ namespace Prototype
         }
 
         /// <summary>
+        /// 지정된 중심점, 크기, 방향의 <b>고정 박스 영역</b>을 한 번에 때린다.
+        /// 일섬 등 시전자가 돌진으로 이동해도 지나온 궤적 전체를 고정하여 타격할 때 쓴다.
+        /// </summary>
+        public static int BoxStrike(Vector3 center, Vector3 size, Vector3 facing,
+                                    Combat attacker, in HitData hit, in SkillVfx style)
+        {
+            if (attacker == null || size.x <= 0f || size.y <= 0f || size.z <= 0f) return 0;
+
+            Vector3 flatFacing = new Vector3(facing.x, 0f, facing.z);
+            if (flatFacing.sqrMagnitude <= 0.0001f) flatFacing = Vector3.forward;
+            flatFacing.Normalize();
+
+            Quaternion rot = Quaternion.LookRotation(flatFacing, Vector3.up);
+            Quaternion invRot = Quaternion.Inverse(rot);
+
+            HitData swing = hit.WithOrigin(center);
+            SkillVfx vfx = style;
+            Vector3 half = size * 0.5f;
+
+            int hits = 0;
+            float maxR = Mathf.Max(size.x, size.z) * 1.5f;
+
+            OverlapCombats(center, maxR, attacker, c =>
+            {
+                if (c.Physics == null) return;
+
+                Vector3 local = invRot * (c.Physics.GroundPosition - center);
+                if (Mathf.Abs(local.x) > half.x || Mathf.Abs(local.z) > half.z) return;
+
+                float yDiff = c.Physics.GroundPosition.y + c.Physics.Height * 0.5f - center.y;
+                if (Mathf.Abs(yDiff) > half.y) return;
+
+                if (!attacker.Attack(c, in swing)) return;
+                hits++;
+
+                Vector3 ground = c.Physics.GroundPosition;
+                ground.y = 0f;
+
+                BattleVfx.Impact(ground, c.Physics.Height + ImpactHeight,
+                                 flatFacing, ImpactRadius, in vfx);
+            });
+
+            return hits;
+        }
+
+        /// <summary>
         /// <b>전방 부채꼴</b>을 한 번에 때린다. 반경 안이면서 정면에서 <paramref name="angle"/>의
         /// 절반 안에 든 대상만 맞는다.
         ///

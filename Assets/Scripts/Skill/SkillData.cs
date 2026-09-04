@@ -47,6 +47,11 @@ namespace Prototype
         /// <summary>전방 부채꼴로 때리는 스킬인지. 각도가 0이면 여전히 박스 히트박스다.</summary>
         public bool IsCone => castConeAngle > 0f;
 
+        [Tooltip("타격 판정을 시전자 몸이 아니라 시전 시작 권적에 고정한다. " +
+                 "파고드는 스킬(일섬)이 쓴다 — 시전자가 이미 건너뛴 뒤에 다단히트가 " +
+                 "터지므로, 몸을 따라가면 지나온 공간이 아니라 도착지만 벤다.")]
+        public bool fixedOrigin;
+
         /// <summary>
         /// 대상 <b>위로</b> 올라가 시전하는지. 기획서 '플레이어가 공중으로 이동 후 타격' 행이다.
         ///

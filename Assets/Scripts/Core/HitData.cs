@@ -94,6 +94,8 @@ namespace Prototype
         [Tooltip("모으기 계열에서 Z축을 기준점에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
         public bool snapZ;
 
+        
+        
         /// <summary>
         /// 넉백 방향과 Z 정렬의 기준점. 비어 있으면 시전자 위치를 쓴다.
         ///

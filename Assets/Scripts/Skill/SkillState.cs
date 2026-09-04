@@ -16,6 +16,7 @@ namespace Prototype
         private int nextHitIndex;
         private float nextHitTime;
         private bool finished;
+        private Vector3 castOrigin;
 
         public SkillState(SkillData data, in SkillContext ctx)
         {
@@ -64,6 +65,9 @@ namespace Prototype
 
             // 자리를 먼저 잡아야 아래 연출과 효과가 전부 최종 위치를 기준으로 돈다.
             if (PlaceOnEnter) PlaceCaster();
+
+            Physics phys = ctx.CasterPhysics;
+            castOrigin = phys != null ? phys.GroundPosition : ctx.Origin;
             EmitCastVfx();
             ApplyEffects();
 
@@ -142,7 +146,12 @@ namespace Prototype
                 // Attack.Resize와 같은 규약 — 상자는 몸 앞면(z = size.z * 0.5)에서 시작한다.
                 // 다르면 "표시 밖인데 맞았다"가 된다.
                 Vector3 size = Vector3.Scale(ctx.caster.HurtboxSize, scale);
-                range = AttackRangePreview.FromBox(phys.GroundPosition, phys.Facing,
+
+                // 고정되는 건 <b>자리</b>뿐이다. 방향은 지금 보는 쪽을 그대로 쓴다 —
+                // 파고들 때 Face(dir)로 이미 진행 방향에 서고, 시전 중에는 아무도 몸을 돌리지 않는다.
+                Vector3 baseOrigin = data.fixedOrigin ? castOrigin : phys.GroundPosition;
+
+                range = AttackRangePreview.FromBox(baseOrigin, phys.Facing,
                                                    new Vector3(0f, 0f, size.z * 0.5f), size, 0f, progress);
                 return true;
             }
@@ -428,6 +437,38 @@ namespace Prototype
 
             bool last = nextHitIndex == data.hitDataList.Count - 1;
 
+            // 고정 권적 스킬은 첫 타에 그 권적 끝까지 파고든다.
+            // 거리를 따로 저작하지 않는다 — 판정 박스 깊이와 이동 거리가 가장 흔히 어긋나고,
+            // 그러면 벤 자리와 선 자리가 달라진다.
+            if (data.fixedOrigin && nextHitIndex == 0 && ctx.caster != null)
+            {
+                Physics phys = ctx.CasterPhysics;
+                float depth = CastRange(in hit).z;
+
+                if (phys != null && depth > 0f)
+                {
+                    Vector3 dir = phys.Facing;
+                    if (ctx.target != null && ctx.target.Physics != null)
+                    {
+                        Vector3 toTarget = ctx.target.Physics.GroundPosition - phys.GroundPosition;
+                        toTarget.y = 0f;
+                        if (toTarget.sqrMagnitude > 0.0001f)
+                            dir = toTarget.normalized;
+                    }
+
+                    // 밀어내는 게 아니라 건너뛴다. 충격량으로 파고들면 솔버가 시전자 몸으로
+                    // 적을 같이 밀어버린다 — 베고 지나가는 그림이 아니라 밀고 가는 그림이 된다.
+                    float toWall = WallFinder.DistanceToWall(phys.GroundPosition, dir, phys.WallMask);
+                    float step = Mathf.Min(depth, Mathf.Max(0f, toWall - ctx.caster.HurtboxSize.z * 0.5f));
+
+                    phys.Face(dir);
+                    phys.Teleport(phys.GroundPosition + dir * step, phys.Height);
+
+                    BattleLog.Log(LogCategory.Skill,
+                        $"  └ {data.skillName} 파고들기 {step:0.##} 유닛 (판정 깊이 {depth:0.##})", ctx.caster);
+                }
+            }
+
             if (data.IsRanged) LaunchProjectile(in hit);
             else if (IsAreaCaster) FireArea(in hit);
             else FireMelee(in hit);
@@ -469,6 +510,21 @@ namespace Prototype
         private void FireMelee(in HitData hit)
         {
             if (data.IsCone) { FireCone(in hit); return; }
+
+            // 고정 궤적 타격 — 시전자가 돌진으로 지나가도 시전 시작점 궤적에 남아 공간을 벤다.
+            if (data.fixedOrigin)
+            {
+                Combat attacker = ctx.CasterCombat;
+                Physics phys = ctx.CasterPhysics;
+                if (attacker != null && phys != null)
+                {
+                    Vector3 range = CastRange(in hit);
+                    Vector3 center = castOrigin + phys.Facing * (range.z * 0.5f);
+                    SkillVfx fixedStyle = data.vfx.AsSkill();
+                    EffectUtil.BoxStrike(center, range, phys.Facing, attacker, in hit, in fixedStyle);
+                    return;
+                }
+            }
 
             // 타격마다 다시 맞춘다. 시전 시작에 한 번만 올려 두면 시전자는 그대로 낙하하는데
             // 대상은 부양(airHitLift)으로 떠 있어서, 다단히트 뒤쪽 타가 아래에서 헛돈다.
