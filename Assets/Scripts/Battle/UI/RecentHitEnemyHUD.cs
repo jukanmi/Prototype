@@ -3,16 +3,31 @@ using UnityEngine.UI;
 
 namespace Prototype
 {
-    /// <summary>아군이 가장 최근에 유효 타격한 적 한 명의 체력을 하단에 표시한다.</summary>
+    /// <summary>
+    /// 아군이 가장 최근에 유효 타격한 적 한 명의 체력을 하단에 표시한다.
+    ///
+    /// <b>화면은 프리팹이 쥔다</b> — 이 컴포넌트는 <c>CombatManager</c> 프리팹의
+    /// <c>RecentHitEnemyCanvas</c> 자식에 붙어 있다. 자리 · 색을 바꾸려면 프리팹을 연다.
+    /// </summary>
     public class RecentHitEnemyHUD : MonoBehaviour
     {
         private const float VisibleDuration = 3f;
 
-        private GameObject panel;
-        private Text nameLabel;
-        private RectTransform healthFill;
+        [Header("배선")]
+        [Tooltip("켜고 끄는 대상. 이름과 체력 바를 담은 판.")]
+        [SerializeField] private GameObject panel;
+
+        [Tooltip("적 이름.")]
+        [SerializeField] private Text nameLabel;
+
+        [Tooltip("체력 바의 채워지는 부분. 오른쪽 앵커를 움직여 폭을 만든다.")]
+        [SerializeField] private RectTransform healthFill;
+
         private Combat currentTarget;
         private float expiresAt;
+
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool warned;
 
         public Combat CurrentTarget => currentTarget;
         public bool IsVisible => panel != null && panel.activeSelf;
@@ -22,8 +37,21 @@ namespace Prototype
 
         private void Awake()
         {
-            BuildUI();
+            if (panel == null || nameLabel == null || healthFill == null)
+                Warn();
+
+            // 프리팹은 판이 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
             SetVisible(false);
+        }
+
+        private void Warn()
+        {
+            if (warned) return;
+
+            warned = true;
+            Debug.LogWarning(
+                "[RecentHitEnemyHUD] 배선이 비어 있다 — 적 체력 바가 안 뜬다. " +
+                "CombatManager 프리팹의 RecentHitEnemyCanvas 배선을 확인할 것.", this);
         }
 
         private void OnEnable() => Combat.OnAnyHitLanded += Track;
@@ -74,7 +102,7 @@ namespace Prototype
                 return;
             }
 
-            nameLabel.text = currentTarget.name;
+            if (nameLabel != null) nameLabel.text = currentTarget.name;
             SetFillRatio(currentTarget.Health.Ratio);
         }
 
@@ -107,76 +135,6 @@ namespace Prototype
         private void SetVisible(bool visible)
         {
             if (panel != null) panel.SetActive(visible);
-        }
-
-        private void BuildUI()
-        {
-            var canvasGo = new GameObject("RecentHitEnemyCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
-            canvasGo.transform.SetParent(transform, false);
-
-            Canvas canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 2;
-
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 1f;
-
-            panel = new GameObject("RecentHitEnemyPanel", typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(canvasGo.transform, false);
-            Image background = panel.GetComponent<Image>();
-            background.color = new Color(0.06f, 0.06f, 0.08f, 0.88f);
-
-            RectTransform panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0f);
-            panelRect.anchorMax = new Vector2(0.5f, 0f);
-            panelRect.pivot = new Vector2(0.5f, 0f);
-            panelRect.anchoredPosition = new Vector2(0f, 210f);
-            panelRect.sizeDelta = new Vector2(280f, 54f);
-
-            nameLabel = CreateText(panel.transform, "Name", 16, TextAnchor.UpperLeft);
-            RectTransform nameRect = nameLabel.GetComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0f, 0.5f);
-            nameRect.anchorMax = new Vector2(1f, 1f);
-            nameRect.offsetMin = new Vector2(14f, 0f);
-            nameRect.offsetMax = new Vector2(-14f, -4f);
-
-            var bar = new GameObject("HealthBar", typeof(RectTransform), typeof(Image));
-            bar.transform.SetParent(panel.transform, false);
-            bar.GetComponent<Image>().color = new Color(0.18f, 0.18f, 0.21f, 1f);
-            RectTransform barRect = bar.GetComponent<RectTransform>();
-            barRect.anchorMin = new Vector2(0f, 0f);
-            barRect.anchorMax = new Vector2(1f, 0f);
-            barRect.pivot = new Vector2(0.5f, 0f);
-            barRect.offsetMin = new Vector2(14f, 10f);
-            barRect.offsetMax = new Vector2(-14f, 20f);
-
-            var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-            fill.transform.SetParent(bar.transform, false);
-            fill.GetComponent<Image>().color = new Color(0.91f, 0.25f, 0.22f, 1f);
-
-            // 왼쪽 고정, 오른쪽 앵커만 움직여 폭을 만든다. SetFillRatio가 anchorMax.x를 쓴다.
-            healthFill = fill.GetComponent<RectTransform>();
-            healthFill.anchorMin = Vector2.zero;
-            healthFill.anchorMax = Vector2.one;
-            healthFill.pivot = new Vector2(0f, 0.5f);
-            healthFill.offsetMin = Vector2.zero;
-            healthFill.offsetMax = Vector2.zero;
-        }
-
-        private static Text CreateText(Transform parent, string name, int size, TextAnchor alignment)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            Text text = go.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = size;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = alignment;
-            text.color = Color.white;
-            text.raycastTarget = false;
-            return text;
         }
     }
 }

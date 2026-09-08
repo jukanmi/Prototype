@@ -22,8 +22,8 @@ namespace Prototype
     /// <b>실행 순서 -200을 유지한다.</b> 프리팹화로 없어진 것이 아니다:
     /// <list type="bullet">
     /// <item><see cref="Awake"/>가 만든 몸이 <c>TagSwapController</c> · <c>BulletTimeController</c> ·
-    /// <c>CameraFollow</c> · <c>TargetSelector</c> · <c>DebugComboHUD</c>(전부 0)의 <c>Awake</c>보다
-    /// <b>먼저</b> 존재해야 한다. 그 다섯의 <c>FindAnyObjectByType&lt;Player&gt;</c> 폴백이
+    /// <c>CameraFollow</c> · <c>TargetSelector</c>(전부 0)의 <c>Awake</c>보다
+    /// <b>먼저</b> 존재해야 한다. 그 넷의 <c>FindAnyObjectByType&lt;Player&gt;</c> 폴백이
     /// 살아 있는 이유이자, 그것이 안전한 이유다.</item>
     /// <item><see cref="Start"/>의 체력 복원이 <c>TagSwapController.Start</c>(0)의
     /// 로스터 초기화보다 먼저 끝나야 한다.</item>
@@ -389,11 +389,7 @@ namespace Prototype
             else BattleLog.Warn(LogCategory.State,
                 "TagSwapController 가 없다 — 태그 로스터가 안 만들어진다.", this);
 
-            if (bulletTime != null)
-            {
-                bulletTime.SetHero(Hero);
-                bulletTime.GetComponent<DebugComboHUD>()?.SetHero(Hero);
-            }
+            if (bulletTime != null) bulletTime.SetHero(Hero);
             else BattleLog.Warn(LogCategory.State,
                 "BulletTimeController 가 없다 — 덱이 파티 카드를 못 걷는다.", this);
         }

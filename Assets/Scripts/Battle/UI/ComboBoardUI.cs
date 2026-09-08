@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Prototype
@@ -31,10 +30,10 @@ namespace Prototype
         [Tooltip("비워두면 같은 GameObject 또는 자식에서 자동으로 찾는다.")]
         [SerializeField] private TargetSelector targetSelector;
 
-        // 카드 크기와 부채꼴 기하는 HandFanLayout이, 판의 세로 쌓기는 HandBoardLayout이 정한다.
-        // 여기 남은 건 카드 한 장의 내부 구성뿐이다.
-        // 아래 StatusBarHeight만큼은 상태 띠로 남기고 그 위를 아트가 채운다.
-        private const float StatusBarHeight = 22f;
+        // 카드 크기 · 부채꼴 기하 · 판의 세로 쌓기는 HandFanLayout · HandBoardLayout이 정한다.
+        // 카드 내부 치수와 색은 프리팹으로 옮겼다 — 여기 남은 건 <b>상태에 따라 코드가 갈아 끼우는</b> 값뿐이다.
+
+        /// <summary>황금 카드의 안쪽 판이 물러나는 두께. 그만큼이 금테로 남는다.</summary>
         private const float ArtInset = 3f;
 
         /// <summary>조준 시작점을 카드 위쪽 모서리에서 얼마나 더 띄울지. 카드 높이 대비 비율.</summary>
@@ -43,55 +42,73 @@ namespace Prototype
         /// <summary>쿨타임 중인 카드의 투명도. 지금 못 쓴다는 걸 글자 없이도 알아보게 한다.</summary>
         private const float CooldownAlpha = 0.45f;
 
-        /// <summary>아트 영역이 시작하는 세로 비율. 그 아래는 상태 띠.</summary>
-        private const float ArtBottom = StatusBarHeight / HandFanLayout.CardHeight;
-
-        private static readonly Color PanelColor = new Color(0.1f, 0.1f, 0.12f, 0.85f);
+        // 카드 배경색 — 상태마다 갈아 끼운다. 기본값은 프리팹에 박혀 있고 여기서 덮어쓴다.
         private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.3f);
         private static readonly Color NextCardColor = new Color(0.28f, 0.38f, 0.34f);
         private static readonly Color AimingCardColor = new Color(0.45f, 0.35f, 0.15f);
         private static readonly Color CursorCardColor = new Color(0.30f, 0.44f, 0.58f);
         private static readonly Color GrabbedCardColor = new Color(0.52f, 0.44f, 0.20f);
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
-        private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
-        private static readonly Color ArrowColor = new Color(1f, 0.86f, 0.35f);
 
         /// <summary>황금 카드의 테두리. 레벨업 화면(<see cref="CardOfferView"/>)과 같은 금색이다.</summary>
         private static readonly Color GoldFrameColor = new Color(1f, 0.80f, 0.28f);
 
-        // ── 카드 상세 패널 ───────────────────────────────
-        private const float DetailWidth = 420f;
-        /// <summary>줄 높이(28+18+46+18+18) + 간격 16 + 패딩 20.</summary>
-        private const float DetailHeight = 164f;
         /// <summary>손패 판과 상세 패널 사이 여백.</summary>
         private const float DetailGap = 12f;
 
+        // ── 배선 ─────────────────────────────────────────
+        // 화면은 프리팹이 쥔다. 카드 크기 · 색 · 자리를 바꾸려면 CombatManager 프리팹을 연다.
+        //
+        // 카드가 <b>네 장 고정</b>이라 통째로 프리팹에 들어간다 — <c>Hand.Size</c>가 const다.
+        // 부채꼴 자리 계산만 코드에 남는다(HandFanLayout · HandBoardLayout).
+
+        [Header("배선 — 판")]
+        [Tooltip("캔버스 전체. 불릿타임 진입/이탈로 켜고 끈다.")]
+        [SerializeField] private GameObject _canvasRoot;
+
+        [Tooltip("손패 판. 카드를 이 밖으로 꺼냈는지 판정하는 기준이다.")]
+        [SerializeField] private RectTransform _handPanelRect;
+
+        [Tooltip("부채꼴의 중심. 카드는 전부 이 안에서 anchoredPosition으로 논다.")]
+        [SerializeField] private RectTransform _rowRect;
+
+        [SerializeField] private Text _titleText;
+        [SerializeField] private Text _hintText;
+
+        [Tooltip("선택 표시 화살표. 커서 카드를 같은 감쇠로 따라간다.")]
+        [SerializeField] private Text _arrowText;
+
+        [Header("배선 — 카드 4장")]
+        [Tooltip("왼쪽부터 순서대로. Hand.Size(4)와 개수가 같아야 한다.")]
+        [SerializeField] private CardWidgets[] _cards;
+
+        [Header("배선 — 상세 패널")]
+        [Tooltip("커서가 짚은 카드의 상세. 짚은 카드가 없으면 꺼진다.")]
+        [SerializeField] private GameObject _detailPanel;
+
+        [SerializeField] private Text _detailName;
+
+        [Tooltip("종류 · 설명 · 코스트 세 줄. 순서가 곧 표시 순서다.")]
+        [SerializeField] private Text[] _detailRows;
+
         private BulletTimeController _bulletTime;
-        private GameObject _canvasRoot;
-        private Text _titleText;
-        private Text _hintText;
-        private CardWidgets[] _cards;
 
-        /// <summary>커서가 짚은 카드의 상세. 짚은 카드가 없으면 꺼진다.</summary>
-        private GameObject _detailPanel;
         private RectTransform _detailRect;
-        private Text _detailName;
-        private Text[] _detailRows;
-
-        /// <summary>부채꼴의 중심. 카드는 전부 이 안에서 anchoredPosition으로 논다.</summary>
-        private RectTransform _rowRect;
-
-        /// <summary>선택 표시 화살표. 커서 카드를 같은 감쇠로 따라간다.</summary>
         private RectTransform _arrowRect;
-        private Text _arrowText;
         private Vector2 _arrowPos;
         private bool _arrowPlaced;
 
         private readonly BulletTimeGaugeWidget _gauge = new BulletTimeGaugeWidget();
 
-        /// <summary>손패 판. 카드를 이 밖으로 꺼냈는지 판정하는 기준이다.</summary>
-        private RectTransform _handPanelRect;
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool _warned;
+
+        private bool Wired =>
+            _canvasRoot != null && _handPanelRect != null && _rowRect != null
+            && _titleText != null && _hintText != null && _arrowText != null
+            && _detailPanel != null && _detailName != null
+            && _detailRows != null && _detailRows.Length == 3
+            && _cards != null && _cards.Length == Hand.Size;
 
         // 조준이 필요한 카드를 손패 밖으로 꺼낸 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
         private int _aimingIndex = -1;
@@ -105,6 +122,11 @@ namespace Prototype
         /// <summary>RectTransform.GetWorldCorners용 재사용 버퍼.</summary>
         private readonly Vector3[] _corners = new Vector3[4];
 
+        /// <summary>
+        /// 카드 한 장의 조각들. 앞쪽 참조는 프리팹이 채우고, 뒤쪽 상태는 런타임 전용이다 —
+        /// 포즈를 직렬화하면 에디터에서 저장된 자세로 카드가 굳은 채 판이 시작된다.
+        /// </summary>
+        [System.Serializable]
         private class CardWidgets
         {
             public GameObject root;
@@ -127,20 +149,22 @@ namespace Prototype
             public Text statusLabel;
             public CanvasGroup group;
 
+            // ── 여기부터 런타임 전용 ──
+
             /// <summary>지금 그려지고 있는 포즈. 매 프레임 target 쪽으로 미끄러진다.</summary>
-            public CardPose pose;
+            [System.NonSerialized] public CardPose pose;
 
             /// <summary>가야 할 자리. RefreshUI가 상태를 보고 정한다.</summary>
-            public CardPose target;
+            [System.NonSerialized] public CardPose target;
 
             /// <summary>마우스가 끌고 있는 중. 그동안 애니메이터는 손을 뗀다.</summary>
-            public bool dragging;
+            [System.NonSerialized] public bool dragging;
 
             /// <summary>한 번이라도 자리를 잡았는지. 처음 뽑힌 카드는 날아오지 않고 제자리에서 나타난다.</summary>
-            public bool placed;
+            [System.NonSerialized] public bool placed;
 
             /// <summary>쿨타임 표시로 덮어 둔 상태. 풀리는 순간을 잡아 원래 글자를 되돌리는 데 쓴다.</summary>
-            public bool cooling;
+            [System.NonSerialized] public bool cooling;
         }
 
         // 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
@@ -233,10 +257,34 @@ namespace Prototype
 
         private void Start()
         {
-            EnsureEventSystem();
+            UiKit.EnsureEventSystem();
 
-            _cards = new CardWidgets[Hand.Size];
-            BuildUI();
+            if (!Wired)
+            {
+                Warn();
+                return;
+            }
+
+            _detailRect = (RectTransform)_detailPanel.transform;
+            _arrowRect = _arrowText.rectTransform;
+
+            ApplyLayout();
+
+            for (int i = 0; i < _cards.Length; i++)
+            {
+                _cards[i].pose = CardPose.Identity;
+                _cards[i].target = CardPose.Identity;
+
+                // CardHandler는 이 클래스 안에 중첩된 MonoBehaviour라 자기 이름의 파일이 없다 —
+                // MonoScript가 없으니 프리팹에 저장할 수 없다. 그래서 이것만 코드로 붙인다.
+                var handler = _cards[i].root.AddComponent<CardHandler>();
+                handler.Index = i;
+                handler.Owner = this;
+            }
+
+            // 게이지는 자기 계층을 스스로 짓는다(BulletTimeGaugeWidget). 판 안에 앉히기만 한다.
+            _gauge.Build(_handPanelRect);
+            Place(_gauge.Root, HandBoardLayout.GaugeCenterY);
 
             _bulletTime.Hand.OnChanged += RefreshUI;
             _bulletTime.OnEnter += HandleEnter;
@@ -486,61 +534,45 @@ namespace Prototype
             RefreshUI();
         }
 
-        private static void EnsureEventSystem()
-        {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
+        // ── 배치 ─────────────────────────────────────────
 
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
+        /// <summary>배선이 비면 조용히 아무것도 안 하는 대신 한 번 알린다.</summary>
+        private void Warn()
+        {
+            if (_warned) return;
+
+            _warned = true;
+            Debug.LogWarning(
+                "[ComboBoardUI] 배선이 비어 있다 — 손패 판이 안 뜬다. " +
+                "CombatManager 프리팹의 ComboBoardCanvas 배선을 확인할 것.", this);
         }
 
-        // ── UI 빌드 ──────────────────────────────────────
-
-        private void BuildUI()
+        /// <summary>
+        /// 판 · 부채꼴 · 글자 줄의 <b>치수와 높이</b>를 코드가 정한다.
+        ///
+        /// 프리팹에 못 박아 두지 않는 이유: 이 값들은
+        /// <see cref="HandBoardLayout"/>이 <see cref="HandFanLayout"/>의 삼각함수로 계산한다
+        /// (<c>FanTop</c> · <c>FanBottom</c> · <c>FanWidth</c>). 카드 각도나 반경을 조정하면
+        /// 판 크기가 통째로 따라 움직이는데, 프리팹에 숫자를 박아 두면 그 순간 어긋난다.
+        ///
+        /// 프리팹이 쥐는 것은 <b>구조와 겉모습</b>(노드 · 색 · 글꼴 · 앵커)이고,
+        /// 여기서 정하는 것은 <b>기하</b>다.
+        /// </summary>
+        private void ApplyLayout()
         {
-            var canvasGo = new GameObject("ComboBoardCanvas",
-                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasGo.transform.SetParent(transform, false);
-            _canvasRoot = canvasGo;
+            _handPanelRect.anchoredPosition = new Vector2(0f, HandBoardLayout.ScreenMargin);
+            _handPanelRect.sizeDelta = HandBoardLayout.PanelSize;
 
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _rowRect.sizeDelta = HandBoardLayout.RowSize;
+            Place(_rowRect, HandBoardLayout.RowCenterY);
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 1f;
-
-            var panel = CreatePanel(canvasGo.transform, "HandPanel", PanelColor);
-            var panelRect = panel.GetComponent<RectTransform>();
-            _handPanelRect = panelRect;
-            panelRect.anchorMin = new Vector2(0.5f, 0f);
-            panelRect.anchorMax = new Vector2(0.5f, 0f);
-            panelRect.pivot = new Vector2(0.5f, 0f);
-            panelRect.anchoredPosition = new Vector2(0f, HandBoardLayout.ScreenMargin);
-            panelRect.sizeDelta = HandBoardLayout.PanelSize;
-
-            // <b>배경 상자는 그리지 않는다.</b> 카드가 상자 안에 갇혀 보이던 원인이고,
-            // 집은 카드는 어차피 판 위로 솟아오른다. 사각형은 드래그 판정 기준으로만 남는다.
-            panel.GetComponent<Image>().enabled = false;
-
-            // 레이아웃 그룹은 안 쓴다. 부채꼴은 회전과 겹침이 있어 어떤 그룹으로도 표현이 안 되고,
-            // 자리는 HandBoardLayout · HandFanLayout이 계산해 준다.
-            BuildCardRow(panelRect);
-
-            _gauge.Build(panelRect);
-            Place(_gauge.Root, HandBoardLayout.GaugeCenterY);
-
-            _titleText = BuildText(panelRect, "Title", HandBoardLayout.TextWidth,
-                HandBoardLayout.TitleHeight, 18, Color.white, FontStyle.Bold);
+            _titleText.rectTransform.sizeDelta =
+                new Vector2(HandBoardLayout.TextWidth, HandBoardLayout.TitleHeight);
             Place(_titleText.rectTransform, HandBoardLayout.TitleCenterY);
 
-            _hintText = BuildText(panelRect, "Hint", HandBoardLayout.TextWidth,
-                HandBoardLayout.HintHeight, 14, HintColor, FontStyle.Normal);
+            _hintText.rectTransform.sizeDelta =
+                new Vector2(HandBoardLayout.TextWidth, HandBoardLayout.HintHeight);
             Place(_hintText.rectTransform, HandBoardLayout.HintCenterY);
-
-            BuildDetailPanel(canvasGo.transform);
         }
 
         /// <summary>판 바닥 중앙을 원점 삼아 높이만 지정해 앉힌다. 가로는 항상 가운데.</summary>
@@ -550,220 +582,6 @@ namespace Prototype
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = new Vector2(0f, centerY);
-        }
-
-        /// <summary>
-        /// 짚은 카드의 상세. 카드 아트(140×208)에 그려진 글자는 그 크기에서 읽히지 않는다 —
-        /// 이름 · 설명 · 코스트는 <see cref="SkillData"/>에만 있고 화면에 한 번도 안 나왔다.
-        /// 손패 판 <b>위</b>에 형제로 띄운다.
-        /// </summary>
-        private void BuildDetailPanel(Transform canvasRoot)
-        {
-            _detailPanel = CreatePanel(canvasRoot, "DetailPanel", PanelColor);
-            _detailRect = _detailPanel.GetComponent<RectTransform>();
-            _detailRect.anchorMin = new Vector2(0.5f, 0f);
-            _detailRect.anchorMax = new Vector2(0.5f, 0f);
-            _detailRect.pivot = new Vector2(0.5f, 0f);
-            _detailRect.sizeDelta = new Vector2(DetailWidth, DetailHeight);
-
-            // 이 판은 읽으라고 띄운 것이지 누르라고 띄운 게 아니다.
-            // 레이캐스트를 남겨 두면 PlayerInputController.Pressed가 조준 클릭을
-            // "UI 위 클릭"으로 판정해 삼킨다 — 판이 조준 영역을 덮고 있어 확정이 아예 안 먹혔다.
-            _detailPanel.GetComponent<Image>().raycastTarget = false;
-
-            var block = _detailPanel.AddComponent<CanvasGroup>();
-            block.blocksRaycasts = false;
-            block.interactable = false;
-
-            var layout = _detailPanel.AddComponent<VerticalLayoutGroup>();
-            layout.childAlignment = TextAnchor.UpperLeft;
-            layout.spacing = 4;
-            layout.padding = new RectOffset(14, 14, 10, 10);
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-
-            _detailName = BuildDetailText(_detailPanel.transform, "Name", 28f, 22, Color.white, FontStyle.Bold);
-            _detailRows = new[]
-            {
-                BuildDetailText(_detailPanel.transform, "Kind", 18f, 13, SubColor, FontStyle.Normal),
-                BuildDetailText(_detailPanel.transform, "Desc", 46f, 15, Color.white, FontStyle.Normal),
-                BuildDetailText(_detailPanel.transform, "Cost", 18f, 13, SubColor, FontStyle.Normal),
-            };
-
-            // 설명만 여러 줄로 흐른다. 나머지는 한 줄이다.
-            _detailRows[1].horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            _detailPanel.SetActive(false);
-        }
-
-        /// <summary>
-        /// 상세 패널의 한 줄. 배경이 어두워도 밝아도 읽히도록 <see cref="Outline"/>을 붙인다 —
-        /// 컷인(<see cref="SkillCutinUI"/>)과 같은 값이다. "글자가 안 보인다"의 실제 해결책이 이것이다.
-        /// </summary>
-        private static Text BuildDetailText(Transform parent, string name, float height,
-            int fontSize, Color color, FontStyle style)
-        {
-            Text t = BuildText(parent, name, DetailWidth, height, fontSize, color, style);
-            t.alignment = TextAnchor.UpperLeft;
-
-            // 세로 배치가 높이를 정한다. 줄마다 자리를 못 박아 두면 설명 길이에 따라 판이 요동친다.
-            var element = t.gameObject.AddComponent<LayoutElement>();
-            element.preferredHeight = height;
-            element.flexibleHeight = 0f;
-
-            var outline = t.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            outline.effectDistance = new Vector2(2f, -2f);
-
-            return t;
-        }
-
-        private void BuildCardRow(Transform parent)
-        {
-            var rowGo = new GameObject("HandRow", typeof(RectTransform));
-            rowGo.transform.SetParent(parent, false);
-
-            _rowRect = (RectTransform)rowGo.transform;
-            _rowRect.sizeDelta = HandBoardLayout.RowSize;
-            Place(_rowRect, HandBoardLayout.RowCenterY);
-
-            for (int i = 0; i < Hand.Size; i++)
-                _cards[i] = BuildCard(_rowRect, i);
-
-            BuildArrow(_rowRect);
-        }
-
-        /// <summary>
-        /// 선택 표시 화살표. 커서가 짚은 카드 <b>바로 위</b>에 서서 아트를 가리지 않는다.
-        /// 부채꼴은 카드끼리 겹쳐 있어 색만으로는 어느 장이 선택됐는지 읽기 어렵다.
-        /// </summary>
-        private void BuildArrow(Transform parent)
-        {
-            _arrowText = UiFactory.NewText(parent, "SelectArrow", 34, ArrowColor, FontStyle.Bold);
-            _arrowText.text = "▼";
-            _arrowText.enabled = false;
-
-            _arrowRect = _arrowText.rectTransform;
-            _arrowRect.anchorMin = new Vector2(0.5f, 0.5f);
-            _arrowRect.anchorMax = new Vector2(0.5f, 0.5f);
-            _arrowRect.pivot = new Vector2(0.5f, 0.5f);
-            _arrowRect.sizeDelta = new Vector2(48f, 40f);
-        }
-
-        private CardWidgets BuildCard(Transform parent, int index)
-        {
-            var go = new GameObject($"Card_{index}", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-
-            // 부채꼴 중심을 기준으로 논다. 회전도 카드 한가운데를 축으로 돈다.
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(HandFanLayout.CardWidth, HandFanLayout.CardHeight);
-
-            var w = new CardWidgets
-            {
-                root = go,
-                rect = rect,
-                background = go.GetComponent<Image>(),
-                group = go.AddComponent<CanvasGroup>(),
-                pose = CardPose.Identity,
-                target = CardPose.Identity,
-            };
-            w.background.color = CardColor;
-
-            // 황금 카드의 안쪽 판. 자식은 부모 위에 그려지므로 카드 <b>뒤에</b> 테두리를 깔 수가 없다 —
-            // 대신 배경을 금색으로 칠하고 이 판이 안쪽을 도로 덮어 링만 남긴다.
-            // 아트와 글자는 이 뒤에 만들어지므로 이 판 위에 온다.
-            w.inner = UiFactory.NewImage(go.transform, "Inner", CardColor);
-            UiFactory.Stretch(w.inner.rectTransform, ArtInset);
-            w.inner.enabled = false;
-
-            // 카드 아트 — 상태 띠 위를 채운다. 바깥으로 ArtInset만큼 배경이 테두리로 남는다.
-            var artGo = new GameObject("Art", typeof(RectTransform), typeof(Image));
-            artGo.transform.SetParent(go.transform, false);
-            var artRect = artGo.GetComponent<RectTransform>();
-            artRect.anchorMin = new Vector2(0f, ArtBottom);
-            artRect.anchorMax = new Vector2(1f, 1f);
-            artRect.offsetMin = new Vector2(ArtInset, ArtInset);
-            artRect.offsetMax = new Vector2(-ArtInset, -ArtInset);
-
-            w.art = artGo.GetComponent<Image>();
-            w.art.preserveAspect = true;
-            w.art.raycastTarget = false;
-            w.art.enabled = false;
-
-            // 아트가 없는 카드용 대체 표기. 아트가 붙으면 둘 다 꺼진다.
-            w.nameLabel = BuildAnchored(go.transform, "Name", new Vector2(0f, 0.52f), new Vector2(1f, 0.72f),
-                14, Color.white, FontStyle.Bold);
-            w.subLabel = BuildAnchored(go.transform, "Sub", new Vector2(0f, 0.38f), new Vector2(1f, 0.53f),
-                11, SubColor, FontStyle.Normal);
-
-            // 하단 상태 띠 — 순번 · U · 조준 여부 · 예측 상태.
-            w.statusLabel = BuildAnchored(go.transform, "Status", new Vector2(0f, 0f), new Vector2(1f, ArtBottom),
-                11, HintColor, FontStyle.Bold);
-
-            var handler = go.AddComponent<CardHandler>();
-            handler.Index = index;
-            handler.Owner = this;
-
-            return w;
-        }
-
-        private static Text BuildAnchored(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
-            int fontSize, Color color, FontStyle style)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.offsetMin = new Vector2(4f, 0f);
-            rect.offsetMax = new Vector2(-4f, 0f);
-
-            var t = go.GetComponent<Text>();
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            t.fontSize = fontSize;
-            t.fontStyle = style;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.color = color;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Truncate;
-            t.raycastTarget = false;
-            return t;
-        }
-
-        private static Text BuildText(Transform parent, string name, float width, float height,
-            int fontSize, Color color, FontStyle style)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
-
-            var t = go.GetComponent<Text>();
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            t.fontSize = fontSize;
-            t.fontStyle = style;
-            t.alignment = TextAnchor.MiddleCenter;
-            t.color = color;
-            t.raycastTarget = false;
-
-            // 한 줄짜리 안내다. 줄바꿈 대신 넘치게 둔다 — 잘려서 사라지는 게 더 나쁘다.
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            return t;
-        }
-
-        private static GameObject CreatePanel(Transform parent, string name, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
-            return go;
         }
 
         // ── 조작 ─────────────────────────────────────────

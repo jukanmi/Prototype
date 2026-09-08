@@ -15,8 +15,6 @@ namespace Prototype
     /// </summary>
     public class BattleRestartUI : MonoBehaviour
     {
-        /// <summary>ComboBoardUI 캔버스(0)보다 위, StageResultUI(200)보다 아래.</summary>
-        private const int SortingOrder = 100;
 
         private const float ButtonWidth = 150f;
         private const float ButtonHeight = 52f;
@@ -58,7 +56,7 @@ namespace Prototype
         // controller 는 AddComponent 직후에 채워지므로 Awake 에서는 아직 비어 있다. Start 에서 짓는다.
         private void Start()
         {
-            SimpleUI.EnsureEventSystem();
+            UiKit.EnsureEventSystem();
             BuildUI();
             SetConfirmVisible(false);
         }
@@ -86,7 +84,7 @@ namespace Prototype
 
         private void BuildUI()
         {
-            SimpleUI.BuildCanvas(gameObject, SortingOrder);
+            UiKit.BuildCanvas(gameObject, UiLayer.BattleRestart);
 
             BuildRestartButton();
             BuildConfirmPanel();
@@ -94,10 +92,10 @@ namespace Prototype
 
         private void BuildRestartButton()
         {
-            restartButton = SimpleUI.CreateButton(transform, "Btn_Restart", "처음부터", RestartColor,
+            restartButton = UiKit.CreateButton(transform, "Btn_Restart", "처음부터", RestartColor,
                                                   new Vector2(ButtonWidth, ButtonHeight), 22);
 
-            SimpleUI.Place(restartButton, new Vector2(1f, 1f),
+            UiKit.Place(restartButton, new Vector2(1f, 1f),
                            new Vector2(-ScreenMargin, -ScreenMargin),
                            new Vector2(ButtonWidth, ButtonHeight));
 
@@ -110,27 +108,27 @@ namespace Prototype
         /// </summary>
         private void BuildConfirmPanel()
         {
-            confirmRoot = SimpleUI.CreateImage(transform, "ConfirmDim", DimColor);
-            SimpleUI.Stretch((RectTransform)confirmRoot.transform);
+            confirmRoot = UiKit.CreateImage(transform, "ConfirmDim", DimColor);
+            UiKit.Stretch((RectTransform)confirmRoot.transform);
 
-            GameObject panel = SimpleUI.CreateImage(confirmRoot.transform, "Panel", PanelColor);
-            SimpleUI.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 240f));
+            GameObject panel = UiKit.CreateImage(confirmRoot.transform, "Panel", PanelColor);
+            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 240f));
 
-            Text title = SimpleUI.CreateText(panel.transform, "Title", "런을 처음부터 다시 시작할까?", 26, Color.white);
-            SimpleUI.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(520f, 60f));
+            Text title = UiKit.CreateText(panel.transform, "Title", "런을 처음부터 다시 시작할까?", 26, Color.white);
+            UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(520f, 60f));
 
-            Text note = SimpleUI.CreateText(panel.transform, "Note",
+            Text note = UiKit.CreateText(panel.transform, "Note",
                                             "첫 스테이지로 돌아가며 진행 상황은 모두 사라진다.", 17, NoteColor);
-            SimpleUI.Place(note, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(520f, 30f));
+            UiKit.Place(note, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(520f, 30f));
 
-            confirmButton = SimpleUI.CreateButton(panel.transform, "Btn_Confirm", "재시작", ConfirmColor,
+            confirmButton = UiKit.CreateButton(panel.transform, "Btn_Confirm", "재시작", ConfirmColor,
                                                   new Vector2(180f, 56f), 22);
-            SimpleUI.Place(confirmButton, new Vector2(0.5f, 0f), new Vector2(-100f, 52f), new Vector2(180f, 56f));
+            UiKit.Place(confirmButton, new Vector2(0.5f, 0f), new Vector2(-100f, 52f), new Vector2(180f, 56f));
             confirmButton.onClick.AddListener(OnConfirmClicked);
 
-            cancelButton = SimpleUI.CreateButton(panel.transform, "Btn_Cancel", "취소", CancelColor,
+            cancelButton = UiKit.CreateButton(panel.transform, "Btn_Cancel", "취소", CancelColor,
                                                  new Vector2(180f, 56f), 22);
-            SimpleUI.Place(cancelButton, new Vector2(0.5f, 0f), new Vector2(100f, 52f), new Vector2(180f, 56f));
+            UiKit.Place(cancelButton, new Vector2(0.5f, 0f), new Vector2(100f, 52f), new Vector2(180f, 56f));
             cancelButton.onClick.AddListener(OnCancelClicked);
         }
 

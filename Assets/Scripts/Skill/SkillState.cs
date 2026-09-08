@@ -1,7 +1,13 @@
+// 스킬 시전 상태 — 일반 시전 · 차지 시전 · 그 문맥.
+// ChargeSkillState가 SkillState를 상속하고 둘 다 SkillContext를 읽는다.
+
+using System;
 using UnityEngine;
 
 namespace Prototype
 {
+    // ══ SkillState ═══════════════════════════════════════════
+
     /// <summary>
     /// 스킬의 런타임 인스턴스. 실제로 동료가 움직이고 때리는 건 전부 여기서 일어난다.
     /// 피격당해도 중단되지 않는다 — 슈퍼아머(결정 로그 ③).
@@ -602,7 +608,7 @@ namespace Prototype
             Physics phys = ctx.CasterPhysics;
             if (phys == null || ctx.caster == null) return;
 
-            Projectile shot = Object.Instantiate(data.projectile);
+            Projectile shot = UnityEngine.Object.Instantiate(data.projectile);
 
             // 히트박스 레이어를 그대로 물려받아야 충돌 매트릭스가 맞는다.
             int layer = ctx.caster.BasicAttack != null
@@ -665,6 +671,242 @@ namespace Prototype
                 return ctx.targetInfo.point - from;
 
             return phys.Facing;
+        }
+    }
+
+    // ══ ChargeSkillState ═══════════════════════════════════════════
+
+    /// <summary>차징 스킬을 큐 밖에서 붙잡아 두기 위한 최소 계약.</summary>
+    public interface IChargeState
+    {
+        /// <summary>아직 모으는 중인지.</summary>
+        bool IsCharging { get; }
+        /// <summary>0~1. 예측 UI가 위력을 보여줄 때 쓴다.</summary>
+        float ChargeRatio { get; }
+        /// <summary>모으기를 끝내고 실제 시전을 시작한다.</summary>
+        void Release();
+    }
+
+    /// <summary>
+    /// 모았다가 나중에 터지는 스킬.
+    ///
+    /// 불릿타임에서 슬롯 순서가 오면 <b>모으기만 시작하고 큐를 막지 않는다</b>.
+    /// 뒤 슬롯이 전부 끝난 뒤 <see cref="Release"/>로 터진다.
+    /// 그래서 차징기를 앞에 놓을수록 오래 모이고 세진다 — 슬롯 배치가 곧 위력이다.
+    ///
+    /// <b>실시간(U키 단발)은 다르다.</b> 큐가 없어 <see cref="Release"/>를 불러 줄 주체가 없으므로
+    /// 머리 위 게이지(<see cref="ChargeGauge"/>)가 가득 차면 스스로 터진다.
+    /// 실시간에서 최대 위력이 보장되는 대신, 모으는 시간만큼 발동이 늦는 게 대가다.
+    ///
+    /// 피격당해도 유지된다(슈퍼아머). 사망만 관통한다.
+    /// </summary>
+    public class ChargeSkillState : SkillState, IChargeState
+    {
+        private bool charging = true;
+        private float chargeTimer;
+        private float lockedRatio;
+
+        public ChargeSkillState(SkillData data, in SkillContext ctx) : base(data, in ctx) { }
+
+        public bool IsCharging => charging;
+
+        /// <summary>
+        /// 모으기 시작에서 이미 자리를 잡았다. 터질 때 다시 옮기면 순간이동이 두 번 보이고,
+        /// 모으는 내내 서 있던 자리가 무의미해진다.
+        /// </summary>
+        protected override bool PlaceOnEnter => false;
+
+        /// <summary>0~1. 해제 후에는 터질 때의 값으로 고정된다.</summary>
+        public float ChargeRatio => charging
+            ? Mathf.Clamp01(chargeTimer / Mathf.Max(0.01f, Data.maxChargeTime))
+            : lockedRatio;
+
+        /// <summary>모으는 동안은 끝난 게 아니다. Executor가 기다리지 않게 별도로 판단한다.</summary>
+        public override bool IsFinished => !charging && base.IsFinished;
+
+        public override void Enter()
+        {
+            charging = true;
+            chargeTimer = 0f;
+
+            // 자리부터 잡고 모은다. 터질 때 옮기면 모으는 내내 엉뚱한 곳에 서 있게 된다.
+            ResolveTarget();
+            PlaceCaster();
+
+            // 모으는 동안은 제자리에 선다. 실제 시전 타임라인은 Release에서 시작한다.
+            Physics phys = Context.CasterPhysics;
+            if (phys != null)
+            {
+                phys.Move(Vector3.zero, 0f);
+                phys.ResetInertia();
+            }
+
+            BattleLog.Log(LogCategory.Skill,
+                $"<b>{BattleLog.Name(Context.caster)}</b> 차징 시작: {Data.skillName} " +
+                $"(최대 {Data.maxChargeTime:0.##}s → 위력 x{Data.maxChargeDamageMul:0.##})",
+                Context.caster);
+        }
+
+        public override void Tick(float dt)
+        {
+            if (!charging)
+            {
+                base.Tick(dt);
+                return;
+            }
+
+            // 상한을 넘겨도 더 세지지 않는다. 콤보가 길다고 무한히 강해지면 안 된다.
+            chargeTimer = Mathf.Min(chargeTimer + dt, Data.maxChargeTime);
+
+            // Release()와 같은 lerp를 모으는 동안 실시간으로 반영한다 — TryGetRangePreview가
+            // 그대로 읽으므로 범위 표시가 모을수록 눈에 보이게 커진다. 실제 배율 확정은
+            // 여전히 Release()의 lockedRatio다 — 여긴 미리보기용일 뿐.
+            Context.radiusScale = Mathf.Lerp(1f, Data.maxChargeRadiusMul, ChargeRatio);
+
+            // 실시간(U키 단발)에는 해제해 줄 주체가 없다 — 큐가 없으니 ComboExecutor도 없다.
+            // 머리 위 게이지가 가득 찬 순간이 곧 발동 시점이다. 그대로 두면 만충인 채로
+            // 서 있다가 Ally.realtimeSkillTimeout에 잘려 아무것도 안 터진다.
+            if (!Context.isBulletTime && IsFullyCharged)
+                Release();
+        }
+
+        /// <summary>게이지가 가득 찼는지. 실시간 자동 발동의 기준이다.</summary>
+        public bool IsFullyCharged => chargeTimer >= Data.maxChargeTime;
+
+        public void Release()
+        {
+            if (!charging) return;
+
+            lockedRatio = ChargeRatio;
+            charging = false;
+
+            // 커진 범위를 광역 효과가 읽을 수 있게 맥락에 실어 준다.
+            Context.radiusScale = Mathf.Lerp(1f, Data.maxChargeRadiusMul, lockedRatio);
+
+            BattleLog.Log(LogCategory.Skill,
+                $"<b>{BattleLog.Name(Context.caster)}</b> 차징 해제: {Data.skillName} " +
+                $"| {chargeTimer:0.##}s 모음 ({lockedRatio * 100f:0}%) " +
+                $"| 위력 x{DamageMultiplier:0.##} 범위 x{Context.RadiusScale:0.##}",
+                Context.caster);
+
+            // 여기서부터 평소의 시전 타임라인이 돈다.
+            base.Enter();
+        }
+
+        private float DamageMultiplier => Mathf.Lerp(1f, Data.maxChargeDamageMul, lockedRatio);
+
+        /// <summary>
+        /// 모은 만큼 데미지와 밀어내는 힘을 키운다. 원본 에셋은 그대로 둔다.
+        ///
+        /// <b>배율이 필드마다 다르다</b> — 저작 단위가 힘이 아니라 거리 · 높이이기 때문이다.
+        /// 밀치기 거리는 충격량에 정비례하므로 <c>mul</c>을 그대로 곱하지만,
+        /// 정점 높이는 <c>v²/2g</c>라 속도의 <b>제곱</b>에 비례한다 —
+        /// 여기에도 <c>mul</c>만 곱하면 모은 보람이 예전의 제곱근으로 줄어든다.
+        /// </summary>
+        protected override HitData ModifyHit(HitData hit)
+        {
+            float mul = DamageMultiplier;
+
+            hit.damageData.damage *= mul;
+            hit.pushDistance *= mul;
+            hit.airborneHeight *= mul * mul;
+            hit.aerialAirborneHeight *= mul * mul;
+
+            return hit;
+        }
+
+        public override void Exit()
+        {
+            // 모으는 도중 밀려났으면(사망 등) 아무것도 터뜨리지 않는다.
+            if (charging)
+            {
+                charging = false;
+                BattleLog.Log(LogCategory.Skill,
+                    $"{BattleLog.Name(Context.caster)} 차징 취소: {Data.skillName}", Context.caster);
+            }
+
+            base.Exit();
+        }
+    }
+
+    // ══ SkillContext ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 조준으로 확정한 값. <b>좌표와 방향만 담는다</b> —
+    /// 실제로 때릴 상대는 시전 순간에 <see cref="SkillState.ResolveTarget"/>이 좌표에서 다시 뽑는다.
+    /// 조준과 시전 사이에 대상이 죽거나 움직여도 알아서 맞는다.
+    /// </summary>
+    [Serializable]
+    public struct TargetInfo
+    {
+        public TargetingType type;
+        /// <summary>GroundPoint — 텔레포트 · 장판 중심 좌표.</summary>
+        public Vector3 point;
+        /// <summary>Direction — 지정 방향.</summary>
+        public Vector3 direction;
+
+        public static TargetInfo None => new TargetInfo { type = TargetingType.None };
+
+        public static TargetInfo Ground(Vector3 p) => new TargetInfo { type = TargetingType.GroundPoint, point = p };
+        public static TargetInfo Dir(Vector3 d) => new TargetInfo { type = TargetingType.Direction, direction = d };
+
+        public bool IsValid
+            => type != TargetingType.Direction || direction.sqrMagnitude > 0.0001f;
+    }
+
+    /// <summary>
+    /// SkillState가 읽는 <b>유일한 입력</b>. 여기 없는 정보에는 의존하지 않는다.
+    /// </summary>
+    public struct SkillContext
+    {
+        public SkillData data;
+        public Entity caster;
+        /// <summary>시전 순간에 확정되는 상대. 비어 있으면 <see cref="SkillState.ResolveTarget"/>이 채운다.</summary>
+        public Entity target;
+        public TargetInfo targetInfo;
+        public bool isBulletTime;
+        public int comboIndex;
+
+        /// <summary>
+        /// 차징으로 커진 범위 배율. 광역 효과가 자기 반경에 곱한다.
+        /// 차징이 아니면 1이다.
+        /// </summary>
+        public float radiusScale;
+
+        /// <summary>0이면 미설정으로 보고 1을 준다. 구조체라 기본값이 0이기 때문.</summary>
+        public float RadiusScale => radiusScale > 0f ? radiusScale : 1f;
+
+        /// <summary>
+        /// 카드가 실어 보내는 데미지 배율. 황금 카드가 1.5를 넣는다
+        /// (<see cref="ComboCard.DamageScale"/>).
+        ///
+        /// 차징 배율과 <b>다른 층</b>이라 서로 곱해진다 — 차징은 <c>ModifyHit</c>에서,
+        /// 이 값은 그 결과에 곱해진다.
+        /// </summary>
+        public float damageScale;
+
+        /// <summary><see cref="RadiusScale"/>과 같은 이유로 0을 1로 접는다.</summary>
+        public float DamageScale => damageScale > 0f ? damageScale : 1f;
+
+        public Combat CasterCombat => caster != null ? caster.Combat : null;
+        public Physics CasterPhysics => caster != null ? caster.Physics : null;
+
+        /// <summary>
+        /// 시전 기준점. 광역 판정 · 광역 효과 · 시전 연출이 전부 이 한 점을 공유한다.
+        ///
+        /// 찍은 좌표가 있으면 그것을, 없으면 <b>확정된 대상 자리</b>를 쓴다.
+        /// 시전자 자리로 떨어뜨리면 방향 지정 스킬(충격파 등)이 조준과 무관하게
+        /// 자기 발밑에서 터진다 — 원거리는 이제 움직이지 않기 때문.
+        /// </summary>
+        public Vector3 Origin
+        {
+            get
+            {
+                if (targetInfo.type == TargetingType.GroundPoint) return targetInfo.point;
+                if (target != null && target.Physics != null) return target.Physics.GroundPosition;
+                if (caster != null) return caster.transform.position;
+                return Vector3.zero;
+            }
         }
     }
 }

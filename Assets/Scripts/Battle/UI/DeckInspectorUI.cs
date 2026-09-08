@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Prototype
@@ -21,38 +19,24 @@ namespace Prototype
     [RequireComponent(typeof(BulletTimeController))]
     public class DeckInspectorUI : MonoBehaviour
     {
-        // ── 치수 ─────────────────────────────────────────
+        // ── 칸 치수 ───────────────────────────────────────
+        // 나머지 치수(바 · 팝업 · 격자 셀)는 프리팹이 쥔다. 여기 남은 건
+        // 칸 <b>안쪽</b> 비율뿐이다 — 칸은 덱 장수만큼 코드로 찍으므로.
 
-        private const float BarButtonWidth = 132f;
-        private const float BarButtonHeight = 40f;
-
-        private const int GridColumns = 5;
-        private const float EntryWidth = 104f;
         private const float EntryHeight = 148f;
-        private const float EntrySpacing = 8f;
         private const float EntryStripHeight = 30f;
         private const float EntryArtInset = 3f;
 
         /// <summary>아트 영역이 시작하는 세로 비율. 그 아래는 이름 띠.</summary>
         private const float EntryArtBottom = EntryStripHeight / EntryHeight;
 
-        /// <summary>4줄까지는 스크롤 없이 한눈에 들어온다. 그보다 많으면 스크롤.</summary>
-        private const float ViewportHeight = EntryHeight * 4f + EntrySpacing * 3f;
-
-        private const float ContentWidth = EntryWidth * GridColumns + EntrySpacing * (GridColumns - 1);
-
         // ── 색 ───────────────────────────────────────────
+        // 칸에만 쓴다. 바 · 팝업 · 버튼 색은 프리팹으로 옮겼다.
 
-        private static readonly Color BarPanelColor = new Color(0.1f, 0.1f, 0.12f, 0.85f);
-        private static readonly Color DiscardButtonColor = new Color(0.36f, 0.2f, 0.2f);
-        private static readonly Color DeckButtonColor = new Color(0.18f, 0.28f, 0.34f);
-        private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.55f);
-        private static readonly Color PopupColor = new Color(0.12f, 0.13f, 0.16f, 0.97f);
         private static readonly Color EntryColor = new Color(0.22f, 0.26f, 0.3f);
         private static readonly Color EmptyEntryColor = new Color(0.4f, 0.18f, 0.18f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
         private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
-        private static readonly Color CloseButtonColor = new Color(0.38f, 0.18f, 0.18f);
 
         /// <summary>어느 더미를 펼쳐 보고 있는지.</summary>
         private enum Pile
@@ -62,21 +46,55 @@ namespace Prototype
             Deck,
         }
 
+        // ── 배선 ─────────────────────────────────────────
+        // 화면은 프리팹이 쥔다. 자리·크기·색을 바꾸려면 코드가 아니라 CombatManager 프리팹을 연다.
+
+        [Header("숫자 바")]
+        [Tooltip("사용된 카드 장수. DiscardButton 의 Label.")]
+        [SerializeField] private Text _discardCountLabel;
+
+        [Tooltip("남은 덱 장수. DeckButton 의 Label.")]
+        [SerializeField] private Text _deckCountLabel;
+
+        [Tooltip("사용된 더미를 펼치는 버튼.")]
+        [SerializeField] private Button _discardButton;
+
+        [Tooltip("남은 덱을 펼치는 버튼.")]
+        [SerializeField] private Button _deckButton;
+
+        [Header("팝업")]
+        [Tooltip("배경 막까지 포함한 팝업 전체. 프리팹에서는 꺼 둔다.")]
+        [SerializeField] private GameObject _popupRoot;
+
+        [Tooltip("배경 막 버튼. 바깥을 누르면 닫힌다.")]
+        [SerializeField] private Button _backdropButton;
+
+        [Tooltip("헤더의 X 버튼.")]
+        [SerializeField] private Button _closeButton;
+
+        [SerializeField] private Text _popupTitle;
+        [SerializeField] private Text _popupFooter;
+
+        [Tooltip("칸이 쌓이는 곳. GridLayoutGroup 이 붙은 Content.")]
+        [SerializeField] private RectTransform _popupContent;
+
+        [Tooltip("격자 스크롤 전체. 더미가 비면 끄고 안내로 바꾼다.")]
+        [SerializeField] private GameObject _scrollRoot;
+
+        [Tooltip("더미가 비었을 때 격자 대신 내보내는 안내. 격자와 서로 배타적으로 켠다.")]
+        [SerializeField] private Text _emptyLabel;
+
         private BulletTimeController _bulletTime;
 
-        private Text _discardCountLabel;
-        private Text _deckCountLabel;
-
-        private GameObject _popupRoot;
-        private Text _popupTitle;
-        private Text _popupFooter;
-        private RectTransform _popupContent;
-
-        /// <summary>더미가 비었을 때 격자 대신 내보내는 안내. 격자와 서로 배타적으로 켠다.</summary>
-        private GameObject _scrollRoot;
-        private Text _emptyLabel;
-
         private Pile _openPile = Pile.None;
+
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool _warned;
+
+        private bool Wired =>
+            _discardCountLabel != null && _deckCountLabel != null
+            && _popupRoot != null && _popupTitle != null && _popupFooter != null
+            && _popupContent != null && _scrollRoot != null && _emptyLabel != null;
 
         /// <summary>같은 스킬끼리 묶은 한 칸.</summary>
         private struct Entry
@@ -94,8 +112,22 @@ namespace Prototype
 
         private void Start()
         {
-            EnsureEventSystem();
-            BuildUI();
+            UiKit.EnsureEventSystem();
+
+            if (!Wired)
+            {
+                Warn();
+                return;
+            }
+
+            // 버튼은 인스펙터가 아니라 여기서 묶는다 — 대상 메서드를 private으로 두려면
+            // UnityEvent 배선이 안 된다. 프리팹에는 참조만 꽂는다.
+            if (_discardButton != null) _discardButton.onClick.AddListener(() => Toggle(Pile.Discard));
+            if (_deckButton != null) _deckButton.onClick.AddListener(() => Toggle(Pile.Deck));
+            if (_backdropButton != null) _backdropButton.onClick.AddListener(Close);
+            if (_closeButton != null) _closeButton.onClick.AddListener(Close);
+
+            _popupRoot.SetActive(false);
 
             _bulletTime.Deck.OnChanged += HandlePileChanged;
             _bulletTime.Discard.OnChanged += HandlePileChanged;
@@ -125,212 +157,18 @@ namespace Prototype
                 Close();
         }
 
-        private static void EnsureEventSystem()
+        /// <summary>배선이 비면 조용히 아무것도 안 하는 대신 한 번 알린다.</summary>
+        private void Warn()
         {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
+            if (_warned) return;
 
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
+            _warned = true;
+            Debug.LogWarning(
+                "[DeckInspectorUI] 배선이 비어 있다 — 덱 상황판이 안 뜬다. " +
+                "CombatManager 프리팹의 DeckInspectorCanvas 배선을 확인할 것.", this);
         }
 
-        // ── UI 빌드 ──────────────────────────────────────
-
-        private void BuildUI()
-        {
-            var canvasGo = new GameObject("DeckInspectorCanvas",
-                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasGo.transform.SetParent(transform, false);
-
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            // 손패 보드(0)·피격 HUD(2)보다 위. 팝업이 그 둘을 덮어야 한다.
-            canvas.sortingOrder = 20;
-
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 1f;
-
-            BuildCounterBar(canvasGo.transform);
-
-            // 팝업을 나중에 붙여 카운터 바 위로 그린다(같은 캔버스에서는 형제 순서가 곧 그리는 순서).
-            BuildPopup(canvasGo.transform);
-        }
-
-        /// <summary>항상 떠 있는 두 칸짜리 숫자 바. 왼쪽이 사용됨, 오른쪽이 남은 덱.</summary>
-        private void BuildCounterBar(Transform parent)
-        {
-            var bar = CreatePanel(parent, "CounterBar", BarPanelColor);
-
-            var barRect = bar.GetComponent<RectTransform>();
-            barRect.anchorMin = new Vector2(0f, 1f);
-            barRect.anchorMax = new Vector2(0f, 1f);
-            barRect.pivot = new Vector2(0f, 1f);
-            barRect.anchoredPosition = new Vector2(20f, -20f);
-
-            var layout = bar.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 8f;
-            layout.padding = new RectOffset(10, 10, 10, 10);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-
-            var fitter = bar.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            _discardCountLabel = BuildBarButton(bar.transform, "DiscardButton", DiscardButtonColor,
-                () => Toggle(Pile.Discard));
-            _deckCountLabel = BuildBarButton(bar.transform, "DeckButton", DeckButtonColor,
-                () => Toggle(Pile.Deck));
-        }
-
-        private static Text BuildBarButton(Transform parent, string name, Color color,
-            UnityEngine.Events.UnityAction onClick)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(BarButtonWidth, BarButtonHeight);
-
-            var image = go.GetComponent<Image>();
-            image.color = color;
-
-            var button = go.GetComponent<Button>();
-            button.targetGraphic = image;
-            button.onClick.AddListener(onClick);
-
-            Text label = BuildStretchedText(go.transform, "Label", 15, Color.white, FontStyle.Bold);
-            return label;
-        }
-
-        private void BuildPopup(Transform parent)
-        {
-            // 배경 막 — 화면 전체를 덮는다. 아무 데나 누르면 닫힌다.
-            var root = new GameObject("Popup", typeof(RectTransform), typeof(Image), typeof(Button));
-            root.transform.SetParent(parent, false);
-            _popupRoot = root;
-
-            var rootRect = root.GetComponent<RectTransform>();
-            rootRect.anchorMin = Vector2.zero;
-            rootRect.anchorMax = Vector2.one;
-            rootRect.offsetMin = Vector2.zero;
-            rootRect.offsetMax = Vector2.zero;
-
-            var backdrop = root.GetComponent<Image>();
-            backdrop.color = BackdropColor;
-
-            var backdropButton = root.GetComponent<Button>();
-            backdropButton.targetGraphic = backdrop;
-            backdropButton.onClick.AddListener(Close);
-
-            // 본체 — 화면 중앙. 배경 막의 자식이지만 자체 Image가 클릭을 먹으므로
-            // 본체를 눌렀을 때는 닫히지 않는다.
-            var panel = CreatePanel(root.transform, "Panel", PopupColor);
-            var panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-
-            var layout = panel.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 10f;
-            layout.padding = new RectOffset(20, 20, 16, 16);
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-
-            var fitter = panel.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            BuildPopupHeader(panel.transform);
-            BuildPopupGrid(panel.transform);
-
-            _emptyLabel = BuildSizedText(panel.transform, "Empty", ContentWidth, 120f, 16, SubColor, FontStyle.Normal);
-            _emptyLabel.gameObject.SetActive(false);
-
-            // 두 줄로 접힐 만큼 길다. 높이를 넉넉히 잡지 않으면 잘린다.
-            _popupFooter = BuildSizedText(panel.transform, "Footer", ContentWidth, 44f, 13, SubColor, FontStyle.Normal);
-
-            root.SetActive(false);
-        }
-
-        private void BuildPopupHeader(Transform parent)
-        {
-            var header = new GameObject("Header", typeof(RectTransform));
-            header.transform.SetParent(parent, false);
-            header.GetComponent<RectTransform>().sizeDelta = new Vector2(ContentWidth, 32f);
-
-            _popupTitle = BuildStretchedText(header.transform, "Title", 20, Color.white, FontStyle.Bold);
-            _popupTitle.alignment = TextAnchor.MiddleLeft;
-
-            var closeGo = new GameObject("Close", typeof(RectTransform), typeof(Image), typeof(Button));
-            closeGo.transform.SetParent(header.transform, false);
-
-            var closeRect = closeGo.GetComponent<RectTransform>();
-            closeRect.anchorMin = new Vector2(1f, 0.5f);
-            closeRect.anchorMax = new Vector2(1f, 0.5f);
-            closeRect.pivot = new Vector2(1f, 0.5f);
-            closeRect.sizeDelta = new Vector2(32f, 28f);
-
-            var closeImage = closeGo.GetComponent<Image>();
-            closeImage.color = CloseButtonColor;
-
-            var closeButton = closeGo.GetComponent<Button>();
-            closeButton.targetGraphic = closeImage;
-            closeButton.onClick.AddListener(Close);
-
-            BuildStretchedText(closeGo.transform, "X", 16, Color.white, FontStyle.Bold).text = "X";
-        }
-
-        private void BuildPopupGrid(Transform parent)
-        {
-            var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
-            scrollGo.transform.SetParent(parent, false);
-            _scrollRoot = scrollGo;
-            scrollGo.GetComponent<RectTransform>().sizeDelta = new Vector2(ContentWidth, ViewportHeight);
-
-            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
-            viewportGo.transform.SetParent(scrollGo.transform, false);
-
-            var viewportRect = viewportGo.GetComponent<RectTransform>();
-            viewportRect.anchorMin = Vector2.zero;
-            viewportRect.anchorMax = Vector2.one;
-            viewportRect.offsetMin = Vector2.zero;
-            viewportRect.offsetMax = Vector2.zero;
-
-            var contentGo = new GameObject("Content", typeof(RectTransform));
-            contentGo.transform.SetParent(viewportGo.transform, false);
-
-            _popupContent = contentGo.GetComponent<RectTransform>();
-            _popupContent.anchorMin = new Vector2(0f, 1f);
-            _popupContent.anchorMax = new Vector2(1f, 1f);
-            _popupContent.pivot = new Vector2(0.5f, 1f);
-            _popupContent.anchoredPosition = Vector2.zero;
-
-            var grid = contentGo.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(EntryWidth, EntryHeight);
-            grid.spacing = new Vector2(EntrySpacing, EntrySpacing);
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = GridColumns;
-            grid.childAlignment = TextAnchor.UpperLeft;
-
-            var contentFitter = contentGo.AddComponent<ContentSizeFitter>();
-            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            var scroll = scrollGo.GetComponent<ScrollRect>();
-            scroll.viewport = viewportRect;
-            scroll.content = _popupContent;
-            scroll.horizontal = false;
-            scroll.vertical = true;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 30f;
-        }
+        // ── 칸 짓기 ─────────────────────────────────────
 
         /// <summary>카드 한 칸. 아트가 있으면 아트, 없으면 이름·직업 표기로 대신한다.</summary>
         private static void BuildEntry(Transform parent, in Entry entry)
@@ -378,14 +216,7 @@ namespace Prototype
         }
 
         // ── 위젯 헬퍼 ────────────────────────────────────
-
-        private static GameObject CreatePanel(Transform parent, string name, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
-            return go;
-        }
+        // 칸(Entry)만 코드로 짓는다 — 덱 장수만큼 찍히므로 프리팹으로 못 걷어낸다.
 
         private static Text BuildAnchoredText(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
             int fontSize, Color color, FontStyle style)
@@ -398,31 +229,6 @@ namespace Prototype
             rect.anchorMax = anchorMax;
             rect.offsetMin = new Vector2(3f, 0f);
             rect.offsetMax = new Vector2(-3f, 0f);
-
-            return Decorate(go.GetComponent<Text>(), fontSize, color, style);
-        }
-
-        private static Text BuildStretchedText(Transform parent, string name,
-            int fontSize, Color color, FontStyle style)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            return Decorate(go.GetComponent<Text>(), fontSize, color, style);
-        }
-
-        private static Text BuildSizedText(Transform parent, string name, float width, float height,
-            int fontSize, Color color, FontStyle style)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
 
             return Decorate(go.GetComponent<Text>(), fontSize, color, style);
         }
@@ -461,6 +267,8 @@ namespace Prototype
         /// <summary>더미가 바뀌면 숫자를 다시 쓰고, 열려 있는 팝업이 있으면 내용도 다시 채운다.</summary>
         private void HandlePileChanged()
         {
+            if (!Wired) { Warn(); return; }
+
             _discardCountLabel.text = $"사용됨  {_bulletTime.Discard.Count}";
             _deckCountLabel.text = $"남은 덱  {_bulletTime.Deck.Count}";
 

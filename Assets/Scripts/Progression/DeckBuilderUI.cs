@@ -20,8 +20,6 @@ namespace Prototype
     /// </summary>
     public class DeckBuilderUI : MonoBehaviour
     {
-        /// <summary>레벨업 화면(210)보다 위. 시작 시점에만 뜨므로 겹칠 일은 없지만 순서는 못 박아 둔다.</summary>
-        private const int SortingOrder = 220;
 
         // ── 치수 ─────────────────────────────────────────
 
@@ -128,8 +126,8 @@ namespace Prototype
 
             Instance = this;
 
-            SimpleUI.EnsureEventSystem();
-            SimpleUI.BuildCanvas(gameObject, SortingOrder);
+            UiKit.EnsureEventSystem();
+            UiKit.BuildCanvas(gameObject, UiLayer.DeckBuilder);
         }
 
         private void OnDestroy()
@@ -265,53 +263,53 @@ namespace Prototype
 
         private void BuildUI()
         {
-            root = SimpleUI.CreateImage(transform, "DeckBuilderRoot", BackdropColor);
-            SimpleUI.Stretch((RectTransform)root.transform);
+            root = UiKit.CreateImage(transform, "DeckBuilderRoot", BackdropColor);
+            UiKit.Stretch((RectTransform)root.transform);
             root.GetComponent<Image>().raycastTarget = true;
 
-            GameObject panel = SimpleUI.CreateImage(root.transform, "Panel", PanelColor);
-            SimpleUI.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero,
+            GameObject panel = UiKit.CreateImage(root.transform, "Panel", PanelColor);
+            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero,
                 new Vector2(PanelWidth, PanelHeight));
 
             Transform p = panel.transform;
 
-            Text title = SimpleUI.CreateText(p, "Title", "디버그 — 시작 덱 짜기", 38, TitleColor);
-            SimpleUI.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 48f));
+            Text title = UiKit.CreateText(p, "Title", "디버그 — 시작 덱 짜기", 38, TitleColor);
+            UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 48f));
 
-            Text hint = SimpleUI.CreateText(p, "Hint",
+            Text hint = UiKit.CreateText(p, "Hint",
                 "좌클릭 +1장 · 우클릭 −1장 · 황금 카드는 테두리가 금색이다", 20, HintColor);
-            SimpleUI.Place(hint, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(1200f, 30f));
+            UiKit.Place(hint, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(1200f, 30f));
 
             BuildScrollView(p);
 
-            summaryText = SimpleUI.CreateText(p, "Summary", "", 19, Color.white);
+            summaryText = UiKit.CreateText(p, "Summary", "", 19, Color.white);
             summaryText.supportRichText = true;
             summaryText.alignment = TextAnchor.UpperLeft;
             summaryText.horizontalOverflow = HorizontalWrapMode.Wrap;
             summaryText.verticalOverflow = VerticalWrapMode.Truncate;
-            SimpleUI.Place(summaryText, new Vector2(0.5f, 0f), new Vector2(0f, 172f),
+            UiKit.Place(summaryText, new Vector2(0.5f, 0f), new Vector2(0f, 172f),
                 new Vector2(PanelWidth - 80f, 116f));
 
-            totalText = SimpleUI.CreateText(p, "Total", "", 22, SubColor);
+            totalText = UiKit.CreateText(p, "Total", "", 22, SubColor);
             totalText.supportRichText = true;
-            SimpleUI.Place(totalText, new Vector2(0f, 0f), new Vector2(220f, 46f), new Vector2(300f, 34f));
+            UiKit.Place(totalText, new Vector2(0f, 0f), new Vector2(220f, 46f), new Vector2(300f, 34f));
 
-            Button start = SimpleUI.CreateButton(p, "Start", "이 덱으로 시작", StartColor,
+            Button start = UiKit.CreateButton(p, "Start", "이 덱으로 시작", StartColor,
                 new Vector2(240f, 58f), 24);
             start.onClick.AddListener(Apply);
-            SimpleUI.Place(start, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(240f, 58f));
+            UiKit.Place(start, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(240f, 58f));
 
-            Button clear = SimpleUI.CreateButton(p, "Clear", "전부 지우기", ClearColor,
+            Button clear = UiKit.CreateButton(p, "Clear", "전부 지우기", ClearColor,
                 new Vector2(180f, 58f), 22);
             clear.onClick.AddListener(ClearAll);
-            SimpleUI.Place(clear, new Vector2(1f, 0f), new Vector2(-140f, 46f), new Vector2(180f, 58f));
+            UiKit.Place(clear, new Vector2(1f, 0f), new Vector2(-140f, 46f), new Vector2(180f, 58f));
 
             root.SetActive(false);
         }
 
         private void BuildScrollView(Transform parent)
         {
-            GameObject viewport = SimpleUI.CreateImage(parent, "Viewport", ViewportColor);
+            GameObject viewport = UiKit.CreateImage(parent, "Viewport", ViewportColor);
             var viewportRect = (RectTransform)viewport.transform;
             viewportRect.anchorMin = viewportRect.anchorMax = viewportRect.pivot = new Vector2(0.5f, 1f);
             viewportRect.sizeDelta = new Vector2(PanelWidth - 60f, ViewportHeight);
@@ -372,7 +370,7 @@ namespace Prototype
             float y = -CellGap - CellHeight * 0.5f - row * (CellHeight + CellGap);
 
             // 테두리 판이 곧 칸의 루트다. 등급은 여기 색으로만 나타낸다.
-            GameObject frameGo = SimpleUI.CreateImage(content, $"Cell_{index}",
+            GameObject frameGo = UiKit.CreateImage(content, $"Cell_{index}",
                 entry.golden ? GoldColor : FrameColor);
 
             var rect = (RectTransform)frameGo.transform;
@@ -383,7 +381,7 @@ namespace Prototype
             entry.frame = frameGo.GetComponent<Image>();
             entry.frame.raycastTarget = true;   // 테두리를 눌러도 먹어야 한다
 
-            GameObject bodyGo = SimpleUI.CreateImage(rect, "Body", CellColor);
+            GameObject bodyGo = UiKit.CreateImage(rect, "Body", CellColor);
             var body = (RectTransform)bodyGo.transform;
             body.anchorMin = Vector2.zero;
             body.anchorMax = Vector2.one;
@@ -396,7 +394,7 @@ namespace Prototype
             // 아이콘 — 칸 위쪽. 없으면 이름만 크게 보인다.
             if (entry.data != null && entry.data.icon != null)
             {
-                GameObject artGo = SimpleUI.CreateImage(body, "Art", Color.white);
+                GameObject artGo = UiKit.CreateImage(body, "Art", Color.white);
                 var art = (RectTransform)artGo.transform;
                 art.anchorMin = new Vector2(0f, 0.40f);
                 art.anchorMax = new Vector2(1f, 1f);
@@ -409,17 +407,17 @@ namespace Prototype
                 image.raycastTarget = false;
             }
 
-            Text name = SimpleUI.CreateText(body, "Name",
+            Text name = UiKit.CreateText(body, "Name",
                 entry.data != null ? entry.data.skillName : "?", 16, Color.white);
             Anchor(name, new Vector2(0f, 0.24f), new Vector2(1f, 0.40f));
             name.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            Text grade = SimpleUI.CreateText(body, "Grade", entry.golden ? "황금" : "일반", 14,
+            Text grade = UiKit.CreateText(body, "Grade", entry.golden ? "황금" : "일반", 14,
                 entry.golden ? GoldColor : SubColor);
             Anchor(grade, new Vector2(0f, 0.12f), new Vector2(1f, 0.24f));
 
             // 장수는 칸 <b>아래</b>에 둔다. 아이콘 위에 겹치면 어느 카드인지가 안 읽힌다.
-            entry.countLabel = SimpleUI.CreateText(body, "Count", "0", 20, SubColor);
+            entry.countLabel = UiKit.CreateText(body, "Count", "0", 20, SubColor);
             Anchor(entry.countLabel, new Vector2(0f, 0f), new Vector2(1f, 0.13f));
 
             var handler = frameGo.AddComponent<CellHandler>();

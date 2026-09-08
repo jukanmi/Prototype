@@ -1,8 +1,13 @@
+// 타격 한 번의 데이터와 그것을 받는 인터페이스.
+// IHittable.Hit(in HitData, Combat)이라 시그니처가 곧 이 구조체다.
+
 using System;
 using UnityEngine;
 
 namespace Prototype
 {
+    // ══ HitData ═══════════════════════════════════════════
+
     [Serializable]
     public struct DamageData
     {
@@ -174,5 +179,19 @@ namespace Prototype
             f.y = 0f;
             return f.sqrMagnitude > 0.0001f ? f.normalized : Vector3.forward;
         }
+    }
+
+    // ══ Interfaces ═══════════════════════════════════════════
+
+    /// <summary>피격 판정을 받을 수 있는 대상. 상태 전이 · 넉백까지 포함한다.</summary>
+    public interface IHittable
+    {
+        bool Hit(in HitData hitData, Combat attacker);
+    }
+
+    /// <summary>데미지만 받는 대상. 파괴 가능한 오브젝트 등.</summary>
+    public interface IDamageable
+    {
+        void TakeDamage(in DamageData damageData);
     }
 }

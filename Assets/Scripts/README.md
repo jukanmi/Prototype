@@ -46,8 +46,8 @@ FlowScene/  씬 흐름 — Boot / MainMenu / Battle 전환 (FlowScene/README.md)
 | `Wall` 레이어 | ProjectSettings |
 
 씬에는 플레이어 1 + 동료 4(탱/전/궁/마) + 적 4마리, 사방 벽, 비스듬한 직교 카메라,
-`BattleSystem` 오브젝트(BulletTime / Board / Executor / Predictor / TargetSelector /
-DebugComboHUD / BattleLogSettings)가 배치되고 참조까지 전부 연결된다.
+`BattleSystem` 오브젝트(BulletTime / Board / Executor / Predictor / TargetSelector)가
+배치되고 참조까지 전부 연결된다.
 
 ### 테스트 씬의 표현 방식
 
@@ -58,21 +58,11 @@ DebugComboHUD / BattleLogSettings)가 배치되고 참조까지 전부 연결된
 바닥은 **콜라이더가 없는 시각물**이다. 높이(Y)는 `Physics` 가 코드로 계산하므로
 유니티 물리와 싸우면 안 된다. 벽만 진짜 콜라이더 — 넉백 → 벽 바운드 전이를 여기서 확인한다.
 
-### 화면 HUD (`DebugComboHUD`)
+### 화면 HUD (`ComboBoardUI`)
 
-UI 가 붙기 전까지 쓰는 임시 조작기. OnGUI 로만 그려서 캔버스가 필요 없다.
-게이지 · 덱/손패/Discard 장수 · 손패 목록 · 슬롯별 예측 상태와 강화/기본 · 조준 정보 ·
-파티 HP/상태 · 적 HP/상태/높이/공중히트 카운트를 실시간으로 보여준다.
-
-불릿타임 중 조작:
-
-| 입력 | 동작 |
-|---|---|
-| `A S D F G` | 손패 카드 선택 (조준 시작) |
-| 좌클릭 | 조준 확정 + 빈 슬롯에 배치 |
-| 우클릭 | 조준 취소 |
-| `Backspace` | 마지막 슬롯 회수 |
-| `Space` | 실행 |
+게이지 · 덱/손패/Discard 장수 · 손패 목록 · 슬롯별 예측 상태와 강화/기본 · 조준 정보를
+캔버스로 그린다. 불릿타임 중 조작도 여기서 받는다 — 키는 하드코딩이 아니라
+`PlayerInputController` 의 액션이라 `RebindUI` 에서 바꿀 수 있다.
 
 ### 확인해 볼 콤보
 
@@ -396,8 +386,7 @@ bool enhanced = predictor.IsChained(board.Slots, slotIndex);
 | `Combo` | 초록 | 슬롯 배치·회수·순서변경, 실행 큐, 슬롯별 실행, 재타겟, 타임아웃 |
 | `Predict` | 주황 | 슬롯별 예측 상태 + 강화/기본 판정, 조준 확정, 헛침 경고 |
 
-**끄는 법** — 씬 아무 오브젝트에 `BattleLogSettings` 를 붙이고 `mask` 에서 카테고리를 체크 해제한다.
-코드로는 `BattleLog.Mask = LogCategory.Combat | LogCategory.Combo;` 처럼 직접 넣어도 된다.
+**끄는 법** — `BattleLog.Mask = LogCategory.Combat | LogCategory.Combo;` 처럼 직접 대입한다.
 
 로그 호출에는 `[Conditional("UNITY_EDITOR")]` / `[Conditional("DEVELOPMENT_BUILD")]` 가 붙어 있어
 릴리즈 빌드에서는 **호출 자체가 사라진다**. 문자열 보간 비용도 남지 않는다.
