@@ -8,8 +8,12 @@ using UnityEngine;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// 보스 애셋이 실제로 쓸 수 있는 상태로 나오는지 검증한다.
+    /// 보스 애셋이 실제로 쓸 수 있는 상태인지 검증한다.
     /// 프리팹 배선은 컴파일로 안 잡히는 실수가 가장 많이 나는 곳이다.
+    ///
+    /// 프리팹 생성기(<c>BossPrefabBuilder</c>)를 지운 뒤로는 <b>커밋된 애셋을 그대로</b>
+    /// 검사한다 — 프리팹을 손으로 고치므로 이 검사가 배선 실수를 잡는 유일한 그물이다.
+    /// 기대값은 빌더가 쥐고 있던 상수를 여기 인라인했다.
     /// </summary>
     public class BossPrefabBuilderTests
     {
@@ -20,17 +24,23 @@ namespace Prototype.Tests
         private const string BasePrefabPath = "Assets/Prefabs/Enemy_Melee.prefab";
         private const string SheetFolder = "Assets/Art/Character/BossWarrior";
 
+        // ── 프리팹에 박혀 있어야 할 값 (옛 BossPrefabBuilder 상수) ──
+        private const string BasicHitboxName = "Attack";
+        private const string WideHitboxName = "WideHitbox";
+        private const string RadialHitboxName = "RadialHitbox";
+        private const float RadialHitboxRadius = 3.2f;
+
         [OneTimeSetUp]
         public void BuildOnce()
         {
+            // 아트 파이프라인은 남아 있다 — 클립·컨트롤러는 여기서 굽는다.
             BossArtImportBuilder.BuildAll();
-            BossPrefabBuilder.Build();
         }
 
         private static GameObject Prefab()
         {
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            Assert.That(go, Is.Not.Null, $"{PrefabPath} 가 생성되지 않았다");
+            Assert.That(go, Is.Not.Null, $"{PrefabPath} 가 없다");
             return go;
         }
 
@@ -360,9 +370,9 @@ namespace Prototype.Tests
         {
             switch (kind)
             {
-                case BossPatternTable.HitboxKind.Wide: return BossPrefabBuilder.WideHitboxName;
-                case BossPatternTable.HitboxKind.Radial: return BossPrefabBuilder.RadialHitboxName;
-                default: return BossPrefabBuilder.BasicHitboxName;
+                case BossPatternTable.HitboxKind.Wide: return WideHitboxName;
+                case BossPatternTable.HitboxKind.Radial: return RadialHitboxName;
+                default: return BasicHitboxName;
             }
         }
 
@@ -373,14 +383,14 @@ namespace Prototype.Tests
         [Test]
         public void Prefab_RadialHitboxIsASphereAtBodyCenter()
         {
-            Transform radial = Prefab().transform.Find(BossPrefabBuilder.RadialHitboxName);
+            Transform radial = Prefab().transform.Find(RadialHitboxName);
 
             Assert.That(radial, Is.Not.Null, "둘레 히트박스가 없다");
 
             var sphere = radial.GetComponent<SphereCollider>();
             Assert.That(sphere, Is.Not.Null, "둘레 히트박스가 구가 아니다");
             Assert.That(sphere.isTrigger, Is.True);
-            Assert.That(sphere.radius, Is.EqualTo(BossPrefabBuilder.RadialHitboxRadius).Within(0.0001f));
+            Assert.That(sphere.radius, Is.EqualTo(RadialHitboxRadius).Within(0.0001f));
 
             // 앞으로 밀면 등 뒤에 사각지대가 생긴다.
             Assert.That(radial.localPosition.x, Is.EqualTo(0f).Within(0.0001f));
@@ -394,7 +404,7 @@ namespace Prototype.Tests
         public void Prefab_HasSeparateWideHitbox()
         {
             GameObject go = Prefab();
-            Transform wide = go.transform.Find(BossPrefabBuilder.WideHitboxName);
+            Transform wide = go.transform.Find(WideHitboxName);
             Attack basic = go.GetComponent<Enemy>().BasicAttack;
 
             Assert.That(wide, Is.Not.Null, "광역 히트박스 자식이 없다");
@@ -565,22 +575,16 @@ namespace Prototype.Tests
             Assert.That(basePrefab.GetComponent<BossPatternAction>(), Is.Null, "기준 프리팹에 보스 패턴이 붙었다");
         }
 
-        /// <summary>두 번 돌려도 경로·GUID가 그대로여야 한다. 아니면 씬 참조가 매번 끊긴다.</summary>
+        /// <summary>보스 데이터 애셋이 한 벌만 있어야 한다. 복제본이 늘면 어느 쪽이 물리는지 알 수 없다.</summary>
         [Test]
-        public void Build_IsIdempotent()
+        public void DataAssets_ExistExactlyOnce()
         {
-            string prefabGuid = AssetDatabase.AssetPathToGUID(PrefabPath);
-            string dataGuid = AssetDatabase.AssetPathToGUID(DataPath);
-            string brainGuid = AssetDatabase.AssetPathToGUID(BrainPath);
-            int dataCount = AssetDatabase.FindAssets("t:EnemyData", new[] { "Assets/Data/Enemy" }).Length;
+            Assert.That(AssetDatabase.AssetPathToGUID(PrefabPath), Is.Not.Empty, $"{PrefabPath} 가 없다");
+            Assert.That(AssetDatabase.AssetPathToGUID(DataPath), Is.Not.Empty, $"{DataPath} 가 없다");
+            Assert.That(AssetDatabase.AssetPathToGUID(BrainPath), Is.Not.Empty, $"{BrainPath} 가 없다");
 
-            BossPrefabBuilder.Build();
-
-            Assert.That(AssetDatabase.AssetPathToGUID(PrefabPath), Is.EqualTo(prefabGuid));
-            Assert.That(AssetDatabase.AssetPathToGUID(DataPath), Is.EqualTo(dataGuid));
-            Assert.That(AssetDatabase.AssetPathToGUID(BrainPath), Is.EqualTo(brainGuid));
-            Assert.That(AssetDatabase.FindAssets("t:EnemyData", new[] { "Assets/Data/Enemy" }).Length,
-                        Is.EqualTo(dataCount), "재실행이 데이터 애셋을 늘렸다");
+            string[] bossData = AssetDatabase.FindAssets("Enemy_Boss t:EnemyData", new[] { "Assets/Data/Enemy" });
+            Assert.That(bossData.Length, Is.EqualTo(1), "보스 데이터 애셋이 한 벌이 아니다");
         }
     }
 }

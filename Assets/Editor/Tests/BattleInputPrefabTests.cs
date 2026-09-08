@@ -25,7 +25,7 @@ namespace Prototype.Tests
         {
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.That(go, Is.Not.Null,
-                $"{path} 를 못 찾았다. 메뉴 'Prototype > 전투 - 입력 호스트 프리팹 만들기' 를 실행할 것.");
+                $"{path} 를 못 찾았다.");
             return go;
         }
 

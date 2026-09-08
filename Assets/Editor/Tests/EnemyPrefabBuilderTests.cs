@@ -6,8 +6,10 @@ using UnityEngine;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// 생성기가 실제로 쓸 수 있는 애셋을 뱉는지 검증한다.
+    /// 적 변종 프리팹이 실제로 쓸 수 있는 상태인지 검증한다.
     /// 프리팹은 컴파일 오류로 안 잡히는 배선 실수가 가장 많이 나는 곳이다.
+    ///
+    /// 생성기(<c>EnemyPrefabBuilder</c>)를 지운 뒤로는 <b>커밋된 애셋을 그대로</b> 검사한다.
     /// </summary>
     public class EnemyPrefabBuilderTests
     {
@@ -16,16 +18,10 @@ namespace Prototype.Tests
         private const string ChargerPath = "Assets/Prefabs/Enemy_Charger.prefab";
         private const string BasePath = "Assets/Prefabs/enemy.prefab";
 
-        [OneTimeSetUp]
-        public void BuildOnce()
-        {
-            EnemyPrefabBuilder.Build();
-        }
-
         private static GameObject Load(string path)
         {
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            Assert.That(go, Is.Not.Null, $"{path} 가 생성되지 않았다");
+            Assert.That(go, Is.Not.Null, $"{path} 가 없다");
             return go;
         }
 
@@ -205,25 +201,17 @@ namespace Prototype.Tests
             Assert.That(basePrefab.GetComponent<EnemyChargeAction>(), Is.Null);
         }
 
-        /// <summary>두 번 돌려도 경로·GUID가 그대로여야 한다. 아니면 참조가 매번 끊긴다.</summary>
-        [Test]
-        public void Build_IsIdempotent()
+        /// <summary>변종마다 애셋이 한 벌씩만 있어야 한다. 복제본이 늘면 어느 쪽이 물리는지 알 수 없다.</summary>
+        [TestCase(MeleePath)]
+        [TestCase(RangedPath)]
+        [TestCase(ChargerPath)]
+        public void VariantAsset_ExistsExactlyOnce(string path)
         {
-            string[] before =
-            {
-                AssetDatabase.AssetPathToGUID(MeleePath),
-                AssetDatabase.AssetPathToGUID(RangedPath),
-                AssetDatabase.AssetPathToGUID(ChargerPath),
-            };
-            int countBefore = AssetDatabase.FindAssets("t:EnemyData", new[] { "Assets/Data/Enemy" }).Length;
+            Assert.That(AssetDatabase.AssetPathToGUID(path), Is.Not.Empty, $"{path} 가 없다");
 
-            EnemyPrefabBuilder.Build();
-
-            Assert.That(AssetDatabase.AssetPathToGUID(MeleePath), Is.EqualTo(before[0]));
-            Assert.That(AssetDatabase.AssetPathToGUID(RangedPath), Is.EqualTo(before[1]));
-            Assert.That(AssetDatabase.AssetPathToGUID(ChargerPath), Is.EqualTo(before[2]));
-            Assert.That(AssetDatabase.FindAssets("t:EnemyData", new[] { "Assets/Data/Enemy" }).Length,
-                        Is.EqualTo(countBefore), "재실행이 데이터 애셋을 늘렸다");
+            string name = System.IO.Path.GetFileNameWithoutExtension(path);
+            string[] found = AssetDatabase.FindAssets($"{name} t:EnemyData", new[] { "Assets/Data/Enemy" });
+            Assert.That(found.Length, Is.EqualTo(1), $"{name} 데이터 애셋이 한 벌이 아니다");
         }
     }
 }

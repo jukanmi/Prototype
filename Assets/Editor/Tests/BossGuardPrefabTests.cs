@@ -22,6 +22,9 @@ namespace Prototype.Tests
         private const string BossPrefabPath = "Assets/Prefabs/Enemy_Boss.prefab";
         private const string DummyPrefabPath = "Assets/Prefabs/Enemy_Dummy.prefab";
 
+        /// <summary>보스 가드 총량. 옛 <c>BossPrefabBuilder.MaxGuard</c>.</summary>
+        private const float BossMaxGuard = 60f;
+
         [Test]
         public void BossPrefab_IsSuperArmoredByDefault()
         {
@@ -29,11 +32,11 @@ namespace Prototype.Tests
 
             Assert.That(boss.HasGuard, Is.True,
                         "보스가 가드를 안 들고 있다 — 평상시 슈퍼아머가 통째로 꺼진다. " +
-                        "Prototype ▸ 보스 - 프리팹 + 데이터 만들기 를 다시 돌릴 것");
+                        "프리팹을 손으로 고쳤다면 이 상수도 같이 고칠 것");
 
             Assert.That(SerializedFloat(boss, "maxGuard"),
-                        Is.EqualTo(BossPrefabBuilder.MaxGuard).Within(0.01f),
-                        "프리팹 값이 빌더 상수와 어긋난다 — 둘 중 하나가 손으로 바뀌었다");
+                        Is.EqualTo(BossMaxGuard).Within(0.01f),
+                        "프리팹 값이 기대 상수와 어긋난다 — 둘 중 하나가 손으로 바뀌었다");
         }
 
         /// <summary>
