@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 런(run) 단위 데이터와 <b>스테이지 진행</b>을 소유한다. 씬 오브젝트는 절대 참조하지 않는다.

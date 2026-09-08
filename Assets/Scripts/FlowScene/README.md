@@ -1,7 +1,7 @@
-# yg — 메인화면 ↔ 배틀 씬 전환 구조
+# FlowScene — 메인화면 ↔ 배틀 씬 전환 구조
 
 `inbox/프로토타입 진행/메인화면-배틀씬-전환구조.md` 명세를 코드로 옮긴 결과물.
-런타임은 전부 `Prototype.YG`, 에디터 툴은 `Prototype.YG.EditorTools` 네임스페이스다.
+런타임은 전부 `Prototype`, 에디터 툴은 `Prototype.EditorTools` 네임스페이스다.
 
 ## 흐름
 
@@ -25,15 +25,26 @@ SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
 | `SceneNames.cs` | 씬 이름 상수. `Battle` = `"SampleScene"` |
 | `SceneLoader.cs` | 씬의 **존재 자체**. Additive 로드/언로드 + 페이드 + `IsBusy` 잠금 |
 | `GameManager.cs` | 런 단위 데이터. 씬 오브젝트는 절대 참조하지 않는다 |
-| `AudioManager.cs` | BGM/SFX 골격. 클립이 비어도 예외 없이 넘어간다 |
+| `Core/AudioManager.cs` | BGM/SFX 골격. 클립이 비어도 예외 없이 넘어간다 |
 | `BootStrapper.cs` | Boot 씬에서 최초 1회 MainMenu 를 띄운다 |
 | `MainMenuController.cs` | 시작/종료 버튼 배선 |
 | `BattleSceneController.cs` | 배틀 씬 진행. 현재는 ESC 이탈 처리 |
-| `Editor/FlowSceneBuilder.cs` | Boot · MainMenu 씬 생성 + Build Settings 등록 |
+| `PartySelectUI.cs` | 메인화면 파티 편성. 고른 순서가 곧 F키 교대 순환 순서 |
+| `UIManager.cs` | 볼륨 슬라이더 · 설정 패널. Boot 에 상주 |
+| `Assets/Editor/FlowSceneBuilder.cs` | Boot · MainMenu 씬 생성 + Build Settings 등록 |
+
+이 폴더 밖에 있지만 흐름의 일부인 것들 — 도메인이 명확해서 각자 자리로 보냈다.
+
+| 파일 | 역할 |
+|---|---|
+| `Stage/StageOutcomeRules.cs` | `StageOutcome` 판정. 스테이지 규칙이라 `Stage/` |
+| `Battle/UI/BattleRestartUI.cs` | 인게임 [처음부터] 버튼 |
+| `Battle/UI/StageResultUI.cs` | 스테이지 종료 화면 (출구 화살표 / 전부 클리어 / 패배) |
+| `Battle/UI/SimpleUI.cs` | 코드로 캔버스 짓는 공용 조각. `UiFactory` 옆자리 |
 
 ## 씬 조립 — 메뉴 한 번
 
-**`Prototype ▸ YG ▸ 메인화면 흐름 씬 만들기`** 를 누르면 아래가 전부 만들어진다.
+**`Prototype ▸ 씬 흐름 - 메인화면 흐름 씬 만들기`** 를 누르면 아래가 전부 만들어진다.
 
 - `Assets/Scenes/Boot.unity` — GameManager(+BootStrapper) / SceneLoader / AudioManager
   (AudioSource ×2) / EventSystem / FadeCanvas(Sort Order 999). 참조 슬롯까지 연결된다.
@@ -88,7 +99,7 @@ Screen Space - Overlay 라 카메라 없는 순간에도 정상 렌더링된다.
 ## 시간 제어 — 명세와 다르게 간 부분 ②
 
 명세는 `Time.timeScale = 1f` 로 복구하라고 되어 있지만, 이 프로젝트의 일시정지는
-`Time.timeScale` 이 아니라 **`Prototype.TimeControl.Scale`** 이다
+`Time.timeScale` 이 아니라 **`TimeControl.Scale`** 이다
 (불릿타임 중 UI · 조준은 계속 돌아야 하므로 — `Scripts/README.md` 참조).
 
 그래서 `TimeControl.Reset()` 을 함께 호출한다. `Time.timeScale` 도 같이 1 로 되돌리지만

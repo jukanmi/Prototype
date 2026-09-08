@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 스테이지가 끝난 뒤의 화면. 세 가지 얼굴을 가진다.

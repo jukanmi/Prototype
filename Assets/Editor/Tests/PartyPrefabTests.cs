@@ -25,7 +25,7 @@ namespace Prototype.Tests
         // ── 컨테이너 불변식 ─────────────────────────────
 
         /// <summary>
-        /// 루트가 원점을 벗어나면 <see cref="Prototype.YG.BattleSceneController"/>의 출구 판정이
+        /// 루트가 원점을 벗어나면 <see cref="Prototype.BattleSceneController"/>의 출구 판정이
         /// 월드 x 를 읽으므로 <b>스테이지가 안 넘어간다</b>. 증상이 파티 구조와 전혀 안 닮았다.
         /// </summary>
         [Test]

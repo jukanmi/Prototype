@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using Prototype.YG;
 
 namespace Prototype
 {

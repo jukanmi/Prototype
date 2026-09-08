@@ -7,7 +7,7 @@ namespace Prototype
     /// 스테이지 한 판의 <b>웨이브 진행</b>. 표(<see cref="StageWaveCatalog"/>)를 읽어
     /// 때가 되면 적을 소환하고, 다 잡히면 다음 웨이브를 연다.
     ///
-    /// <b>승패는 여기서 판정하지 않는다.</b> 그건 <see cref="Prototype.YG.BattleSceneController"/>
+    /// <b>승패는 여기서 판정하지 않는다.</b> 그건 <see cref="Prototype.BattleSceneController"/>
     /// 몫이고, 그쪽은 <see cref="WavesRemaining"/> 하나만 물어본다 — 남은 웨이브가 있는데
     /// 적이 0명인 순간(웨이브 사이 빈 구간)에 승리로 판정하면 첫 웨이브만 잡고 스테이지가 끝난다.
     ///

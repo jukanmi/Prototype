@@ -5,7 +5,7 @@ namespace Prototype
     /// <summary>
     /// 로드아웃을 슬롯에 배치하는 규칙. <see cref="PartyAssembler"/>에서 떼어 낸 순수 계산이다.
     ///
-    /// <see cref="TagSwapRules"/> · <see cref="Prototype.YG.StageOutcomeRules"/>와 같은 이유로 분리한다 —
+    /// <see cref="TagSwapRules"/> · <see cref="Prototype.StageOutcomeRules"/>와 같은 이유로 분리한다 —
     /// EditMode 테스트는 <c>Awake</c>가 돌지 않아 씬을 세울 수 없다. 규칙만 여기 두면
     /// 씬 없이 검증되고, 슬롯을 실제로 만지는 부분은 얇은 어댑터로 남는다.
     /// </summary>

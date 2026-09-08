@@ -3,7 +3,6 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Prototype.YG;
 
 namespace Prototype
 {

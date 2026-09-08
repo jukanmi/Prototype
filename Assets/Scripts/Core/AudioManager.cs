@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 사운드 골격. 클립이 아직 없으므로 인터페이스만 만들어 둔다.

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// Boot 씬에서 최초 1회만 실행되어 메인화면을 띄운다.

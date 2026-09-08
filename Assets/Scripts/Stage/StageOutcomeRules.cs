@@ -1,4 +1,4 @@
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>스테이지의 결말.</summary>
     public enum StageOutcome

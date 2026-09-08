@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 메인화면의 <b>파티 편성</b>. 데려갈 동료를 명단에서 골라 4칸을 채운다.

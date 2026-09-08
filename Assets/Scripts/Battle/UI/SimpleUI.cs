@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem.UI;
 #endif
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 코드로 짓는 런타임 UI의 공용 조각. 배틀 씬 UI가 전부 씬·프리팹 배선 없이

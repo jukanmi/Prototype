@@ -51,7 +51,7 @@ namespace Prototype
         /// 화면에서 짠 조합. <b>에셋이 아니다</b> — 메모리에만 있는 인스턴스다.
         ///
         /// <see cref="PartyAssembler"/>는 조합이 에셋인지 아닌지 구분하지 않으므로
-        /// 이걸 그대로 <see cref="Prototype.YG.GameManager.SelectLoadout"/>에 넘기면 된다.
+        /// 이걸 그대로 <see cref="Prototype.GameManager.SelectLoadout"/>에 넘기면 된다.
         /// <c>GameManager</c>가 Boot 씬에 상주하며 참조를 들고 있는 동안 살아 있고,
         /// 게임을 끄면 사라진다 — 저장은 하지 않는다.
         ///

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Prototype.YG;
 using UnityEngine;
 
 namespace Prototype

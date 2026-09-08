@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Prototype.YG;
 using UnityEngine;
 
 namespace Prototype.Tests

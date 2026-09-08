@@ -3,7 +3,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Prototype.YG;
 
 namespace Prototype.EditorTools
 {
@@ -12,7 +11,7 @@ namespace Prototype.EditorTools
     ///
     /// 씬을 새로 조립하지 않고 <c>SampleScene</c>을 <b>복제</b>한다. 그 씬에는 플레이어 ·
     /// 동료 5명 · 입력 프리팹 · 디버그 HUD · 방 · 카메라 · 충돌 설정이 이미 전부 배선돼 있어서,
-    /// 손으로 다시 만들면 하나씩 빠뜨린다. 복제본은 <see cref="Prototype.YG.BattleSceneController"/>도
+    /// 손으로 다시 만들면 하나씩 빠뜨린다. 복제본은 <see cref="Prototype.BattleSceneController"/>도
     /// 물려받으므로 씬 단독 실행(ESC · 재시작)이 그대로 동작한다.
     ///
     /// <b>매번 SampleScene에서 다시 굽는다.</b> 스테이지 씬을 손으로 고쳐 뒀다면 사라진다 —
@@ -196,7 +195,7 @@ namespace Prototype.EditorTools
         // ── Build Settings ─────────────────────────────
 
         /// <summary>
-        /// 등록하지 않으면 <see cref="Prototype.YG.BattleSceneController.RestartStage"/>의
+        /// 등록하지 않으면 <see cref="Prototype.BattleSceneController.RestartStage"/>의
         /// 씬 단독 실행 경로(<c>SceneManager.LoadScene(scene.name)</c>)가 씬을 못 찾는다 —
         /// 재시작 버튼이 조용히 죽는다.
         /// </summary>

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 배틀 씬의 지휘자. ESC 이탈, 씬 초기화, 그리고 <b>승패 판정</b>을 맡는다.

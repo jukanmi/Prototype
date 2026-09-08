@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 씬의 <b>존재 자체</b>만 관리한다. 씬 내부 로직에는 관여하지 않는다.

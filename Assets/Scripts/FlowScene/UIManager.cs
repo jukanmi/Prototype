@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 게임 내 전체 UI를 총괄 관리하는 매니저.

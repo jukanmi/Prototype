@@ -28,7 +28,7 @@ Control/    Control, PlayerControl, EnemyControl, AllyControl
 Skill/      SkillData, SkillState, SkillContext, ISkillEffect, Effects, EffectRunner
 Deck/       ComboCard, Deck / Hand / Discard
 Battle/     BulletTimeController, ComboSlotBoard, ComboExecutor, EnemyRadiusProbe, TargetSelector
-yg/         씬 흐름 — Boot / MainMenu / Battle 전환 (namespace Prototype.YG, yg/README.md)
+FlowScene/  씬 흐름 — Boot / MainMenu / Battle 전환 (FlowScene/README.md)
 ```
 
 ## 테스트 씬 — 메뉴 한 번으로 생성
@@ -433,5 +433,5 @@ bool enhanced = predictor.IsChained(board.Slots, slotIndex);
 `SettingsManager`. 씬 · UI 의존이라 별도 작업이 필요하다.
 
 `GameManager` · `SceneLoader` · `AudioManager` 와 메인화면 ↔ 배틀 씬 전환은
-`yg/` 에 들어갔다 (`Prototype.YG`). 씬 조립은 **`Prototype ▸ YG ▸ 메인화면 흐름 씬 만들기`**
-메뉴 하나로 끝난다. 자세한 내용은 `yg/README.md`.
+`FlowScene/` 에 들어갔다. 씬 조립은 **`Prototype ▸ 씬 흐름 - 메인화면 흐름 씬 만들기`**
+메뉴 하나로 끝난다. 자세한 내용은 `FlowScene/README.md`.

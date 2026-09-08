@@ -8,7 +8,7 @@ namespace Prototype
     /// <c>Resources</c> 경로 로드로만 잡는다.
     ///
     /// <b>왜 Resources 인가.</b> 파티 선택 화면은 코드로 스스로 지어지므로
-    /// (<see cref="Prototype.YG.PartySelectUI"/>) 인스펙터에 에셋을 물릴 자리가 없다.
+    /// (<see cref="Prototype.PartySelectUI"/>) 인스펙터에 에셋을 물릴 자리가 없다.
     /// 씬 배선을 0으로 유지하려면 이 통로가 유일하다 — <see cref="SkillCatalog"/>가
     /// 같은 이유로 같은 선택을 했다.
     ///

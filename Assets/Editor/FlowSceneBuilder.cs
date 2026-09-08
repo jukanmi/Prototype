@@ -11,11 +11,11 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem.UI;
 #endif
 
-namespace Prototype.YG.EditorTools
+namespace Prototype.EditorTools
 {
     /// <summary>
     /// 메인화면 ↔ 배틀 씬 전환 구조를 한 번에 조립한다.
-    /// 메뉴: Prototype ▸ YG ▸ 메인화면 흐름 씬 만들기
+    /// 메뉴: Prototype ▸ 씬 흐름 - 메인화면 흐름 씬 만들기
     ///
     /// 만드는 것 — Boot.unity, MainMenu.unity, SampleScene 에 BattleSceneController 추가,
     /// Build Settings 등록(Boot 0 / MainMenu 1 / SampleScene 2).
@@ -34,7 +34,7 @@ namespace Prototype.YG.EditorTools
         private const string MenuPath  = SceneDir + "/MainMenu.unity";
         private const string BattlePath = SceneDir + "/SampleScene.unity";
 
-        [MenuItem("Prototype/YG/메인화면 흐름 씬 만들기", priority = 20)]
+        [MenuItem("Prototype/씬 흐름 - 메인화면 흐름 씬 만들기", priority = 20)]
         public static void Build()
         {
             if (!EditorUtility.DisplayDialog(
@@ -67,7 +67,7 @@ namespace Prototype.YG.EditorTools
         /// 씬을 전부 다시 만들지 않고 사운드만 다시 문다.
         /// Boot 씬을 열어 둔 상태에서 쓴다 — 소리 파일을 추가·교체했을 때의 경로.
         /// </summary>
-        [MenuItem("Prototype/YG/사운드 다시 연결", priority = 21)]
+        [MenuItem("Prototype/씬 흐름 - 사운드 다시 연결", priority = 21)]
         public static void ReassignClips()
         {
             AudioManager manager = Object.FindAnyObjectByType<AudioManager>();

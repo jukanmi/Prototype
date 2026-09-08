@@ -1187,9 +1187,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 219172755}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -1270,9 +1272,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 217981156}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -1511,9 +1515,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 2014610881}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -1791,7 +1797,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -1805,6 +1810,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -1932,7 +1939,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -1946,6 +1952,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -2496,7 +2504,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -2510,6 +2517,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -2602,7 +2611,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -2616,6 +2624,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -2651,7 +2661,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -2665,6 +2674,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -2716,9 +2727,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 1148258930}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -2964,9 +2977,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 851669543}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01
@@ -3085,7 +3100,6 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
@@ -3099,6 +3113,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   impactVfx: 1
@@ -3134,9 +3150,11 @@ MonoBehaviour:
   depthRoot: {fileID: 0}
   shadow: {fileID: 2003934692}
   depthScalePerUnit: 0.06
+  bodyScale: 1
   spriteOffsetY: 0.5
   flipToFacing: 0
   facingRenderer: {fileID: 0}
+  facingRoot: {fileID: 0}
   shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
   shadowLift: 0.01

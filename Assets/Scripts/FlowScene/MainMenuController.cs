@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 메인화면 버튼 배선. MainMenu 씬에만 존재하며 씬과 함께 언로드된다.

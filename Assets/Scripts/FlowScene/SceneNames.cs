@@ -1,4 +1,4 @@
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 씬 이름 상수. 문자열 하드코딩으로 인한 오타를 막는다.

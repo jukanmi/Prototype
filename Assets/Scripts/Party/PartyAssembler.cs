@@ -1,4 +1,3 @@
-using Prototype.YG;
 using UnityEngine;
 
 namespace Prototype
@@ -432,7 +431,7 @@ namespace Prototype
         ///
         /// 이게 "물리 간섭 없는 컨테이너"의 실제 내용이다. 어긋나면 증상이 전부 딴 데서 난다:
         /// <list type="bullet">
-        /// <item>위치가 어긋나면 <see cref="Prototype.YG.BattleSceneController"/>의 출구 판정이
+        /// <item>위치가 어긋나면 <see cref="Prototype.BattleSceneController"/>의 출구 판정이
         /// 월드 x 를 읽으므로 <b>스테이지가 안 넘어간다</b>.</item>
         /// <item>배율이 어긋나면 자식 히트박스가 통째로 커지고 작아진다 — 데미지 판정이 조용히 틀어진다.</item>
         /// </list>

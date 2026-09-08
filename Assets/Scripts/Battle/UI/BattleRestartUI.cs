@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prototype.YG
+namespace Prototype
 {
     /// <summary>
     /// 인게임 씬 우상단의 [처음부터] 버튼과 확인 패널. 캔버스를 코드로 만들므로
