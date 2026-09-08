@@ -11,7 +11,7 @@ namespace Prototype.Tests
     ///
     /// 생성기(<c>EnemyPrefabBuilder</c>)를 지운 뒤로는 <b>커밋된 애셋을 그대로</b> 검사한다.
     /// </summary>
-    public class EnemyPrefabBuilderTests
+    public class EnemyPrefabTests
     {
         private const string MeleePath = "Assets/Prefabs/Enemy_Melee.prefab";
         private const string RangedPath = "Assets/Prefabs/Enemy_Ranged.prefab";

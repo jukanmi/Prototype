@@ -608,7 +608,7 @@ namespace Prototype
             Physics phys = ctx.CasterPhysics;
             if (phys == null || ctx.caster == null) return;
 
-            Projectile shot = Object.Instantiate(data.projectile);
+            Projectile shot = UnityEngine.Object.Instantiate(data.projectile);
 
             // 히트박스 레이어를 그대로 물려받아야 충돌 매트릭스가 맞는다.
             int layer = ctx.caster.BasicAttack != null

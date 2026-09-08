@@ -15,7 +15,7 @@ namespace Prototype.Tests
     /// 검사한다 — 프리팹을 손으로 고치므로 이 검사가 배선 실수를 잡는 유일한 그물이다.
     /// 기대값은 빌더가 쥐고 있던 상수를 여기 인라인했다.
     /// </summary>
-    public class BossPrefabBuilderTests
+    public class BossPrefabTests
     {
         private const string PrefabPath = "Assets/Prefabs/Enemy_Boss.prefab";
         private const string DataPath = "Assets/Data/Enemy/Enemy_Boss.asset";
