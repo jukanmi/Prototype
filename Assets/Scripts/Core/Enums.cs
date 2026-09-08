@@ -183,13 +183,4 @@ namespace Prototype
         Ally,
         Enemy,
     }
-
-    public enum GameState
-    {
-        Title,
-        InGame,
-        Paused,
-        Settings,
-        Dead,
-    }
 }

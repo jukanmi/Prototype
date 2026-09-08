@@ -12,6 +12,9 @@ namespace Prototype
     ///
     /// 계산은 <see cref="ComboMeter"/>가 전부 한다 — 여기는 그리기만 한다.
     /// 아군이 적에게 넣은 피해만 센다.
+    ///
+    /// <b>화면은 프리팹이 쥔다.</b> 캔버스 · 패널 · 글자 넷은 인스펙터에서 배선한다 —
+    /// 자리와 크기를 바꾸려면 코드가 아니라 프리팹을 연다.
     /// </summary>
     public class ComboDamageHUD : MonoBehaviour
     {
@@ -22,24 +25,29 @@ namespace Prototype
         [Tooltip("콤보가 끝난 뒤 숫자를 남겨 두는 시간(초). 마지막 값을 읽을 여유.")]
         [SerializeField] private float lingerDuration = 1.5f;
 
-        [Header("배치")]
-        [Tooltip("화면 오른쪽 끝에서 띄우는 거리(1920×1080 기준).")]
-        [SerializeField] private float rightMargin = 56f;
+        [Header("배선")]
+        [Tooltip("켜고 끄는 대상. 이 오브젝트에 CanvasGroup이 붙어 있어야 페이드가 먹는다.")]
+        [SerializeField] private GameObject panel;
 
-        [Tooltip("화면 세로 중앙에서 올리는 거리. 양수면 위로.")]
-        [SerializeField] private float verticalOffset = 90f;
+        [Tooltip("panel의 CanvasGroup. 콤보가 끝난 뒤 알파로 사라진다.")]
+        [SerializeField] private CanvasGroup group;
 
-        [Tooltip("끄면 패널을 아예 만들지 않는다. 시연 녹화 때 화면을 비우는 용도.")]
+        [Tooltip("타수 숫자.")]
+        [SerializeField] private Text hitsLabel;
+
+        [Tooltip("누적 피해.")]
+        [SerializeField] private Text damageLabel;
+
+        [Tooltip("경과 시간 · DPS.")]
+        [SerializeField] private Text detailLabel;
+
+        [Tooltip("끄면 패널을 아예 안 켠다. 시연 녹화 때 화면을 비우는 용도.")]
         [SerializeField] private bool show = true;
 
         private readonly ComboMeter meter = new ComboMeter();
 
-        private GameObject panel;
-        private CanvasGroup group;
-        private Text hitsLabel;
-        private Text hitsSuffix;
-        private Text damageLabel;
-        private Text detailLabel;
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다. 매 프레임 찍으면 콘솔이 잠긴다.</summary>
+        private bool warned;
 
         /// <summary>지금 세고 있는 값. 테스트와 다른 HUD가 같은 수치를 읽는다.</summary>
         public ComboMeter Meter => meter;
@@ -53,19 +61,14 @@ namespace Prototype
         /// <summary>지금 그려지고 있는 누적 피해.</summary>
         public string DamageText => damageLabel != null ? damageLabel.text : string.Empty;
 
-        // ── 색 ───────────────────────────────────────────
-        // 타수는 흰색으로 두고 <b>피해만</b> 색을 준다. 둘 다 물들이면 어느 쪽이 중요한지 안 읽힌다.
-        private static readonly Color HitsColor = new Color(1f, 1f, 1f, 1f);
-        private static readonly Color DamageColor = new Color32(0xFF, 0xB0, 0x4D, 0xFF);
-        private static readonly Color DetailColor = new Color(1f, 1f, 1f, 0.62f);
-        private static readonly Color SuffixColor = new Color(1f, 1f, 1f, 0.75f);
-
         private void Awake()
         {
             meter.Window = comboWindow;
             meter.LingerDuration = lingerDuration;
 
-            if (show) EnsureBuilt();
+            // 프리팹은 글자가 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
+            // 켜지는 건 첫 타격부터다.
+            if (panel != null) panel.SetActive(false);
         }
 
         private void OnEnable() => Combat.OnAnyDamageDealt += HandleDamage;
@@ -92,8 +95,6 @@ namespace Prototype
             if (victim?.Owner?.Faction != Faction.Enemy) return;
 
             meter.AddHit(amount);
-
-            if (show) EnsureBuilt();
             Redraw();
         }
 
@@ -108,7 +109,23 @@ namespace Prototype
 
         private void Redraw()
         {
-            if (panel == null) return;
+            if (!show)
+            {
+                if (panel != null && panel.activeSelf) panel.SetActive(false);
+                return;
+            }
+
+            if (panel == null || group == null || hitsLabel == null
+                || damageLabel == null || detailLabel == null)
+            {
+                if (warned) return;
+
+                warned = true;
+                Debug.LogWarning(
+                    "[ComboDamageHUD] 배선이 비어 있다 — 콤보 숫자가 안 뜬다. " +
+                    "CombatManager 프리팹의 ComboDamageCanvas 배선을 확인할 것.", this);
+                return;
+            }
 
             bool visible = meter.IsVisible;
             if (panel.activeSelf != visible) panel.SetActive(visible);
@@ -123,92 +140,6 @@ namespace Prototype
             detailLabel.text = meter.IsRunning
                 ? $"{meter.Duration:0.0}s"
                 : $"{meter.Duration:0.00}s · DPS {meter.Dps:0}";
-        }
-
-        // ── UI 조립 ──────────────────────────────────────
-
-        /// <summary>
-        /// 캔버스가 아직 없으면 짓는다. Awake에 의존하지 않는 이유는
-        /// 에디트모드 테스트가 <see cref="HandleDamage"/>를 곧바로 부르는 경로가 있기 때문이다
-        /// (<see cref="SkillCutinUI.EnsureBuilt"/>와 같은 선례).
-        /// </summary>
-        private void EnsureBuilt()
-        {
-            if (panel != null) return;
-
-            BuildUI();
-            panel.SetActive(false);
-        }
-
-        private void BuildUI()
-        {
-            var canvasGo = new GameObject("ComboDamageCanvas",
-                                          typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
-            canvasGo.transform.SetParent(transform, false);
-
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            // RecentHitEnemyHUD(2) 위, SkillCutinUI(10) 아래 — 컷인이 콤보 숫자를 덮어야 한다.
-            canvas.sortingOrder = 5;
-
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 1f;
-
-            panel = new GameObject("ComboDamagePanel", typeof(RectTransform), typeof(CanvasGroup));
-            panel.transform.SetParent(canvasGo.transform, false);
-
-            group = panel.GetComponent<CanvasGroup>();
-            group.interactable = false;
-            group.blocksRaycasts = false;
-
-            // 오른쪽 세로 중앙에 붙인다. 손패(하단)와 적 체력바(하단)를 피하는 유일한 빈 자리다.
-            var rect = (RectTransform)panel.transform;
-            rect.anchorMin = new Vector2(1f, 0.5f);
-            rect.anchorMax = new Vector2(1f, 0.5f);
-            rect.pivot = new Vector2(1f, 0.5f);
-            rect.sizeDelta = new Vector2(420f, 220f);
-            rect.anchoredPosition = new Vector2(-rightMargin, verticalOffset);
-
-            // ── 타수: 숫자와 단위를 따로 둔다. 붙여 쓰면 자릿수가 늘 때 단위가 밀린다.
-            hitsLabel = Label("Hits", 118, HitsColor, FontStyle.Bold, TextAnchor.LowerRight);
-            Place(hitsLabel, new Vector2(-92f, 62f), new Vector2(320f, 130f));
-
-            hitsSuffix = Label("HitsSuffix", 34, SuffixColor, FontStyle.Bold, TextAnchor.LowerRight);
-            hitsSuffix.text = "HIT";
-            Place(hitsSuffix, new Vector2(0f, 74f), new Vector2(88f, 44f));
-
-            // ── 누적 피해: 이 화면에서 유일하게 색을 쓰는 자리.
-            damageLabel = Label("Damage", 56, DamageColor, FontStyle.Bold, TextAnchor.UpperRight);
-            Place(damageLabel, new Vector2(0f, 8f), new Vector2(420f, 66f));
-
-            // ── 시간 · DPS
-            detailLabel = Label("Detail", 26, DetailColor, FontStyle.Normal, TextAnchor.UpperRight);
-            Place(detailLabel, new Vector2(0f, -52f), new Vector2(420f, 36f));
-        }
-
-        private Text Label(string name, int size, Color color, FontStyle style, TextAnchor anchor)
-        {
-            Text t = UiFactory.NewText(panel.transform, name, size, color, style);
-            t.alignment = anchor;
-
-            // 밝은 배경 위에서도 읽히도록 검은 외곽선을 깐다(SkillCutinUI와 같은 처리).
-            var outline = t.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            outline.effectDistance = new Vector2(2f, -2f);
-
-            return t;
-        }
-
-        private static void Place(Text text, Vector2 position, Vector2 size)
-        {
-            var rect = (RectTransform)text.transform;
-            rect.anchorMin = new Vector2(1f, 0.5f);
-            rect.anchorMax = new Vector2(1f, 0.5f);
-            rect.pivot = new Vector2(1f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
         }
 
         /// <summary>인스펙터에서 음수를 넣어도 판정이 뒤집히지 않게 막는다.</summary>

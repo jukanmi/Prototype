@@ -50,13 +50,13 @@ namespace Prototype
             index = slot;
 
             // 테두리 판이 곧 카드의 루트다. 카드 본체는 이 안에 FrameInset만큼 물려 들어간다.
-            frame = SimpleUI.CreateImage(parent, $"Offer_{slot}", FrameColor).GetComponent<Image>();
+            frame = UiKit.CreateImage(parent, $"Offer_{slot}", FrameColor).GetComponent<Image>();
             frame.raycastTarget = false;
 
             Root = (RectTransform)frame.transform;
             Root.sizeDelta = new Vector2(Width + FrameInset * 2f, Height + FrameInset * 2f);
 
-            GameObject bodyGo = SimpleUI.CreateImage(Root, "Body", CardColor);
+            GameObject bodyGo = UiKit.CreateImage(Root, "Body", CardColor);
             var body = (RectTransform)bodyGo.transform;
             body.anchorMin = Vector2.zero;
             body.anchorMax = Vector2.one;
@@ -78,7 +78,7 @@ namespace Prototype
         /// <summary>아트는 카드 위쪽 절반을 채운다. 아이콘이 없는 스킬은 그냥 비워 둔다.</summary>
         private void BuildArt(RectTransform body)
         {
-            GameObject go = SimpleUI.CreateImage(body, "Art", Color.white);
+            GameObject go = UiKit.CreateImage(body, "Art", Color.white);
             var rect = (RectTransform)go.transform;
             rect.anchorMin = new Vector2(0f, 0.38f);
             rect.anchorMax = new Vector2(1f, 1f);
@@ -93,13 +93,13 @@ namespace Prototype
 
         private void BuildLabels(RectTransform body)
         {
-            nameLabel = SimpleUI.CreateText(body, "Name", "", 24, NameColor);
+            nameLabel = UiKit.CreateText(body, "Name", "", 24, NameColor);
             Anchor(nameLabel, new Vector2(0f, 0.26f), new Vector2(1f, 0.38f));
 
-            subLabel = SimpleUI.CreateText(body, "Sub", "", 16, SubColor);
+            subLabel = UiKit.CreateText(body, "Sub", "", 16, SubColor);
             Anchor(subLabel, new Vector2(0f, 0.16f), new Vector2(1f, 0.26f));
 
-            gradeLabel = SimpleUI.CreateText(body, "Grade", "", 17, GoldTextColor);
+            gradeLabel = UiKit.CreateText(body, "Grade", "", 17, GoldTextColor);
             Anchor(gradeLabel, new Vector2(0f, 0.04f), new Vector2(1f, 0.15f));
         }
 
@@ -110,12 +110,12 @@ namespace Prototype
         /// </summary>
         private void BuildStar(RectTransform root)
         {
-            starBadge = SimpleUI.CreateImage(root, "FuseStar", GoldColor);
-            SimpleUI.Place(starBadge.transform, new Vector2(1f, 1f), new Vector2(-4f, -4f), new Vector2(46f, 46f));
+            starBadge = UiKit.CreateImage(root, "FuseStar", GoldColor);
+            UiKit.Place(starBadge.transform, new Vector2(1f, 1f), new Vector2(-4f, -4f), new Vector2(46f, 46f));
             starBadge.GetComponent<Image>().raycastTarget = false;
 
-            Text star = SimpleUI.CreateText(starBadge.transform, "Mark", "★", 26, new Color(0.15f, 0.11f, 0.02f));
-            SimpleUI.Stretch((RectTransform)star.transform);
+            Text star = UiKit.CreateText(starBadge.transform, "Mark", "★", 26, new Color(0.15f, 0.11f, 0.02f));
+            UiKit.Stretch((RectTransform)star.transform);
 
             starBadge.SetActive(false);
         }

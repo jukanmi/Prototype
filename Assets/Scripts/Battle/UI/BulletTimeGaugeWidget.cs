@@ -69,14 +69,14 @@ namespace Prototype
 
         public void Build(Transform parent)
         {
-            Image border = UiFactory.NewImage(parent, "GaugeBar", BorderColor);
+            Image border = UiKit.NewImage(parent, "GaugeBar", BorderColor);
             _root = border.rectTransform;
             _root.sizeDelta = new Vector2(Width, Height);
 
-            Image track = UiFactory.NewImage(_root, "Track", TrackColor);
-            UiFactory.Stretch(track.rectTransform, 1f);
+            Image track = UiKit.NewImage(_root, "Track", TrackColor);
+            UiKit.Stretch(track.rectTransform, 1f);
 
-            _fill = UiFactory.NewImage(_root, "Fill", ChargingColor);
+            _fill = UiKit.NewImage(_root, "Fill", ChargingColor);
             _fillRect = _fill.rectTransform;
             _fillRect.anchorMin = new Vector2(0f, 0f);
             _fillRect.anchorMax = new Vector2(0f, 1f);
@@ -84,15 +84,15 @@ namespace Prototype
             _fillRect.anchoredPosition = new Vector2(Inset, 0f);
             _fillRect.sizeDelta = new Vector2(0f, -Inset * 2f);
 
-            Image tick = UiFactory.NewImage(_root, "Tick", TickColor);
+            Image tick = UiKit.NewImage(_root, "Tick", TickColor);
             _tickRect = tick.rectTransform;
             _tickRect.anchorMin = new Vector2(0f, 0f);
             _tickRect.anchorMax = new Vector2(0f, 1f);
             _tickRect.pivot = new Vector2(0.5f, 0.5f);
             _tickRect.sizeDelta = new Vector2(TickWidth, -Inset * 2f);
 
-            _label = UiFactory.NewText(_root, "Label", 13, LabelColor, FontStyle.Bold);
-            UiFactory.Stretch(_label.rectTransform);
+            _label = UiKit.NewText(_root, "Label", 13, LabelColor, FontStyle.Bold);
+            UiKit.Stretch(_label.rectTransform);
         }
 
         // ── 갱신 ─────────────────────────────────────────
