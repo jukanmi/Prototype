@@ -893,4 +893,236 @@ namespace Prototype
             return removed;
         }
     }
+
+    // ══ 전술 층 ═══════════════════════════════════════════
+    // 옛 Battle/Tactic/ 3파일. BulletTimeController가 유일한 소유자라 여기로 들어왔다.
+
+    /// <summary>
+    /// 전술 층의 페이즈. 기획서 "전술" 박스 = 실시간 전투 ↔ 불릿타임.
+    /// 엔티티 상태머신(<see cref="IState"/>)과는 다른 층이므로 인터페이스를 공유하지 않는다.
+    /// </summary>
+    public enum TacticPhase
+    {
+        /// <summary>실시간 전투. 플레이어가 직접 조작한다.</summary>
+        RealTime,
+        /// <summary>시간 정지 · 덱 셔플 · 손패 드로우. 입력을 받지 않는 연출 구간.</summary>
+        Freeze,
+        /// <summary>손패를 슬롯에 배치 · 회수 · 조준한다. 유저가 머무는 구간.</summary>
+        Order,
+        /// <summary>조립한 큐를 실행한다. 카드 편집 입력을 전부 무시한다.</summary>
+        Resolve,
+    }
+
+    /// <summary>전술 페이즈 하나. 키 입력은 각 페이즈가 직접 해석한다.</summary>
+    public abstract class TacticState
+    {
+        protected readonly BulletTimeController Ctx;
+        protected readonly TacticStateMachine SM;
+
+        protected TacticState(BulletTimeController ctx, TacticStateMachine sm)
+        {
+            Ctx = ctx;
+            SM = sm;
+        }
+
+        public abstract TacticPhase Phase { get; }
+
+        public virtual void Enter() { }
+        /// <summary>dt는 항상 <see cref="TimeControl.UnscaledDeltaTime"/>. 정지 중에도 흘러야 한다.</summary>
+        public virtual void Tick(float dt) { }
+        public virtual void Exit() { }
+
+        /// <summary>E키. 처리했으면 true.</summary>
+        public virtual bool OnBulletTimeKey() => false;
+
+        /// <summary>Spacebar. 처리했으면 true.</summary>
+        public virtual bool OnExecuteKey() => false;
+
+        /// <summary>이 페이즈에서 손패 · 슬롯을 만질 수 있는지.</summary>
+        public virtual bool AllowsCardEdit => false;
+    }
+
+    /// <summary>
+    /// 전술 층 상태머신. <see cref="BulletTimeController"/>가 내부에 하나만 들고 있다.
+    /// MonoBehaviour가 아니므로 씬 연결이 필요 없다.
+    /// </summary>
+    public class TacticStateMachine
+    {
+        private readonly BulletTimeController ctx;
+        private TacticState cur;
+
+        public RealTimeState RealTime { get; }
+        public FreezeState Freeze { get; }
+        public OrderState Order { get; }
+        public ResolveState Resolve { get; }
+
+        public TacticPhase Phase => cur != null ? cur.Phase : TacticPhase.RealTime;
+
+        /// <summary>손패 · 슬롯 편집이 열려 있는 페이즈인지. UI가 이 값으로 켜고 끈다.</summary>
+        public bool AllowsCardEdit => cur != null && cur.AllowsCardEdit;
+
+        public event Action<TacticPhase, TacticPhase> OnPhaseChanged; // (prev, next)
+
+        public TacticStateMachine(BulletTimeController ctx)
+        {
+            this.ctx = ctx;
+
+            RealTime = new RealTimeState(ctx, this);
+            Freeze = new FreezeState(ctx, this);
+            Order = new OrderState(ctx, this);
+            Resolve = new ResolveState(ctx, this);
+        }
+
+        /// <summary>BulletTimeController.Start에서 한 번 호출한다.</summary>
+        public void Begin()
+        {
+            cur = RealTime;
+            cur.Enter();
+        }
+
+        public void Tick(float unscaledDt)
+        {
+            cur?.Tick(unscaledDt);
+        }
+
+        public void ChangeTo(TacticState next)
+        {
+            if (next == null || next == cur) return;
+
+            TacticPhase prev = Phase;
+
+            cur?.Exit();
+            cur = next;
+            next.Enter();
+
+            BattleLog.Log(LogCategory.Bullet, $"전술 페이즈: {prev} → <b>{next.Phase}</b>", ctx);
+            OnPhaseChanged?.Invoke(prev, next.Phase);
+        }
+
+        // ── 입력 진입점. 현재 페이즈만 해석한다 ─────────────
+
+        public bool OnBulletTimeKey() => cur != null && cur.OnBulletTimeKey();
+
+        public bool OnExecuteKey() => cur != null && cur.OnExecuteKey();
+    }
+
+    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · U키 단발 사용 구간.</summary>
+    public class RealTimeState : TacticState
+    {
+        public RealTimeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+
+        public override TacticPhase Phase => TacticPhase.RealTime;
+
+        public override void Enter()
+        {
+            Ctx.ResumeTime();
+
+            // 실행이 끝난 직후일 수 있다. 손패가 비어 있으면 여기서 마저 채운다.
+            Ctx.RefillHand();
+        }
+
+        public override bool OnBulletTimeKey()
+        {
+            if (!Ctx.CanEnter)
+            {
+                BattleLog.Log(LogCategory.Bullet, $"불릿타임 진입 거부 — {Ctx.BlockReason()}", Ctx);
+                return false;
+            }
+
+            SM.ChangeTo(SM.Freeze);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 시간 정지. 연출용 구간이라 입력을 받지 않는다.
+    /// 손패는 이미 채워져 있으므로 여기서 드로우하지 않는다.
+    /// 길이가 0이면 다음 프레임에 곧바로 Order로 넘어간다.
+    /// </summary>
+    public class FreezeState : TacticState
+    {
+        private float timer;
+
+        public FreezeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+
+        public override TacticPhase Phase => TacticPhase.Freeze;
+
+        public override void Enter()
+        {
+            timer = 0f;
+
+            Ctx.PayEntryCost();
+            Ctx.FreezeTime();
+            Ctx.RaiseEnter();
+        }
+
+        public override void Tick(float dt)
+        {
+            timer += dt;
+            if (timer >= Ctx.FreezeDuration)
+                SM.ChangeTo(SM.Order);
+        }
+    }
+
+    /// <summary>손패 조작 구간. 순서 변경 · 조준. 유저가 실제로 머무는 곳.</summary>
+    public class OrderState : TacticState
+    {
+        public OrderState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+
+        public override TacticPhase Phase => TacticPhase.Order;
+
+        public override bool AllowsCardEdit => true;
+
+        // E와 Space 모두 해제 · 실행. E 토글 조작을 그대로 유지한다.
+        public override bool OnBulletTimeKey() => GoResolve();
+        public override bool OnExecuteKey() => GoResolve();
+
+        private bool GoResolve()
+        {
+            SM.ChangeTo(SM.Resolve);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 손패를 왼쪽부터 순서대로 발동한다. 시간이 다시 흐르고 카드 조작 입력은 전부 막힌다.
+    /// 실행이 끝나야 RealTime으로 돌아간다 — 그 전엔 재진입 불가.
+    /// </summary>
+    public class ResolveState : TacticState
+    {
+        public ResolveState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+
+        public override TacticPhase Phase => TacticPhase.Resolve;
+
+        public override void Enter()
+        {
+            Ctx.CancelTargeting();
+            Ctx.ResumeTime();
+            Ctx.ConsumeGauge();
+            Ctx.StartCooldown();
+
+            Queue<ComboSlot> queue = Ctx.BuildQueueFromHand();
+            Ctx.RaiseExit();
+
+            if (queue != null && queue.Count > 0)
+                Ctx.Executor?.Execute(queue);
+            else
+                Ctx.RefillHand();   // 실행할 게 없으면 Executor가 안 돌아 보충 신호도 안 온다
+        }
+
+        public override void Tick(float dt)
+        {
+            // 큐가 비어 있었으면 Executor가 시작조차 안 하므로 곧바로 복귀한다.
+            if (Ctx.Executor == null || !Ctx.Executor.IsRunning)
+                SM.ChangeTo(SM.RealTime);
+        }
+
+        public override bool OnBulletTimeKey()
+        {
+            BattleLog.Log(LogCategory.Bullet, "불릿타임 진입 거부 — 콤보 실행 중", Ctx);
+            return false;
+        }
+
+        public override bool OnExecuteKey() => false;
+    }
 }

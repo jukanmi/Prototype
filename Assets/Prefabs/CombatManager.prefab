@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 1532985249278245213}
   - component: {fileID: 8307145854047394853}
   - component: {fileID: 4049905781375668179}
-  - component: {fileID: 7207832157962100281}
   - component: {fileID: 3955337989427356649}
   - component: {fileID: 3232474651662420773}
   - component: {fileID: 3084730224834376912}
@@ -101,23 +100,6 @@ MonoBehaviour:
   radiusProbe: {fileID: 0}
   cursorSpeed: 9
   cursorOrigin: {fileID: 0}
---- !u!114 &7207832157962100281
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2994877569284229203}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da4cfb7f1d477604aa482c668b521f54, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.DebugComboHUD
-  bulletTime: {fileID: 1532985249278245213}
-  targetSelector: {fileID: 4049905781375668179}
-  player: {fileID: 0}
-  swap: {fileID: 0}
-  show: 1
 --- !u!114 &3955337989427356649
 MonoBehaviour:
   m_ObjectHideFlags: 0
