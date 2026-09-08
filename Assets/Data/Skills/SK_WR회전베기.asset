@@ -16,11 +16,12 @@ MonoBehaviour:
   icon: {fileID: 0}
   description: "\uBE60\uB974\uAC8C \uD68C\uC804\uD558\uBA70 \uB3CC\uB824 \uBCA4\uB2E4."
   role: 1
-  attackType: 5
+  attackType: 2
   requireState: 0
   resultState: 1
   castRangeScale: {x: 5, y: 1.1, z: 4}
   castConeAngle: 360
+  fixedOrigin: 0
   targeting: 0
   radius: 3
   targetPick: 0

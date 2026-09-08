@@ -15,7 +15,7 @@ MonoBehaviour:
   heroId: Player
   displayName: Player
   portrait: {fileID: 0}
-  prefab: {fileID: 0}
+  prefab: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
   hp: 0
   atk: 0
   moveSpeed: 0

@@ -10,17 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
-  m_Name: "SK_TK\uC5F0\uACA9"
+  m_Name: "SK_WR\uC5F0\uACA9"
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
   skillName: "\uC5F0\uACA9"
   icon: {fileID: 0}
   description: "\uC804\uBC29\uC758 \uC801\uC744 \uBE60\uB974\uAC8C 3\uBC88 \uBCA4\uB2E4."
-  role: 0
-  attackType: 5
+  role: 1
+  attackType: 2
   requireState: 0
   resultState: 1
   castRangeScale: {x: 2, y: 0.65, z: 1.5}
   castConeAngle: 0
+  fixedOrigin: 0
   targeting: 0
   radius: 3
   targetPick: 0
@@ -51,6 +52,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   - damageData:
@@ -68,6 +71,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   - damageData:
@@ -85,6 +90,8 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
   effects: []

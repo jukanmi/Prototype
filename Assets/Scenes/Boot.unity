@@ -408,7 +408,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.GameManager
   stageScenes: []
   deckStartupMode: 0
-  defaultLoadout: {fileID: 0}
+  defaultLoadout: {fileID: 11400000, guid: fba9e8aabde39ad41be2d9cede68d05e, type: 2}
 --- !u!4 &1081584061
 Transform:
   m_ObjectHideFlags: 0

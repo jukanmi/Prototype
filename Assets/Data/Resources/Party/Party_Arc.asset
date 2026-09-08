@@ -18,7 +18,7 @@ MonoBehaviour:
   portrait: {fileID: 0}
   prefab: {fileID: 6431140714613573192, guid: 32c6410915bdb0a4398a8344af5ba8e2, type: 3}
   equipped:
-  - data: {fileID: 11400000, guid: f84c2f29867245849a19d95d28bc711d, type: 2}
+  - data: {fileID: 11400000, guid: 098ad9324be2eb94c839183e89538a3b, type: 2}
     drawWeight: 1
     golden: 0
   - data: {fileID: 11400000, guid: 979956968c484fc4fb04fe49d3b6f3a4, type: 2}
