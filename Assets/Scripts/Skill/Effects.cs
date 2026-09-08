@@ -1,9 +1,41 @@
-using System;
+// 스킬 효과 — 인터페이스 · 구현 모음 · 실행기.
+// 효과를 하나 추가하면 셋을 같이 봐야 한다.
+
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace Prototype
 {
+    // ══ ISkillEffect ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 스킬의 부가 효과 한 조각.
+    /// 스킬 종류를 switch로 분기하는 대신 이 인터페이스의 <b>조합</b>으로 24종을 커버한다.
+    /// 새 스킬 = SO 에셋 1개 추가. 기존 코드 수정 0.
+    /// </summary>
+    public interface ISkillEffect
+    {
+        void Apply(in SkillContext ctx);
+    }
+
+    /// <summary>
+    /// 시전 순간이 아니라 <b>마지막 타격에</b> 도는 효과.
+    ///
+    /// 기본은 시전 순간(<c>SkillState.Enter</c>)이다. 그런데 시전자를 움직이는 효과는
+    /// 그 시점에 돌면 안 된다 — 선딜 동안 먼저 날아가 버려서, 정작 히트박스가 열릴 때는
+    /// 이미 대상을 지나쳐 있다. 돌진 베기가 그래서 헛쳤다(선딜 0.12s 동안 약 2유닛 이동).
+    ///
+    /// 타격과 같이 내면 <b>베고 지나가는</b> 그림이 되고 판정도 붙는다.
+    /// 이 인터페이스만 달면 되고 <see cref="ISkillEffect"/> 계약은 그대로다 —
+    /// 나머지 효과는 한 줄도 안 바뀐다.
+    /// </summary>
+    public interface ILastHitEffect : ISkillEffect
+    {
+    }
+
+    // ══ Effects ═══════════════════════════════════════════
+
     /// <summary>광역 판정이 필요한 효과의 공통 헬퍼.</summary>
     public static class EffectUtil
     {
@@ -362,6 +394,82 @@ namespace Prototype
 
             caster.SetLifesteal(ratio);
             caster.Statuses.Apply(StatusKind.Lifesteal, duration, () => caster.SetLifesteal(0f));
+        }
+    }
+
+    // ══ EffectRunner ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 지속시간이 있는 효과를 되돌려 주는 최소 스케줄러.
+    /// 불릿타임 배율을 따르므로 시간 정지 중에는 지속시간도 흐르지 않는다.
+    ///
+    /// <b>캐릭터에게 걸리는 상태는 여기 넣지 않는다.</b> 그건 <see cref="StatusEffects"/>가
+    /// 지속시간과 원복을 같이 들고 있어야 머리 위 게이지에 남은 시간이 뜬다 —
+    /// 여기 맡기면 걸렸다는 사실이 익명 콜백 안에만 남는다.
+    /// 대상 없이 시간만 재면 되는 효과(장판 수명 등)를 위해 남겨 둔다.
+    /// </summary>
+    public class EffectRunner : MonoBehaviour
+    {
+        private struct Pending
+        {
+            public float remain;
+            public Action revert;
+        }
+
+        private static EffectRunner instance;
+        private readonly List<Pending> pending = new List<Pending>();
+
+        public static EffectRunner Instance
+        {
+            get
+            {
+                if (instance != null) return instance;
+
+                var go = new GameObject("[EffectRunner]");
+                DontDestroyOnLoad(go);
+                instance = go.AddComponent<EffectRunner>();
+                return instance;
+            }
+        }
+
+        /// <summary>duration 뒤에 revert를 한 번 호출한다.</summary>
+        public void Schedule(float duration, Action revert)
+        {
+            if (revert == null) return;
+
+            if (duration <= 0f)
+            {
+                revert();
+                return;
+            }
+
+            pending.Add(new Pending { remain = duration, revert = revert });
+        }
+
+        private void Update()
+        {
+            float dt = TimeControl.DeltaTime;
+            if (dt <= 0f) return;
+
+            for (int i = pending.Count - 1; i >= 0; i--)
+            {
+                Pending p = pending[i];
+                p.remain -= dt;
+
+                if (p.remain > 0f)
+                {
+                    pending[i] = p;
+                    continue;
+                }
+
+                pending.RemoveAt(i);
+                p.revert?.Invoke();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this) instance = null;
         }
     }
 }

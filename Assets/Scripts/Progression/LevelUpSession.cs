@@ -1,9 +1,14 @@
+// 레벨업 화면과 그 화면이 여는 모달 규약 · 덱 시작 모드.
+// GameplayModal은 이 화면과 DeckBuilderUI만 구현한다.
+
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine;
 
 namespace Prototype
 {
+    // ══ LevelUpSession ═══════════════════════════════════════════
+
     /// <summary>
     /// 라운드를 클리어한 직후 뜨는 <b>레벨업 · 카드 획득</b> 화면.
     ///
@@ -396,5 +401,48 @@ namespace Prototype
                 rect.anchoredPosition = new Vector2(left + i * (width + gap), centerY);
             }
         }
+    }
+
+    // ══ GameplayModal ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 게임플레이를 <b>멈춰 세워야 하는</b> 전면 UI가 떠 있는가.
+    ///
+    /// 스테이지 진행(웨이브 시계 · 아레나 정비 시계)과 승패 판정이 각자 개별 UI를 알게 두면,
+    /// 모달이 하나 늘 때마다 세 군데를 똑같이 고쳐야 하고 한 군데를 빠뜨리면
+    /// "카드를 고르는 사이에 등 뒤에서 웨이브가 쏟아지는" 식으로만 드러난다.
+    /// 그래서 물어보는 창구를 하나로 둔다.
+    /// </summary>
+    public static class GameplayModal
+    {
+        public static bool IsOpen => LevelUpSession.IsOpen || DeckBuilderUI.IsOpen;
+    }
+
+    // ══ DeckStartupMode ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 전투를 <b>어떤 덱으로 시작하는가</b>. 런의 첫 전투 씬에서 한 번만 정해진다
+    /// (<see cref="RunProgression.Seeded"/>), 그 뒤로는 런 덱이 그대로 이어진다.
+    ///
+    /// <see cref="Party"/> 외의 둘은 <b>디버그용</b>이다. 지금 이 게임은 16장을 쥐고 시작하는데,
+    /// 그러면 특정 카드 한 장이나 황금 카드의 감각을 따로 떼어 볼 방법이 없다 —
+    /// 손패 4칸이 늘 다른 12장과 섞여 나오기 때문이다.
+    /// </summary>
+    public enum DeckStartupMode
+    {
+        /// <summary>파티 4명의 장착 카드 16장. 게임의 실제 시작이다.</summary>
+        Party,
+
+        /// <summary>
+        /// <b>테스트 모드</b> — 0장으로 시작한다. 손패가 비므로 카드는 오직 레벨업으로만 들어온다.
+        /// 성장 곡선과 레벨업 보상만 떼어 볼 때 쓴다.
+        /// </summary>
+        Empty,
+
+        /// <summary>
+        /// <b>디버그 모드</b> — 시작할 때 화면에서 직접 짠다(<see cref="DeckBuilderUI"/>).
+        /// 보고 싶은 카드만, 원하는 장수만 넣을 수 있다.
+        /// </summary>
+        Pick,
     }
 }
