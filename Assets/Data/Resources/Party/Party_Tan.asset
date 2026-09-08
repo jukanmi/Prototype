@@ -18,13 +18,13 @@ MonoBehaviour:
   portrait: {fileID: 0}
   prefab: {fileID: 8200739034675296833, guid: 15d90f13e75ad3a439ad0b23e66e3f29, type: 3}
   equipped:
-  - data: {fileID: 11400000, guid: fd740031699e49f38758fb01b7bb4b57, type: 2}
+  - data: {fileID: 11400000, guid: 162b0d25154687b634727a49a865b9f3, type: 2}
     drawWeight: 1
     golden: 0
   - data: {fileID: 11400000, guid: 1b82e0cf9999329448dca95180d87356, type: 2}
     drawWeight: 2
     golden: 0
-  - data: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
+  - data: {fileID: 0}
     drawWeight: 1
     golden: 0
   - data: {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
