@@ -90,9 +90,6 @@ namespace Prototype
             timeScale = Mathf.Clamp01(timeScale);
         }
 
-        [Tooltip("초상화 패널 한 변의 길이(1920×1080 기준).")]
-        [SerializeField] private float portraitSize = 360f;
-
         [Tooltip("등장했을 때 초상화 패널의 왼쪽 여백.")]
         [SerializeField] private float portraitShownX = 48f;
 
@@ -105,14 +102,38 @@ namespace Prototype
         private const float PortraitHiddenX = -400f;
         private const float LabelHiddenX = -660f;
 
-        private RectTransform portraitRect;
-        private RectTransform labelRect;
-        private Image portraitImage;
-        private Text nameLabel;      // 초상화가 없을 때만 켜는 동료 이름
-        private Text skillLabel;
-        private GameObject panel;
+        // ── 배선 ─────────────────────────────────────────
+        // 화면은 프리팹이 쥔다. 초상화 크기 · 글자 · 외곽선을 바꾸려면 CombatManager 프리팹을 연다.
+        //
+        // <b>배선이 비어도 재생 자체는 돈다</b> — 시간 정지 · 복원이 컷인의 본체이고,
+        // 그게 안 풀리면 게임이 영구 정지한다. 그림만 생략한다.
+
+        [Header("배선")]
+        [Tooltip("켜고 끄는 대상. 컷인 전체를 담은 판.")]
+        [SerializeField] private GameObject panel;
+
+        [Tooltip("왼쪽에서 밀려 들어오는 초상화.")]
+        [SerializeField] private RectTransform portraitRect;
+
+        [Tooltip("초상화 이미지. 그림이 없으면 직업 색으로 칠한다.")]
+        [SerializeField] private Image portraitImage;
+
+        [Tooltip("초상화가 없을 때만 켜는 동료 이름.")]
+        [SerializeField] private Text nameLabel;
+
+        [Tooltip("스킬명. 초상화보다 조금 늦게 들어온다.")]
+        [SerializeField] private RectTransform labelRect;
+
+        [SerializeField] private Text skillLabel;
 
         private float savedScale;
+
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool warned;
+
+        private bool Wired =>
+            panel != null && portraitRect != null && portraitImage != null
+            && nameLabel != null && labelRect != null && skillLabel != null;
 
         public bool IsPlaying { get; private set; }
 
@@ -131,7 +152,11 @@ namespace Prototype
             }
         }
 
-        private void Awake() => EnsureBuilt();
+        private void Awake()
+        {
+            // 프리팹은 그림이 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
+            SetVisible(false);
+        }
 
         /// <summary>
         /// 오브젝트가 비활성화되거나 파괴될 때의 안전판.
@@ -142,17 +167,15 @@ namespace Prototype
         /// </summary>
         private void OnDisable() => Cancel();
 
-        /// <summary>
-        /// 캔버스가 아직 없으면 짓는다.
-        /// Awake에 의존하지 않는 이유: 에디트모드 테스트가 <see cref="Play"/>를 곧바로 부르는
-        /// 경로가 있어 그때 참조가 비어 있으면 터진다.
-        /// </summary>
-        private void EnsureBuilt()
+        /// <summary>배선이 비면 그림을 생략하되 한 번은 알린다.</summary>
+        private void Warn()
         {
-            if (panel != null) return;
+            if (warned) return;
 
-            BuildUI();
-            SetVisible(false);
+            warned = true;
+            Debug.LogWarning(
+                "[SkillCutinUI] 배선이 비어 있다 — 컷인 그림이 안 뜬다(시간 정지는 그대로 돈다). " +
+                "CombatManager 프리팹의 SkillCutinCanvas 배선을 확인할 것.", this);
         }
 
         /// <summary>
@@ -162,7 +185,7 @@ namespace Prototype
         /// </summary>
         public IEnumerator Play(Ally caster, SkillData data)
         {
-            EnsureBuilt();
+            if (!Wired) Warn();
 
             // 겹쳐 들어오면 앞의 것을 정리하고 시작한다. 저장한 배율이 덮어써지는 걸 막는다.
             if (IsPlaying) Cancel();
@@ -209,11 +232,11 @@ namespace Prototype
         /// <summary>경과 시간에 맞춰 두 요소의 가로 위치를 다시 그린다. 알파는 건드리지 않는다.</summary>
         private void Layout(float elapsed)
         {
+            if (!Wired) return;
+
             float p = SlideAmount(elapsed, 0f);
             float l = SlideAmount(elapsed, LabelDelay);
 
-            // EnsureBuilt가 Play보다 먼저 반드시 돌아 portraitRect/labelRect를 채워 둔다 —
-            // Dress와 마찬가지로 null 검사 없이 역참조해도 안전하다.
             portraitRect.anchoredPosition = new Vector2(Mathf.Lerp(PortraitHiddenX, portraitShownX, p), 0f);
             labelRect.anchoredPosition = new Vector2(Mathf.Lerp(LabelHiddenX, labelShownX, l), 90f);
         }
@@ -221,6 +244,8 @@ namespace Prototype
         /// <summary>이번 컷인에 쓸 얼굴과 글자를 채운다.</summary>
         private void Dress(Ally caster, SkillData data)
         {
+            if (!Wired) return;
+
             Sprite portrait = caster != null ? caster.Portrait : null;
             Role role = caster != null ? caster.Role : Role.Wizard;
 
@@ -242,85 +267,5 @@ namespace Prototype
             if (panel != null) panel.SetActive(visible);
         }
 
-        private void BuildUI()
-        {
-            var canvasGo = new GameObject("SkillCutinCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
-            canvasGo.transform.SetParent(transform, false);
-
-            Canvas canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            // RecentHitEnemyHUD(2) 위, DeckInspectorUI(20) 아래.
-            canvas.sortingOrder = 10;
-
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 1f;
-
-            panel = new GameObject("SkillCutinPanel", typeof(RectTransform));
-            panel.transform.SetParent(canvasGo.transform, false);
-            Stretch(panel.GetComponent<RectTransform>());
-
-            // ── 초상화 ──
-            var portraitGo = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
-            portraitGo.transform.SetParent(panel.transform, false);
-            portraitImage = portraitGo.GetComponent<Image>();
-            portraitImage.raycastTarget = false;
-
-            portraitRect = portraitGo.GetComponent<RectTransform>();
-            portraitRect.anchorMin = new Vector2(0f, 0.5f);
-            portraitRect.anchorMax = new Vector2(0f, 0.5f);
-            portraitRect.pivot = new Vector2(0f, 0.5f);
-            portraitRect.sizeDelta = new Vector2(portraitSize, portraitSize);
-            portraitRect.anchoredPosition = new Vector2(PortraitHiddenX, 0f);
-
-            nameLabel = CreateText(portraitGo.transform, "CasterName", 28, TextAnchor.LowerCenter);
-            RectTransform nameRect = nameLabel.GetComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0f, 0f);
-            nameRect.anchorMax = new Vector2(1f, 0f);
-            nameRect.pivot = new Vector2(0.5f, 0f);
-            nameRect.offsetMin = new Vector2(8f, 14f);
-            nameRect.offsetMax = new Vector2(-8f, 60f);
-
-            // ── 스킬명 ──
-            skillLabel = CreateText(panel.transform, "SkillName", 44, TextAnchor.MiddleLeft);
-            labelRect = skillLabel.GetComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0f, 0.5f);
-            labelRect.anchorMax = new Vector2(0f, 0.5f);
-            labelRect.pivot = new Vector2(0f, 0.5f);
-            labelRect.sizeDelta = new Vector2(640f, 72f);
-            labelRect.anchoredPosition = new Vector2(LabelHiddenX, 90f);
-        }
-
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-        }
-
-        private static Text CreateText(Transform parent, string name, int size, TextAnchor alignment)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text), typeof(Outline));
-            go.transform.SetParent(parent, false);
-
-            Text text = go.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = size;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = alignment;
-            text.color = Color.white;
-            text.raycastTarget = false;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-
-            // 밝은 배경 위에서도 읽히도록 검은 외곽선을 깐다.
-            var outline = go.GetComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            outline.effectDistance = new Vector2(2f, -2f);
-
-            return text;
-        }
     }
 }

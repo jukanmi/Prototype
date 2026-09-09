@@ -27,7 +27,7 @@ namespace Prototype
     /// </summary>
     public static class BattleLog
     {
-        /// <summary>켜 둘 카테고리. <see cref="BattleLogSettings"/>로 인스펙터에서 바꾼다.</summary>
+        /// <summary>켜 둘 카테고리. 코드에서 직접 대입한다 — 인스펙터 토글은 없다.</summary>
         public static LogCategory Mask = LogCategory.All;
 
         /// <summary>프레임 번호를 앞에 붙인다. 한 프레임에 몰린 이벤트를 구분할 때.</summary>

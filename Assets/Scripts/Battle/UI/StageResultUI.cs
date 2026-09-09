@@ -19,8 +19,6 @@ namespace Prototype
     /// </summary>
     public class StageResultUI : MonoBehaviour
     {
-        /// <summary>BattleRestartUI(100)보다 위, SceneLoader 의 FadeCanvas(999)보다 아래.</summary>
-        private const int SortingOrder = 200;
 
         private static readonly Color DimColor     = new Color(0f, 0f, 0f, 0.72f);
         private static readonly Color PanelColor   = new Color(0.10f, 0.10f, 0.12f, 0.97f);
@@ -59,8 +57,8 @@ namespace Prototype
 
         private void Awake()
         {
-            SimpleUI.EnsureEventSystem();
-            SimpleUI.BuildCanvas(gameObject, SortingOrder);
+            UiKit.EnsureEventSystem();
+            UiKit.BuildCanvas(gameObject, UiLayer.StageResult);
         }
 
         private void Update()
@@ -92,16 +90,16 @@ namespace Prototype
 
             BuildArrow(arrowRoot);
 
-            Text title = SimpleUI.CreateText(arrowRoot, "Title", "스테이지 클리어", 30, VictoryColor);
-            SimpleUI.Place(title, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), new Vector2(260f, 40f));
+            Text title = UiKit.CreateText(arrowRoot, "Title", "스테이지 클리어", 30, VictoryColor);
+            UiKit.Place(title, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), new Vector2(260f, 40f));
 
-            Text guide = SimpleUI.CreateText(arrowRoot, "Guide", "오른쪽 벽으로 이동", 22, Color.white);
-            SimpleUI.Place(guide, new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(260f, 32f));
+            Text guide = UiKit.CreateText(arrowRoot, "Guide", "오른쪽 벽으로 이동", 22, Color.white);
+            UiKit.Place(guide, new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(260f, 32f));
 
             if (!string.IsNullOrEmpty(nextStageLabel))
             {
-                Text next = SimpleUI.CreateText(arrowRoot, "Next", nextStageLabel, 17, NoteColor);
-                SimpleUI.Place(next, new Vector2(0.5f, 0.5f), new Vector2(0f, -102f), new Vector2(260f, 28f));
+                Text next = UiKit.CreateText(arrowRoot, "Next", nextStageLabel, 17, NoteColor);
+                UiKit.Place(next, new Vector2(0.5f, 0.5f), new Vector2(0f, -102f), new Vector2(260f, 28f));
             }
         }
 
@@ -111,8 +109,8 @@ namespace Prototype
         /// </summary>
         private static void BuildArrow(RectTransform parent)
         {
-            GameObject shaft = SimpleUI.CreateImage(parent, "Shaft", ArrowColor);
-            SimpleUI.Place(shaft.transform, new Vector2(0.5f, 0.5f), new Vector2(-14f, 0f),
+            GameObject shaft = UiKit.CreateImage(parent, "Shaft", ArrowColor);
+            UiKit.Place(shaft.transform, new Vector2(0.5f, 0.5f), new Vector2(-14f, 0f),
                            new Vector2(ArrowShaftWidth, ArrowThickness));
 
             // 촉은 45도로 눕힌 막대 둘. 끝점이 축의 오른쪽 끝에 모이게 놓는다.
@@ -125,8 +123,8 @@ namespace Prototype
 
         private static void BuildArrowArm(RectTransform parent, string name, Vector2 position, float angle)
         {
-            GameObject arm = SimpleUI.CreateImage(parent, name, ArrowColor);
-            RectTransform rect = SimpleUI.Place(arm.transform, new Vector2(0.5f, 0.5f), position,
+            GameObject arm = UiKit.CreateImage(parent, name, ArrowColor);
+            RectTransform rect = UiKit.Place(arm.transform, new Vector2(0.5f, 0.5f), position,
                                                 new Vector2(ArrowHeadLength, ArrowThickness));
             rect.localRotation = Quaternion.Euler(0f, 0f, angle);
         }
@@ -140,9 +138,9 @@ namespace Prototype
             Transform panel = BuildPanel("모든 스테이지 클리어", VictoryColor,
                                          "보스를 쓰러뜨렸다.", 200f);
 
-            Button menuButton = SimpleUI.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
+            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
                                                       new Vector2(200f, 56f), 22);
-            SimpleUI.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(200f, 56f));
+            UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(200f, 56f));
             menuButton.onClick.AddListener(HandleMenu);
         }
 
@@ -156,14 +154,14 @@ namespace Prototype
             Transform panel = BuildPanel("패배", DefeatColor,
                                          "아군이 모두 쓰러졌다.", 240f);
 
-            Button retryButton = SimpleUI.CreateButton(panel, "Btn_Retry", "이 스테이지 재시작", RetryColor,
+            Button retryButton = UiKit.CreateButton(panel, "Btn_Retry", "이 스테이지 재시작", RetryColor,
                                                        new Vector2(230f, 56f), 21);
-            SimpleUI.Place(retryButton, new Vector2(0.5f, 0f), new Vector2(-124f, 44f), new Vector2(230f, 56f));
+            UiKit.Place(retryButton, new Vector2(0.5f, 0f), new Vector2(-124f, 44f), new Vector2(230f, 56f));
             retryButton.onClick.AddListener(HandleRetry);
 
-            Button menuButton = SimpleUI.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
+            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
                                                       new Vector2(200f, 56f), 22);
-            SimpleUI.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(124f, 44f), new Vector2(200f, 56f));
+            UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(124f, 44f), new Vector2(200f, 56f));
             menuButton.onClick.AddListener(HandleMenu);
         }
 
@@ -174,17 +172,17 @@ namespace Prototype
         /// </summary>
         private Transform BuildPanel(string title, Color titleColor, string note, float height)
         {
-            GameObject dim = SimpleUI.CreateImage(transform, "Dim", DimColor);
-            SimpleUI.Stretch((RectTransform)dim.transform);
+            GameObject dim = UiKit.CreateImage(transform, "Dim", DimColor);
+            UiKit.Stretch((RectTransform)dim.transform);
 
-            GameObject panel = SimpleUI.CreateImage(dim.transform, "Panel", PanelColor);
-            SimpleUI.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, height));
+            GameObject panel = UiKit.CreateImage(dim.transform, "Panel", PanelColor);
+            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, height));
 
-            Text titleText = SimpleUI.CreateText(panel.transform, "Title", title, 34, titleColor);
-            SimpleUI.Place(titleText, new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(520f, 52f));
+            Text titleText = UiKit.CreateText(panel.transform, "Title", title, 34, titleColor);
+            UiKit.Place(titleText, new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(520f, 52f));
 
-            Text noteText = SimpleUI.CreateText(panel.transform, "Note", note, 18, NoteColor);
-            SimpleUI.Place(noteText, new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(520f, 30f));
+            Text noteText = UiKit.CreateText(panel.transform, "Note", note, 18, NoteColor);
+            UiKit.Place(noteText, new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(520f, 30f));
 
             return panel.transform;
         }

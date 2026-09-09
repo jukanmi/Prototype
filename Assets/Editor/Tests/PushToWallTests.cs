@@ -19,6 +19,9 @@ namespace Prototype.Tests
     {
         private const string SkillFolder = "Assets/Data/Skills";
 
+        /// <summary>보스 평타 한 대가 깎는 가드량. 옛 <c>BossPrefabBuilder.GuardDamage</c>.</summary>
+        private const float BossGuardDamage = 6f;
+
         private readonly List<GameObject> spawned = new List<GameObject>();
 
         [TearDown]
@@ -116,7 +119,7 @@ namespace Prototype.Tests
                 // 상수로 1을 적어 두면 가드 스케일이 바뀔 때 이 테스트만 조용히 무의미해진다 —
                 // 실제로 defaultGuardDamage가 1에서 6으로 오른 적이 있다.
                 Assert.That(s.hitDataList[0].guardDamage,
-                            Is.GreaterThan(Prototype.EditorTools.BossPrefabBuilder.GuardDamage),
+                            Is.GreaterThan(BossGuardDamage),
                             $"{s.name}: 가드를 보스 평타 한 대분 이하로 깎으면 가드 브레이커가 아니다");
             }
         }

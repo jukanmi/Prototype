@@ -1,8 +1,14 @@
+// 전투 연출 — 진입점 · 스프라이트 재생 · 스킬 표.
+// 셋이 한 세트다: 호출부는 BattleVfx에만 말을 걸고, 실제 그림은 VfxSprite가,
+// 스킬별 어떤 연출인지는 SkillVfx가 정한다. 뒤의 둘은 소비자가 BattleVfx뿐이다.
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace Prototype
 {
+    // ══ BattleVfx ═══════════════════════════════════════════
+
     /// <summary>
     /// 전투 연출 진입점. 호출부는 <b>논리 좌표와 크기만</b> 넘긴다 —
     /// 화면 접기(<see cref="BeltScroll"/>)와 정렬은 여기서 한 번만 처리한다.
@@ -217,5 +223,206 @@ namespace Prototype
         {
             if (instance == this) instance = null;
         }
+    }
+
+    // ══ VfxSprite ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 풀링되는 스프라이트 이펙트 하나. <see cref="VfxRunner"/>만 만들고 되돌려 받는다.
+    ///
+    /// 좌표 접기와 정렬 공식은 <see cref="BeltScrollView"/>와 같은 것을 쓴다 —
+    /// 두 벌이 어긋나면 이펙트가 캐릭터와 다른 높이에 뜬다.
+    /// </summary>
+    [RequireComponent(typeof(SpriteRenderer))]
+    public class VfxSprite : MonoBehaviour
+    {
+        private SpriteRenderer sr;
+        private VfxClip clip;
+
+        private Vector3 origin;      // 논리 좌표. 바닥(y = 0) 기준
+        private float height;
+        private Color tint;
+        private float duration;
+        private float timer;
+        private bool active;
+        private Action<VfxSprite> onDone;
+
+        private void Awake()
+        {
+            sr = GetComponent<SpriteRenderer>();
+            sr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            sr.receiveShadows = false;
+            sr.enabled = false;
+        }
+
+        /// <summary>
+        /// 재생 시작. ground는 <b>논리 좌표</b>다 — 접힌 화면 좌표를 넣으면 두 번 접혀 위로 튄다.
+        /// </summary>
+        public void Play(VfxClip clip, Vector3 ground, float height, Vector3 facing,
+                         float radius, Color skillColor, Action<VfxSprite> onDone)
+        {
+            this.clip = clip;
+            this.origin = new Vector3(ground.x, 0f, ground.z);
+            this.height = height + clip.heightOffset;
+            this.onDone = onDone;
+
+            duration = Mathf.Max(0.02f, clip.Duration);
+            timer = 0f;
+            active = true;
+
+            tint = clip.useSkillColor ? clip.tint * skillColor : clip.tint;
+
+            ApplyTransform(facing, radius);
+
+            // 캐릭터와 같은 규칙으로 깊이 정렬한다(BeltScrollView.ApplySorting).
+            sr.sortingOrder = Mathf.RoundToInt(-origin.z * 100f) + clip.sortingOffset;
+
+            sr.enabled = true;
+            Redraw(0f);
+        }
+
+        /// <summary>
+        /// 위치 · 회전 · 크기는 한 번만 잡는다. 이펙트가 도중에 움직이지는 않는다.
+        /// </summary>
+        private void ApplyTransform(Vector3 facing, float radius)
+        {
+            transform.position = BeltScroll.ToView(origin, height);
+
+            facing.y = 0f;
+            bool hasFacing = facing.sqrMagnitude > 0.0001f;
+
+            if (clip.rotateToFacing && hasFacing)
+            {
+                // 카메라가 기울어 있어 바닥 방향이 화면에서 납작해 보인다. 그만큼 각도를 눕혀야
+                // 궤적이 캐릭터가 실제로 가는 쪽과 같은 각도로 뜬다.
+                //
+                // 바닥 벡터 (x, 0, z)의 화면 성분은 right·v = x, up·v = z·sinθ 다.
+                // ScreenUp.z가 곧 sinθ이므로 각도를 따로 들고 있을 필요가 없다.
+                float deg = Mathf.Atan2(facing.z * BeltScroll.ScreenUp.z, facing.x) * Mathf.Rad2Deg;
+
+                // 빌보드로 먼저 카메라를 마주 본 뒤, 그 평면 안에서 각도를 돌린다. 순서를 뒤집으면
+                // 회전축이 월드 Z가 돼 스프라이트가 화면 밖으로 기운다.
+                transform.rotation = BeltScroll.Billboard * Quaternion.Euler(0f, 0f, deg);
+            }
+            else
+            {
+                transform.rotation = BeltScroll.Billboard;
+            }
+
+            sr.flipX = clip.flipToFacing && hasFacing && facing.x < 0f;
+
+            float s = clip.scale;
+            if (clip.fitRadius)
+            {
+                // 첫 프레임의 원본 크기를 기준으로 지름을 맞춘다.
+                Sprite first = clip.frames[0];
+                float size = first != null ? Mathf.Max(first.bounds.size.x, first.bounds.size.y) : 1f;
+                if (size > 0.0001f) s *= radius * 2f / size;
+            }
+
+            transform.localScale = new Vector3(s, s, 1f);
+        }
+
+        private void Update()
+        {
+            // 풀에 놀고 있는 것은 계산하지 않는다.
+            if (!active) return;
+
+            // 불릿타임에는 멈춰 있어야 한다. 투사체와 같은 시계.
+            float dt = TimeControl.DeltaTime;
+            if (dt <= 0f) return;
+
+            timer += dt;
+
+            float t = timer / duration;
+            if (t >= 1f)
+            {
+                Stop();
+                return;
+            }
+
+            Redraw(t);
+        }
+
+        private void Redraw(float t)
+        {
+            sr.sprite = clip.FrameAt(t);
+
+            Color c = tint;
+            if (clip.fadeOut > 0f && t > 1f - clip.fadeOut)
+                c.a *= Mathf.InverseLerp(1f, 1f - clip.fadeOut, t);
+
+            sr.color = c;
+        }
+
+        private void Stop()
+        {
+            active = false;
+            sr.enabled = false;
+            sr.sprite = null;
+
+            Action<VfxSprite> done = onDone;
+            onDone = null;
+            done?.Invoke(this);
+        }
+    }
+
+    // ══ SkillVfx ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 스킬 하나의 이펙트 색·크기. <see cref="SkillData"/>가 들고 있다가
+    /// 타격을 낼 때 히트박스로 흘려 보낸다.
+    ///
+    /// <b>기본값(<c>default</c>)은 "전역 설정을 쓴다"는 뜻이다</b> —
+    /// 필드를 추가해도 기존 에셋이 검은색으로 터지지 않는다.
+    /// </summary>
+    [Serializable]
+    public struct SkillVfx
+    {
+        [Tooltip("끄면 BattleVfx의 전역 색을 쓴다. 켜면 아래 값이 이 스킬에만 적용된다.")]
+        public bool custom;
+
+        [Tooltip("적중 순간 파편 색. 시전 이펙트도 이 색을 쓴다.")]
+        public Color impact;
+        [Tooltip("적중 순간 충격파 색. 파편보다 옅게 두면 겹쳐 보인다.")]
+        public Color shock;
+
+        [Tooltip("이펙트 크기 배율. 0이면 1로 본다 — 판정 크기는 건드리지 않는다.")]
+        public float scale;
+
+        [Header("전용 시트 (비우면 VfxLibrary 전역값)")]
+        [Tooltip("시전 순간. 조준으로 찍은 자리에 뜬다.")]
+        public VfxClip castClip;
+        [Tooltip("적중 순간.")]
+        public VfxClip hitClip;
+
+        /// <summary>
+        /// 이 타격이 스킬에서 나왔는지. <b>인스펙터에 노출하지 않는다</b> —
+        /// <see cref="SkillState"/>가 히트박스로 넘기는 복사본에만 런타임으로 켠다.
+        ///
+        /// 히트박스는 평타와 공유된다(<c>Entity.SkillAttack</c>). 그래서 히트박스 쪽에서는
+        /// 평타인지 스킬인지 알 방법이 없다. 색과 같은 경로로 이 표시를 같이 실어 보낸다.
+        /// </summary>
+        [NonSerialized] public bool fromSkill;
+
+        /// <summary>0을 1로 접어 주는 읽기 창구. 인스펙터에서 안 채운 값이 이펙트를 지우지 않게.</summary>
+        public float Scale => scale > 0f ? scale : 1f;
+
+        /// <summary>스킬 경로로 넘길 복사본. 원본 에셋 값은 건드리지 않는다.</summary>
+        public SkillVfx AsSkill()
+        {
+            SkillVfx v = this;
+            v.fromSkill = true;
+            return v;
+        }
+
+        /// <summary>인스펙터에서 custom을 켰을 때 출발점이 되는 값.</summary>
+        public static SkillVfx Default => new SkillVfx
+        {
+            custom = false,
+            impact = new Color(1f, 0.86f, 0.45f, 1f),
+            shock = new Color(1f, 0.55f, 0.3f, 0.75f),
+            scale = 1f,
+        };
     }
 }

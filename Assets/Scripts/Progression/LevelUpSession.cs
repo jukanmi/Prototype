@@ -1,9 +1,14 @@
+// 레벨업 화면과 그 화면이 여는 모달 규약 · 덱 시작 모드.
+// GameplayModal은 이 화면과 DeckBuilderUI만 구현한다.
+
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine;
 
 namespace Prototype
 {
+    // ══ LevelUpSession ═══════════════════════════════════════════
+
     /// <summary>
     /// 라운드를 클리어한 직후 뜨는 <b>레벨업 · 카드 획득</b> 화면.
     ///
@@ -19,8 +24,6 @@ namespace Prototype
     /// </summary>
     public class LevelUpSession : MonoBehaviour
     {
-        /// <summary>StageResultUI · RebindUI(200)보다 위, SceneLoader 페이드(999)보다 아래.</summary>
-        private const int SortingOrder = 210;
 
         private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.78f);
         private static readonly Color PanelColor = new Color(0.11f, 0.12f, 0.15f, 0.98f);
@@ -111,8 +114,8 @@ namespace Prototype
             if (bulletTime == null) bulletTime = GetComponent<BulletTimeController>();
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
 
-            SimpleUI.EnsureEventSystem();
-            SimpleUI.BuildCanvas(gameObject, SortingOrder);
+            UiKit.EnsureEventSystem();
+            UiKit.BuildCanvas(gameObject, UiLayer.LevelUp);
 
             BuildUI();
             root.SetActive(false);
@@ -292,8 +295,8 @@ namespace Prototype
 
         private void BuildUI()
         {
-            root = SimpleUI.CreateImage(transform, "LevelUpRoot", BackdropColor);
-            SimpleUI.Stretch((RectTransform)root.transform);
+            root = UiKit.CreateImage(transform, "LevelUpRoot", BackdropColor);
+            UiKit.Stretch((RectTransform)root.transform);
 
             // 뒤쪽 UI(손패 등)로 클릭이 새지 않게 막는다.
             root.GetComponent<Image>().raycastTarget = true;
@@ -306,12 +309,12 @@ namespace Prototype
         {
             tierPanel = Panel("TierPanel", PanelWidth, PanelHeight * 0.72f);
 
-            Text title = SimpleUI.CreateText(tierPanel.transform, "Title", "레벨 업", 44, TitleColor);
-            SimpleUI.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(600f, 56f));
+            Text title = UiKit.CreateText(tierPanel.transform, "Title", "레벨 업", 44, TitleColor);
+            UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(600f, 56f));
 
-            headerText = SimpleUI.CreateText(tierPanel.transform, "Header", "", 26, SubColor);
+            headerText = UiKit.CreateText(tierPanel.transform, "Header", "", 26, SubColor);
             headerText.supportRichText = true;
-            SimpleUI.Place(headerText, new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(700f, 36f));
+            UiKit.Place(headerText, new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(700f, 36f));
 
             float span = ExpRules.TierCount * TierWidth + (ExpRules.TierCount - 1) * TierGap;
             float left = -span * 0.5f + TierWidth * 0.5f;
@@ -320,7 +323,7 @@ namespace Prototype
             {
                 int captured = tier;
 
-                Button button = SimpleUI.CreateButton(tierPanel.transform, $"Tier_{tier}", "", TierColor,
+                Button button = UiKit.CreateButton(tierPanel.transform, $"Tier_{tier}", "", TierColor,
                     new Vector2(TierWidth, TierHeight), 26);
                 button.onClick.AddListener(() => PickTier(captured));
 
@@ -328,38 +331,38 @@ namespace Prototype
                 Text stock = button.GetComponentInChildren<Text>();
                 if (stock != null) stock.gameObject.SetActive(false);
 
-                SimpleUI.Place(button, new Vector2(0.5f, 0.5f),
+                UiKit.Place(button, new Vector2(0.5f, 0.5f),
                     new Vector2(left + tier * (TierWidth + TierGap), -20f),
                     new Vector2(TierWidth, TierHeight));
 
-                Text name = SimpleUI.CreateText(button.transform, "Name",
+                Text name = UiKit.CreateText(button.transform, "Name",
                     $"{ExpRules.TierNumber(tier)}단계", 30, Color.white);
-                SimpleUI.Place(name, new Vector2(0.5f, 0.5f), new Vector2(0f, 46f), new Vector2(TierWidth, 40f));
+                UiKit.Place(name, new Vector2(0.5f, 0.5f), new Vector2(0f, 46f), new Vector2(TierWidth, 40f));
 
-                tierCostLabels[tier] = SimpleUI.CreateText(button.transform, "Cost", "", 24, HintColor);
-                SimpleUI.Place(tierCostLabels[tier], new Vector2(0.5f, 0.5f), new Vector2(0f, 2f),
+                tierCostLabels[tier] = UiKit.CreateText(button.transform, "Cost", "", 24, HintColor);
+                UiKit.Place(tierCostLabels[tier], new Vector2(0.5f, 0.5f), new Vector2(0f, 2f),
                     new Vector2(TierWidth, 34f));
 
-                tierChanceLabels[tier] = SimpleUI.CreateText(button.transform, "Chance", "", 20, SubColor);
-                SimpleUI.Place(tierChanceLabels[tier], new Vector2(0.5f, 0.5f), new Vector2(0f, -38f),
+                tierChanceLabels[tier] = UiKit.CreateText(button.transform, "Chance", "", 20, SubColor);
+                UiKit.Place(tierChanceLabels[tier], new Vector2(0.5f, 0.5f), new Vector2(0f, -38f),
                     new Vector2(TierWidth, 30f));
 
                 tierButtons[tier] = button;
             }
 
-            Button exit = SimpleUI.CreateButton(tierPanel.transform, "Exit", "나가기", ExitColor,
+            Button exit = UiKit.CreateButton(tierPanel.transform, "Exit", "나가기", ExitColor,
                 new Vector2(220f, 58f), 24);
             exit.onClick.AddListener(Close);
-            SimpleUI.Place(exit, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(220f, 58f));
+            UiKit.Place(exit, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(220f, 58f));
         }
 
         private void BuildOfferPanel()
         {
             offerPanel = Panel("OfferPanel", PanelWidth, PanelHeight);
 
-            offerTitle = SimpleUI.CreateText(offerPanel.transform, "Title", "", 34, TitleColor);
+            offerTitle = UiKit.CreateText(offerPanel.transform, "Title", "", 34, TitleColor);
             offerTitle.supportRichText = true;
-            SimpleUI.Place(offerTitle, new Vector2(0.5f, 1f), new Vector2(0f, -56f), new Vector2(900f, 48f));
+            UiKit.Place(offerTitle, new Vector2(0.5f, 1f), new Vector2(0f, -56f), new Vector2(900f, 48f));
 
             for (int i = 0; i < offerViews.Length; i++)
             {
@@ -370,16 +373,16 @@ namespace Prototype
                 offerViews[i].OnPicked += _ => PickCard(captured);
             }
 
-            offerHint = SimpleUI.CreateText(offerPanel.transform, "Hint", "", 20, HintColor);
-            SimpleUI.Place(offerHint, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(1000f, 32f));
+            offerHint = UiKit.CreateText(offerPanel.transform, "Hint", "", 20, HintColor);
+            UiKit.Place(offerHint, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(1000f, 32f));
 
             offerPanel.SetActive(false);
         }
 
         private GameObject Panel(string name, float width, float height)
         {
-            GameObject go = SimpleUI.CreateImage(root.transform, name, PanelColor);
-            SimpleUI.Place(go.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, height));
+            GameObject go = UiKit.CreateImage(root.transform, name, PanelColor);
+            UiKit.Place(go.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, height));
             return go;
         }
 
@@ -398,5 +401,48 @@ namespace Prototype
                 rect.anchoredPosition = new Vector2(left + i * (width + gap), centerY);
             }
         }
+    }
+
+    // ══ GameplayModal ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 게임플레이를 <b>멈춰 세워야 하는</b> 전면 UI가 떠 있는가.
+    ///
+    /// 스테이지 진행(웨이브 시계 · 아레나 정비 시계)과 승패 판정이 각자 개별 UI를 알게 두면,
+    /// 모달이 하나 늘 때마다 세 군데를 똑같이 고쳐야 하고 한 군데를 빠뜨리면
+    /// "카드를 고르는 사이에 등 뒤에서 웨이브가 쏟아지는" 식으로만 드러난다.
+    /// 그래서 물어보는 창구를 하나로 둔다.
+    /// </summary>
+    public static class GameplayModal
+    {
+        public static bool IsOpen => LevelUpSession.IsOpen || DeckBuilderUI.IsOpen;
+    }
+
+    // ══ DeckStartupMode ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 전투를 <b>어떤 덱으로 시작하는가</b>. 런의 첫 전투 씬에서 한 번만 정해진다
+    /// (<see cref="RunProgression.Seeded"/>), 그 뒤로는 런 덱이 그대로 이어진다.
+    ///
+    /// <see cref="Party"/> 외의 둘은 <b>디버그용</b>이다. 지금 이 게임은 16장을 쥐고 시작하는데,
+    /// 그러면 특정 카드 한 장이나 황금 카드의 감각을 따로 떼어 볼 방법이 없다 —
+    /// 손패 4칸이 늘 다른 12장과 섞여 나오기 때문이다.
+    /// </summary>
+    public enum DeckStartupMode
+    {
+        /// <summary>파티 4명의 장착 카드 16장. 게임의 실제 시작이다.</summary>
+        Party,
+
+        /// <summary>
+        /// <b>테스트 모드</b> — 0장으로 시작한다. 손패가 비므로 카드는 오직 레벨업으로만 들어온다.
+        /// 성장 곡선과 레벨업 보상만 떼어 볼 때 쓴다.
+        /// </summary>
+        Empty,
+
+        /// <summary>
+        /// <b>디버그 모드</b> — 시작할 때 화면에서 직접 짠다(<see cref="DeckBuilderUI"/>).
+        /// 보고 싶은 카드만, 원하는 장수만 넣을 수 있다.
+        /// </summary>
+        Pick,
     }
 }

@@ -233,13 +233,6 @@ namespace Prototype.EditorTools
                                                 "끌어오기 · 밀어내기(pushDistance)도 없고 AirborneEffect도 없다. 콤보가 안 열린다.");
                         break;
 
-                    case AttackType.Finisher:
-                        // 마무리는 띄워 둔 적을 바닥에 꽂는 게 일이다. 꽂지 않으면 그냥 공격기다.
-                        if (!SlamsByHit(s))
-                            problems += Warn(s, $"{tag}: 마무리인데 어느 타에도 음수 airborneHeight가 없다. " +
-                                                "대상이 공중에 그대로 남아 콤보가 안 닫힌다.");
-                        break;
-
                     case AttackType.Push:
                         if (s.hitDataList[0].nextState == CombatState.WallBound)
                             problems += Warn(s, $"{tag}: HitData.nextState가 WallBound다. " +
@@ -316,17 +309,6 @@ namespace Prototype.EditorTools
             for (int i = 0; i < s.hitDataList.Count; i++)
                 if (s.hitDataList[i].mode == KnockbackMode.TowardCaster && s.hitDataList[i].pushDistance > 0f)
                     return true;
-
-            return false;
-        }
-
-        /// <summary>어느 한 타라도 대상을 바닥에 꽂는지. 음수 높이가 곧 내리꽂기다.</summary>
-        private static bool SlamsByHit(SkillData s)
-        {
-            if (s.hitDataList == null) return false;
-
-            for (int i = 0; i < s.hitDataList.Count; i++)
-                if (s.hitDataList[i].airborneHeight < 0f) return true;
 
             return false;
         }

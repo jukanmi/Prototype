@@ -25,8 +25,56 @@ namespace Prototype.Tests
         {
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.That(go, Is.Not.Null,
-                $"{path} 를 못 찾았다. 메뉴 'Prototype > 전투 - 입력 호스트 프리팹 만들기' 를 실행할 것.");
+                $"{path} 를 못 찾았다.");
             return go;
+        }
+
+        // ── 파티 체력 HUD ───────────────────────────────────
+
+        /// <summary>
+        /// 줄은 <c>RowTemplate</c>을 복제해 만들고 조각을 <b>이름으로</b> 찾는다
+        /// (<c>PartyHealthHUD.NewRow</c>). 이름이 어긋나면 복제한 줄에서
+        /// <c>NullReferenceException</c>이 나는데, 그때는 이미 씬을 켠 뒤다.
+        /// </summary>
+        [Test]
+        public void PartyHealthHUD_IsWired()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            Assert.That(hud, Is.Not.Null, "BattleInput 에 PartyHealthHUD 가 없다.");
+
+            var so = new SerializedObject(hud);
+
+            foreach (string field in new[] { "panel", "rowTemplate" })
+                Assert.That(so.FindProperty(field).objectReferenceValue, Is.Not.Null,
+                    $"PartyHealthHUD.{field} 배선이 비었다 — 파티 체력 줄이 안 뜬다.");
+        }
+
+        [TestCase("Band")]
+        [TestCase("Name")]
+        [TestCase("BarBack")]
+        [TestCase("BarBack/Fill")]
+        [TestCase("Numbers")]
+        public void PartyHealthRowTemplate_HasEveryPart(string path)
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var template = (RectTransform)new SerializedObject(hud)
+                .FindProperty("rowTemplate").objectReferenceValue;
+
+            Assert.That(template, Is.Not.Null, "rowTemplate 이 비었다.");
+            Assert.That(template.Find(path), Is.Not.Null,
+                $"RowTemplate/{path} 가 없다 — NewRow 가 이 이름으로 찾는다.");
+        }
+
+        /// <summary>원본은 꺼진 채로 둔다. 켜 두면 아무도 없는 빈 줄이 하나 남는다.</summary>
+        [Test]
+        public void PartyHealthRowTemplate_StartsHidden()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var template = (RectTransform)new SerializedObject(hud)
+                .FindProperty("rowTemplate").objectReferenceValue;
+
+            Assert.That(template.gameObject.activeSelf, Is.False,
+                "RowTemplate 이 켜진 채로 저장됐다 — 빈 줄이 하나 남는다.");
         }
 
         // ── 입력 호스트 ─────────────────────────────────────

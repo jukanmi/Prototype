@@ -20,16 +20,9 @@ namespace Prototype
     /// </summary>
     public class PartyHealthHUD : MonoBehaviour
     {
-        /// <summary>ComboDamageHUD(5) · SkillCutinUI(10)보다 위, DeckInspectorUI(20)보다 아래.</summary>
-        private const int SortingOrder = 15;
-
-        private const float PanelWidth = 300f;
-        private const float RowHeight = 30f;
+        // 줄 <b>모양</b>은 프리팹의 RowTemplate이 쥔다. 여기 남은 건 줄을 쌓는 간격뿐이다 —
+        // 줄 개수가 로스터에 따라 달라져서 세로 위치는 런타임에 계산해야 한다.
         private const float RowGap = 4f;
-        private const float ScreenMargin = 24f;
-        private const float BandWidth = 5f;
-        private const float BarHeight = 8f;
-        private const float NameWidth = 120f;
 
         private static readonly Color RowIdle    = new Color(0.10f, 0.11f, 0.13f, 0.78f);
         private static readonly Color RowCurrent = new Color(0.18f, 0.21f, 0.26f, 0.92f);
@@ -53,6 +46,17 @@ namespace Prototype
         [Tooltip("체력 수치(120 / 200)를 막대 위에 함께 적는다.")]
         [SerializeField] private bool showNumbers = true;
 
+        // ── 배선 ─────────────────────────────────────────
+        // 줄 하나의 생김새는 프리팹의 RowTemplate이 통째로 쥔다. 코드는 그걸 복제해 쌓기만 한다 —
+        // 줄 <b>개수</b>만 로스터에 따라 달라지고, 줄 <b>모양</b>은 늘 같다.
+
+        [Header("배선")]
+        [Tooltip("줄이 쌓이는 곳. 화면 우측 하단에 붙는다.")]
+        [SerializeField] private RectTransform panel;
+
+        [Tooltip("줄 하나의 원본. 꺼진 채로 두고 복제해 쓴다.")]
+        [SerializeField] private RectTransform rowTemplate;
+
         private sealed class Row
         {
             public Entity body;
@@ -65,10 +69,12 @@ namespace Prototype
         }
 
         private readonly List<Row> rows = new List<Row>();
-        private RectTransform panel;
 
         /// <summary>줄을 이미 지었는가. 로스터가 <c>Start</c>에서 만들어지므로 한 프레임 미룬다.</summary>
         private bool built;
+
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool warned;
 
         /// <summary>테스트와 다른 HUD가 읽는다. 지어진 줄 수 — 빈 편성 칸은 세지 않는다.</summary>
         public int RowCount => rows.Count;
@@ -88,6 +94,12 @@ namespace Prototype
         {
             if (!show || swap == null) return;
 
+            if (panel == null || rowTemplate == null)
+            {
+                Warn();
+                return;
+            }
+
             if (!built)
             {
                 if (swap.Roster.Count == 0) return;
@@ -99,29 +111,23 @@ namespace Prototype
             Refresh();
         }
 
+        /// <summary>배선이 비면 조용히 아무것도 안 하는 대신 한 번 알린다.</summary>
+        private void Warn()
+        {
+            if (warned) return;
+
+            warned = true;
+            Debug.LogWarning(
+                "[PartyHealthHUD] 배선이 비어 있다 — 파티 체력 줄이 안 뜬다. " +
+                "BattleInput 프리팹의 PartyHealthCanvas 배선을 확인할 것.", this);
+        }
+
         // ── 짓기 ────────────────────────────────────────
 
         private void Build()
         {
-            var canvasGo = new GameObject("PartyHealthHUD", typeof(RectTransform));
-            canvasGo.transform.SetParent(transform, false);
-
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            // 클릭을 안 받는다. GraphicRaycaster를 안 붙이면 이 패널이 손패 클릭을 가리지 않는다.
-            panel = UiFactory.NewRect(canvasGo.transform, "Panel");
-            panel.anchorMin = panel.anchorMax = new Vector2(1f, 0f);
-            panel.pivot = new Vector2(1f, 0f);
-            panel.anchoredPosition = new Vector2(-ScreenMargin, ScreenMargin);
-
             IReadOnlyList<Entity> roster = swap.Roster;
+            float rowHeight = rowTemplate.rect.height;
             float y = 0f;
 
             // 아래에서 위로 쌓는다. 로스터 0번(주인공)이 맨 위에 오도록 역순으로 만든다 —
@@ -132,84 +138,40 @@ namespace Prototype
                 // "없는 동료"를 회색 줄로 남겨 두면 부활할 수 있다는 인상을 준다.
                 if (roster[i] == null) continue;
 
-                rows.Add(NewRow(roster[i], ref y));
+                rows.Add(NewRow(roster[i], y));
+                y += rowHeight + RowGap;
             }
 
-            panel.sizeDelta = new Vector2(PanelWidth, Mathf.Max(0f, y - RowGap));
+            panel.sizeDelta = new Vector2(panel.sizeDelta.x, Mathf.Max(0f, y - RowGap));
         }
 
-        private Row NewRow(Entity body, ref float y)
+        /// <summary>
+        /// 줄 하나를 <see cref="rowTemplate"/>에서 복제해 <paramref name="y"/> 높이에 앉힌다.
+        ///
+        /// 조각은 이름으로 찾는다 — 줄마다 뷰 컴포넌트를 하나씩 두는 것보다 싸고,
+        /// 이름이 어긋나면 <c>BattleInputPrefabTests</c>가 잡는다.
+        /// </summary>
+        private Row NewRow(Entity body, float y)
         {
-            Image bg = UiFactory.NewImage(panel, body.name, RowIdle);
-            RectTransform r = bg.rectTransform;
-            r.anchorMin = r.anchorMax = new Vector2(0f, 0f);
-            r.pivot = new Vector2(0f, 0f);
+            RectTransform r = Instantiate(rowTemplate, panel);
+            r.gameObject.SetActive(true);
+            r.name = body.name;
             r.anchoredPosition = new Vector2(0f, y);
-            r.sizeDelta = new Vector2(PanelWidth, RowHeight);
 
-            y += RowHeight + RowGap;
+            Text numbers = r.Find("Numbers").GetComponent<Text>();
+            numbers.gameObject.SetActive(showNumbers);
 
-            // 직업 색 띠. 초상화가 없어도 다섯을 구분할 수 있어야 한다 —
-            // 컷인이 쓰는 것과 같은 색이라 두 화면이 같은 말을 한다.
-            Image band = UiFactory.NewImage(r, "Band", TintOf(body));
-            RectTransform b = band.rectTransform;
-            b.anchorMin = new Vector2(0f, 0f);
-            b.anchorMax = new Vector2(0f, 1f);
-            b.pivot = new Vector2(0f, 0.5f);
-            b.sizeDelta = new Vector2(BandWidth, 0f);
-            b.anchoredPosition = Vector2.zero;
-
-            Text label = UiFactory.NewText(r, "Name", 15, NameAlive, FontStyle.Normal);
-            RectTransform l = label.rectTransform;
-            l.anchorMin = new Vector2(0f, 0f);
-            l.anchorMax = new Vector2(0f, 1f);
-            l.pivot = new Vector2(0f, 0.5f);
-            l.anchoredPosition = new Vector2(BandWidth + 6f, 0f);
-            l.sizeDelta = new Vector2(NameWidth, 0f);
-            label.alignment = TextAnchor.MiddleLeft;
-
-            // 막대는 이름 오른쪽의 남는 폭을 전부 쓴다.
-            float barLeft = BandWidth + 6f + NameWidth + 6f;
-
-            Image back = UiFactory.NewImage(r, "BarBack", BarBack);
-            RectTransform k = back.rectTransform;
-            k.anchorMin = new Vector2(0f, 0.5f);
-            k.anchorMax = new Vector2(0f, 0.5f);
-            k.pivot = new Vector2(0f, 0.5f);
-            k.anchoredPosition = new Vector2(barLeft, 0f);
-            k.sizeDelta = new Vector2(PanelWidth - barLeft - 8f, BarHeight);
-
-            // 왼쪽을 고정하고 오른쪽 앵커만 움직여 폭을 만든다.
-            // RecentHitEnemyHUD가 쓰는 것과 같은 방식이라 두 막대가 같은 규칙으로 움직인다.
-            Image fill = UiFactory.NewImage(k, "Fill", BarAlive);
-            RectTransform f = fill.rectTransform;
-            f.anchorMin = Vector2.zero;
-            f.anchorMax = Vector2.one;
-            f.offsetMin = Vector2.zero;
-            f.offsetMax = Vector2.zero;
-
-            Text numbers = null;
-            if (showNumbers)
-            {
-                numbers = UiFactory.NewText(r, "Numbers", 12, NameDead, FontStyle.Normal);
-                RectTransform n = numbers.rectTransform;
-                n.anchorMin = new Vector2(1f, 0f);
-                n.anchorMax = new Vector2(1f, 1f);
-                n.pivot = new Vector2(1f, 0.5f);
-                n.anchoredPosition = new Vector2(-8f, -7f);
-                n.sizeDelta = new Vector2(PanelWidth - barLeft, 0f);
-                numbers.alignment = TextAnchor.MiddleRight;
-            }
+            RectTransform fillRect = (RectTransform)r.Find("BarBack/Fill");
 
             return new Row
             {
                 body = body,
-                background = bg,
-                band = band,
-                fill = fill,
-                fillRect = f,
-                label = label,
-                numbers = numbers,
+                background = r.GetComponent<Image>(),
+                band = r.Find("Band").GetComponent<Image>(),
+                fill = fillRect.GetComponent<Image>(),
+                fillRect = fillRect,
+                label = r.Find("Name").GetComponent<Text>(),
+                numbers = showNumbers ? numbers : null,
             };
         }
 

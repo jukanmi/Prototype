@@ -47,12 +47,6 @@ namespace Prototype
         Strike,      // 공격기
         Push,        // 밀치기
         Charge,      // 차징
-
-        /// <summary>유지기 — 콤보를 끊지 않고 이어 가는 다단히트. 값이 5번이라 기존 로드는 그대로다.</summary>
-        Sustain,
-
-        /// <summary>마무리 — 띄워 둔 적을 바닥에 꽂아 콤보를 닫는다.</summary>
-        Finisher,
     }
 
     /// <summary>넉백 방향 계산 방식. 방향은 타격 순간에 계산한다.</summary>
@@ -182,14 +176,5 @@ namespace Prototype
     {
         Ally,
         Enemy,
-    }
-
-    public enum GameState
-    {
-        Title,
-        InGame,
-        Paused,
-        Settings,
-        Dead,
     }
 }

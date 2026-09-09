@@ -40,7 +40,11 @@ namespace Prototype.EditorTools
         private const string AllyControllerPath = AnimFolder + "/AllyAnimator.controller";
         private static string AllyPrefabPath => PrefabLocator.AllyPath;
 
-        /// <summary>클립이 물리는 자식. <see cref="AnimationBuilder"/>와 같은 경로여야 한다.</summary>
+        /// <summary>
+        /// 클립이 물리는 자식. 커밋된 클립이 전부 이 경로를 물고 있으므로 바꾸면 안 된다 —
+        /// 배율은 View가, 스쿼시 · 스트레치는 Sprite가 나눠 갖는다. 한 트랜스폼에 둘을 얹으면
+        /// Animator와 <c>BeltScrollView</c>가 매 프레임 서로 덮어쓴다.
+        /// </summary>
         private const string SpritePath = "View/Sprite";
 
         // ── 캐릭터 시트 규격 ────────────────────────────
@@ -342,7 +346,7 @@ namespace Prototype.EditorTools
 
                 AnimatorState state = sm.AddState(spec.state);
                 state.motion = clip;
-                // 클립이 안 건드리는 값을 매 프레임 되돌리지 않는다(AnimationBuilder와 같은 이유).
+                // 클립이 안 건드리는 값을 매 프레임 되돌리지 않는다 — BeltScrollView가 쥔 값이 튄다.
                 state.writeDefaultValues = false;
             }
 

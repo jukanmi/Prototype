@@ -13,12 +13,14 @@ namespace Prototype.Tests
     /// </summary>
     public class PartyPrefabTests
     {
+        /// <summary>옛 <c>BattleInputBuilder.PartyRootName</c>. 프리팹에 박힌 이름이다.</summary>
+        private const string PartyRootName = "Party";
+
         private static GameObject Host()
         {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>(BattleInputBuilder.PrefabPath);
-            Assert.That(go, Is.Not.Null,
-                $"{BattleInputBuilder.PrefabPath} 를 못 찾았다. " +
-                "메뉴 'Prototype ▸ 전투 - 입력 호스트 프리팹 만들기' 를 실행할 것.");
+            string path = PrefabLocator.BattleInputPath;
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            Assert.That(go, Is.Not.Null, $"{path} 를 못 찾았다.");
             return go;
         }
 
@@ -44,8 +46,8 @@ namespace Prototype.Tests
         [Test]
         public void PartyRoot_IsAtOriginWithIdentityTransform()
         {
-            Transform party = Host().transform.Find(BattleInputBuilder.PartyRootName);
-            Assert.That(party, Is.Not.Null, $"'{BattleInputBuilder.PartyRootName}' 컨테이너가 없다.");
+            Transform party = Host().transform.Find(PartyRootName);
+            Assert.That(party, Is.Not.Null, $"'{PartyRootName}' 컨테이너가 없다.");
 
             Assert.That(party.localPosition, Is.EqualTo(Vector3.zero));
             Assert.That(party.localRotation, Is.EqualTo(Quaternion.identity));
@@ -66,7 +68,7 @@ namespace Prototype.Tests
             Assert.That(host.GetComponent<Collider>(), Is.Null,
                 "BattleInput 루트에 Collider 가 붙어 있다.");
 
-            Transform party = host.transform.Find(BattleInputBuilder.PartyRootName);
+            Transform party = host.transform.Find(PartyRootName);
             if (party == null) return;
 
             Assert.That(party.GetComponent<Rigidbody>(), Is.Null);
@@ -92,12 +94,11 @@ namespace Prototype.Tests
         {
             GameObject host = Host();
 
-            Transform party = host.transform.Find(BattleInputBuilder.PartyRootName);
-            Assert.That(party, Is.Not.Null, $"'{BattleInputBuilder.PartyRootName}' 컨테이너가 없다.");
+            Transform party = host.transform.Find(PartyRootName);
+            Assert.That(party, Is.Not.Null, $"'{PartyRootName}' 컨테이너가 없다.");
 
             Assert.That(host.GetComponentsInChildren<Player>(true), Is.Empty,
-                "BattleInput 안에 Player 가 구워져 있다 — 몸은 PartyAssembler 가 런타임에 만든다. " +
-                "'Prototype ▸ 전투 - 입력 호스트 프리팹 만들기'를 다시 돌릴 것.");
+                "BattleInput 안에 Player 가 구워져 있다 — 몸은 PartyAssembler 가 런타임에 만든다.");
 
             Assert.That(host.GetComponentsInChildren<Ally>(true), Is.Empty,
                 "BattleInput 안에 Ally 가 구워져 있다 — 로드아웃이 만든 파티와 겹쳐 " +
@@ -199,7 +200,7 @@ namespace Prototype.Tests
             Assert.That(anchor.transform.parent, Is.EqualTo(host.transform),
                 "CameraAnchor 가 BattleInput 루트의 직계 자식이 아니다.");
 
-            Transform party = host.transform.Find(BattleInputBuilder.PartyRootName);
+            Transform party = host.transform.Find(PartyRootName);
             Assert.That(anchor.transform.IsChildOf(party), Is.False,
                 "CameraAnchor 가 Party 컨테이너 안에 있다 — 그 노드는 원점에 고정이다.");
         }

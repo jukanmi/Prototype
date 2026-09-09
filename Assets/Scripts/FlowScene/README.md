@@ -40,7 +40,7 @@ SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
 | `Stage/StageOutcomeRules.cs` | `StageOutcome` 판정. 스테이지 규칙이라 `Stage/` |
 | `Battle/UI/BattleRestartUI.cs` | 인게임 [처음부터] 버튼 |
 | `Battle/UI/StageResultUI.cs` | 스테이지 종료 화면 (출구 화살표 / 전부 클리어 / 패배) |
-| `Battle/UI/SimpleUI.cs` | 코드로 캔버스 짓는 공용 조각. `UiFactory` 옆자리 |
+| `Core/UiKit.cs` | 코드로 캔버스 짓는 공용 조각 + `UiLayer` 정렬 순서표 |
 
 ## 씬 조립 — 메뉴 한 번
 
@@ -89,9 +89,8 @@ Screen Space - Overlay 라 카메라 없는 순간에도 정상 렌더링된다.
 | 태그 | **Untagged** | 아래 참조 |
 | `AudioListener` | **없음** | 씬 카메라 것과 중복되면 경고 |
 
-**태그를 `MainCamera` 로 바꾸면 안 된다.** `TargetSelector.cs:47` 과
-`DebugComboHUD.cs:191` 이 `Camera.main` 을 쓰는데, 이 카메라가 잡히면 조준 좌표 변환이
-전부 깨진다. Boot 씬은 언로드되지 않으므로 전투 중에도 계속 살아 있다는 점을 기억할 것.
+**태그를 `MainCamera` 로 바꾸면 안 된다.** `TargetSelector.cs:47` 이 `Camera.main` 을
+쓰는데, 이 카메라가 잡히면 조준 좌표 변환이 전부 깨진다. Boot 씬은 언로드되지 않으므로 전투 중에도 계속 살아 있다는 점을 기억할 것.
 
 대안으로 "새 씬을 먼저 얹고 이전 씬을 나중에 내리는" 순서도 검토했지만, 그러면 그 순간
 카메라와 AudioListener 가 둘씩 존재해 경고가 새로 생긴다. 폴백 카메라 쪽이 부작용이 적다.

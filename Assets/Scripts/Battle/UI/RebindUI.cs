@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Prototype
@@ -16,14 +14,12 @@ namespace Prototype
     /// </summary>
     public class RebindUI : MonoBehaviour
     {
-        // ── 치수 ─────────────────────────────────────────
+        // ── 줄 치수 ───────────────────────────────────────
+        // 창 · 뷰포트 · 버튼 치수는 프리팹이 쥔다. 여기 남은 건 줄 하나의 내부 배분뿐이다 —
+        // 줄은 바인딩 개수만큼 코드로 찍으므로.
 
-        private const float OpenButtonWidth = 116f;
-        private const float OpenButtonHeight = 40f;
-        private const float ScreenMargin = 24f;
-
-        private const float PanelWidth = 640f;
-        private const float PanelHeight = 620f;
+        /// <summary>줄 폭. 프리팹의 Content(600)보다 좁게 잡아 스크롤바 자리를 남긴다.</summary>
+        private const float RowWidth = 580f;
 
         private const float RowHeight = 30f;
         private const float RowSpacing = 3f;
@@ -31,22 +27,13 @@ namespace Prototype
         private const float KeyWidth = 150f;
         private const float ChangeWidth = 90f;
 
-        private const float ViewportHeight = 420f;
-
-        /// <summary>ComboBoardUI 캔버스(0)보다 위, SceneLoader의 FadeCanvas(999)보다 아래.</summary>
-        private const int SortingOrder = 200;
-
         // ── 색 ───────────────────────────────────────────
+        // 줄 · 프리셋 버튼 · 상태 문구에만 쓴다. 창 · 버튼 색은 프리팹으로 옮겼다.
 
-        private static readonly Color OpenButtonColor = new Color(0.24f, 0.30f, 0.38f);
-        private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.65f);
-        private static readonly Color PanelColor = new Color(0.11f, 0.12f, 0.15f, 0.98f);
         private static readonly Color HeaderColor = new Color(0.18f, 0.20f, 0.25f);
         private static readonly Color RowColor = new Color(0.17f, 0.19f, 0.23f);
         private static readonly Color ChangeColor = new Color(0.26f, 0.34f, 0.42f);
         private static readonly Color PresetColor = new Color(0.24f, 0.36f, 0.30f);
-        private static readonly Color ResetColor = new Color(0.42f, 0.26f, 0.20f);
-        private static readonly Color CloseColor = new Color(0.30f, 0.32f, 0.36f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
         private static readonly Color WarnColor = new Color(1f, 0.5f, 0.45f);
         private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
@@ -57,6 +44,31 @@ namespace Prototype
         [Tooltip("플레이어가 없는 씬(부트 · 메인메뉴)에서 쓸 액션 자산. " +
                  "플레이어가 있으면 그쪽 인스턴스를 우선한다.")]
         [SerializeField] private InputActionAsset fallbackActions;
+
+        // ── 배선 ─────────────────────────────────────────
+        // 화면은 프리팹이 쥔다. 자리 · 크기 · 색을 바꾸려면 CombatManager 프리팹을 연다.
+
+        [Header("배선")]
+        [Tooltip("화면 구석의 [조작키] 버튼.")]
+        [SerializeField] private Button _openButton;
+
+        [Tooltip("배경 막까지 포함한 설정 창 전체. 프리팹에서는 꺼 둔다.")]
+        [SerializeField] private GameObject _panelRoot;
+
+        [Tooltip("줄이 쌓이는 곳. Viewport 아래의 Content.")]
+        [SerializeField] private RectTransform _content;
+
+        [Tooltip("창 아래쪽 안내 문구.")]
+        [SerializeField] private Text _statusText;
+
+        [Tooltip("키를 받는 동안 목록을 덮는 판. 프리팹에서는 꺼 둔다.")]
+        [SerializeField] private GameObject _listeningRoot;
+
+        [Tooltip("프리셋 · 기본값 · 닫기가 나란히 서는 줄. HorizontalLayoutGroup 이 자리를 잡는다.")]
+        [SerializeField] private RectTransform _footerRow;
+
+        [SerializeField] private Button _resetButton;
+        [SerializeField] private Button _closeButton;
 
         /// <summary>한 줄 = 바꿀 수 있는 바인딩 하나.</summary>
         private class Row
@@ -74,17 +86,71 @@ namespace Prototype
         /// <summary>ESC로 창을 닫는 길. 플레이어가 없는 씬에서도 있어야 해서 직접 잡는다.</summary>
         private InputAction _cancelAction;
 
-        private GameObject _panelRoot;
-        private RectTransform _content;
-        private Text _statusText;
-        private GameObject _listeningRoot;
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool _warned;
+
+        private bool Wired =>
+            _panelRoot != null && _content != null && _statusText != null
+            && _listeningRoot != null && _footerRow != null;
 
         private bool IsOpen => _panelRoot != null && _panelRoot.activeSelf;
 
         private void Start()
         {
-            EnsureEventSystem();
-            BuildUI();
+            UiKit.EnsureEventSystem();
+
+            if (!Wired)
+            {
+                Warn();
+                return;
+            }
+
+            // 버튼은 인스펙터가 아니라 여기서 묶는다 — 대상 메서드가 private이라
+            // UnityEvent 배선이 안 된다. 프리팹에는 참조만 꽂는다.
+            if (_openButton != null) _openButton.onClick.AddListener(Open);
+            if (_resetButton != null) _resetButton.onClick.AddListener(ResetAll);
+            if (_closeButton != null) _closeButton.onClick.AddListener(Close);
+
+            BuildPresetButtons();
+
+            _panelRoot.SetActive(false);
+            _listeningRoot.SetActive(false);
+        }
+
+        /// <summary>
+        /// 프리셋 개수는 인스펙터가 정하므로 프리팹으로 못 걷어낸다.
+        /// 자리는 <see cref="_footerRow"/>의 HorizontalLayoutGroup이 잡는다 —
+        /// 옛 코드가 손으로 하던 slot 폭 계산이 여기서 사라졌다.
+        /// </summary>
+        private void BuildPresetButtons()
+        {
+            if (presets == null) return;
+
+            int index = 0;
+
+            foreach (KeyBindingPreset preset in presets)
+            {
+                if (preset == null) continue;
+
+                KeyBindingPreset captured = preset;
+                Button b = BuildButton(_footerRow, $"Preset_{preset.name}", preset.DisplayName,
+                    0f, 38f, PresetColor);
+
+                // [기본값] · [닫기]는 프리팹에 이미 서 있다. 프리셋은 그 앞에 끼운다.
+                b.transform.SetSiblingIndex(index++);
+                b.onClick.AddListener(() => ApplyPreset(captured));
+            }
+        }
+
+        /// <summary>배선이 비면 조용히 아무것도 안 하는 대신 한 번 알린다.</summary>
+        private void Warn()
+        {
+            if (_warned) return;
+
+            _warned = true;
+            Debug.LogWarning(
+                "[RebindUI] 배선이 비어 있다 — 조작키 설정 화면이 안 뜬다. " +
+                "CombatManager 프리팹의 RebindCanvas 배선을 확인할 것.", this);
         }
 
         private void OnDestroy()
@@ -266,9 +332,9 @@ namespace Prototype
         {
             var go = CreatePanel(_content, $"Header_{label}", HeaderColor);
             var rect = go.GetComponent<RectTransform>();
-            Anchor(rect, PanelWidth - 60f, RowHeight, y);
+            Anchor(rect, RowWidth, RowHeight, y);
 
-            Text text = BuildText(go.transform, "Label", PanelWidth - 80f, RowHeight, 15, HintColor, FontStyle.Bold);
+            Text text = BuildText(go.transform, "Label", RowWidth - 20f, RowHeight, 15, HintColor, FontStyle.Bold);
             text.alignment = TextAnchor.MiddleLeft;
             var textRect = text.GetComponent<RectTransform>();
             textRect.anchoredPosition = new Vector2(10f, 0f);
@@ -280,13 +346,13 @@ namespace Prototype
         {
             var go = CreatePanel(_content, $"Row_{action.name}_{bindingIndex}", RowColor);
             var rect = go.GetComponent<RectTransform>();
-            Anchor(rect, PanelWidth - 60f, RowHeight, y);
+            Anchor(rect, RowWidth, RowHeight, y);
 
             Text label = BuildText(go.transform, "Label", LabelWidth, RowHeight, 14, SubColor, FontStyle.Normal);
             label.alignment = TextAnchor.MiddleLeft;
             label.text = InputDisplayNames.Binding(action, bindingIndex);
             label.GetComponent<RectTransform>().anchoredPosition =
-                new Vector2(-(PanelWidth - 60f) / 2f + LabelWidth / 2f + 12f, 0f);
+                new Vector2(-RowWidth / 2f + LabelWidth / 2f + 12f, 0f);
 
             Text key = BuildText(go.transform, "Key", KeyWidth, RowHeight, 14, Color.white, FontStyle.Bold);
             key.text = InputDisplayNames.Key(action, bindingIndex);
@@ -297,7 +363,7 @@ namespace Prototype
 
             Button change = BuildButton(go.transform, "Change", "변경", ChangeWidth, RowHeight - 6f, ChangeColor);
             change.GetComponent<RectTransform>().anchoredPosition =
-                new Vector2((PanelWidth - 60f) / 2f - ChangeWidth / 2f - 12f, 0f);
+                new Vector2(RowWidth / 2f - ChangeWidth / 2f - 12f, 0f);
             change.onClick.AddListener(() => BeginRebind(row));
 
             y -= RowHeight + RowSpacing;
@@ -313,179 +379,7 @@ namespace Prototype
             rect.anchoredPosition = new Vector2(0f, y);
         }
 
-        // ── UI 빌드 ──────────────────────────────────────
-
-        private void BuildUI()
-        {
-            var canvasGo = new GameObject("RebindCanvas",
-                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasGo.transform.SetParent(transform, false);
-
-            var canvas = canvasGo.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 1f;
-
-            BuildOpenButton(canvasGo.transform);
-            BuildPanel(canvasGo.transform);
-        }
-
-        private void BuildOpenButton(Transform parent)
-        {
-            // 손패(아래 가운데) · 덱 상황판(왼쪽 위) · 처음부터(오른쪽 위)를 피해 오른쪽 아래에 둔다.
-            Button button = BuildButton(parent, "OpenRebind", "조작키",
-                OpenButtonWidth, OpenButtonHeight, OpenButtonColor);
-
-            var rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-ScreenMargin, ScreenMargin);
-
-            button.onClick.AddListener(Open);
-        }
-
-        private void BuildPanel(Transform parent)
-        {
-            var backdrop = CreatePanel(parent, "Backdrop", BackdropColor);
-            _panelRoot = backdrop;
-
-            var backdropRect = backdrop.GetComponent<RectTransform>();
-            backdropRect.anchorMin = Vector2.zero;
-            backdropRect.anchorMax = Vector2.one;
-            backdropRect.offsetMin = Vector2.zero;
-            backdropRect.offsetMax = Vector2.zero;
-
-            var panel = CreatePanel(backdrop.transform, "Panel", PanelColor);
-            var panelRect = panel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-
-            Text title = BuildText(panel.transform, "Title", PanelWidth, 40f, 20, Color.white, FontStyle.Bold);
-            var titleRect = title.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0.5f, 1f);
-            titleRect.anchorMax = new Vector2(0.5f, 1f);
-            titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.anchoredPosition = new Vector2(0f, -12f);
-            title.text = "조작키 설정";
-
-            BuildScrollView(panel.transform);
-            BuildFooter(panel.transform);
-            BuildListeningOverlay(panel.transform);
-
-            backdrop.SetActive(false);
-        }
-
-        private void BuildScrollView(Transform parent)
-        {
-            var viewport = CreatePanel(parent, "Viewport", new Color(0f, 0f, 0f, 0.25f));
-            var viewportRect = viewport.GetComponent<RectTransform>();
-            viewportRect.anchorMin = new Vector2(0.5f, 1f);
-            viewportRect.anchorMax = new Vector2(0.5f, 1f);
-            viewportRect.pivot = new Vector2(0.5f, 1f);
-            viewportRect.sizeDelta = new Vector2(PanelWidth - 40f, ViewportHeight);
-            viewportRect.anchoredPosition = new Vector2(0f, -60f);
-            viewport.AddComponent<Mask>().showMaskGraphic = true;
-
-            var contentGo = new GameObject("Content", typeof(RectTransform));
-            contentGo.transform.SetParent(viewport.transform, false);
-            _content = contentGo.GetComponent<RectTransform>();
-            _content.anchorMin = new Vector2(0.5f, 1f);
-            _content.anchorMax = new Vector2(0.5f, 1f);
-            _content.pivot = new Vector2(0.5f, 1f);
-            _content.sizeDelta = new Vector2(PanelWidth - 40f, 0f);
-            _content.anchoredPosition = Vector2.zero;
-
-            var scroll = viewport.AddComponent<ScrollRect>();
-            scroll.content = _content;
-            scroll.viewport = viewportRect;
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 24f;
-        }
-
-        private void BuildFooter(Transform parent)
-        {
-            _statusText = BuildText(parent, "Status", PanelWidth - 40f, 26f, 14, SubColor, FontStyle.Normal);
-            var statusRect = _statusText.GetComponent<RectTransform>();
-            statusRect.anchorMin = new Vector2(0.5f, 0f);
-            statusRect.anchorMax = new Vector2(0.5f, 0f);
-            statusRect.pivot = new Vector2(0.5f, 0f);
-            statusRect.anchoredPosition = new Vector2(0f, 96f);
-
-            float x = 0f;
-            int count = (presets != null ? presets.Length : 0) + 2;
-            float slot = (PanelWidth - 40f) / count;
-            x = -(PanelWidth - 40f) / 2f + slot / 2f;
-
-            if (presets != null)
-            {
-                foreach (KeyBindingPreset preset in presets)
-                {
-                    if (preset == null) continue;
-
-                    KeyBindingPreset captured = preset;
-                    Button b = BuildButton(parent, $"Preset_{preset.name}", preset.DisplayName,
-                        slot - 8f, 38f, PresetColor);
-                    PlaceFooterButton(b, x);
-                    b.onClick.AddListener(() => ApplyPreset(captured));
-                    x += slot;
-                }
-            }
-
-            Button reset = BuildButton(parent, "Reset", "기본값", slot - 8f, 38f, ResetColor);
-            PlaceFooterButton(reset, x);
-            reset.onClick.AddListener(ResetAll);
-            x += slot;
-
-            Button close = BuildButton(parent, "Close", "닫기", slot - 8f, 38f, CloseColor);
-            PlaceFooterButton(close, x);
-            close.onClick.AddListener(Close);
-        }
-
-        private static void PlaceFooterButton(Button button, float x)
-        {
-            var rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(x, 40f);
-        }
-
-        /// <summary>키를 받는 동안 목록을 덮는다. 그 사이 다른 줄의 [변경]이 눌리면 안 된다.</summary>
-        private void BuildListeningOverlay(Transform parent)
-        {
-            var go = CreatePanel(parent, "Listening", new Color(0f, 0f, 0f, 0.82f));
-            _listeningRoot = go;
-
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            Text text = BuildText(go.transform, "Label", PanelWidth - 60f, 60f, 20, HintColor, FontStyle.Bold);
-            text.text = "새 키를 누른다\nESC — 취소";
-
-            go.SetActive(false);
-        }
-
         // ── 조각 ─────────────────────────────────────────
-
-        private static void EnsureEventSystem()
-        {
-            if (FindAnyObjectByType<EventSystem>() != null) return;
-
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
-        }
 
         private static GameObject CreatePanel(Transform parent, string name, Color color)
         {

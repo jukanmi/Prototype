@@ -22,9 +22,6 @@ namespace Prototype
     /// </summary>
     public class PartySelectUI : MonoBehaviour
     {
-        /// <summary>메인화면 기본 UI 위. 다른 캔버스와 다투지 않을 만큼만.</summary>
-        private const int SortingOrder = 50;
-
         private const float PanelWidth = 420f;
         private const float ScreenMargin = 24f;
         private const float Pad = 14f;
@@ -143,19 +140,10 @@ namespace Prototype
 
         private void Build(IReadOnlyList<PartyMemberData> roster)
         {
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = SortingOrder;
-
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            gameObject.AddComponent<GraphicRaycaster>();
+            UiKit.BuildCanvas(gameObject, UiLayer.PartySelect);
 
             // 화면 오른쪽에 세로로 붙인다. 메인화면 버튼은 가운데라 겹치지 않는다.
-            Image panel = UiFactory.NewImage(transform, "Panel", PanelColor, raycast: true);
+            Image panel = UiKit.NewImage(transform, "Panel", PanelColor, raycast: true);
             RectTransform p = panel.rectTransform;
             p.anchorMin = new Vector2(1f, 0f);
             p.anchorMax = new Vector2(1f, 1f);
@@ -166,12 +154,12 @@ namespace Prototype
             float y = Pad;
             float inner = PanelWidth - Pad * 2f;
 
-            Text title = UiFactory.NewText(p, "Title", 26, TitleColor, FontStyle.Bold);
+            Text title = UiKit.NewText(p, "Title", 26, TitleColor, FontStyle.Bold);
             Row(title.rectTransform, ref y, 34f, inner);
             title.text = "파티 편성";
             title.alignment = TextAnchor.MiddleLeft;
 
-            Text hint = UiFactory.NewText(p, "Hint", 14, DimText, FontStyle.Normal);
+            Text hint = UiKit.NewText(p, "Hint", 14, DimText, FontStyle.Normal);
             Row(hint.rectTransform, ref y, 22f, inner);
             hint.text = "고른 순서가 교대(F) 순서가 된다";
             hint.alignment = TextAnchor.MiddleLeft;
@@ -181,16 +169,16 @@ namespace Prototype
             BuildSlots(p, ref y, inner);
 
             y += Gap;
-            summary = UiFactory.NewText(p, "Summary", 17, NoteColor, FontStyle.Bold);
+            summary = UiKit.NewText(p, "Summary", 17, NoteColor, FontStyle.Bold);
             Row(summary.rectTransform, ref y, 24f, inner);
             summary.alignment = TextAnchor.MiddleLeft;
 
-            warning = UiFactory.NewText(p, "Warning", 14, WarnColor, FontStyle.Normal);
+            warning = UiKit.NewText(p, "Warning", 14, WarnColor, FontStyle.Normal);
             Row(warning.rectTransform, ref y, 22f, inner);
             warning.alignment = TextAnchor.MiddleLeft;
 
             y += Gap;
-            Text header = UiFactory.NewText(p, "RosterHeader", 15, DimText, FontStyle.Bold);
+            Text header = UiKit.NewText(p, "RosterHeader", 15, DimText, FontStyle.Bold);
             Row(header.rectTransform, ref y, 22f, inner);
             header.text = $"동료 {roster.Count}명";
             header.alignment = TextAnchor.MiddleLeft;
@@ -210,12 +198,12 @@ namespace Prototype
             IReadOnlyList<PlayerData> all = PartyCatalog.AllHeroes();
             if (all.Count <= 1) return;
 
-            Text header = UiFactory.NewText(panel, "HeroHeader", 15, DimText, FontStyle.Bold);
+            Text header = UiKit.NewText(panel, "HeroHeader", 15, DimText, FontStyle.Bold);
             Row(header.rectTransform, ref y, 22f, inner);
             header.text = "주인공";
             header.alignment = TextAnchor.MiddleLeft;
 
-            RectTransform row = UiFactory.NewRect(panel, "Heroes");
+            RectTransform row = UiKit.NewRect(panel, "Heroes");
             Row(row, ref y, RowHeight, inner);
 
             float w = (inner - Gap * (all.Count - 1)) / all.Count;
@@ -225,15 +213,15 @@ namespace Prototype
                 PlayerData h = all[i];
                 if (h == null) continue;
 
-                Image bg = UiFactory.NewImage(row, h.heroId, RowPlain, raycast: true);
+                Image bg = UiKit.NewImage(row, h.heroId, RowPlain, raycast: true);
                 RectTransform r = bg.rectTransform;
                 r.anchorMin = r.anchorMax = new Vector2(0f, 1f);
                 r.pivot = new Vector2(0f, 1f);
                 r.anchoredPosition = new Vector2(i * (w + Gap), 0f);
                 r.sizeDelta = new Vector2(w, RowHeight);
 
-                Text label = UiFactory.NewText(r, "Label", 17, Color.white, FontStyle.Normal);
-                UiFactory.Stretch(label.rectTransform, 6f);
+                Text label = UiKit.NewText(r, "Label", 17, Color.white, FontStyle.Normal);
+                UiKit.Stretch(label.rectTransform, 6f);
                 label.alignment = TextAnchor.MiddleCenter;
                 label.text = h.Label;
 
@@ -248,21 +236,21 @@ namespace Prototype
 
         private void BuildSlots(RectTransform panel, ref float y, float inner)
         {
-            RectTransform row = UiFactory.NewRect(panel, "Slots");
+            RectTransform row = UiKit.NewRect(panel, "Slots");
             Row(row, ref y, SlotSize, inner);
 
             float w = (inner - Gap * (PartyLoadout.MaxMembers - 1)) / PartyLoadout.MaxMembers;
 
             for (int i = 0; i < PartyLoadout.MaxMembers; i++)
             {
-                Image bg = UiFactory.NewImage(row, "Slot" + i, SlotEmpty, raycast: true);
+                Image bg = UiKit.NewImage(row, "Slot" + i, SlotEmpty, raycast: true);
                 RectTransform r = bg.rectTransform;
                 r.anchorMin = r.anchorMax = new Vector2(0f, 1f);
                 r.pivot = new Vector2(0f, 1f);
                 r.anchoredPosition = new Vector2(i * (w + Gap), 0f);
                 r.sizeDelta = new Vector2(w, SlotSize);
 
-                Text order = UiFactory.NewText(r, "Order", 13, DimText, FontStyle.Normal);
+                Text order = UiKit.NewText(r, "Order", 13, DimText, FontStyle.Normal);
                 order.rectTransform.anchorMin = new Vector2(0f, 1f);
                 order.rectTransform.anchorMax = new Vector2(1f, 1f);
                 order.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -270,11 +258,11 @@ namespace Prototype
                 order.rectTransform.sizeDelta = new Vector2(0f, 16f);
                 order.text = (i + 1).ToString();
 
-                Text name = UiFactory.NewText(r, "Name", 17, Color.white, FontStyle.Bold);
-                UiFactory.Stretch(name.rectTransform, 4f);
+                Text name = UiKit.NewText(r, "Name", 17, Color.white, FontStyle.Bold);
+                UiKit.Stretch(name.rectTransform, 4f);
                 name.alignment = TextAnchor.MiddleCenter;
 
-                Text role = UiFactory.NewText(r, "Role", 13, NoteColor, FontStyle.Normal);
+                Text role = UiKit.NewText(r, "Role", 13, NoteColor, FontStyle.Normal);
                 role.rectTransform.anchorMin = new Vector2(0f, 0f);
                 role.rectTransform.anchorMax = new Vector2(1f, 0f);
                 role.rectTransform.pivot = new Vector2(0.5f, 0f);
@@ -294,7 +282,7 @@ namespace Prototype
         /// </summary>
         private void BuildRoster(RectTransform panel, IReadOnlyList<PartyMemberData> roster, float top)
         {
-            Image viewport = UiFactory.NewImage(panel, "Viewport", new Color(0f, 0f, 0f, 0.25f), raycast: true);
+            Image viewport = UiKit.NewImage(panel, "Viewport", new Color(0f, 0f, 0f, 0.25f), raycast: true);
             RectTransform v = viewport.rectTransform;
             v.anchorMin = new Vector2(0f, 0f);
             v.anchorMax = new Vector2(1f, 1f);
@@ -304,7 +292,7 @@ namespace Prototype
 
             viewport.gameObject.AddComponent<RectMask2D>();
 
-            RectTransform content = UiFactory.NewRect(v, "Content");
+            RectTransform content = UiKit.NewRect(v, "Content");
             content.anchorMin = new Vector2(0f, 1f);
             content.anchorMax = new Vector2(1f, 1f);
             content.pivot = new Vector2(0.5f, 1f);
@@ -326,7 +314,7 @@ namespace Prototype
                 PartyMemberData m = roster[i];
                 if (m == null) continue;
 
-                Image bg = UiFactory.NewImage(content, m.memberId, RowPlain, raycast: true);
+                Image bg = UiKit.NewImage(content, m.memberId, RowPlain, raycast: true);
                 RectTransform r = bg.rectTransform;
                 r.anchorMin = new Vector2(0f, 1f);
                 r.anchorMax = new Vector2(1f, 1f);
@@ -335,7 +323,7 @@ namespace Prototype
                 r.sizeDelta = new Vector2(0f, RowHeight);
 
                 // 직업 색 띠. 초상화가 없어도 넷을 구분할 수 있어야 한다.
-                Image band = UiFactory.NewImage(r, "Band", SkillCutinUI.RoleColor(m.role));
+                Image band = UiKit.NewImage(r, "Band", SkillCutinUI.RoleColor(m.role));
                 RectTransform b = band.rectTransform;
                 b.anchorMin = new Vector2(0f, 0f);
                 b.anchorMax = new Vector2(0f, 1f);
@@ -343,7 +331,7 @@ namespace Prototype
                 b.sizeDelta = new Vector2(6f, 0f);
                 b.anchoredPosition = Vector2.zero;
 
-                Text mark = UiFactory.NewText(r, "Mark", 18, Color.white, FontStyle.Bold);
+                Text mark = UiKit.NewText(r, "Mark", 18, Color.white, FontStyle.Bold);
                 mark.rectTransform.anchorMin = new Vector2(0f, 0f);
                 mark.rectTransform.anchorMax = new Vector2(0f, 1f);
                 mark.rectTransform.pivot = new Vector2(0f, 0.5f);
@@ -351,14 +339,14 @@ namespace Prototype
                 mark.rectTransform.sizeDelta = new Vector2(26f, 0f);
                 mark.alignment = TextAnchor.MiddleLeft;
 
-                Text label = UiFactory.NewText(r, "Label", 18, Color.white, FontStyle.Normal);
-                UiFactory.Stretch(label.rectTransform, 10f);
+                Text label = UiKit.NewText(r, "Label", 18, Color.white, FontStyle.Normal);
+                UiKit.Stretch(label.rectTransform, 10f);
                 label.rectTransform.offsetMin = new Vector2(44f, 0f);
                 label.alignment = TextAnchor.MiddleLeft;
                 label.text = $"{m.Label}  <color=#9AA0A8>{RoleNames.Of(m.role)}</color>";
                 label.supportRichText = true;
 
-                Text cards = UiFactory.NewText(r, "Cards", 14, NoteColor, FontStyle.Normal);
+                Text cards = UiKit.NewText(r, "Cards", 14, NoteColor, FontStyle.Normal);
                 cards.rectTransform.anchorMin = new Vector2(1f, 0f);
                 cards.rectTransform.anchorMax = new Vector2(1f, 1f);
                 cards.rectTransform.pivot = new Vector2(1f, 0.5f);
