@@ -289,6 +289,7 @@ namespace Prototype
         private static readonly Color LifestealColor = new Color(0.804f, 0.294f, 0.427f);    // #CD4B6D
         private static readonly Color StunColor = new Color(1f, 0.878f, 0.400f);             // #FFE066
         private static readonly Color FreezeColor = new Color(0.561f, 0.890f, 0.961f);       // #8FE3F5
+        private static readonly Color AirBindColor = new Color(0.776f, 0.600f, 1f);          // #C699FF
 
         public static string Label(StatusKind kind)
         {
@@ -299,6 +300,7 @@ namespace Prototype
                 case StatusKind.Lifesteal: return "흡혈";
                 case StatusKind.Stun: return "스턴";
                 case StatusKind.Freeze: return "빙결";
+                case StatusKind.AirBind: return "바인드";
                 default: return kind.ToString();
             }
         }
@@ -312,6 +314,7 @@ namespace Prototype
                 case StatusKind.Lifesteal: return LifestealColor;
                 case StatusKind.Stun: return StunColor;
                 case StatusKind.Freeze: return FreezeColor;
+                case StatusKind.AirBind: return AirBindColor;
                 default: return Color.white;
             }
         }
@@ -381,6 +384,8 @@ namespace Prototype
         Stunned,
         /// <summary>빙결 디버프.</summary>
         Frozen,
+        /// <summary>공중 바인드 디버프.</summary>
+        AirBound,
     }
 
     /// <summary>
@@ -423,9 +428,10 @@ namespace Prototype
         /// <summary>슈퍼아머. 로그가 쓰던 색과 같게 둔다 — 화면과 콘솔이 같은 것을 가리켜야 한다.</summary>
         private static readonly Color SuperArmorColor = new Color(1f, 0.820f, 0.400f); // #FFD166
 
-        /// <summary>스턴 · 빙결. 머리 위 게이지(<see cref="StatusEffectVisuals"/>)와 같은 색을 쓴다.</summary>
+        /// <summary>스턴 · 빙결 · 바인드. 머리 위 게이지(<see cref="StatusEffectVisuals"/>)와 같은 색을 쓴다.</summary>
         private static readonly Color StunnedColor = new Color(1f, 0.878f, 0.400f);    // #FFE066
         private static readonly Color FrozenColor = new Color(0.561f, 0.890f, 0.961f); // #8FE3F5
+        private static readonly Color AirBoundColor = new Color(0.776f, 0.600f, 1f);   // #C699FF
 
         /// <summary>예고 중에 머리 위에 띄울 글자. 색만으로는 색약자가 구분하지 못한다.</summary>
         public const string TelegraphLabel = "!";
@@ -502,6 +508,8 @@ namespace Prototype
 
             switch (overlay)
             {
+                case CombatOverlay.AirBound:
+                    return Mix(baseColor, AirBoundColor, TintStrength);
                 case CombatOverlay.Frozen:
                     return Mix(baseColor, FrozenColor, TintStrength);
                 case CombatOverlay.Stunned:

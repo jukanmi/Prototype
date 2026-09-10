@@ -20,7 +20,7 @@ namespace Prototype.Tests
             {
                 Debuff bit = StatusRules.DebuffOf(kind);
 
-                bool expectedDebuff = kind == StatusKind.Stun || kind == StatusKind.Freeze;
+                bool expectedDebuff = kind == StatusKind.Stun || kind == StatusKind.Freeze || kind == StatusKind.AirBind;
 
                 Assert.That(StatusRules.IsDebuff(kind), Is.EqualTo(expectedDebuff),
                             $"{kind}의 디버프 여부가 표와 어긋난다");

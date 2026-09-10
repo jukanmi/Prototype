@@ -253,6 +253,7 @@ namespace Prototype
         /// </summary>
         private CombatOverlay ResolveOverlay()
         {
+            if (combat != null && combat.HasDebuff(Debuff.AirBind)) return CombatOverlay.AirBound;
             if (combat != null && combat.HasDebuff(Debuff.Freeze)) return CombatOverlay.Frozen;
             if (combat != null && combat.HasDebuff(Debuff.Stun)) return CombatOverlay.Stunned;
             if (combat != null && combat.IsSuperArmored) return CombatOverlay.SuperArmor;

@@ -152,6 +152,79 @@ namespace Prototype.Tests
                         "저작은 새 Effect 클래스가 아니라 HitData 필드 두 개로 끝난다");
         }
 
+        // ── 공중 바인드 ─────────────────────────────────
+
+        /// <summary><see cref="Frozen_StillTakesDamageAndKnockback"/>의 반대 계약. 못 박힌 몸은 밀리지 않는다.</summary>
+        [Test]
+        public void AirBound_TakesDamageButNoKnockback()
+        {
+            Combat attacker = NewBody("Attacker");
+            Combat victim = NewBody("Victim");
+
+            victim.ApplyDebuff(Debuff.AirBind, 3f);
+            float hp = victim.Health.CurValue;
+
+            attacker.Attack(victim, in WallPush);
+
+            Assert.That(victim.Health.CurValue, Is.LessThan(hp), "데미지는 받는다");
+            Assert.That(victim.Physics.HorizontalVelocity.magnitude, Is.LessThan(0.0001f),
+                        "넉백이 먹히면 바인드가 아니다");
+        }
+
+        /// <summary>
+        /// 물리 정지는 상태머신이 아니라 시간(Statuses)을 따른다 — 띄운 적(AerialHit 경직)은
+        /// 디버프 상태 진입이 착지까지 밀리므로, 상태에 묶으면 떨어진 뒤에야 붙잡는다.
+        /// </summary>
+        [Test]
+        public void AirBind_SuspendsPhysics_EvenWhileInHitStun()
+        {
+            Combat attacker = NewBody("Attacker");
+            Combat victim = NewBody("Victim");
+
+            attacker.Attack(victim, in Jab);
+            Assert.That(CombatStateRules.IsStunned(victim.CombatState), Is.True, "선행 조건: 경직 중");
+
+            victim.ApplyDebuff(Debuff.AirBind, 1f);
+
+            Assert.That(victim.Physics.Suspended, Is.True, "경직이 끝나길 기다리면 그 사이에 떨어진다");
+        }
+
+        [Test]
+        public void AirBind_ReleasesPhysicsOnExpiry()
+        {
+            Combat c = NewBody("Victim");
+            c.ApplyDebuff(Debuff.AirBind, 0.5f);
+            Assert.That(c.Physics.Suspended, Is.True, "선행 조건");
+
+            c.Tick(0.6f);
+
+            Assert.That(c.Physics.Suspended, Is.False, "풀리는 순간 다시 떨어져야 한다");
+            Assert.That(c.Owner.StateMachine.CurState, Is.SameAs(c.Owner.IdleState));
+        }
+
+        [Test]
+        public void AirBind_ReleasesPhysicsWhenBenched()
+        {
+            Combat c = NewBody("Ally");
+            c.ApplyDebuff(Debuff.AirBind, 5f);
+
+            c.ClearDebuffs();
+
+            Assert.That(c.Physics.Suspended, Is.False, "벤치로 내려간 몸이 공중에 못 박힌 채 남으면 안 된다");
+        }
+
+        [Test]
+        public void AirBind_OutranksFreeze()
+        {
+            Combat c = NewBody("Victim");
+
+            c.ApplyDebuff(Debuff.Freeze, 1f);
+            c.ApplyDebuff(Debuff.AirBind, 1f);
+
+            Assert.That(c.Owner.StateMachine.CurState, Is.SameAs(c.Owner.AirBoundState),
+                        "물리를 멈추는 쪽이 위다 — 빙결이 가리면 몸이 떨어진다");
+        }
+
         // ── 시간 규칙 ───────────────────────────────────
 
         [Test]

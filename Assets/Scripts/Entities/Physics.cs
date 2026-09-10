@@ -221,12 +221,26 @@ namespace Prototype
             baseGravity = gravity;
         }
 
+        /// <summary>
+        /// 공중 바인드. 켜져 있는 동안 중력 · 관성 · 충격량이 전부 죽는다 — 그 자리 그 높이에 못 박힌다.
+        /// 매 스텝 속도를 지우므로 걸린 뒤 들어온 밀치기 · 벽 반사도 다음 스텝에 사라진다.
+        /// <see cref="PhysicsState"/>는 건드리지 않는다 — 착지 판정이 안 돌아 공중에 뜬 채로 남는다.
+        /// </summary>
+        public bool Suspended { get; set; }
+
         private void FixedUpdate()
         {
             // 불릿타임 배율을 고정 스텝에 곱해 넣는다. Time.timeScale 미사용(결정 로그 ⑥).
             float dt = Time.fixedDeltaTime * TimeControl.Scale;
-            if (dt <= 0f)
+            if (dt <= 0f || Suspended)
             {
+                if (Suspended)
+                {
+                    ResetInertia();
+                    verticalVelocity = 0f;
+                    apexHangLeft = 0f;
+                }
+
                 Rigidbody.linearVelocity = Vector3.zero;
                 return;
             }

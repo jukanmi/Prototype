@@ -206,9 +206,10 @@ namespace Prototype
         {
             switch (kind)
             {
-                case StatusKind.Stun:   return Debuff.Stun;
-                case StatusKind.Freeze: return Debuff.Freeze;
-                default:                return Debuff.None;
+                case StatusKind.Stun:    return Debuff.Stun;
+                case StatusKind.Freeze:  return Debuff.Freeze;
+                case StatusKind.AirBind: return Debuff.AirBind;
+                default:                 return Debuff.None;
             }
         }
 
@@ -224,9 +225,10 @@ namespace Prototype
         {
             switch (bit)
             {
-                case Debuff.Stun:   kind = StatusKind.Stun;   return true;
-                case Debuff.Freeze: kind = StatusKind.Freeze; return true;
-                default:            kind = default;           return false;
+                case Debuff.Stun:    kind = StatusKind.Stun;    return true;
+                case Debuff.Freeze:  kind = StatusKind.Freeze;  return true;
+                case Debuff.AirBind: kind = StatusKind.AirBind; return true;
+                default:             kind = default;            return false;
             }
         }
 
@@ -234,9 +236,9 @@ namespace Prototype
         public static bool BlocksAction(Debuff mask) => (mask & Debuff.ActionBlocking) != 0;
 
         /// <summary>
-        /// 마스크에 켜진 비트를 하나씩 훑는다. 비트 수가 둘뿐이라 배열로 두는 편이
+        /// 마스크에 켜진 비트를 하나씩 훑는다. 비트 수가 몇 개 안 돼 배열로 두는 편이
         /// 시프트 루프보다 읽기 쉽고, 새 디버프를 추가할 때 여기 한 줄만 늘면 된다.
         /// </summary>
-        public static readonly Debuff[] Bits = { Debuff.Stun, Debuff.Freeze };
+        public static readonly Debuff[] Bits = { Debuff.Stun, Debuff.Freeze, Debuff.AirBind };
     }
 }

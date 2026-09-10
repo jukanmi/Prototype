@@ -108,9 +108,9 @@ namespace Prototype
         {
             if (animator == null) return;
 
-            // 빙결은 문자 그대로 정지다 — 새 클립 · 새 상태 없이 0을 곱해 그 자리에 얼린다.
+            // 빙결 · 바인드는 문자 그대로 정지다 — 새 클립 · 새 상태 없이 0을 곱해 그 자리에 얼린다.
             // 스턴에는 안 건다. 짧아서 멈춰 세우는 것보다 색과 게이지가 더 잘 읽힌다.
-            float frozen = entity != null && entity.HasDebuff(Debuff.Freeze) ? 0f : 1f;
+            float frozen = entity != null && entity.HasDebuff(Debuff.Freeze | Debuff.AirBind) ? 0f : 1f;
 
             // 불릿타임에 같이 멈춘다. Time.timeScale은 건드리지 않는다.
             animator.speed = TimeControl.Scale * stateSpeed * frozen;

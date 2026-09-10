@@ -528,6 +528,28 @@ namespace Prototype
         public override void Tick(float dt) { }
     }
 
+    /// <summary>
+    /// 공중 바인드. 빙결과 같은 붙잡기다 — 몸을 붙잡는 일만 한다.
+    ///
+    /// <b>물리 정지(<see cref="Physics.Suspended"/>)는 여기서 켜지 않는다.</b> 바인드는 띄워 둔 적에게
+    /// 거는 게 본래 용도인데, 이 상태 진입은 피격 경직이 끝나길 기다리고 공중 경직은 착지로만 끝난다.
+    /// 여기에 묶으면 떨어진 뒤에야 붙잡는다. 스위치는 <c>Combat.SyncDebuffState</c>가 시간(Statuses)을 보고
+    /// 직접 켜고 끈다 — 소유자가 하나여야 어긋나지 않는다.
+    /// </summary>
+    public class AirBoundState : EntityState
+    {
+        public AirBoundState(Entity entity) : base(entity) { }
+
+        public override bool CanBeInterrupted => false;
+
+        public override void Enter()
+        {
+            Physics.Move(Vector3.zero, 0f);
+        }
+
+        public override void Tick(float dt) { }
+    }
+
     /// <summary>공중 피격 · 넉백 · 벽 바운드. 착지 판정은 Physics가 알린다.</summary>
     public class AerialHitState : EntityState
     {

@@ -418,6 +418,7 @@ namespace Prototype
         public AerialHitState AerialHitState { get; private set; }
         public StunState StunState { get; private set; }
         public FrozenState FrozenState { get; private set; }
+        public AirBoundState AirBoundState { get; private set; }
         public DownState DownState { get; private set; }
         public GetupState GetupState { get; private set; }
         public DeadState DeadState { get; private set; }
@@ -510,6 +511,7 @@ namespace Prototype
             AerialHitState = new AerialHitState(this);
             StunState = new StunState(this);
             FrozenState = new FrozenState(this);
+            AirBoundState = new AirBoundState(this);
             DownState = new DownState(this);
             GetupState = new GetupState(this);
             DeadState = new DeadState(this);
