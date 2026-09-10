@@ -502,8 +502,13 @@ namespace Prototype
             if (attacker == null) return;
 
             SkillVfx style = data.vfx.AsSkill();
-            Vector3 center = ctx.Origin;
             float r = BlastRadius;
+
+            // 띄운 대상은 발밑이 아니라 그 고도에서 터뜨린다. 발밑 구는 공중의 몸에 안 닿아
+            // 공중 적을 노리는 장판(사슬 속박)이 정확히 고른 그 적을 헛친다. 지상 대상은 고도 0이라 그대로다.
+            Vector3 center = ctx.Origin;
+            if (ctx.target != null && ctx.target.Physics != null)
+                center.y += ctx.target.Physics.Height;
 
             int hits = EffectUtil.AreaStrike(center, r, attacker, in hit, in style);
 
