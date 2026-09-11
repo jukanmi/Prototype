@@ -115,6 +115,10 @@ namespace Prototype
         public float projectileRange = 12f;
         [Tooltip("몇 명을 더 뚫는지. 0이면 첫 적중에 소멸.")]
         public int projectilePierce = 0;
+        [Tooltip("켜면 <b>닿아도 안 터진다</b>. 쏠 때 찍은 대상 자리(+ 타별 impactOffset)까지 날아가 거기서 radius만큼 터진다.\n\n" +
+                 "스치는 적은 아무도 안 맞는다. 마력 화살처럼 '날아가는 그림 + 대상 자리 판정'이 필요한 스킬용.\n" +
+                 "기본(끔)이 지금까지의 접촉 판정이다 — 기존 에셋은 이 키가 없어 false로 로드된다.")]
+        public bool detonateOnArrival;
 
         public bool IsRanged => projectile != null;
 

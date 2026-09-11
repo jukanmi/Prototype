@@ -124,11 +124,22 @@ namespace Prototype
         public virtual bool TryGetRangePreview(out AttackRangePreview range)
         {
             range = default;
-            if (finished || data.IsRanged || ctx.caster == null || data.hitDataList.Count == 0)
+            if (finished || ctx.caster == null || data.hitDataList.Count == 0)
                 return false;
 
             float progress = Mathf.Clamp01(timer / Mathf.Max(0.01f, EndTime));
             HitData hit = data.hitDataList[Mathf.Clamp(nextHitIndex, 0, data.hitDataList.Count - 1)];
+
+            // 원거리는 착탄 지점이 날아가 봐야 아는 것이라 틀린 자리에 그리느니 안 그린다.
+            // 도착 폭발만 예외 — 터질 자리가 쏘기 전에 정해져 있으니 다음 타의 탄착점에 그린다.
+            if (data.IsRanged)
+            {
+                if (!data.detonateOnArrival || !TryGetArrivalPoint(in hit, out Vector3 aim)) return false;
+
+                aim.y = ctx.target.Physics.GroundPosition.y;
+                range = AttackRangePreview.FromCircle(aim, BlastRadius, progress);
+                return true;
+            }
 
             if (data.IsCone)
             {
@@ -624,7 +635,8 @@ namespace Prototype
 
             // 원거리는 이동하지 않으므로 대상이 사거리 밖이면 아무 일도 없이 소멸한다.
             // 반경 기반 헛침 경고로는 안 잡히는 경우라 여기서 남긴다.
-            if (ctx.target != null)
+            // 도착 폭발은 사거리가 곧 대상까지 거리라 이 경고가 거짓말이 된다 — 건너뛴다.
+            if (ctx.target != null && !data.detonateOnArrival)
             {
                 Vector3 gap = ctx.target.Physics.GroundPosition - phys.GroundPosition;
                 gap.y = 0f;
@@ -635,10 +647,41 @@ namespace Prototype
                         ctx.caster);
             }
 
+            Vector3 dir = AimDirection(phys);
+            float range = data.projectileRange;
+            float height = shot.AimHeight(phys, ctx.target?.Physics);
+
+            // 도착 폭발은 탄착점이 곧 사거리 끝 — 투사체가 시전자 자리에서 출발하므로 거리를 그대로 넘긴다.
+            // 대상이 없으면 그냥 사거리 끝에서 터진다.
+            if (data.detonateOnArrival && TryGetArrivalPoint(in hit, out Vector3 aim))
+            {
+                dir = aim - phys.GroundPosition;
+                dir.y = 0f;
+                range = dir.magnitude;
+                height = Mathf.Max(0f, aim.y);
+            }
+
             shot.Launch(ctx.caster.Combat, in hit,
-                        phys.GroundPosition, AimDirection(phys),
-                        data.projectileSpeed, data.projectileRange, data.projectilePierce,
-                        phys.WallMask, layer, in style, AimHeight(), BlastRadius);
+                        phys.GroundPosition, dir,
+                        data.projectileSpeed, range, data.projectilePierce,
+                        phys.WallMask, layer, in style, height, BlastRadius,
+                        data.detonateOnArrival);
+        }
+
+        /// <summary>
+        /// 도착 폭발의 탄착점 — 대상 히트박스 정중앙 + 타별 오프셋(히트박스 배수).
+        /// 발사와 프리뷰가 같은 점을 봐야 "표시한 자리에서 터진다"가 성립한다.
+        /// </summary>
+        private bool TryGetArrivalPoint(in HitData hit, out Vector3 aim)
+        {
+            aim = default;
+            if (ctx.target == null || ctx.target.Physics == null) return false;
+
+            Vector3 size = ctx.target.HurtboxSize;
+            aim = ctx.target.Physics.GroundPosition
+                + Vector3.up * (ctx.target.Physics.Height + size.y * 0.5f)
+                + Vector3.Scale(hit.impactOffset, size);
+            return true;
         }
 
         /// <summary>
@@ -650,14 +693,6 @@ namespace Prototype
         ///
         /// 지상 대상에는 음수를 돌려 프리팹 기본 높이를 그대로 쓴다.
         /// </summary>
-        private float AimHeight()
-        {
-            if (ctx.target == null || ctx.target.Physics == null) return -1f;
-
-            float h = ctx.target.Physics.Height;
-            return h > 0.1f ? h : -1f;
-        }
-
         /// <summary>
         /// 발사 방향. 원거리는 제자리에서 쏘므로 <b>대상을 우선</b> 겨눈다 —
         /// 찍은 좌표를 그대로 쏘면 그 사이에 적이 움직인 만큼 빗나간다.
