@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Prototype;
 using UnityEngine;
@@ -37,10 +38,10 @@ namespace Prototype.Tests
         [Test]
         public void BothSides_SpawnFromOppositeWalls()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Melee, 2, SpawnSide.Both);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Both);
 
-            SpawnPlacement right = WaveSpawnPlanner.Plan(in group, 0, 0f);
-            SpawnPlacement left = WaveSpawnPlanner.Plan(in group, 1, 0f);
+            SpawnPlacement right = WaveSpawnPlanner.PlanAuto(in group, 0, 0f);
+            SpawnPlacement left = WaveSpawnPlanner.PlanAuto(in group, 1, 0f);
 
             Assert.That(right.spawnPoint.x, Is.GreaterThan(0f));
             Assert.That(left.spawnPoint.x, Is.LessThan(0f));
@@ -58,8 +59,8 @@ namespace Prototype.Tests
             foreach (EnemyRole role in new[] { EnemyRole.Melee, EnemyRole.Charger, EnemyRole.Ranged })
                 for (int i = 0; i < 5; i++)
                 {
-                    WaveSpawn group = WaveSpawn.Of(role, 5, SpawnSide.Both);
-                    SpawnPlacement p = WaveSpawnPlanner.Plan(in group, i, 2.9f);
+                    WaveSpawnEntry group = WaveSpawnEntry.Auto(role, SpawnSide.Both);
+                    SpawnPlacement p = WaveSpawnPlanner.PlanAuto(in group, i, 2.9f);
 
                     Assert.That(Mathf.Abs(p.spawnPoint.x), Is.LessThan(WaveSpawnPlanner.RoomHalfX), $"{role} {i}");
                     Assert.That(Mathf.Abs(p.entryPoint.x), Is.LessThan(WaveSpawnPlanner.RoomHalfX), $"{role} {i}");
@@ -74,8 +75,8 @@ namespace Prototype.Tests
         {
             foreach (EnemyRole role in new[] { EnemyRole.Melee, EnemyRole.Charger, EnemyRole.Ranged })
             {
-                WaveSpawn group = WaveSpawn.Of(role, 1);
-                SpawnPlacement p = WaveSpawnPlanner.Plan(in group, 0, 0f);
+                WaveSpawnEntry group = WaveSpawnEntry.Auto(role);
+                SpawnPlacement p = WaveSpawnPlanner.PlanAuto(in group, 0, 0f);
 
                 Assert.That(Mathf.Abs(p.entryPoint.x), Is.LessThan(Mathf.Abs(p.spawnPoint.x)), $"{role}: 진입 모션이 없다");
                 Assert.That(p.entryPoint.z, Is.EqualTo(p.spawnPoint.z).Within(Eps), $"{role}: 깊이가 바뀌면 비스듬히 들어온다");
@@ -91,8 +92,8 @@ namespace Prototype.Tests
         [Test]
         public void Charger_HoldsBeforeItCanCharge()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Charger, 1);
-            SpawnPlacement p = WaveSpawnPlanner.Plan(in group, 0, 0f);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Charger);
+            SpawnPlacement p = WaveSpawnPlanner.PlanAuto(in group, 0, 0f);
 
             Assert.That(p.holdSeconds, Is.InRange(1f, 1.5f));
         }
@@ -103,8 +104,8 @@ namespace Prototype.Tests
         {
             foreach (EnemyRole role in new[] { EnemyRole.Melee, EnemyRole.Ranged })
             {
-                WaveSpawn group = WaveSpawn.Of(role, 1);
-                Assert.That(WaveSpawnPlanner.Plan(in group, 0, 0f).holdSeconds, Is.Zero, $"{role}");
+                WaveSpawnEntry group = WaveSpawnEntry.Auto(role);
+                Assert.That(WaveSpawnPlanner.PlanAuto(in group, 0, 0f).holdSeconds, Is.Zero, $"{role}");
             }
         }
 
@@ -115,10 +116,10 @@ namespace Prototype.Tests
         [Test]
         public void Charger_LinesUpWithThePlayerDepth()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Charger, 1);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Charger);
 
             foreach (float playerZ in new[] { -2f, 0f, 1.5f })
-                Assert.That(WaveSpawnPlanner.Plan(in group, 0, playerZ).entryPoint.z,
+                Assert.That(WaveSpawnPlanner.PlanAuto(in group, 0, playerZ).entryPoint.z,
                             Is.EqualTo(playerZ).Within(Eps), $"playerZ={playerZ}");
         }
 
@@ -126,15 +127,52 @@ namespace Prototype.Tests
         [Test]
         public void MultipleChargers_DoNotStackOnOneSpot()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Charger, 3, SpawnSide.Right);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Charger, SpawnSide.Right);
 
-            float a = WaveSpawnPlanner.Plan(in group, 0, 0f).entryPoint.z;
-            float b = WaveSpawnPlanner.Plan(in group, 1, 0f).entryPoint.z;
-            float c = WaveSpawnPlanner.Plan(in group, 2, 0f).entryPoint.z;
+            float a = WaveSpawnPlanner.PlanAuto(in group, 0, 0f).entryPoint.z;
+            float b = WaveSpawnPlanner.PlanAuto(in group, 1, 0f).entryPoint.z;
+            float c = WaveSpawnPlanner.PlanAuto(in group, 2, 0f).entryPoint.z;
 
             Assert.That(b, Is.Not.EqualTo(a).Within(Eps));
             Assert.That(c, Is.Not.EqualTo(a).Within(Eps));
             Assert.That(c, Is.Not.EqualTo(b).Within(Eps));
+        }
+
+        /// <summary>
+        /// <b>플레이어가 깊이 끝에 붙어 있어도</b> 겹치면 안 된다.
+        ///
+        /// 예전에는 벗어난 줄을 벽으로 물려서 두 줄이 같은 좌표로 접혔고, 4-1(교차 돌진 3기)에서
+        /// 돌진전사 둘이 같은 자리에 섰다. 화면으로는 한 기가 덜 나온 것처럼만 보인다.
+        /// </summary>
+        [Test]
+        public void ChargersAtTheDepthEdge_StillSpreadOut()
+        {
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Charger, SpawnSide.Right);
+
+            foreach (float playerZ in new[] { WaveSpawnPlanner.MaxDepth, -WaveSpawnPlanner.MaxDepth, 2.9f })
+            {
+                var lanes = new List<float>();
+
+                for (int i = 0; i < 3; i++)
+                    lanes.Add(WaveSpawnPlanner.PlanAuto(in group, i, playerZ).entryPoint.z);
+
+                for (int i = 0; i < lanes.Count; i++)
+                    for (int j = i + 1; j < lanes.Count; j++)
+                        Assert.That(lanes[i], Is.Not.EqualTo(lanes[j]).Within(Eps),
+                                    $"playerZ={playerZ}: {i}번과 {j}번이 같은 줄");
+            }
+        }
+
+        /// <summary>방 안에 있을 때는 예전과 같은 답이어야 한다. 0, 한 칸 위, 한 칸 아래.</summary>
+        [Test]
+        public void ChargerLanes_AreUnchangedInsideTheRoom()
+        {
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Charger, SpawnSide.Right);
+            float step = WaveSpawnPlanner.ChargerLaneStep;
+
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 0, 0f).entryPoint.z, Is.EqualTo(0f).Within(Eps));
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 1, 0f).entryPoint.z, Is.EqualTo(step).Within(Eps));
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 2, 0f).entryPoint.z, Is.EqualTo(-step).Within(Eps));
         }
 
         // ── 마법사 ──────────────────────────────────────
@@ -143,20 +181,20 @@ namespace Prototype.Tests
         [Test]
         public void Ranged_StandsAtTheDepthEdges()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Ranged, 2, SpawnSide.Both);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Ranged, SpawnSide.Both);
 
             for (int i = 0; i < 2; i++)
-                Assert.That(Mathf.Abs(WaveSpawnPlanner.Plan(in group, i, 0f).entryPoint.z),
+                Assert.That(Mathf.Abs(WaveSpawnPlanner.PlanAuto(in group, i, 0f).entryPoint.z),
                             Is.EqualTo(WaveSpawnPlanner.MaxDepth).Within(Eps), $"{i}번");
         }
 
         [Test]
         public void Ranged_SplitsTopAndBottom_WhenPlayerIsInTheMiddle()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Ranged, 2, SpawnSide.Both);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Ranged, SpawnSide.Both);
 
-            float top = WaveSpawnPlanner.Plan(in group, 0, 0f).entryPoint.z;
-            float bottom = WaveSpawnPlanner.Plan(in group, 1, 0f).entryPoint.z;
+            float top = WaveSpawnPlanner.PlanAuto(in group, 0, 0f).entryPoint.z;
+            float bottom = WaveSpawnPlanner.PlanAuto(in group, 1, 0f).entryPoint.z;
 
             Assert.That(top, Is.GreaterThan(0f));
             Assert.That(bottom, Is.LessThan(0f));
@@ -169,12 +207,12 @@ namespace Prototype.Tests
         [Test]
         public void Ranged_NeverSharesThePlayerLane()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Ranged, 3, SpawnSide.Both);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Ranged, SpawnSide.Both);
 
             for (float playerZ = -3f; playerZ <= 3f; playerZ += 0.25f)
                 for (int i = 0; i < 3; i++)
                 {
-                    float z = WaveSpawnPlanner.Plan(in group, i, playerZ).entryPoint.z;
+                    float z = WaveSpawnPlanner.PlanAuto(in group, i, playerZ).entryPoint.z;
 
                     Assert.That(Mathf.Abs(z - playerZ),
                                 Is.GreaterThanOrEqualTo(WaveSpawnPlanner.RangedLaneGap - Eps),
@@ -182,14 +220,39 @@ namespace Prototype.Tests
                 }
         }
 
+        /// <summary>
+        /// 구석은 둘인데 마법사가 셋이면 <b>한 명은 안쪽으로 물러나야 한다.</b>
+        ///
+        /// 예전에는 구석 두 개만 번갈아 써서 0번과 2번이 같은 구석에 겹쳤고, 좌우 교대도 같은
+        /// 주기라 둘이 같은 점에 섰다. 4-2(마법사 3기 탄막)가 그 조합이다.
+        /// </summary>
+        [Test]
+        public void ThreeRanged_DoNotShareACorner()
+        {
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Ranged, SpawnSide.Both);
+
+            foreach (float playerZ in new[] { 0f, 0.25f, -1.2f, WaveSpawnPlanner.MaxDepth })
+            {
+                var lanes = new List<float>();
+
+                for (int i = 0; i < 3; i++)
+                    lanes.Add(WaveSpawnPlanner.PlanAuto(in group, i, playerZ).entryPoint.z);
+
+                for (int i = 0; i < lanes.Count; i++)
+                    for (int j = i + 1; j < lanes.Count; j++)
+                        Assert.That(lanes[i], Is.Not.EqualTo(lanes[j]).Within(Eps),
+                                    $"playerZ={playerZ}: {i}번과 {j}번이 같은 줄");
+            }
+        }
+
         /// <summary>플레이어가 위쪽 구석에 박혀 있으면 전부 아래 구석으로 간다.</summary>
         [Test]
         public void Ranged_MovesToTheFarCorner_WhenPlayerCampsAnEdge()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Ranged, 2, SpawnSide.Both);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Ranged, SpawnSide.Both);
 
             for (int i = 0; i < 2; i++)
-                Assert.That(WaveSpawnPlanner.Plan(in group, i, WaveSpawnPlanner.MaxDepth).entryPoint.z,
+                Assert.That(WaveSpawnPlanner.PlanAuto(in group, i, WaveSpawnPlanner.MaxDepth).entryPoint.z,
                             Is.LessThan(0f), $"{i}번");
         }
 
@@ -199,11 +262,11 @@ namespace Prototype.Tests
         [Test]
         public void Melee_SpreadsAcrossDepthLanes()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Melee, 4, SpawnSide.Right);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Right);
 
             var seen = new System.Collections.Generic.HashSet<float>();
             for (int i = 0; i < 4; i++)
-                Assert.That(seen.Add(WaveSpawnPlanner.Plan(in group, i, 0f).entryPoint.z), Is.True,
+                Assert.That(seen.Add(WaveSpawnPlanner.PlanAuto(in group, i, 0f).entryPoint.z), Is.True,
                             $"{i}번이 앞선 전사와 같은 줄이다");
         }
 
@@ -211,31 +274,33 @@ namespace Prototype.Tests
         [Test]
         public void Melee_IgnoresPlayerDepth()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Melee, 1);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Melee);
 
-            float a = WaveSpawnPlanner.Plan(in group, 0, -2f).entryPoint.z;
-            float b = WaveSpawnPlanner.Plan(in group, 0, 2f).entryPoint.z;
+            float a = WaveSpawnPlanner.PlanAuto(in group, 0, -2f).entryPoint.z;
+            float b = WaveSpawnPlanner.PlanAuto(in group, 0, 2f).entryPoint.z;
 
             Assert.That(a, Is.EqualTo(b).Within(Eps));
         }
 
         // ── 등장 시각 ───────────────────────────────────
 
+        /// <summary>저작한 시각이 그대로 배치에 실린다. 순번은 시각을 건드리지 않는다.</summary>
         [Test]
-        public void AppearAt_IsDelayPlusInterval()
+        public void AppearAt_ComesStraightFromTheRow()
         {
-            WaveSpawn group = WaveSpawn.Of(EnemyRole.Melee, 3, SpawnSide.Right, delay: 2f, interval: 0.5f);
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Right, 2.5f);
 
-            Assert.That(WaveSpawnPlanner.Plan(in group, 0, 0f).appearAt, Is.EqualTo(2f).Within(Eps));
-            Assert.That(WaveSpawnPlanner.Plan(in group, 2, 0f).appearAt, Is.EqualTo(3f).Within(Eps));
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 0, 0f).appearAt, Is.EqualTo(2.5f).Within(Eps));
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 2, 0f).appearAt, Is.EqualTo(2.5f).Within(Eps));
         }
 
-        /// <summary>0이나 음수로 저작된 마릿수는 1로 본다. 아무도 안 나오는 묶음은 실수다.</summary>
+        /// <summary>음수로 저작된 시각은 0으로 본다. 웨이브가 시작되기 전은 없다.</summary>
         [Test]
-        public void ZeroCount_CountsAsOne()
+        public void NegativeAppearAt_FoldsToZero()
         {
-            var group = new WaveSpawn { role = EnemyRole.Melee, count = 0 };
-            Assert.That(group.Count, Is.EqualTo(1));
+            WaveSpawnEntry group = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Right, -3f);
+
+            Assert.That(WaveSpawnPlanner.PlanAuto(in group, 0, 0f).appearAt, Is.Zero);
         }
     }
 }

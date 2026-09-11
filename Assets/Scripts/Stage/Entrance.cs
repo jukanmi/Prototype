@@ -39,6 +39,16 @@ namespace Prototype
         /// </summary>
         public float height;
 
+        /// <summary>
+        /// 출발점만 <b>지면 아래로</b> 더 내리는 깊이. 0이면 아무것도 안 바뀐다.
+        ///
+        /// <see cref="height"/>가 양 끝점에 똑같이 걸리는 값이라 "아래에서 위로"를 표현할 수가 없다.
+        /// <c>Physics.Teleport</c>도 음수 높이를 0으로 물리므로 그쪽으로도 안 된다.
+        /// 그래서 출발 <b>월드</b> 좌표를 잡은 다음 이만큼만 내린다 —
+        /// 땅속에서 솟아오르는 등장(<see cref="EntranceDirector.PlanBurrow"/>)이 쓰는 유일한 칸이다.
+        /// </summary>
+        public float startDepth;
+
         /// <summary>소요 시간. 0이면 <see cref="EntranceRules.DefaultSeconds"/>.</summary>
         public float seconds;
 
@@ -115,7 +125,7 @@ namespace Prototype
         /// <summary>
         /// 소요 시간의 상한. <b>안전핀이다.</b>
         ///
-        /// 진입 중인 적은 라운드 클리어 인구조사에 잡히므로(<see cref="RoundClearRules"/>),
+        /// 진입 중인 적은 조우 클리어 인구조사에 잡히므로(<see cref="EncounterClearRules"/>),
         /// 연출이 늘어지면 라운드가 그만큼 안 끝난다.
         /// <see cref="SpawnEntry.DefaultWalkTimeout"/>과 같은 취지다.
         /// </summary>
@@ -244,6 +254,27 @@ namespace Prototype
         {
             Vector3 start = EntranceRules.OffscreenPoint(landing, CameraX, HalfWidth);
             return EntranceSpec.Default(start, landing, seconds);
+        }
+
+        /// <summary>
+        /// <b>땅속에서 솟아오르는</b> 주문서. 출발점과 착지점이 같고, 출발만 지면 아래다.
+        ///
+        /// 카메라를 안 읽는다 — 화면 밖에서 오는 것이 아니라 제자리에서 올라오기 때문이다.
+        /// 그래서 <see cref="PlanEntry"/>와 달리 순수 함수고, 테스트가 직접 부를 수 있다.
+        ///
+        /// 보는 방향을 <b>여기서 정해 준다.</b> 출발과 착지가 같아 진행 방향이 0이라,
+        /// 안 정하면 몸이 프리팹에 저장된 방향 그대로 등을 보이고 솟는다.
+        /// 방 안쪽(원점 쪽)을 보게 한다.
+        /// </summary>
+        public static EntranceSpec PlanBurrow(Vector3 landing, float seconds = 0f)
+        {
+            EntranceSpec spec = EntranceSpec.Default(landing, landing,
+                                                     seconds <= 0f ? BurrowRules.Seconds : seconds);
+
+            spec.startDepth = BurrowRules.Depth;
+            spec.facing = new Vector3(landing.x >= 0f ? -1f : 1f, 0f, 0f);
+
+            return spec;
         }
 
         /// <summary>
@@ -391,6 +422,9 @@ namespace Prototype
 
             physics.Teleport(spec.start, height);
             startWorld = physics.Transform.position;
+
+            // 지면 아래는 Teleport 로 못 잡는다(음수 높이를 0으로 물린다). 잡은 뒤에 내린다.
+            startWorld.y -= Mathf.Max(0f, spec.startDepth);
 
             // 억제가 <b>먼저</b>다. 조준·판정을 켠 채로 한 프레임이라도 화면 밖에 서 있으면
             // 그 프레임에 맞거나, 그쪽으로 스킬이 나간다.

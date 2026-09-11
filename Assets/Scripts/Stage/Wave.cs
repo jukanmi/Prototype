@@ -1,11 +1,12 @@
-// 웨이브 한 세트 — 표 · 정의 · 항목 · 계획.
-//   StageWaveCatalog  어떤 웨이브가 있는지
-//   WaveDefinition    웨이브 하나의 정의
-//   SpawnEntry        그 안의 스폰 한 줄
-//   WaveSpawnPlanner  정의를 실제 스폰 좌표로 푸는 계산
+// 웨이브 한 세트 — 지형 · 어휘 · 진입 · 계획.
+//   StageWaveCatalog  스테이지가 몇 개고 어디가 아레나인가
+//   EnemyRole/SpawnSide  배치를 짤 때 고르는 축
+//   SpawnEntry        소환된 적이 걸어 들어와 자리 잡는 연출
+//   WaveSpawnPlanner  저작한 한 줄을 실제 스폰 좌표로 푸는 계산
 // 하나를 고치면 나머지도 같이 봐야 해서 한 파일에 둔다.
+//
+// 웨이브 <b>내용</b>은 여기 없다. 애셋(WaveAsset)이 들고 씬 보드가 목록을 든다.
 
-using System;
 using UnityEngine;
 
 namespace Prototype
@@ -13,15 +14,14 @@ namespace Prototype
     // ══ StageWaveCatalog ═══════════════════════════════════════════
 
     /// <summary>
-    /// <b>웨이브 스테이지</b>의 배치표. 방 하나에서 웨이브가 연달아 도는 방들이다.
+    /// 스테이지의 <b>지형</b>. 몇 개인가, 어디가 아레나인가, 주제가 무엇인가.
     ///
-    /// 애셋이 아니라 코드인 이유는 이 프로젝트의 다른 표(<c>EnemyPrefabBuilder.Variants</c>,
-    /// <c>GameManager.DefaultStages</c>)와 같다 — 씬 · 애셋에 흩어 두면 "지금 3-2가 몇 기인가"를
-    /// 다섯 군데를 열어 봐야 알 수 있고, 테스트가 표를 직접 읽을 수도 없다.
-    /// 씬별로 손을 대고 싶으면 <see cref="StageDirector"/>의 인스펙터 배열이 이 표를 덮는다.
+    /// <b>웨이브 배치는 여기 없다.</b> 예전에는 이 표가 배치까지 들고 있었지만,
+    /// 웨이브가 애셋(<see cref="WaveAsset"/>)으로 옮겨 가면서 그 몫이 빠졌다.
+    /// 남은 것은 <c>GameManager</c> · <c>BattleSceneController</c>가 함께 읽는 번호 규약뿐이다.
     ///
-    /// <b>2 · 5스테이지는 여기 없다.</b> 그 둘은 아레나와 통로로 이뤄진 스크롤 스테이지라
-    /// 웨이브가 아니라 라운드로 돌고, 구성은 <see cref="ArenaRoundCatalog"/>에 있다.
+    /// <b>2 · 5스테이지의 배치도 여기 없다.</b> 그 둘은 아레나와 통로로 이뤄진 스크롤 스테이지지만
+    /// 도는 방식은 같다 — 자리가 붙은 조우일 뿐이고, 내용은 똑같이 <see cref="WaveAsset"/>에 있다.
     ///
     /// <b>역할군 도입 순서가 곧 학습 순서다.</b>
     /// <list type="number">
@@ -70,139 +70,11 @@ namespace Prototype
             }
         }
 
-        /// <summary>
-        /// 스테이지 하나의 웨이브 목록. <b>매번 새로 만든다</b> —
-        /// <see cref="WaveDefinition"/>은 클래스라 한 벌을 돌려주면 디렉터가 인스펙터에서
-        /// 만진 값이 표 원본을 오염시킨다(<c>GameManager.DefaultStages</c>와 같은 이유).
-        ///
-        /// 아레나 스테이지 번호를 주면 <b>빈 배열</b>이다. 그 방들은 웨이브로 돌지 않는다 —
-        /// 조용히 다른 스테이지의 표를 돌려주면 아레나에 웨이브가 겹쳐 나온다.
-        /// </summary>
-        public static WaveDefinition[] For(int stageNumber)
-        {
-            int stage = Clamp(stageNumber);
-            if (IsArenaStage(stage)) return new WaveDefinition[0];
-
-            switch (stage)
-            {
-                case 1:  return Stage1();
-                case 3:  return Stage3();
-                default: return Stage4();
-            }
-        }
-
         private static int Clamp(int stageNumber) => Mathf.Clamp(stageNumber, 1, StageCount);
 
-        // ── 1 입문 ──────────────────────────────────────
-        // 돌진도 원거리도 없다. 콤보 · 잡기 · 기본 피격만 남기고 변수를 전부 뺀다.
-
-        private static WaveDefinition[] Stage1() => new[]
-        {
-            new WaveDefinition
-            {
-                label = "1-1 전사 3기 순차 — 한 명씩 상대하는 법",
-                attackTokens = EarlyTokens,
-                spawns = new[] { WaveSpawn.Of(EnemyRole.Melee, 3, SpawnSide.Right, 0f, 1.6f) },
-            },
-            new WaveDefinition
-            {
-                label = "1-2 전사 4기 양방향 포위 — 등 뒤를 보게 만든다",
-                attackTokens = EarlyTokens,
-                spawns = new[] { WaveSpawn.Of(EnemyRole.Melee, 4, SpawnSide.Both, 0f, 0.7f) },
-            },
-            new WaveDefinition
-            {
-                label = "1-B 강화 전사 1기 + 전사 2기 — 첫 체력 벽",
-                attackTokens = EarlyTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Melee, 1, SpawnSide.Right, 0f,   0f,   elite: true),
-                    WaveSpawn.Of(EnemyRole.Melee, 2, SpawnSide.Both,  1.2f, 0.6f),
-                },
-            },
-        };
-
-        // ── 3 역할군 조합 ────────────────────────────────
-        // 전사가 길을 막고 마법사가 구석에서 깎을 때 돌진전사가 라인을 민다.
-        // 여기서부터 토큰 3 — 셋이 동시에 압박해야 맵 전체를 쓰게 된다.
-
-        private static WaveDefinition[] Stage3() => new[]
-        {
-            new WaveDefinition
-            {
-                label = "3-1 돌진전사 2기 + 마법사 1기 — 피할 곳이 이미 견제당한다",
-                attackTokens = LateTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Charger, 2, SpawnSide.Both, 1.0f, 1.2f),
-                    WaveSpawn.Of(EnemyRole.Ranged,  1, SpawnSide.Right),
-                },
-            },
-            new WaveDefinition
-            {
-                label = "3-2 전사 3기 + 돌진전사 1기 + 마법사 2기 — 세 위협 동시 대응",
-                attackTokens = LateTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Melee,   3, SpawnSide.Right, 0f,   0.7f),
-                    WaveSpawn.Of(EnemyRole.Ranged,  2, SpawnSide.Both,  0.5f, 0.4f),
-                    WaveSpawn.Of(EnemyRole.Charger, 1, SpawnSide.Left,  3.0f),
-                },
-            },
-            new WaveDefinition
-            {
-                label = "3-3 전사 2기(전방) + 돌진 2기(기습) + 마법사 2기(후방)",
-                attackTokens = LateTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Melee,   2, SpawnSide.Right, 0f,   0.6f),
-                    WaveSpawn.Of(EnemyRole.Ranged,  2, SpawnSide.Both,  0.5f, 0.4f),
-                    // 기습은 반대쪽 벽에서 온다. 전사와 붙어 있는 등 뒤가 열린다.
-                    WaveSpawn.Of(EnemyRole.Charger, 2, SpawnSide.Left,  3.5f, 1.4f),
-                },
-            },
-        };
-
-        // ── 4 총력전 ─────────────────────────────────────
-        // 적의 공격 판정이 겹치지 않는 사각지대를 찾아 메가크래시 · 잡기 무적을 쓰게 만든다.
-        // 최종 웨이브의 지속 리젠이 "다 잡고 쉬는" 구간을 없앤다.
-
-        private static WaveDefinition[] Stage4() => new[]
-        {
-            new WaveDefinition
-            {
-                label = "4-1 돌진전사 3기 교차 돌진 — 좌우에서 번갈아 들어온다",
-                attackTokens = LateTokens,
-                spawns = new[] { WaveSpawn.Of(EnemyRole.Charger, 3, SpawnSide.Both, 0.5f, 1.1f) },
-            },
-            new WaveDefinition
-            {
-                label = "4-2 마법사 3기 탄막 + 전사 3기 — 안전지대가 사라진다",
-                attackTokens = LateTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Ranged, 3, SpawnSide.Both,  0f,   0.4f),
-                    WaveSpawn.Of(EnemyRole.Melee,  3, SpawnSide.Right, 1.0f, 0.6f),
-                },
-            },
-            new WaveDefinition
-            {
-                label = "4-3 엘리트 돌진 2기 + 마법사 2기 + 지속 리젠 전사",
-                attackTokens = LateTokens,
-                spawns = new[]
-                {
-                    WaveSpawn.Of(EnemyRole.Charger, 2, SpawnSide.Both, 1.0f, 1.6f, elite: true),
-                    WaveSpawn.Of(EnemyRole.Ranged,  2, SpawnSide.Both, 0f,   0.4f),
-                },
-                // 리젠은 "빨리 끝내라"는 압박이다. 상한이 없으면 이길 수 없는 방이 된다.
-                reinforceInterval = 7f,
-                reinforceRole = EnemyRole.Melee,
-                reinforceCap = 4,
-            },
-        };
     }
 
-    // ══ WaveDefinition ═══════════════════════════════════════════
+    // ══ EnemyRole · SpawnSide ═══════════════════════════════════════════
 
     /// <summary>
     /// 적의 <b>역할</b>. 종류가 아니라 역할이다 — 배치를 짤 때 우리가 실제로 고르는 축이고,
@@ -231,111 +103,13 @@ namespace Prototype
 
     /// <summary>
     /// 어느 쪽 벽에서 들어오는가. <see cref="Both"/>는 <b>번갈아</b>다 —
-    /// 같은 묶음의 짝수 번째는 오른쪽, 홀수 번째는 왼쪽으로 갈라진다(양방향 포위 · 교차 돌진).
+    /// 같은 역할 중 짝수 번째는 오른쪽, 홀수 번째는 왼쪽으로 갈라진다(양방향 포위 · 교차 돌진).
     /// </summary>
     public enum SpawnSide
     {
         Right,
         Left,
         Both,
-    }
-
-    /// <summary>
-    /// 웨이브 안의 한 묶음. "돌진전사 2기를 1.5초 시차로 왼쪽에서" 같은 한 줄이다.
-    /// </summary>
-    [Serializable]
-    public struct WaveSpawn
-    {
-        public EnemyRole role;
-
-        [Tooltip("이 묶음의 마릿수.")]
-        [Min(1)] public int count;
-
-        public SpawnSide side;
-
-        [Tooltip("웨이브가 시작되고 첫 기가 나타나기까지의 시간.")]
-        [Min(0f)] public float delay;
-
-        [Tooltip("한 기씩 벌리는 간격. 0이면 전부 동시에 나온다.")]
-        [Min(0f)] public float interval;
-
-        [Tooltip("강화 개체. 체력·공격력이 배로 오르고 이름에 (강화)가 붙는다.")]
-        public bool elite;
-
-        /// <summary>0이나 음수로 저작된 마릿수는 1로 본다 — 아무도 안 나오는 묶음은 실수다.</summary>
-        public int Count => Mathf.Max(1, count);
-
-        /// <summary>이 묶음의 <paramref name="index"/>번째가 나타나는 시각(웨이브 시작 기준).</summary>
-        public float AppearAt(int index) => Mathf.Max(0f, delay) + Mathf.Max(0f, interval) * Mathf.Max(0, index);
-
-        /// <summary>마지막 한 기가 나타나는 시각. 디렉터가 "다 나왔는가"를 여기서 안다.</summary>
-        public float LastAppearAt => AppearAt(Count - 1);
-
-        public static WaveSpawn Of(EnemyRole role, int count,
-                                   SpawnSide side = SpawnSide.Right,
-                                   float delay = 0f, float interval = 0f, bool elite = false)
-            => new WaveSpawn
-            {
-                role = role,
-                count = count,
-                side = side,
-                delay = delay,
-                interval = interval,
-                elite = elite,
-            };
-    }
-
-    /// <summary>
-    /// 웨이브 하나. <b>전멸시켜야 다음으로 넘어간다</b> — 판정은 <see cref="StageDirector"/>가 한다.
-    ///
-    /// <see cref="attackTokens"/>가 이 프로젝트의 다구리 방지책이다. 한 화면에 적이 여섯이어도
-    /// 동시에 공격을 <b>시도</b>할 수 있는 적은 이 수까지고, 나머지는 사거리 안에서 기다린다.
-    /// 토큰이 없으면 6기가 동시에 휘둘러 회피가 성립하지 않는 구간이 생긴다.
-    /// </summary>
-    [Serializable]
-    public class WaveDefinition
-    {
-        [Tooltip("로그에 찍히는 이름. 배치 의도를 한 줄로 적어 둔다.")]
-        public string label = "";
-
-        public WaveSpawn[] spawns = new WaveSpawn[0];
-
-        [Tooltip("동시에 공격을 시도할 수 있는 적의 수. 2~3을 권장한다.")]
-        [Range(1, 6)] public int attackTokens = 2;
-
-        [Header("지속 리젠 (최종 웨이브용)")]
-        [Tooltip("0보다 크면 이 간격마다 증원이 한 기씩 들어온다.")]
-        [Min(0f)] public float reinforceInterval;
-
-        public EnemyRole reinforceRole = EnemyRole.Melee;
-
-        [Tooltip("증원 총량 상한. 0이면 증원하지 않는다.")]
-        [Min(0)] public int reinforceCap;
-
-        /// <summary>웨이브 시작 시 예약되는 총 마릿수. 증원은 세지 않는다 — 그건 나중에 결정된다.</summary>
-        public int TotalSpawnCount
-        {
-            get
-            {
-                int n = 0;
-                if (spawns != null)
-                    for (int i = 0; i < spawns.Length; i++) n += spawns[i].Count;
-                return n;
-            }
-        }
-
-        /// <summary>이 웨이브에 지속 리젠이 붙어 있는가.</summary>
-        public bool HasReinforcements => reinforceInterval > 0f && reinforceCap > 0;
-
-        /// <summary>역할별 마릿수. 배치 검사가 표를 그대로 읽을 수 있게 연다.</summary>
-        public int CountOf(EnemyRole role)
-        {
-            int n = 0;
-            if (spawns != null)
-                for (int i = 0; i < spawns.Length; i++)
-                    if (spawns[i].role == role) n += spawns[i].Count;
-            return n;
-        }
     }
 
     // ══ SpawnEntry ═══════════════════════════════════════════
@@ -454,27 +228,6 @@ namespace Prototype
     // ══ WaveSpawnPlanner ═══════════════════════════════════════════
 
     /// <summary>
-    /// 한 기가 <b>어디서 나와 어디에 설지</b>. <see cref="StageDirector"/>가 이 결과대로 소환한다.
-    /// </summary>
-    public struct SpawnPlacement
-    {
-        /// <summary>튀어나오는 자리. 방 안쪽 벽 앞이다(아래 주석 참고).</summary>
-        public Vector3 spawnPoint;
-
-        /// <summary>걸어 들어가 자리 잡는 지점.</summary>
-        public Vector3 entryPoint;
-
-        /// <summary>도착한 뒤 AI가 깨어나기까지 서 있는 시간.</summary>
-        public float holdSeconds;
-
-        /// <summary>웨이브 시작 기준 등장 시각.</summary>
-        public float appearAt;
-
-        /// <summary>+1이면 오른쪽 벽, -1이면 왼쪽 벽.</summary>
-        public int sideSign;
-    }
-
-    /// <summary>
     /// 역할에 맞는 등장 자리를 계산하는 <b>순수 함수</b>. 씬도 시간도 모른다 —
     /// 배치 의도가 지켜지는지는 눈으로 보기 어렵고(적이 여섯이면 이미 못 센다)
     /// 좌표 규칙이 곧 레벨 디자인이라, 테스트가 직접 부를 수 있는 자리에 둔다.
@@ -526,35 +279,97 @@ namespace Prototype
         /// <summary>마법사가 플레이어와 같은 줄로 인정되는 깊이 차. 이보다 가까우면 반대쪽으로 넘긴다.</summary>
         public const float RangedLaneGap = 1.5f;
 
+        /// <summary>구석이 모자랄 때 마법사가 안쪽으로 물러나는 한 칸.</summary>
+        public const float RangedLaneStep = 0.9f;
+
         /// <summary>전사가 벌려 서는 깊이 줄. 순서대로 돌려 쓴다.</summary>
         private static readonly float[] MeleeLanes = { 0f, 1.6f, -1.6f, 2.4f, -2.4f };
 
-        /// <summary>돌진전사끼리 겹치지 않게 플레이어 줄에서 살짝 벌리는 값.</summary>
-        private static readonly float[] ChargerLaneOffsets = { 0f, 1.2f, -1.2f };
+        /// <summary>돌진전사끼리 겹치지 않게 벌리는 간격.</summary>
+        public const float ChargerLaneStep = 1.2f;
+
+        /// <summary>한 웨이브에서 서로 다른 줄을 갖는 돌진전사 수. 넘으면 앞 줄을 다시 쓴다.</summary>
+        public const int ChargerLanes = 3;
 
         /// <summary>깊이 좌표의 절대 상한. 벽에 낀 채로 소환되지 않게.</summary>
         public static float MaxDepth => RoomHalfZ - DepthInset;
 
         /// <summary>
-        /// 묶음의 <paramref name="index"/>번째가 나올 자리.
+        /// 저작한 한 줄의 <b>자동 배치</b>.
+        ///
+        /// 순번을 스스로 세지 않고 <paramref name="laneIndex"/>로 받는다. 한 줄이 한 기라
+        /// 줄 자체는 자기가 몇 번째인지 모르기 때문이다 —
+        /// <see cref="WaveLayout.AutoLaneIndices"/>가 웨이브 전체를 보고 <b>역할별 통산 번호</b>를
+        /// 매겨 넘긴다. 그 번호가 왜 역할별이어야 하는지는 그쪽 주석에 적어 뒀다.
         /// </summary>
-        /// <param name="spawn">저작한 한 줄.</param>
-        /// <param name="index">묶음 안 순번. 좌우 분산과 깊이 줄이 여기서 갈린다.</param>
-        /// <param name="playerZ">지금 플레이어의 깊이. 돌진전사와 마법사가 이 값을 기준으로 선다.</param>
-        public static SpawnPlacement Plan(in WaveSpawn spawn, int index, float playerZ)
+        /// <param name="entry">저작한 한 줄. <see cref="SpawnOrigin.Point"/>면 이 함수를 부르면 안 된다.</param>
+        /// <param name="laneIndex">이 웨이브에서 같은 역할 중 몇 번째 자동 배치인가.</param>
+        /// <param name="playerZ">지금 플레이어의 깊이.</param>
+        public static SpawnPlacement PlanAuto(in WaveSpawnEntry entry, int laneIndex, float playerZ)
         {
-            int side = SideSign(spawn.side, index);
-            float z = DepthFor(spawn.role, index, playerZ);
-            float entryX = side * (RoomHalfX - InsetFor(spawn.role));
+            int side = SideSign(entry.side, laneIndex);
+            float z = DepthFor(entry.role, laneIndex, playerZ);
+            float entryX = side * (RoomHalfX - InsetFor(entry.role));
 
             return new SpawnPlacement
             {
                 spawnPoint = new Vector3(side * (RoomHalfX - SpawnInset), 0f, z),
                 entryPoint = new Vector3(entryX, 0f, z),
-                holdSeconds = spawn.role == EnemyRole.Charger ? ChargerHold : DefaultHold,
-                appearAt = spawn.AppearAt(index),
-                sideSign = side,
+                holdSeconds = HoldFor(entry.role),
+                appearAt = entry.AppearAt,
+                telegraphAt = TelegraphAtFor(in entry),
+                telegraphPoint = new Vector3(entryX, 0f, z),
+                wall = SpawnWall.None,
             };
+        }
+
+        /// <summary>
+        /// 씬에 찍어 둔 지점에서 나오는 줄. <b>걸어 들어오지 않는다</b> —
+        /// 지점이 곧 설 자리라, 나타나는 자리와 정착 자리가 같다.
+        ///
+        /// 좌표는 방 안으로 물린다. 방은 사방이 콜라이더라 바깥에 찍힌 지점에서 소환하면
+        /// 벽에 걸려 영영 못 들어오고, 증상은 "그 적이 안 나온다"로만 보인다.
+        /// 지점이 애초에 방 밖인지는 <see cref="IsInsideRoom"/>으로 따로 물어 경고한다 —
+        /// 조용히 당겨 놓기만 하면 저작자가 자기 실수를 영영 모른다.
+        /// </summary>
+        public static SpawnPlacement PlanAt(in WaveSpawnEntry entry, Vector3 point)
+        {
+            Vector3 ground = ClampIntoRoom(point);
+
+            return new SpawnPlacement
+            {
+                spawnPoint = ground,
+                entryPoint = ground,
+                holdSeconds = HoldFor(entry.role),
+                appearAt = entry.AppearAt,
+                telegraphAt = TelegraphAtFor(in entry),
+                telegraphPoint = ground,
+                wall = SpawnWall.None,
+            };
+        }
+
+        /// <summary>
+        /// 이 줄의 예고가 뜨는 시각. 예고가 없는 등장이면 <b>음수</b>다.
+        ///
+        /// 판단이 배치 쪽에 있는 이유는 부르는 쪽이 둘이기 때문이다 —
+        /// 디렉터가 따로 계산하면 방과 아레나가 서로 다른 예고 규칙을 갖게 된다.
+        /// </summary>
+        public static float TelegraphAtFor(in WaveSpawnEntry entry)
+            => entry.motion == SpawnMotion.Burrow ? BurrowRules.TelegraphAt(entry.AppearAt) : -1f;
+
+        /// <summary>도착 후 서 있는 시간. 돌진전사만 예고 시간을 갖는다.</summary>
+        public static float HoldFor(EnemyRole role)
+            => role == EnemyRole.Charger ? ChargerHold : DefaultHold;
+
+        /// <summary>이 지점이 소환 가능한 방 안인가. 저작 검증이 읽는다.</summary>
+        public static bool IsInsideRoom(Vector3 point)
+            => Mathf.Abs(point.x) <= RoomHalfX - SpawnInset && Mathf.Abs(point.z) <= MaxDepth;
+
+        /// <summary>방 밖 좌표를 소환 가능한 자리로 당긴다. 높이는 접지가 다시 잡으므로 0으로 누른다.</summary>
+        public static Vector3 ClampIntoRoom(Vector3 point)
+        {
+            float limitX = RoomHalfX - SpawnInset;
+            return new Vector3(Mathf.Clamp(point.x, -limitX, limitX), 0f, Clamp(point.z));
         }
 
         /// <summary><see cref="SpawnSide.Both"/>는 짝수 오른쪽 · 홀수 왼쪽으로 번갈아 간다.</summary>
@@ -579,23 +394,10 @@ namespace Prototype
             switch (role)
             {
                 case EnemyRole.Charger:
-                {
-                    float offset = ChargerLaneOffsets[Mathf.Abs(index) % ChargerLaneOffsets.Length];
-                    return Clamp(playerZ + offset);
-                }
+                    return ChargerDepth(index, playerZ);
 
                 case EnemyRole.Ranged:
-                {
-                    bool topOk = Mathf.Abs(MaxDepth - playerZ) >= RangedLaneGap;
-                    bool bottomOk = Mathf.Abs(-MaxDepth - playerZ) >= RangedLaneGap;
-
-                    // 양쪽 구석이 다 열려 있으면 상·하로 갈라 세운다.
-                    if (topOk && bottomOk) return index % 2 == 0 ? MaxDepth : -MaxDepth;
-
-                    // 플레이어가 한쪽 구석에 박혀 있으면 전부 반대쪽으로. 방 깊이가 4.8이라
-                    // 두 구석이 동시에 막히는 경우는 없다(RangedLaneGap의 두 배보다 넓다).
-                    return topOk ? MaxDepth : -MaxDepth;
-                }
+                    return RangedDepth(index, playerZ);
 
                 default:
                     return Clamp(MeleeLanes[Mathf.Abs(index) % MeleeLanes.Length]);
@@ -613,6 +415,69 @@ namespace Prototype
                 case EnemyRole.Ranged:  return RangedInset;
                 default:                return MeleeInset;
             }
+        }
+
+        /// <summary>
+        /// 돌진전사의 깊이 줄. <b>0번은 반드시 플레이어와 같은 줄</b>이고, 나머지는 옆으로 벌린다.
+        ///
+        /// 벌린 줄이 방 밖으로 나가면 <b>건너뛰고 다음 줄을 찾는다.</b> 예전에는 그냥 벽으로
+        /// 물렸는데(<c>Clamp</c>), 플레이어가 깊이 끝에 붙어 있으면 두 줄이 같은 벽 좌표로
+        /// 접혀서 <b>돌진전사 둘이 같은 자리에 겹쳐 섰다</b>. 4-1(교차 돌진 3기)이 그 조합이다.
+        ///
+        /// 플레이어가 방 안에 있으면 예전과 같은 답을 낸다 — 0, +한 칸, −한 칸.
+        /// </summary>
+        public static float ChargerDepth(int index, float playerZ)
+        {
+            float lane = Clamp(playerZ);
+            int wanted = Mathf.Abs(index) % ChargerLanes;
+            int found = 0;
+
+            // 0, +1, −1, +2, −2 … 순으로 훑어 방 안에 들어오는 줄만 센다.
+            for (int rung = 0; rung < ChargerLanes * 4; rung++)
+            {
+                float candidate = lane + RungOffset(rung) * ChargerLaneStep;
+                if (Mathf.Abs(candidate) > MaxDepth + 0.0001f) continue;
+
+                if (found == wanted) return candidate;
+                found++;
+            }
+
+            // 방이 이 값보다 좁아진 적은 없지만, 못 찾으면 플레이어 줄이 가장 안전하다.
+            return lane;
+        }
+
+        /// <summary>0, +1, −1, +2, −2 … 사다리.</summary>
+        private static int RungOffset(int rung) => (rung + 1) / 2 * (rung % 2 == 1 ? 1 : -1);
+
+        /// <summary>
+        /// 마법사의 깊이 줄. 위 구석 → 아래 구석 → 한 칸 안쪽 위 → 한 칸 안쪽 아래 … 순으로
+        /// 훑으면서 <b>플레이어 줄에서 <see cref="RangedLaneGap"/>만큼 떨어진 자리만</b> 센다.
+        ///
+        /// 예전에는 구석 두 개만 번갈아 썼다. 마법사가 셋이면 0번과 2번이 같은 구석에 겹쳤고,
+        /// 좌우도 같은 주기라 <b>같은 점에 두 기가 섰다</b>. 4-2(마법사 3기 탄막)가 그 조합이다.
+        ///
+        /// 플레이어 줄을 건너뛰는 규칙은 그대로다 — 같은 줄에 서면 전사와 싸우다
+        /// 옆걸음질만 해도 닿아서, 축을 옮겨 잡으러 가는 동선이 아예 생기지 않는다.
+        /// </summary>
+        public static float RangedDepth(int index, float playerZ)
+        {
+            int wanted = Mathf.Abs(index);
+            int found = 0;
+
+            for (int rung = 0; rung < 12; rung++)
+            {
+                float sign = rung % 2 == 0 ? 1f : -1f;
+                float candidate = sign * (MaxDepth - rung / 2 * RangedLaneStep);
+
+                if (Mathf.Abs(candidate) > MaxDepth + 0.0001f) continue;
+                if (Mathf.Abs(candidate - playerZ) < RangedLaneGap - 0.0001f) continue;
+
+                if (found == wanted) return candidate;
+                found++;
+            }
+
+            // 방 깊이가 RangedLaneGap 의 두 배보다 넓어 여기까지 오지 않는다. 와도 먼 구석이 낫다.
+            return playerZ >= 0f ? -MaxDepth : MaxDepth;
         }
     }
 }

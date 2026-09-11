@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3116ae4eeda8ce468459e10e12acbc6, type: 3}
+  m_Name: Wave_4_2
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.WaveAsset
+  label: "4-2 \uB9C8\uBC95\uC0AC 3\uAE30 \uD0C4\uB9C9 + \uC804\uC0AC 3\uAE30 \u2014
+    \uC548\uC804\uC9C0\uB300\uAC00 \uC0AC\uB77C\uC9C4\uB2E4"
+  advance: 0
+  attackTokens: 3
+  spawns:
+  - role: 2
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 2
+    appearAt: 0
+    motion: 0
+  - role: 2
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 2
+    appearAt: 0.4
+    motion: 0
+  - role: 2
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 2
+    appearAt: 0.8
+    motion: 0
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    appearAt: 1
+    motion: 0
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    appearAt: 1.6
+    motion: 0
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    appearAt: 2.2
+    motion: 0
+  reinforceInterval: 0
+  reinforceRole: 0
+  reinforceCap: 0

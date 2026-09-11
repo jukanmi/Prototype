@@ -134,50 +134,60 @@ namespace Prototype.Tests
         // ── 아레나 배선 ─────────────────────────────────
 
         /// <summary>
-        /// 아레나 구간마다 짝이 되는 <see cref="ArenaDirector"/>가 있어야 하고,
-        /// 그 아레나가 <see cref="EnemySpawnService"/>에 닿을 수 있어야 한다.
+        /// 아레나 구간마다 짝이 되는 <b>자리 붙은 조우</b>가 있어야 하고,
+        /// 그 씬이 <see cref="EnemySpawnService"/>와 <see cref="StageDirector"/>를 들고 있어야 한다.
         ///
         /// <b>이 검사가 없어서 스테이지 2·5에서 적이 통째로 안 나왔다.</b> 관리자들을
-        /// 프리팹으로 만드는 순간 <c>StageRunner.arenas</c>와 <c>ArenaDirector.spawner</c>가
-        /// 함께 끊겼는데(프리팹 에셋은 씬 오브젝트를 참조할 수 없다), 구간 경계는 프리팹에
-        /// 남아 있어서 <b>카메라 락은 정상으로 걸렸다</b> — 방도 문도 멀쩡하고 적만 없었다.
+        /// 프리팹으로 만드는 순간 씬 오브젝트를 가리키던 참조가 함께 끊겼는데(프리팹 에셋은
+        /// 씬 오브젝트를 참조할 수 없다), 구간 경계는 프리팹에 남아 있어서
+        /// <b>카메라 락은 정상으로 걸렸다</b> — 방도 문도 멀쩡하고 적만 없었다.
         ///
-        /// 런타임 폴백이 생긴 지금도 이 검사를 남긴다. 폴백은 안전망이지 저작 규약이 아니고,
-        /// 여기서 걸리면 "왜 폴백이 도는가"를 굽는 시점에 알 수 있다.
+        /// 구간(<see cref="StageRunner"/>)과 조우(<see cref="StageWaveBoard"/>)는 이제 서로 다른
+        /// 두 목록이다. 카메라가 잠기는 곳과 적이 나오는 곳이 어긋나면 <b>빈 방이 한 번 닫힌다</b> —
+        /// 그 어긋남을 잡는 자리가 여기다.
         /// </summary>
         [Test]
-        public void ArenaStages_HaveDirectorAndSpawnerForEverySection()
+        public void ArenaStages_HaveAnEncounterForEverySection()
         {
             foreach (string path in Scenes())
             {
                 Open(path);
 
                 var runner = Object.FindAnyObjectByType<StageRunner>();
-                if (runner == null) continue;   // 웨이브 스테이지 — 아레나가 없는 게 정상이다
+                if (runner == null) continue;   // 웨이브 스테이지 — 구간이 없는 게 정상이다
 
-                ArenaDirector[] arenas = Object.FindObjectsByType<ArenaDirector>(
-                    FindObjectsInactive.Include, FindObjectsSortMode.None);
+                Assert.That(Object.FindAnyObjectByType<EnemySpawnService>(), Is.Not.Null,
+                    $"{path} 에 EnemySpawnService 가 없다 — 조우가 열려도 적이 안 나온다.");
 
-                bool hasSpawner = Object.FindAnyObjectByType<EnemySpawnService>() != null;
+                Assert.That(Object.FindAnyObjectByType<StageDirector>(), Is.Not.Null,
+                    $"{path} 에 StageDirector 가 없다 — 조우가 한 번도 안 열린다.");
 
-                Assert.That(hasSpawner, Is.True,
-                    $"{path} 에 EnemySpawnService 가 없다 — 아레나가 열려도 적이 안 나온다.");
+                StageWaveBoard board = Object.FindAnyObjectByType<StageWaveBoard>();
+                Assert.That(board, Is.Not.Null, $"{path} 에 StageWaveBoard 가 없다.");
+
+                int sited = 0;
+                for (int i = 0; i < board.WaveCount; i++)
+                    if (board.EncounterAt(i).HasSite) sited++;
 
                 foreach (StageSection section in runner.Sections)
                 {
                     if (section.kind != SectionKind.Arena) continue;
 
                     bool matched = false;
-                    foreach (ArenaDirector a in arenas)
-                        if (a != null && Mathf.Approximately(a.TriggerLine, section.minX)) matched = true;
+                    for (int i = 0; i < board.WaveCount; i++)
+                    {
+                        EncounterSite site = board.EncounterAt(i).site;
+                        if (site != null && Mathf.Approximately(site.TriggerLine, section.minX))
+                            matched = true;
+                    }
 
                     Assert.That(matched, Is.True,
                         $"{path} 의 아레나 구간(왼쪽 경계 {section.minX:0.##})에 맞는 " +
-                        "ArenaDirector 가 없다 — 그 방은 라운드가 안 열려 적이 안 나온다.");
+                        "조우가 없다 — 그 방은 카메라만 잠기고 적이 안 나온다.");
                 }
 
-                Assert.That(arenas.Length, Is.GreaterThan(0),
-                    $"{path} 에 ArenaDirector 가 하나도 없다.");
+                Assert.That(sited, Is.GreaterThan(0),
+                    $"{path} 에 자리 붙은 조우가 하나도 없다.");
             }
         }
 

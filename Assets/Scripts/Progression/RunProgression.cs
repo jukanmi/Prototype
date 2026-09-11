@@ -199,7 +199,7 @@ namespace Prototype
 
     /// <summary>
     /// 경험치와 레벨업 단계의 <b>수치 전부</b>. 순수 함수라 씬을 켜지 않고 검증한다
-    /// (<see cref="RoundClearRules"/> · <see cref="StageOutcomeRules"/>와 같은 이유).
+    /// (<see cref="EncounterClearRules"/> · <see cref="StageOutcomeRules"/>와 같은 이유).
     ///
     /// <code>
     ///   BaseCost(L)   = 10 × 1.1^(L-1)     레벨업할 때마다 다음 요구치가 1.1배
