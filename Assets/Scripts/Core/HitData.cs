@@ -99,8 +99,11 @@ namespace Prototype
         [Tooltip("모으기 계열에서 Z축을 기준점에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
         public bool snapZ;
 
-        
-        
+        [Tooltip("도착 폭발(SkillData.detonateOnArrival) 투사체의 탄착점. 대상 히트박스 정중앙에서 이만큼 비켜 터진다.\n\n" +
+                 "단위는 <b>대상 히트박스 크기의 배수</b> — x 좌우(월드 X) · y 상하(고도) · z 깊이. " +
+                 "0이면 정중앙. 마력 화살의 좌상단 (-0.5, 0.5, 0) · 우측 (0.5, 0, 0) · 하단 (0, -0.5, 0)이 예다.")]
+        public Vector3 impactOffset;
+
         /// <summary>
         /// 넉백 방향과 Z 정렬의 기준점. 비어 있으면 시전자 위치를 쓴다.
         ///

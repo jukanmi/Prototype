@@ -16,8 +16,6 @@ namespace Prototype
         [SerializeField] private Transform sprite;
         [Tooltip("바닥 그림자. 비워도 된다.")]
         [SerializeField] private Transform shadow;
-        [Tooltip("발사 지점을 시전자 앞으로 얼마나 밀지.")]
-        [SerializeField] private float spawnOffset = 0.8f;
         [Tooltip("날아가는 높이. 0이면 바닥을 긁는다.")]
         [SerializeField] private float flightHeight = 0.6f;
 
@@ -26,6 +24,23 @@ namespace Prototype
         /// 자기 총구 위치를 계산한다.
         /// </summary>
         public float FlightHeight => flightHeight;
+
+        /// <summary>
+        /// 이 투사체가 날아갈 높이. 쏘는 쪽과 대상 중 <b>높은 쪽</b>을 따르고 총구 높이를 더한다 —
+        /// 공중에 띄운 적을 지상에서 쏠 때 바닥을 긁으면 공중 콤보 마무리가 통째로 빗나가기 때문이다.
+        /// 둘 다 지상이면 음수를 돌려 <see cref="flightHeight"/> 기본값을 그대로 쓰게 한다.
+        ///
+        /// 평타(<see cref="Entity.FireBasicProjectile"/>)와 스킬(<see cref="SkillState.LaunchProjectile"/>)이
+        /// 같은 규칙을 봐야 같은 화살이 시전 경로에 따라 다른 높이로 날지 않는다.
+        /// </summary>
+        public float AimHeight(Physics shooter, Physics target)
+        {
+            float self = shooter != null ? shooter.Height : 0f;
+            float aim = target != null ? target.Height : 0f;
+
+            float h = Mathf.Max(self, aim);
+            return h > 0.1f ? h + flightHeight : -1f;
+        }
 
         private Attack hitbox;
 
@@ -43,6 +58,7 @@ namespace Prototype
 
         private float blastRadius;    // 0이면 직격 하나만 맞는다
         private SkillVfx blastStyle;
+        private bool detonateOnArrival;
 
         private void Awake()
         {
@@ -63,10 +79,15 @@ namespace Prototype
         ///
         /// <paramref name="blast"/>가 양수면 <b>첫 적중 지점에서 그 반경만큼 터진다</b>.
         /// 0이면 직격 하나만 맞는다 — 평타가 이쪽이다.
+        ///
+        /// <paramref name="detonateOnArrival"/>이 켜지면 <b>닿아도 안 터진다</b>. 히트박스를 아예 안 켜
+        /// 스치는 적은 아무도 안 맞고, 사거리 끝(= 쏠 때 찍은 자리)에서 <paramref name="blast"/>만큼 터진다.
+        /// 마력 화살처럼 "날아가는 그림 + 대상 자리 판정"이 필요한 스킬이 쓴다.
         /// </summary>
         public void Launch(Combat attacker, in HitData hit, Vector3 origin, Vector3 dir,
                            float speed, float range, int pierce, LayerMask wallMask, int layer,
-                           in SkillVfx vfx = default, float height = -1f, float blast = 0f)
+                           in SkillVfx vfx = default, float height = -1f, float blast = 0f,
+                           bool detonateOnArrival = false)
         {
             dir.y = 0f;
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
@@ -74,30 +95,40 @@ namespace Prototype
 
             this.speed = Mathf.Max(0.1f, speed);
             this.wallMask = wallMask;
-            remaining = Mathf.Max(0.5f, range);
+            // 도착 폭발은 0도 뜻이 있다(코앞 = 그 자리에서 즉시). 접촉 판정은 한 프레임은 살아야 맞힌다.
+            remaining = detonateOnArrival ? Mathf.Max(0f, range) : Mathf.Max(0.5f, range);
             pierceLeft = Mathf.Max(0, pierce);
 
-            origin.y = 0f;
-            logical = origin + direction * spawnOffset;
+            // 시전자 자리에서 그대로 출발한다. 사거리도 여기서부터 센다 —
+            // 좌표로 쏘는 쪽이 |도착점 − 시전자|를 그대로 사거리로 넘길 수 있다.
+            logical = origin;
             logical.y = height >= 0f ? height : flightHeight;
 
             blastRadius = Mathf.Max(0f, blast);
             blastStyle = vfx;
+            this.detonateOnArrival = detonateOnArrival;
 
             gameObject.layer = layer;
             transform.position = logical;
             transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
 
             hitbox.Attacker = attacker;
-            hitbox.OnHit += HandleHit;
-            // 궤적은 투사체에서 억제된다. 색은 적중 이펙트에만 쓰인다.
-            hitbox.Begin(in hit, in vfx);
+            hitbox.HitData = hit;   // 폭발이 읽는다. Begin도 같은 값을 넣지만 도착 폭발은 Begin을 안 부른다.
+
+            // 도착 폭발은 히트박스를 안 켠다 — Attack은 Begin 전엔 콜라이더가 꺼져 있어 스쳐도 안 맞는다.
+            if (!detonateOnArrival)
+            {
+                hitbox.OnHit += HandleHit;
+                // 궤적은 투사체에서 억제된다. 색은 적중 이펙트에만 쓰인다.
+                hitbox.Begin(in hit, in vfx);
+            }
 
             live = true;
             UpdateView();
 
             BattleLog.Log(LogCategory.Skill,
-                $"  └ 투사체 발사 {BattleLog.Name(attacker)} dir={direction} 속도 {speed:0.#} 사거리 {range:0.#} 관통 {pierce}", this);
+                $"  └ 투사체 발사 {BattleLog.Name(attacker)} dir={direction} 속도 {speed:0.#} 사거리 {range:0.#} 관통 {pierce}" +
+                (detonateOnArrival ? " · 도착 폭발" : ""), this);
         }
 
         private void Update()
@@ -108,7 +139,9 @@ namespace Prototype
             float dt = TimeControl.DeltaTime;
             if (dt <= 0f) return;
 
-            float step = speed * dt;
+            // 남은 거리보다 더 가지 않는다. 안 자르면 한 프레임 이동량(20 × 0.016 ≈ 0.33)만큼
+            // 도착점을 지나쳐 터져, 프리뷰가 그린 자리와 어긋난다.
+            float step = Mathf.Min(speed * dt, remaining);
 
             // 히트박스 ↔ 벽은 충돌 매트릭스에서 꺼 뒀다. 직접 본다.
             if (UnityEngine.Physics.Raycast(logical, direction, step, wallMask))
@@ -124,7 +157,12 @@ namespace Prototype
             remaining -= step;
             UpdateView();
 
-            if (remaining <= 0f) Despawn();
+            if (remaining <= 0f)
+            {
+                // 도착 폭발 — 사거리 끝이 곧 쏠 때 찍은 자리다. 벽에 막혔으면 여기까지 못 온다.
+                if (detonateOnArrival) Detonate(null);
+                Despawn();
+            }
         }
 
         private void HandleHit(Combat victim)
@@ -152,15 +190,18 @@ namespace Prototype
         {
             if (blastRadius <= 0f || hitbox == null || hitbox.Attacker == null) return;
 
+            // 비행 고도에서 터진다. 바닥(y=0)으로 누르면 띄운 적을 노린 화살이 발밑에서 터져
+            // 정작 그 적은 못 맞는다 — AreaStrike는 이미 대상 고도 중심을 받는다(사슬 속박).
             Vector3 center = logical;
-            center.y = 0f;
 
             HitData hit = hitbox.HitData;
             int extra = EffectUtil.AreaStrike(center, blastRadius, hitbox.Attacker,
                                               in hit, in blastStyle, direct);
 
             BattleLog.Log(LogCategory.Skill,
-                $"  └ 투사체 폭발 중심 {center} 반경 {blastRadius:0.#} → 직격 1 + 추가 {extra}마리", this);
+                direct != null
+                    ? $"  └ 투사체 폭발 중심 {center} 반경 {blastRadius:0.#} → 직격 1 + 추가 {extra}마리"
+                    : $"  └ 투사체 도착 폭발 중심 {center} 반경 {blastRadius:0.#} → {extra}마리", this);
         }
 
         /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환 · 같은 깊이 배율을 쓴다.</summary>
