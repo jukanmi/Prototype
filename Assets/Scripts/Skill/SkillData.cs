@@ -59,8 +59,11 @@ namespace Prototype
         /// 그 적 위로 가는 것 말고 할 게 없다. 올라갈 <b>거리</b>도 새 값이 아니라
         /// <see cref="ApproachDistance"/>다: "대상에게서 얼마나 떨어져 서나"가 수평이든 수직이든
         /// 같은 질문이라, 방향만 여기서 정해 주면 된다.
+        ///
+        /// 원거리 직업은 제외한다 — 장판 · 투사체는 몸으로 안 때리므로 올라갈 이유가 없다.
+        /// 띄운 적을 고르되(사슬 속박) 제자리에서 묶는다.
         /// </summary>
-        public bool CastsAboveTarget => targetPick == TargetPick.NearestAerial;
+        public bool CastsAboveTarget => targetPick == TargetPick.NearestAerial && !UsesRadius;
 
         /// <summary>
         /// 이 타가 실제로 쓸 범위 배수. 타별 값이 있으면 그쪽, 없으면 스킬 공통값이다.

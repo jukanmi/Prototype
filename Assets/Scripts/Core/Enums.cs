@@ -146,6 +146,9 @@ namespace Prototype
 
         /// <summary>완전 정지. 스턴과 규칙이 같고 지속시간 · 연출만 다르다.</summary>
         Freeze,
+
+        /// <summary>공중 바인드. 그 자리 그 높이에 못 박힌다 — 중력도 넉백도 안 먹고 데미지만 받는다.</summary>
+        AirBind,
     }
 
     /// <summary>
@@ -159,16 +162,17 @@ namespace Prototype
     [System.Flags]
     public enum Debuff
     {
-        None   = 0,
-        Stun   = 1 << 0,
-        Freeze = 1 << 1,
+        None    = 0,
+        Stun    = 1 << 0,
+        Freeze  = 1 << 1,
+        AirBind = 1 << 2,
 
-        /// <summary>제 의지로 움직이는 것을 막는 것 전부. 지금은 둘 다지만, 앞으로 붙을
+        /// <summary>제 의지로 움직이는 것을 막는 것 전부. 지금은 셋 다지만, 앞으로 붙을
         /// 둔화 · 침묵처럼 <b>행동은 되는</b> 디버프를 여기서 걸러 내기 위해 따로 둔다.</summary>
-        ActionBlocking = Stun | Freeze,
+        ActionBlocking = Stun | Freeze | AirBind,
 
         /// <summary>모든 디버프. "버프는 남기고 디버프만 지운다"고 말할 때 쓰는 마스크.</summary>
-        All = Stun | Freeze,
+        All = Stun | Freeze | AirBind,
     }
 
     /// <summary>진영. 히트박스가 아군을 때리지 않도록 거르는 기준.</summary>

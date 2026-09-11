@@ -357,12 +357,19 @@ namespace Prototype
         {
             NotifyDebuffsChanged();
 
+            // 물리 정지는 상태머신을 안 거친다. 바인드는 띄워 둔 적(AerialHit 경직)에게 거는 게
+            // 본래 용도인데, 아래 진입은 경직이 끝나길 기다린다 — 공중 경직은 착지로만 끝나므로
+            // 상태에 묶어 두면 떨어지고 나서야 붙잡는다. 시간(Statuses)이 곧 스위치다.
+            // 사망 · 벤치로 목록이 비면 여기서 같이 풀린다(시체는 떨어져야 한다).
+            if (physics != null) physics.Suspended = !IsDead && statuses.Has(StatusKind.AirBind);
+
             Entity body = Owner;
             if (IsDead || body == null || body.StateMachine == null) return;
 
-            // 빙결이 스턴을 덮는다. 둘 다 걸렸을 때 화면에 나갈 그림은 하나여야 한다.
-            IState want = statuses.Has(StatusKind.Freeze) ? (IState)body.FrozenState
-                        : statuses.Has(StatusKind.Stun)   ? body.StunState
+            // 바인드 > 빙결 > 스턴. 둘 이상 걸렸을 때 화면에 나갈 그림은 하나여야 한다.
+            IState want = statuses.Has(StatusKind.AirBind) ? (IState)body.AirBoundState
+                        : statuses.Has(StatusKind.Freeze)  ? body.FrozenState
+                        : statuses.Has(StatusKind.Stun)    ? body.StunState
                         : null;
 
             if (want != null)
@@ -377,7 +384,8 @@ namespace Prototype
             }
 
             // 스스로는 중단 불가라 Try로는 못 나온다.
-            if (body.StateMachine.CurState == body.StunState || body.StateMachine.CurState == body.FrozenState)
+            IState cur = body.StateMachine.CurState;
+            if (cur == body.StunState || cur == body.FrozenState || cur == body.AirBoundState)
                 body.StateMachine.ForceChangeState(body.IdleState);
         }
 
@@ -500,7 +508,9 @@ namespace Prototype
                 return true;
             }
 
-            Vector3 pushDir = ApplyKnockback(in hit, attacker);
+            // 바인드는 넉백까지 안 먹는다 — 못 박힌 몸이 밀리면 바인드가 아니다.
+            // 물리(Suspended)가 어차피 다음 스텝에 지우지만, 방향을 안 넘겨야 벽 스턴 판정도 안 선다.
+            Vector3 pushDir = HasDebuff(Debuff.AirBind) ? Vector3.zero : ApplyKnockback(in hit, attacker);
 
             CombatState before = CombatState;
 
@@ -905,6 +915,7 @@ namespace Prototype
             statuses.CancelAll();
             stunTimer = 0f;
             physics.ResetInertia();
+            physics.Suspended = false;   // 공중에 못 박힌 채 죽었으면 시체는 떨어져야 한다
             owner?.ForceDead();
             OnDead?.Invoke();
         }
@@ -1005,7 +1016,10 @@ namespace Prototype
         public void ClearDebuffs()
         {
             statuses.Cancel(Debuff.All);
-            NotifyDebuffsChanged();
+
+            // 알림만이 아니라 정합까지 — 바인드의 물리 정지 스위치가 여기서 내려가야
+            // 벤치로 내려간 몸이 공중에 못 박힌 채 남지 않는다.
+            SyncDebuffState();
         }
 
         /// <summary>기상 완료. 공중 콤보 카운트를 여기서만 되돌린다(결정 로그 ⑦).</summary>

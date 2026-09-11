@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: "SK_WZ\uC0AC\uC2AC\uC18D\uBC15"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uC0AC\uC2AC \uC18D\uBC15"
+  icon: {fileID: 0}
+  description: "\uC804\uBC29\uC758 \uC801\uC744 \uAD6C\uC18D\uD558\uC5EC \uD604\uC7AC
+    \uC704\uCE58\uC5D0 \uACE0\uC815\uC2DC\uD0A8\uB2E4."
+  role: 3
+  attackType: 2
+  requireState: 0
+  resultState: 1
+  castRangeScale: {x: 0, y: 0, z: 0}
+  castConeAngle: 0
+  fixedOrigin: 0
+  targeting: 0
+  radius: 1.5
+  targetPick: 2
+  castTime: 0.2
+  hitInterval: 0.2
+  recoveryTime: 0.2
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  approachDistance: 6
+  hitDataList:
+  - damageData:
+      damage: 15
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.3
+    debuff: 4
+    debuffDuration: 2
+    guardDamage: 0
+    snapZ: 0
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  vfx:
+    custom: 1
+    impact: {r: 0.776, g: 0.6, b: 1, a: 1}
+    shock: {r: 0.776, g: 0.6, b: 1, a: 0.75}
+    scale: 1
+    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
+    hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
+  references:
+    version: 2
+    RefIds: []
