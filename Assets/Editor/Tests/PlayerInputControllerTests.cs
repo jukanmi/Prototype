@@ -183,6 +183,40 @@ namespace Prototype.Tests
         }
 
         [Test]
+        public void NoInput_UiNavigateStepIsZero()
+        {
+            Assert.That(controller.UiNavigateStep, Is.EqualTo(Vector2Int.zero));
+        }
+
+        [Test]
+        public void NoInput_UiSubmitIsNotPressed()
+        {
+            Assert.That(controller.UiSubmitPressed, Is.False);
+        }
+
+        [Test]
+        public void ResyncUiNavigate_DoesNotReportPhantomStep()
+        {
+            // 모달이 뜨는 순간 이미 눌려 있던 방향키는 첫 스텝으로 치지 않는다.
+            // 안 그러면 창을 띄운 그 손이 커서를 한 칸 공짜로 밀고 들어간다.
+            controller.ResyncUiNavigate();
+
+            Assert.That(controller.UiNavigateStep, Is.EqualTo(Vector2Int.zero));
+        }
+
+        [Test]
+        public void UiNavigate_SurvivesGameplaySuspend()
+        {
+            // 모달이 조작을 잠그는 동안에도 커서는 움직여야 한다. UI 맵은 잠그지 않는다.
+            controller.GameplaySuspended = true;
+
+            Assert.That(controller.UiNavigateStep, Is.EqualTo(Vector2Int.zero));
+            Assert.That(controller.UiSubmitPressed, Is.False);
+
+            controller.GameplaySuspended = false;
+        }
+
+        [Test]
         public void NoInput_ButtonsAreNotPressed()
         {
             Assert.That(controller.AttackPressed, Is.False);

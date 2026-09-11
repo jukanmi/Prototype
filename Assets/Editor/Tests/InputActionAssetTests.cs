@@ -130,6 +130,15 @@ namespace Prototype.Tests
         }
 
         [Test]
+        public void UIMap_HasNavigateAndSubmit()
+        {
+            // 레벨업 보상 창이 키보드로 굴러가려면 이 둘이 있어야 한다.
+            // PlayerInputController 는 이름으로 잡으므로 자산에서 사라지면 거기서 예외로 터진다.
+            Assert.That(Action(InputActionNames.UI.Map, InputActionNames.UI.Navigate), Is.Not.Null);
+            Assert.That(Action(InputActionNames.UI.Map, InputActionNames.UI.Submit), Is.Not.Null);
+        }
+
+        [Test]
         public void UIMap_HasCancel()
         {
             Assert.That(Action(InputActionNames.UI.Map, InputActionNames.UI.Cancel), Is.Not.Null);

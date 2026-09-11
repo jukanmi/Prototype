@@ -93,6 +93,19 @@ namespace Prototype
         {
             public const string Map = "UI";
 
+            /// <summary>
+            /// 모달 안에서 칸을 옮기는 방향. 화살표 · 게임패드만 물려 있다 —
+            /// WASD를 여기 넣으면 UI 맵이 늘 켜져 있으므로 전투 중 이동키가 UI 포커스까지 움직인다
+            /// (<c>InputActionAssetTests.UINavigate_DoesNotUseWasd</c>가 지킨다).
+            /// </summary>
+            public const string Navigate = "Navigate";
+
+            /// <summary>
+            /// 모달 안에서 지금 칸을 고른다. 바인딩이 용도 태그라 Enter · 게임패드 남쪽이 걸린다 —
+            /// 특정 키를 박아 두지 않았으므로 <see cref="Cancel"/>과 같이 리바인드 목록에서 뺀다.
+            /// </summary>
+            public const string Submit = "Submit";
+
             public const string Cancel = "Cancel";
         }
     }

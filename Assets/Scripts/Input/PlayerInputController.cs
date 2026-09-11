@@ -48,7 +48,7 @@ namespace Prototype
 
         private InputActionMap skillShotMap;
 
-        private InputAction navigateAction;
+        private NavigateLatch cardNavigate;
 
         private InputAction aimAction;
         private InputAction aimPointAction;
@@ -57,12 +57,9 @@ namespace Prototype
         private InputAction aimCancelAction;
 
         private InputAction cancelAction;
+        private InputAction submitAction;
 
-        // Navigate 이산 스텝 — AimPoint와 같은 이유로 읽을 때 계산한다.
-        private Vector2Int lastNavigate;
-        private int navigateFrame = -1;
-        private Vector2Int navigateStep;
-        private bool navigateNeedsResync = true;
+        private NavigateLatch uiNavigate;
 
         /// <summary>리바인드·프리셋이 만지는 자산. 항상 PlayerInput이 들고 있는 그 인스턴스다.</summary>
         public InputActionAsset Actions => playerInput != null ? playerInput.actions : null;
@@ -95,14 +92,7 @@ namespace Prototype
         /// 매 프레임 넘어가 손패 끝까지 순식간에 지나간다. 그래서 0에서 ±1로 <b>넘어가는
         /// 순간</b>만 잡는다.
         /// </summary>
-        public Vector2Int NavigateStep
-        {
-            get
-            {
-                RefreshNavigate();
-                return navigateStep;
-            }
-        }
+        public Vector2Int NavigateStep => cardNavigate.Step;
 
         // ── BulletTimeSkillShot — 시전 위치 지정 ────────────
 
@@ -147,10 +137,8 @@ namespace Prototype
                 if (value) bulletTimeMap.Enable();
                 else bulletTimeMap.Disable();
 
-                // 다시 켠 첫 프레임은 기준값을 새로 잡고 넘어간다. 자세한 건 RefreshNavigate 참고.
-                navigateNeedsResync = true;
-                navigateFrame = -1;
-                navigateStep = Vector2Int.zero;
+                // 다시 켠 첫 프레임은 기준값을 새로 잡고 넘어간다. 자세한 건 NavigateLatch 참고.
+                cardNavigate?.Resync();
             }
         }
 
@@ -175,8 +163,32 @@ namespace Prototype
 
         // ── UI ──────────────────────────────────────────────
 
+        /// <summary>
+        /// 모달 안에서 이번 프레임에 <b>새로</b> 들어온 방향. 안 눌렸으면 (0, 0).
+        ///
+        /// <see cref="NavigateStep"/>과 같은 이산 규칙이다 — 누르고 있는 동안 매 프레임 넘어가면
+        /// 카드 석 장짜리 줄을 순식간에 지나친다.
+        ///
+        /// 손패의 WASD가 아니라 <b>화살표 · 게임패드</b>다. UI 맵은 전투 중에도 늘 켜져 있어서
+        /// 여기에 WASD를 물리면 이동키가 UI 포커스까지 움직인다
+        /// (<c>InputActionAssetTests.UINavigate_DoesNotUseWasd</c>).
+        /// </summary>
+        public Vector2Int UiNavigateStep => uiNavigate.Step;
+
+        /// <summary>Enter · 게임패드 남쪽 — 모달에서 지금 칸을 고른다.</summary>
+        public bool UiSubmitPressed => submitAction.WasPressedThisFrame();
+
         /// <summary>ESC — 창 닫기 · 뒤로.</summary>
         public bool CancelPressed => cancelAction.WasPressedThisFrame();
+
+        /// <summary>
+        /// 모달이 막 열렸다. 이미 눌려 있던 방향키는 첫 스텝으로 치지 않는다.
+        ///
+        /// UI 맵은 여닫지 않으므로 <see cref="BulletTimeMapEnabled"/>처럼 켜는 김에 맞출 자리가
+        /// 없다. 여는 쪽이 직접 부른다 — 안 부르면 창을 띄운 그 키를 쥔 손이
+        /// 커서를 한 칸 공짜로 밀고 들어간다.
+        /// </summary>
+        public void ResyncUiNavigate() => uiNavigate.Resync();
 
         /// <summary>
         /// 설정 화면 같은 모달이 떠 있는 동안 게임 조작을 잠근다.
@@ -243,9 +255,7 @@ namespace Prototype
             bulletTimeMap?.Disable();
             skillShotMap?.Disable();
 
-            navigateNeedsResync = true;
-            navigateFrame = -1;
-            navigateStep = Vector2Int.zero;
+            cardNavigate?.Resync();
         }
 
         private void OnDestroy()
@@ -274,7 +284,8 @@ namespace Prototype
             cardUseAction = gameplayMap.FindAction(InputActionNames.Gameplay.CardUse, throwIfNotFound: true);
             swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: true);
 
-            navigateAction = bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true);
+            cardNavigate = new NavigateLatch(
+                bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true));
 
             aimAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.Aim, throwIfNotFound: true);
             aimPointAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.AimPoint, throwIfNotFound: true);
@@ -283,35 +294,10 @@ namespace Prototype
             aimCancelAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.Cancel, throwIfNotFound: true);
 
             cancelAction = uiMap.FindAction(InputActionNames.UI.Cancel, throwIfNotFound: true);
-        }
+            submitAction = uiMap.FindAction(InputActionNames.UI.Submit, throwIfNotFound: true);
 
-        /// <summary>
-        /// 0에서 ±1로 넘어가는 순간만 잡는다. 대각선은 두 축이 함께 서므로
-        /// 어느 쪽을 먼저 볼지는 읽는 쪽이 정한다.
-        /// </summary>
-        private void RefreshNavigate()
-        {
-            if (navigateFrame == Time.frameCount) return;
-            navigateFrame = Time.frameCount;
-
-            Vector2 raw = navigateAction.ReadValue<Vector2>();
-            var now = new Vector2Int(Digital(raw.x), Digital(raw.y));
-
-            if (navigateNeedsResync)
-            {
-                // 맵이 막 켜진 프레임. 이미 눌려 있던 키는 "새로 눌렸다"로 치지 않는다 —
-                // 조준을 마치고 돌아오는 순간 W를 쥐고 있으면 곧바로 조준으로 되튄다.
-                navigateNeedsResync = false;
-                navigateStep = Vector2Int.zero;
-                lastNavigate = now;
-                return;
-            }
-
-            navigateStep = new Vector2Int(
-                now.x != 0 && now.x != lastNavigate.x ? now.x : 0,
-                now.y != 0 && now.y != lastNavigate.y ? now.y : 0);
-
-            lastNavigate = now;
+            uiNavigate = new NavigateLatch(
+                uiMap.FindAction(InputActionNames.UI.Navigate, throwIfNotFound: true));
         }
 
         /// <summary>
@@ -331,17 +317,86 @@ namespace Prototype
             return EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject();
         }
 
-        /// <summary>
-        /// 아날로그 값을 -1 · 0 · 1로 접는다. 문턱을 0.5로 두는 이유는
-        /// 정규화된 대각선(≈0.707)이 두 축 모두 서야 하기 때문이다.
-        /// </summary>
-        private static int Digital(float value)
-        {
-            const float Threshold = 0.5f;
-            if (value > Threshold) return 1;
-            if (value < -Threshold) return -1;
-            return 0;
-        }
+        // ── 이산 방향 ───────────────────────────────────────
 
+        /// <summary>
+        /// 방향 액션 하나를 <b>한 번 누르면 한 칸</b>으로 접는다.
+        ///
+        /// 값을 그대로 읽으면 누르고 있는 동안 매 프레임 넘어가 줄 끝까지 순식간에 지나간다.
+        /// 그래서 0에서 ±1로 <b>넘어가는 순간</b>만 잡는다.
+        ///
+        /// 프레임당 한 번만 계산하고 그 답을 물고 있는다 — 읽을 때마다 다시 계산하면
+        /// 같은 프레임에 두 번째로 읽는 쪽이 빈손으로 돌아간다.
+        ///
+        /// 손패(WASD)와 모달(화살표)이 같은 규칙을 쓰는데 액션도 맵도 다르다.
+        /// 그래서 필드로 흩어 놓지 않고 액션마다 하나씩 들고 있는다.
+        /// </summary>
+        private class NavigateLatch
+        {
+            private readonly InputAction action;
+
+            private Vector2Int last;
+            private Vector2Int step;
+            private int frame = -1;
+            private bool needsResync = true;
+
+            public NavigateLatch(InputAction action) => this.action = action;
+
+            public Vector2Int Step
+            {
+                get
+                {
+                    Refresh();
+                    return step;
+                }
+            }
+
+            /// <summary>
+            /// 다음 읽기에서 기준값을 새로 잡는다. 이미 눌려 있던 키는 "새로 눌렸다"로 치지 않는다 —
+            /// 조준을 마치고 돌아오는 순간 W를 쥐고 있으면 곧바로 조준으로 되튄다.
+            /// </summary>
+            public void Resync()
+            {
+                needsResync = true;
+                frame = -1;
+                step = Vector2Int.zero;
+            }
+
+            private void Refresh()
+            {
+                if (frame == Time.frameCount) return;
+                frame = Time.frameCount;
+
+                Vector2 raw = action.ReadValue<Vector2>();
+                var now = new Vector2Int(Digital(raw.x), Digital(raw.y));
+
+                if (needsResync)
+                {
+                    needsResync = false;
+                    step = Vector2Int.zero;
+                    last = now;
+                    return;
+                }
+
+                // 대각선은 두 축이 함께 선다. 어느 쪽을 먼저 볼지는 읽는 쪽이 정한다.
+                step = new Vector2Int(
+                    now.x != 0 && now.x != last.x ? now.x : 0,
+                    now.y != 0 && now.y != last.y ? now.y : 0);
+
+                last = now;
+            }
+
+            /// <summary>
+            /// 아날로그 값을 -1 · 0 · 1로 접는다. 문턱을 0.5로 두는 이유는
+            /// 정규화된 대각선(≈0.707)이 두 축 모두 서야 하기 때문이다.
+            /// </summary>
+            private static int Digital(float value)
+            {
+                const float Threshold = 0.5f;
+                if (value > Threshold) return 1;
+                if (value < -Threshold) return -1;
+                return 0;
+            }
+        }
     }
 }

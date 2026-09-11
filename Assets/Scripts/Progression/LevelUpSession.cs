@@ -2,6 +2,7 @@
 // GameplayModal은 이 화면과 DeckBuilderUI만 구현한다.
 
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ namespace Prototype
         private static readonly Color TitleColor = new Color(1f, 0.86f, 0.45f);
         private static readonly Color SubColor = new Color(0.75f, 0.78f, 0.82f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
+        private static readonly Color FocusColor = new Color(1f, 0.86f, 0.45f);
 
         private const float PanelWidth = 1120f;
         private const float PanelHeight = 620f;
@@ -41,6 +43,12 @@ namespace Prototype
         private const float TierGap = 40f;
 
         private const float OfferGap = 40f;
+
+        /// <summary>포커스 테두리가 칸 밖으로 내미는 두께.</summary>
+        private const float FocusPad = 7f;
+
+        /// <summary>단계 줄 다음 칸 — [나가기]. 줄 안 인덱스가 아니라 커서의 다른 상태다.</summary>
+        private const int NoTier = MenuCursor.None;
 
         // ── 씬에 하나 ────────────────────────────────────
 
@@ -84,6 +92,13 @@ namespace Prototype
         private Text offerTitle;
         private Text offerHint;
 
+        private Button exitButton;
+
+        // 포커스 테두리. 칸마다 하나씩 두지 않고 판마다 하나를 옮겨 붙인다 —
+        // 칸의 배경색은 잠금(단계)과 등급(카드)이 이미 쓰고 있어서 거기에 얹을 자리가 없다.
+        private GameObject tierFocus;
+        private GameObject offerFocus;
+
         private readonly Button[] tierButtons = new Button[ExpRules.TierCount];
         private readonly Text[] tierCostLabels = new Text[ExpRules.TierCount];
         private readonly Text[] tierChanceLabels = new Text[ExpRules.TierCount];
@@ -92,6 +107,15 @@ namespace Prototype
         private List<CardOffer> offers = new List<CardOffer>();
 
         private bool isOpen;
+
+        /// <summary>단계 줄에서 커서가 가리키는 칸. 쓸 수 있는 단계가 없으면 <see cref="NoTier"/>.</summary>
+        private int tierCursor;
+
+        /// <summary>커서가 [나가기]에 내려가 있는가. 단계 줄과 배타다.</summary>
+        private bool exitFocused;
+
+        /// <summary>카드 판에서 커서가 가리키는 칸.</summary>
+        private int offerCursor;
 
         /// <summary>이번 선택지를 뽑은 단계. 합성 표시와 안내 문구가 이 값을 읽는다.</summary>
         private int pendingTier = -1;
@@ -148,6 +172,13 @@ namespace Prototype
             root.SetActive(true);
             SetSuspended(true);
 
+            // 창을 띄운 그 손이 방향키를 쥐고 있어도 커서가 공짜로 한 칸 밀리지 않게 기준을 새로 잡는다.
+            PlayerInputController input = PlayerInputController.Instance;
+            if (input != null) input.ResyncUiNavigate();
+
+            tierCursor = 0;
+            exitFocused = false;
+
             ShowTiers();
         }
 
@@ -164,6 +195,139 @@ namespace Prototype
         {
             PlayerInputController input = PlayerInputController.Instance;
             if (input != null) input.GameplaySuspended = value;
+        }
+
+        // ── 키보드 ───────────────────────────────────────
+
+        /// <summary>
+        /// 뜬 판에 맞춰 방향 · 결정 · 취소를 읽는다. 마우스는 버튼의 <c>onClick</c>이 그대로 받으므로
+        /// 여기서는 커서만 본다 — 두 길이 같은 <c>PickTier</c> · <c>PickCard</c>로 들어간다.
+        /// </summary>
+        private void Update()
+        {
+            if (!isOpen) return;
+
+            ClearEventSystemSelection();
+
+            PlayerInputController input = PlayerInputController.Instance;
+            if (input == null) return;
+
+            if (offerPanel.activeSelf) HandleOfferInput(input);
+            else HandleTierInput(input);
+        }
+
+        /// <summary>
+        /// EventSystem의 선택은 <b>쓰지 않는다.</b> 그런데 버튼을 마우스로 한 번 누르면 그 버튼이
+        /// 선택된 채 남고, 그때부터 Enter 한 번이 <c>InputSystemUIInputModule</c>을 통해 그 버튼을,
+        /// 이 Update를 통해 커서가 가리키는 칸을 각각 눌러 한 프레임에 두 장이 들어온다.
+        /// 커서를 하나로 두는 값은 여기서 치른다.
+        /// </summary>
+        private static void ClearEventSystemSelection()
+        {
+            EventSystem events = EventSystem.current;
+            if (events == null || events.currentSelectedGameObject == null) return;
+
+            events.SetSelectedGameObject(null);
+        }
+
+        private void HandleTierInput(PlayerInputController input)
+        {
+            if (input.CancelPressed)
+            {
+                // 같은 프레임에 스테이지 쪽이 이 ESC를 메인 메뉴 복귀로도 읽지 않게 표를 남긴다.
+                GameplayModal.ConsumeCancel();
+                Close();
+                return;
+            }
+
+            Vector2Int step = input.UiNavigateStep;
+
+            // 위 · 아래를 먼저 본다. 대각선으로 눌리면 두 축이 함께 서는데,
+            // 줄을 옮기는 쪽이 같은 줄 안의 이동보다 우선이다.
+            if (step.y < 0 && !exitFocused)
+            {
+                exitFocused = true;
+                RefreshTierFocus();
+            }
+            else if (step.y > 0 && exitFocused && tierCursor != NoTier)
+            {
+                exitFocused = false;
+                RefreshTierFocus();
+            }
+            else if (step.x != 0 && !exitFocused)
+            {
+                int next = MenuCursor.Step(tierCursor, ExpRules.TierCount, step.x, TierUnlocked);
+                if (next != tierCursor)
+                {
+                    tierCursor = next;
+                    RefreshTierFocus();
+                }
+            }
+
+            if (!input.UiSubmitPressed) return;
+
+            if (exitFocused || tierCursor == NoTier) { Close(); return; }
+
+            PickTier(tierCursor);
+        }
+
+        private void HandleOfferInput(PlayerInputController input)
+        {
+            // 취소는 받지 않는다. 단계를 고른 그 순간 경험치가 이미 나갔으므로 돌아갈 자리가 없다.
+            Vector2Int step = input.UiNavigateStep;
+
+            if (step.x != 0)
+            {
+                int next = MenuCursor.Step(offerCursor, offers.Count, step.x, null);
+                if (next != offerCursor)
+                {
+                    offerCursor = next;
+                    RefreshOfferFocus();
+                }
+            }
+
+            if (input.UiSubmitPressed) PickCard(offerCursor);
+        }
+
+        /// <summary>커서가 얹힐 수 있는 단계인가. 잠긴 단계는 건너뛴다.</summary>
+        private static bool TierUnlocked(int tier) => Run.CanLevelUp(tier);
+
+        private void RefreshTierFocus()
+        {
+            RectTransform target = exitFocused || tierCursor == NoTier
+                ? (RectTransform)exitButton.transform
+                : (RectTransform)tierButtons[tierCursor].transform;
+
+            PlaceFocus(tierFocus, target);
+        }
+
+        private void RefreshOfferFocus()
+        {
+            if (offerCursor < 0 || offerCursor >= offers.Count)
+            {
+                offerFocus.SetActive(false);
+                return;
+            }
+
+            PlaceFocus(offerFocus, offerViews[offerCursor].Root);
+        }
+
+        /// <summary>
+        /// 테두리를 칸 자리로 옮기고 사방 <see cref="FocusPad"/>만큼 키운다.
+        /// 판의 첫 자식이라 칸보다 <b>뒤에</b> 그려지므로 내민 만큼만 띠로 보인다.
+        /// </summary>
+        private static void PlaceFocus(GameObject focus, RectTransform target)
+        {
+            if (focus == null || target == null) return;
+
+            focus.SetActive(true);
+
+            var rect = (RectTransform)focus.transform;
+            rect.anchorMin = target.anchorMin;
+            rect.anchorMax = target.anchorMax;
+            rect.pivot = target.pivot;
+            rect.anchoredPosition = target.anchoredPosition;
+            rect.sizeDelta = target.sizeDelta + new Vector2(FocusPad * 2f, FocusPad * 2f);
         }
 
         // ── ① 단계 고르기 ────────────────────────────────
@@ -193,6 +357,13 @@ namespace Prototype
                 var image = tierButtons[tier].targetGraphic as Image;
                 if (image != null) image.color = can ? TierColor : TierColor * 0.45f;
             }
+
+            // 방금 쓴 단계가 잠겼을 수 있다. 커서가 잠긴 칸에 얹힌 채로 남으면
+            // Enter를 눌러도 아무 일이 없어 입력이 죽은 것처럼 보인다.
+            tierCursor = MenuCursor.Clamp(tierCursor, ExpRules.TierCount, TierUnlocked);
+            if (tierCursor == NoTier) exitFocused = true;
+
+            RefreshTierFocus();
         }
 
         /// <summary>단계 버튼을 눌렀다. 경험치를 태우고 선택지를 짠다.</summary>
@@ -254,6 +425,10 @@ namespace Prototype
 
             Layout(offerViews, offers.Count, CardOfferView.Width, OfferGap, -30f);
 
+            // 자리를 잡은 뒤에 테두리를 얹는다 — Layout 전에는 칸의 anchoredPosition이 아직 0이다.
+            offerCursor = 0;
+            RefreshOfferFocus();
+
             offerHint.text = anyFuse
                 ? "★ 표시는 합성 — 고르면 들고 있던 같은 카드 2장이 사라지고 황금 1장이 된다"
                 : "한 장을 고른다";
@@ -308,6 +483,7 @@ namespace Prototype
         private void BuildTierPanel()
         {
             tierPanel = Panel("TierPanel", PanelWidth, PanelHeight * 0.72f);
+            tierFocus = Focus(tierPanel.transform);
 
             Text title = UiKit.CreateText(tierPanel.transform, "Title", "레벨 업", 44, TitleColor);
             UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(600f, 56f));
@@ -350,15 +526,20 @@ namespace Prototype
                 tierButtons[tier] = button;
             }
 
-            Button exit = UiKit.CreateButton(tierPanel.transform, "Exit", "나가기", ExitColor,
+            exitButton = UiKit.CreateButton(tierPanel.transform, "Exit", "나가기", ExitColor,
                 new Vector2(220f, 58f), 24);
-            exit.onClick.AddListener(Close);
-            UiKit.Place(exit, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(220f, 58f));
+            exitButton.onClick.AddListener(Close);
+            UiKit.Place(exitButton, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(220f, 58f));
+
+            Text keys = UiKit.CreateText(tierPanel.transform, "Keys",
+                "좌우 방향키  단계    아래 방향키  나가기    Enter  결정    ESC  닫기", 18, SubColor);
+            UiKit.Place(keys, new Vector2(0.5f, 0f), new Vector2(0f, 16f), new Vector2(900f, 26f));
         }
 
         private void BuildOfferPanel()
         {
             offerPanel = Panel("OfferPanel", PanelWidth, PanelHeight);
+            offerFocus = Focus(offerPanel.transform);
 
             offerTitle = UiKit.CreateText(offerPanel.transform, "Title", "", 34, TitleColor);
             offerTitle.supportRichText = true;
@@ -374,9 +555,26 @@ namespace Prototype
             }
 
             offerHint = UiKit.CreateText(offerPanel.transform, "Hint", "", 20, HintColor);
-            UiKit.Place(offerHint, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(1000f, 32f));
+            UiKit.Place(offerHint, new Vector2(0.5f, 0f), new Vector2(0f, 58f), new Vector2(1000f, 32f));
+
+            Text keys = UiKit.CreateText(offerPanel.transform, "Keys",
+                "좌우 방향키  이동    Enter  선택", 18, SubColor);
+            UiKit.Place(keys, new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(900f, 26f));
 
             offerPanel.SetActive(false);
+        }
+
+        /// <summary>
+        /// 포커스 테두리 한 장. <b>판의 첫 자식</b>이라야 칸보다 뒤에 그려져
+        /// 내민 만큼만 띠로 보인다 — 앞에 있으면 카드를 통째로 덮는다.
+        /// </summary>
+        private static GameObject Focus(Transform panel)
+        {
+            GameObject go = UiKit.CreateImage(panel, "Focus", FocusColor);
+            go.GetComponent<Image>().raycastTarget = false;
+            go.transform.SetAsFirstSibling();
+            go.SetActive(false);
+            return go;
         }
 
         private GameObject Panel(string name, float width, float height)
@@ -415,7 +613,21 @@ namespace Prototype
     /// </summary>
     public static class GameplayModal
     {
+        private static int cancelConsumedFrame = -1;
+
         public static bool IsOpen => LevelUpSession.IsOpen || DeckBuilderUI.IsOpen;
+
+        /// <summary>
+        /// 이번 프레임의 ESC를 모달이 이미 썼는가.
+        ///
+        /// <see cref="IsOpen"/>만으로는 모자란다 — 스크립트 실행 순서는 정해져 있지 않아서,
+        /// 모달이 ESC로 닫힌 프레임에 스테이지 쪽 Update가 <b>나중에</b> 돌면 이미 닫힌 창을 보고
+        /// "모달 없음 + ESC 눌림"으로 읽어 런을 통째로 버리고 메인 메뉴로 나간다.
+        /// </summary>
+        public static bool CancelConsumedThisFrame => cancelConsumedFrame == Time.frameCount;
+
+        /// <summary>모달이 ESC로 닫혔다. 닫기 <b>직전</b>에 부른다.</summary>
+        public static void ConsumeCancel() => cancelConsumedFrame = Time.frameCount;
     }
 
     // ══ DeckStartupMode ═══════════════════════════════════════════

@@ -77,7 +77,10 @@ namespace Prototype
         {
             if (isExiting || isRestarting) return;
 
-            if (WasEscapePressed())
+            // 전면 UI(레벨업 · 덱 편집)가 떠 있으면 ESC는 그 창의 것이다. 여기서 먼저 집어가면
+            // 카드를 고르는 도중 창을 닫으려던 한 번이 런을 통째로 버리고 메인 메뉴로 나간다.
+            // 창이 그 ESC로 방금 닫힌 프레임까지 봐야 한다 — 실행 순서가 정해져 있지 않다.
+            if (!GameplayModal.IsOpen && !GameplayModal.CancelConsumedThisFrame && WasEscapePressed())
             {
                 ExitToMainMenu();
                 return;
