@@ -105,8 +105,8 @@ BattleLogSettings   ← 프리팹에도 씬에도 없음. 사문화 (4절)
 | `BattleSceneController` · `CameraFollow` · `PartyHealthHUD` | **10** | Stage_01~05 · Boss · Mini · Training · SampleScene · Skill_test |
 | `PartySpawnPoint` | 9 | 위에서 Skill_test 제외 |
 | `EnemySpawnService` | 5 | Stage_01~05 |
-| `StageDirector` | 3 | Stage_01 · 03 · 04 (웨이브형) |
-| `ArenaDirector` · `ArenaGate` · `StageRunner` · `StageBounds` | 2 | Stage_02 · 05 (아레나형) |
+| `StageDirector` · `StageWaveBoard` | **5** | Stage_01~05 |
+| `EncounterSite` · `ArenaGate` · `StageRunner` · `StageBounds` | 2 | Stage_02 · 05 (아레나형) |
 | `TrainingDummy` | 2 | Stage_Training · Skill_test |
 | `GameManager` · `SceneLoader` · `AudioManager` · `UIManager` · `BootStrapper` · `RebindUI` · `ComboDamageHUD` | 1 | `Boot.unity` |
 | `MainMenuController` | 1 | `MainMenu.unity` |
@@ -114,9 +114,10 @@ BattleLogSettings   ← 프리팹에도 씬에도 없음. 사문화 (4절)
 > `PartyHealthHUD`가 씬 10곳에 뜨는 건 `BattleInput.prefab` 인스턴스가 각 씬에
 > 놓여 있기 때문이다. **실체는 프리팹 1곳.**
 
-> `StageDirector`(웨이브 3씬)와 `ArenaDirector`(아레나 2씬)가 겹치지 않는다 —
-> [Stage_Refactor_Plan.md](Stage_Refactor_Plan.md) 1절의 "둘로 갈린 이유"가
-> 배치로 확인된다.
+> 예전에는 `StageDirector`(웨이브 3씬)와 `ArenaDirector`(아레나 2씬)가 겹치지 않았다.
+> 그 둘이 하나로 합쳐지면서 지금은 **다섯 씬 전부 같은 디렉터**를 쓴다 —
+> 아레나라는 사실은 조우가 `EncounterSite`를 들고 있다는 것뿐이다.
+> [Stage_Encounter_Unification_Plan.md](Stage_Encounter_Unification_Plan.md) 참고.
 
 ---
 

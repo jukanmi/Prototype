@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 적 한 기를 실제로 세상에 내놓는 일. 웨이브(<see cref="StageDirector"/>)와
-    /// 라운드(<see cref="ArenaDirector"/>)가 같은 창구를 쓴다 —
+    /// 적 한 기를 실제로 세상에 내놓는 일. 방에서 나오든 벽에서 나오든
+    /// <see cref="StageDirector"/> 하나가 이 창구를 쓴다 —
     /// 소환 순서가 두 벌이 되면 한쪽만 레이어 배선이 빠지는 식으로 조용히 갈라진다.
     /// </summary>
     public class EnemySpawnService : MonoBehaviour
@@ -91,9 +91,9 @@ namespace Prototype
         /// <b>여기는 화면 밖 비행을 붙이지 않는다.</b> 이 경로는 이미 벽 안쪽
         /// (<see cref="ArenaSpawnPlanner.WallInset"/>)에서 시작해 정렬 순서로 벽 뒤에 숨어 있다 —
         /// "화면 밖에서 나온다"가 이미 성립한다. 비행을 얹어 봐야 벽에 가려 안 보이는 채로
-        /// 저작한 <c>spawnAt</c> 타이밍만 밀린다.
+        /// 저작한 등장 시각만 밀린다.
         /// </summary>
-        public Enemy SpawnFromWall(EnemyRole role, bool elite, in ArenaSpawnPlan plan)
+        public Enemy SpawnFromWall(EnemyRole role, bool elite, in SpawnPlacement plan)
         {
             Enemy enemy = Create(role, elite, plan.spawnPoint);
             if (enemy == null) return null;
@@ -103,6 +103,59 @@ namespace Prototype
             enemy.gameObject.AddComponent<EnemySpawnGuard>().Arm(plan.wall, plan.entryLine);
 
             Enter(enemy, plan.entryPoint, plan.holdSeconds);
+            return enemy;
+        }
+
+        /// <summary>
+        /// 방과 아레나의 <b>유일한 창구</b>. 등장 모션과 배치를 함께 보고 갈래를 고른다.
+        ///
+        /// 모션마다 메서드를 따로 두지 않는 이유는 이 클래스의 존재 이유와 같다 —
+        /// 소환 절차가 여러 벌이 되면 한쪽만 레이어나 억제 배선이 빠지고,
+        /// 증상은 "저 적만 이상하다"로만 보인다.
+        ///
+        /// <b>모션 하나로 갈래를 고르지 않는다.</b> 벽 진입은 배치가 실제로 벽을 들고 있어야
+        /// 성립한다 — 자세한 이유는 <see cref="SpawnRouteRules"/>에 적어 뒀다.
+        /// </summary>
+        public Enemy Spawn(EnemyRole role, bool elite, SpawnMotion motion, in SpawnPlacement place)
+        {
+            // 벽 진입으로 저작됐는데 좌표에 벽이 없다. 방 안의 줄에 이 모션을 찍으면 이렇게 된다.
+            // 소환을 건너뛰지는 않는다 — 안 나오면 그 조우가 영영 전멸하지 않는다.
+            if (SpawnRouteRules.IsMismatch(motion, place.FromWall))
+                BattleLog.Warn(LogCategory.State,
+                    $"{name}: 벽 없는 배치에 벽 진입이 박혀 있다 — 날아 들어오게 한다.", this);
+
+            switch (SpawnRouteRules.For(motion, place.FromWall))
+            {
+                case SpawnRoute.Wall:   return SpawnFromWall(role, elite, in place);
+                case SpawnRoute.Ground: return SpawnFromGround(role, elite, in place);
+                default:                return SpawnAtEdge(role, elite, in place);
+            }
+        }
+
+        /// <summary>
+        /// <b>땅속에서</b> 솟아오르는 소환. 제자리에서 올라오므로 화면 밖 비행이 없다.
+        ///
+        /// 예고는 여기서 안 띄운다. 표식은 몸보다 <b>먼저</b> 떠야 하는데 이 함수는 이미
+        /// 등장하는 순간에 불리기 때문이다 — <see cref="StageDirector"/>가 앞서 띄운다.
+        /// </summary>
+        public Enemy SpawnFromGround(EnemyRole role, bool elite, in SpawnPlacement place)
+        {
+            Enemy enemy = Create(role, elite, place.spawnPoint);
+            if (enemy == null) return null;
+
+            Vector3 entryPoint = place.entryPoint;
+            float hold = place.holdSeconds;
+
+            EntranceSpec spec = EntranceDirector.PlanBurrow(place.spawnPoint, BurrowRules.Seconds);
+            spec.onArrive = () => Enter(enemy, entryPoint, hold);
+
+            EntranceDirector.Play(enemy, in spec);
+
+            // Play 가 억제를 걸고 두 끝점을 계산했지만, <b>몸은 아직 착지점에 서 있다</b> —
+            // 실제로 내려가는 것은 다음 LateUpdate 다. 그래서 지금 읽는 높이가 곧 지면이다.
+            // 이쪽은 거기서 얼마나 올라왔을 때 배경 앞으로 꺼낼지만 본다.
+            enemy.gameObject.AddComponent<SpawnBurrow>().Arm(enemy.transform.position.y);
+
             return enemy;
         }
 

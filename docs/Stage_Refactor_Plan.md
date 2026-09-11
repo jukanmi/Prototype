@@ -1,6 +1,11 @@
 # Stage 리팩토링 계획 (캔버스 #9)
 
 작성 2026-09-06 · 대상 `Assets/Scripts/Stage/` — 30 파일 3,912 줄
+
+> **이 문서의 Arena 계열은 지난 이야기다.** `ArenaDirector` · `ArenaRound` ·
+> `ArenaRoundCatalog`는 이후 통합으로 전부 사라졌고, 아레나는 자리가 붙은 조우 한 종류가 됐다.
+> 아래 숫자와 표는 2026-09-06 시점의 실측이므로 그대로 둔다 —
+> 지금 상태는 [Stage_Encounter_Unification_Plan.md](Stage_Encounter_Unification_Plan.md)를 본다.
 상위 문서: [Refactor_Master_Plan.md](Refactor_Master_Plan.md)
 전제: **코드량 감소가 목표.** 프리팹·에디터 수작업이 늘어도 상관없다.
 프리팹/`.asset`에 붙는 MonoBehaviour·ScriptableObject는 유니티 MonoScript 규칙상
