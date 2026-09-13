@@ -127,8 +127,9 @@ namespace Prototype
         ///
         /// 원거리는 즉시 장판이든 투사체 도착 폭발이든 결국 radius만큼 터진다.
         /// 근거리만 예외 — 시전자 몸에 붙은 히트박스로 때린다.
+        /// 원거리라도 시전 범위를 적은 스킬(마나 스피어)은 전방 상자로 때리므로 근거리와 같은 경로다.
         /// </summary>
-        public bool UsesRadius => role != Role.Tanker && role != Role.Warrior;
+        public bool UsesRadius => role != Role.Tanker && role != Role.Warrior && !HasCastRange;
 
         /// <summary>
         /// 기다리지 않고 <b>시전 즉시</b> 기준점 반경이 터지는 스킬인지.
