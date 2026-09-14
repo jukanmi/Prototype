@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: "SK_AR낙우"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "낙우"
+  icon: {fileID: 0}
+  description: "허공을 향해 수십 발의 화살을 높이 쏘아 올려, 지정한 적 위치에 화살비가 쏟아져 내리며 다단 히트 피해를 입힌다."
+  role: 2
+  attackType: 2
+  requireState: 0
+  resultState: 1
+  castConeAngle: 0
+  fixedOrigin: 0
+  targeting: 0
+  radius: 2.5
+  targetPick: 0
+  castTime: 0.35
+  hitInterval: 0.08
+  recoveryTime: 0.4
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  detonateOnArrival: 0
+  install: 1
+  approachDistance: 8
+  hitDataList:
+  - damageData:
+      damage: 6
+    castDelay: 0
+    castRangeScale: {x: 3, y: 2, z: 2.5}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.15
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
+  - damageData:
+      damage: 6
+    castDelay: 0
+    castRangeScale: {x: 3, y: 2, z: 2.5}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.15
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
+  - damageData:
+      damage: 6
+    castDelay: 0
+    castRangeScale: {x: 3, y: 2, z: 2.5}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.15
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
+  - damageData:
+      damage: 6
+    castDelay: 0
+    castRangeScale: {x: 3, y: 2, z: 2.5}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.15
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
+  - damageData:
+      damage: 6
+    castDelay: 0
+    castRangeScale: {x: 3, y: 2, z: 2.5}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.15
+    debuff: 0
+    debuffDuration: 0
+    guardDamage: 0
+    snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  vfx:
+    custom: 0
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

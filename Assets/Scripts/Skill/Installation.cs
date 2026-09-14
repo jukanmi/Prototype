@@ -64,9 +64,19 @@ namespace Prototype
 
             HitData next = data.hitDataList[Fired];
             float end = Mathf.Max(0.01f, data.HitTime(data.hitDataList.Count - 1));
+            float progress = Mathf.Clamp01(timer / end);
 
-            range = AttackRangePreview.FromCircle(center, data.RadiusFor(in next) * ctx.RadiusScale,
-                                                  Mathf.Clamp01(timer / end));
+            if (next.HasCastRange && ctx.caster != null)
+            {
+                Vector3 hurtbox = ctx.caster.HurtboxSize;
+                Vector3 size = new Vector3(hurtbox.x * next.castRangeScale.x,
+                                           hurtbox.y * next.castRangeScale.y,
+                                           hurtbox.z * next.castRangeScale.z);
+                range = AttackRangePreview.FromBox(center, Vector3.forward, Vector3.zero, size, 0f, progress);
+                return true;
+            }
+
+            range = AttackRangePreview.FromCircle(center, data.RadiusFor(in next) * ctx.RadiusScale, progress);
             return true;
         }
 
@@ -98,9 +108,21 @@ namespace Prototype
             // 실체가 없으니 타격마다 한 번 번쩍여 "여기서 나갔다"를 보여 준다.
             BattleVfx.Cast(center, radius, in style);
 
-            // ponytail: 중심 높이는 지면 고정 — 띄운 적이 radius 밖으로 뜨면 빗나간다.
-            // 필요해지면 SkillState.FireArea처럼 대상 고도를 더한다.
-            int hits = EffectUtil.AreaStrike(center, radius, ctx.CasterCombat, in hit, in style);
+            int hits;
+            if (hit.HasCastRange && ctx.caster != null)
+            {
+                Vector3 hurtbox = ctx.caster.HurtboxSize;
+                Vector3 size = new Vector3(hurtbox.x * hit.castRangeScale.x,
+                                           hurtbox.y * hit.castRangeScale.y,
+                                           hurtbox.z * hit.castRangeScale.z);
+                hits = EffectUtil.BoxStrike(center, size, Vector3.forward, ctx.CasterCombat, in hit, in style);
+            }
+            else
+            {
+                // ponytail: 중심 높이는 지면 고정 — 띄운 적이 radius 밖으로 뜨면 빗나간다.
+                // 필요해지면 SkillState.FireArea처럼 대상 고도를 더한다.
+                hits = EffectUtil.AreaStrike(center, radius, ctx.CasterCombat, in hit, in style);
+            }
 
             Fired++;
 

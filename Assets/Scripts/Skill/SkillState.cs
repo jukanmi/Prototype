@@ -182,6 +182,16 @@ namespace Prototype
                 return true;
             }
 
+            if (data.install && hit.HasCastRange && ctx.caster != null)
+            {
+                Vector3 hurtbox = ctx.caster.HurtboxSize;
+                Vector3 size = new Vector3(hurtbox.x * hit.castRangeScale.x,
+                                           hurtbox.y * hit.castRangeScale.y,
+                                           hurtbox.z * hit.castRangeScale.z);
+                range = AttackRangePreview.FromBox(ctx.Origin, Vector3.forward, Vector3.zero, size, 0f, progress);
+                return true;
+            }
+
             if (data.IsAreaSkill)
             {
                 range = AttackRangePreview.FromCircle(ctx.Origin, BlastRadius(in hit), progress);
