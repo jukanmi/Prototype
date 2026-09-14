@@ -34,10 +34,36 @@ namespace Prototype
                  "타마다 선딜이 다른 스킬(연격 0.2 / 0.2 / 0.3)만 여기를 쓴다.")]
         public float castDelay;
 
-        [Header("시전 범위")]
-        [Tooltip("이 타만의 시전 범위 배수. 0이면 SkillData.castRangeScale로 떨어진다.\n\n" +
-                 "타마다 범위가 다른 스킬(연격 — 벨수록 위로 넓어진다)이 여기를 쓴다.")]
+        [Header("시전 범위 — 시전자 피격 범위 배수")]
+        [Tooltip("근접 히트박스의 크기를 시전자 피격 콜라이더에 대한 배수로 적는다.\n\n" +
+                 "· x — 가로(좌우 폭)\n" +
+                 "· y — 높이\n" +
+                 "· z — 세로(정면 깊이)\n\n" +
+                 "기획서 '시전 범위' 행을 그대로 옮기는 자리다. 셋 중 하나라도 0이면 프리팹 SkillHitbox 크기를 그대로 쓴다.\n" +
+                 "장판 · 투사체는 이 값을 보지 않는다 — 그쪽은 radius가 범위다.")]
         public Vector3 castRangeScale;
+
+        /// <summary>시전 범위를 직접 정한 타인지. 셋 중 하나라도 0이면 프리팹 기본값으로 떨어진다.</summary>
+        public bool HasCastRange => castRangeScale.x > 0f && castRangeScale.y > 0f && castRangeScale.z > 0f;
+
+        [Tooltip("전방 부채꼴로 판정할 각도(도). 0이면 박스 히트박스를 쓴다.\n\n" +
+                 "부채꼴일 때는 castRangeScale.x가 <b>반지름</b> 배수가 된다 — " +
+                 "기획서 '반지름 = 플레이어 가로 범위 * 4 / 각도 = 60'이 x=4, 각도 60이다.\n" +
+                 "사슬처럼 앞으로 길게 뻗되 옆으로는 안 닿아야 하는 판정에 쓴다.")]
+        [Range(0f, 360f)] public float castConeAngle;
+
+        /// <summary>전방 부채꼴로 때리는 타인지. 각도가 0이면 여전히 박스 히트박스다.</summary>
+        public bool IsCone => castConeAngle > 0f;
+
+        [Tooltip("타격 판정을 시전자 몸이 아니라 시전 시작 위치에 고정한다. " +
+                 "파고드는 스킬(일섬)이 쓴다 — 첫 타에 판정 깊이만큼 건너뛴 뒤 다단히트가 " +
+                 "터지므로, 몸을 따라가면 지나온 공간이 아니라 도착지만 벤다.")]
+        public bool fixedOrigin;
+
+        [Tooltip("이 타만의 원형 반경(유닛). 0이면 SkillData.radius로 떨어진다.\n" +
+                 "장판 · 투사체 폭발 · 설치기처럼 radius로 때리는 스킬만 본다 — \n" +
+                 "타마다 반경이 다른 스킬(조여드는 균열)이 여기를 쓴다.")]
+        public float radius;
 
         [Header("상태 전이")]
         [Tooltip("선행 조건. Neutral이면 조건 없음.")]

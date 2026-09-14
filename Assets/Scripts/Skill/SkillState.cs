@@ -81,7 +81,7 @@ namespace Prototype
             // 후속타는 Installation이 자기 시계로 설치 지점에서 낸다 — 불릿타임이면 다음 슬롯과 겹친다.
             if (data.install)
             {
-                Installation.Place(data, in ctx, ctx.Origin, BlastRadius);
+                Installation.Place(data, in ctx, ctx.Origin);
                 nextHitIndex = data.hitDataList.Count;   // Tick의 while이 안 돌고 EndTime에 finished
                 return;
             }
@@ -146,18 +146,18 @@ namespace Prototype
                 if (!data.detonateOnArrival || !TryGetArrivalPoint(in hit, out Vector3 aim)) return false;
 
                 aim.y = ctx.target.Physics.GroundPosition.y;
-                range = AttackRangePreview.FromCircle(aim, BlastRadius, progress);
+                range = AttackRangePreview.FromCircle(aim, BlastRadius(in hit), progress);
                 return true;
             }
 
-            if (data.IsCone)
+            if (hit.IsCone)
             {
                 Physics phys = ctx.CasterPhysics;
                 if (phys == null) return false;
 
-                float radius = ctx.caster.HurtboxSize.x * data.RangeScaleFor(in hit).x;
+                float radius = ctx.caster.HurtboxSize.x * hit.castRangeScale.x;
                 range = AttackRangePreview.FromCone(phys.GroundPosition, phys.Facing, radius,
-                                                     data.castConeAngle, progress);
+                                                     hit.castConeAngle, progress);
                 return true;
             }
 
@@ -166,8 +166,8 @@ namespace Prototype
                 Physics phys = ctx.CasterPhysics;
                 if (phys == null) return false;
 
-                Vector3 scale = data.RangeScaleFor(in hit);
-                if (scale.x <= 0f || scale.y <= 0f || scale.z <= 0f) return false;
+                if (!hit.HasCastRange) return false;
+                Vector3 scale = hit.castRangeScale;
 
                 // Attack.Resize와 같은 규약 — 상자는 몸 앞면(z = size.z * 0.5)에서 시작한다.
                 // 다르면 "표시 밖인데 맞았다"가 된다.
@@ -175,7 +175,7 @@ namespace Prototype
 
                 // 고정되는 건 <b>자리</b>뿐이다. 방향은 지금 보는 쪽을 그대로 쓴다 —
                 // 파고들 때 Face(dir)로 이미 진행 방향에 서고, 시전 중에는 아무도 몸을 돌리지 않는다.
-                Vector3 baseOrigin = data.fixedOrigin ? castOrigin : phys.GroundPosition;
+                Vector3 baseOrigin = hit.fixedOrigin ? castOrigin : phys.GroundPosition;
 
                 range = AttackRangePreview.FromBox(baseOrigin, phys.Facing,
                                                    new Vector3(0f, 0f, size.z * 0.5f), size, 0f, progress);
@@ -184,7 +184,7 @@ namespace Prototype
 
             if (data.IsAreaSkill)
             {
-                range = AttackRangePreview.FromCircle(ctx.Origin, data.radius * ctx.RadiusScale, progress);
+                range = AttackRangePreview.FromCircle(ctx.Origin, BlastRadius(in hit), progress);
                 return true;
             }
 
@@ -265,8 +265,9 @@ namespace Prototype
         /// <summary>
         /// 타격 반경. 즉시 장판이든 투사체 도착 폭발이든 같은 값을 쓴다 —
         /// 조준 링이 그리는 원이 곧 맞는 범위여야 한다.
+        /// 타별 반경(<see cref="HitData.radius"/>)이 있으면 그쪽, 없으면 스킬 공통값이다.
         /// </summary>
-        private float BlastRadius => data.radius * ctx.RadiusScale;
+        private float BlastRadius(in HitData hit) => data.RadiusFor(in hit) * ctx.RadiusScale;
 
         /// <summary>
         /// 공중 시전 자리. 수평으로는 <b>대상 좌표 그대로</b>, 수직으로는 대상 머리 위
@@ -352,7 +353,7 @@ namespace Prototype
             get
             {
                 if (data.IsRanged) return data.projectileRange;
-                if (IsAreaCaster) return BlastRadius;
+                if (IsAreaCaster) return data.radius * ctx.RadiusScale;
                 return data.ApproachDistance;
             }
         }
@@ -467,7 +468,7 @@ namespace Prototype
             // 고정 권적 스킬은 첫 타에 그 권적 끝까지 파고든다.
             // 거리를 따로 저작하지 않는다 — 판정 박스 깊이와 이동 거리가 가장 흔히 어긋나고,
             // 그러면 벤 자리와 선 자리가 달라진다.
-            if (data.fixedOrigin && nextHitIndex == 0 && ctx.caster != null)
+            if (hit.fixedOrigin && nextHitIndex == 0 && ctx.caster != null)
             {
                 Physics phys = ctx.CasterPhysics;
                 float depth = CastRange(in hit).z;
@@ -523,7 +524,7 @@ namespace Prototype
             if (attacker == null) return;
 
             SkillVfx style = data.vfx.AsSkill();
-            float r = BlastRadius;
+            float r = BlastRadius(in hit);
 
             // 띄운 대상은 발밑이 아니라 그 고도에서 터뜨린다. 발밑 구는 공중의 몸에 안 닿아
             // 공중 적을 노리는 장판(사슬 속박)이 정확히 고른 그 적을 헛친다. 지상 대상은 고도 0이라 그대로다.
@@ -541,10 +542,10 @@ namespace Prototype
         /// <summary>근접 — 시전자에게 붙은 히트박스를 켠다. 부채꼴 스킬은 히트박스를 안 쓴다.</summary>
         private void FireMelee(in HitData hit)
         {
-            if (data.IsCone) { FireCone(in hit); return; }
+            if (hit.IsCone) { FireCone(in hit); return; }
 
             // 고정 궤적 타격 — 시전자가 돌진으로 지나가도 시전 시작점 궤적에 남아 공간을 벤다.
-            if (data.fixedOrigin)
+            if (hit.fixedOrigin)
             {
                 Combat attacker = ctx.CasterCombat;
                 Physics phys = ctx.CasterPhysics;
@@ -593,12 +594,12 @@ namespace Prototype
                 : hit;
 
             SkillVfx style = data.vfx.AsSkill();
-            int hits = EffectUtil.ConeStrike(origin, phys.Facing, radius, data.castConeAngle,
+            int hits = EffectUtil.ConeStrike(origin, phys.Facing, radius, hit.castConeAngle,
                                              attacker, in swing, in style);
 
             if (hits == 0)
                 BattleLog.Log(LogCategory.Skill,
-                    $"  └ {data.skillName} 부채꼴 반지름 {radius:0.#} · {data.castConeAngle:0}도 안에 적 없음 — 헛침",
+                    $"  └ {data.skillName} 부채꼴 반지름 {radius:0.#} · {hit.castConeAngle:0}도 안에 적 없음 — 헛침",
                     ctx.caster);
         }
 
@@ -606,23 +607,22 @@ namespace Prototype
         private float ConeRadius(in HitData hit)
         {
             if (ctx.caster == null) return 0f;
-            return ctx.caster.HurtboxSize.x * data.RangeScaleFor(in hit).x;
+            return ctx.caster.HurtboxSize.x * hit.castRangeScale.x;
         }
 
         /// <summary>
         /// 이 타의 근접 히트박스 크기. 기획서는 범위를 <b>시전자 피격 범위의 배수</b>로 적으므로
-        /// 여기서 실제 유닛으로 편다. 범위를 안 적은 스킬은 0 — 프리팹 모양 그대로 간다.
+        /// 여기서 실제 유닛으로 편다. 범위를 안 적은 타는 0 — 프리팹 모양 그대로 간다.
         ///
-        /// 타마다 다른 범위를 허용한다(연격 — 벨수록 위로 넓어진다). 타별 값이 없으면
-        /// 스킬 공통값으로 떨어지므로 단타 스킬은 예전과 같다.
+        /// 범위는 타별이다(연격 — 벨수록 위로 넓어진다).
         /// </summary>
         private Vector3 CastRange(in HitData hit)
         {
             if (ctx.caster == null) return Vector3.zero;
 
-            Vector3 scale = data.RangeScaleFor(in hit);
-            if (scale.x <= 0f || scale.y <= 0f || scale.z <= 0f) return Vector3.zero;
+            if (!hit.HasCastRange) return Vector3.zero;
 
+            Vector3 scale = hit.castRangeScale;
             Vector3 hurtbox = ctx.caster.HurtboxSize;
 
             return new Vector3(hurtbox.x * scale.x, hurtbox.y * scale.y, hurtbox.z * scale.z);
@@ -674,7 +674,7 @@ namespace Prototype
             shot.Launch(ctx.caster.Combat, in hit,
                         phys.GroundPosition, dir,
                         data.projectileSpeed, range, data.projectilePierce,
-                        phys.WallMask, layer, in style, height, BlastRadius,
+                        phys.WallMask, layer, in style, height, BlastRadius(in hit),
                         data.detonateOnArrival);
         }
 

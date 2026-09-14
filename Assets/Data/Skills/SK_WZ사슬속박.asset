@@ -20,9 +20,6 @@ MonoBehaviour:
   attackType: 2
   requireState: 0
   resultState: 1
-  castRangeScale: {x: 0, y: 0, z: 0}
-  castConeAngle: 0
-  fixedOrigin: 0
   targeting: 0
   radius: 1.5
   targetPick: 2
@@ -42,6 +39,8 @@ MonoBehaviour:
       damage: 15
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
+    castConeAngle: 0
+    fixedOrigin: 0
     targetState: 0
     nextState: 1
     canOtg: 0

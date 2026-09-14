@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Prototype
@@ -15,10 +16,14 @@ namespace Prototype
     /// </summary>
     public class Installation : MonoBehaviour
     {
+        private static readonly List<Installation> live = new List<Installation>();
+
+        /// <summary>지금 서 있는 설치기 전부. <see cref="SkillRangeIndicator"/>가 범위를 그릴 때 훑는다.</summary>
+        public static IReadOnlyList<Installation> Live => live;
+
         private SkillData data;
         private SkillContext ctx;
         private Vector3 center;
-        private float radius;
         private float timer;
 
         /// <summary>지금까지 낸 타 수. 로그 · 테스트용.</summary>
@@ -26,7 +31,7 @@ namespace Prototype
 
         public bool IsDone => data == null || data.hitDataList == null || Fired >= data.hitDataList.Count;
 
-        public static Installation Place(SkillData data, in SkillContext ctx, Vector3 center, float radius)
+        public static Installation Place(SkillData data, in SkillContext ctx, Vector3 center)
         {
             var go = new GameObject($"[설치기] {data.skillName}");
             go.transform.position = center;
@@ -35,15 +40,35 @@ namespace Prototype
             inst.data = data;
             inst.ctx = ctx;
             inst.center = center;
-            inst.radius = radius;
+            live.Add(inst);
 
             BattleLog.Log(LogCategory.Skill,
-                $"  └ {data.skillName} 설치 — {center} 반경 {radius:0.#} · 후속 {data.hitDataList?.Count ?? 0}타", ctx.caster);
+                $"  └ {data.skillName} 설치 — {center} · 후속 {data.hitDataList?.Count ?? 0}타", ctx.caster);
 
             return inst;
         }
 
         private void Update() => Tick(TimeControl.DeltaTime);
+
+        private void OnDestroy() => live.Remove(this);
+
+        /// <summary>
+        /// 다음 타가 터질 자리. 시전자는 이미 풀려나 <see cref="SkillState.TryGetRangePreview"/>가
+        /// 못 그리므로 설치기가 직접 답한다 — 마지막 타까지 계속 보인다.
+        /// progress는 전체 타임라인 기준이라 원이 차오르는 속도가 곧 남은 시간이다.
+        /// </summary>
+        public bool TryGetRangePreview(out AttackRangePreview range)
+        {
+            range = default;
+            if (IsDone) return false;
+
+            HitData next = data.hitDataList[Fired];
+            float end = Mathf.Max(0.01f, data.HitTime(data.hitDataList.Count - 1));
+
+            range = AttackRangePreview.FromCircle(center, data.RadiusFor(in next) * ctx.RadiusScale,
+                                                  Mathf.Clamp01(timer / end));
+            return true;
+        }
 
         /// <summary>public인 이유는 에디트모드 테스트가 Update 없이 직접 펌프하기 위해서다.</summary>
         public void Tick(float dt)
@@ -64,6 +89,9 @@ namespace Prototype
 
             // 카드 배율(황금 카드)은 SkillState.FireNextHit와 같은 자리에서 곱한다.
             hit.damageData.damage *= ctx.DamageScale;
+
+            // 타별 반경 — 조여드는 균열처럼 타마다 다를 수 있다. 차징 배율도 같이 곱한다.
+            float radius = data.RadiusFor(in hit) * ctx.RadiusScale;
 
             SkillVfx style = data.vfx.AsSkill();
 

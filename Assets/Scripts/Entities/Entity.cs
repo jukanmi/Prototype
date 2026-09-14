@@ -218,7 +218,7 @@ namespace Prototype
         /// 이 몸의 <b>피격 범위</b> — 루트에 붙은 트리거 아닌 콜라이더의 크기.
         /// 기획서가 스킬 범위를 "플레이어 피격 가로 × 2"처럼 <b>배수로</b> 적으므로,
         /// 그 배수를 실제 유닛으로 바꾸려면 기준이 되는 이 값이 필요하다
-        /// (<see cref="SkillData.castRangeScale"/>).
+        /// (<see cref="HitData.castRangeScale"/>).
         ///
         /// 몸마다 다르다 — Player · Ally는 (1, 1, 1)이고 Enemy_Dummy는 (1.4, 2.28, 1.4)다.
         /// 상수로 박지 않고 콜라이더에서 읽는 이유가 그것이다.
