@@ -173,6 +173,16 @@ namespace Prototype
                 // 다르면 "표시 밖인데 맞았다"가 된다.
                 Vector3 size = Vector3.Scale(ctx.caster.HurtboxSize, scale);
 
+                // 대상 위치 기준 타격 (연환파쇄궁 2·3·4타 등):
+                // impactOffset이 지정되어 있으면 대상 적 위치를 중심으로 프리뷰 상자를 띄운다.
+                if (hit.HasTargetOrigin && ctx.target != null)
+                {
+                    Vector3 impactCenter = GetTargetImpactCenter(in hit);
+                    range = AttackRangePreview.FromBox(impactCenter, phys.Facing,
+                                                       Vector3.zero, size, 0f, progress);
+                    return true;
+                }
+
                 // 고정되는 건 <b>자리</b>뿐이다. 방향은 지금 보는 쪽을 그대로 쓴다 —
                 // 파고들 때 Face(dir)로 이미 진행 방향에 서고, 시전 중에는 아무도 몸을 돌리지 않는다.
                 Vector3 baseOrigin = hit.fixedOrigin ? castOrigin : phys.GroundPosition;
@@ -554,6 +564,23 @@ namespace Prototype
         {
             if (hit.IsCone) { FireCone(in hit); return; }
 
+            // impactOffset이 지정되어 있으면 시전자 앞이 아닌 대상 적 위치를 중심으로 BoxStrike를 친다.
+            if (hit.HasTargetOrigin && ctx.target != null)
+            {
+                Combat attacker = ctx.CasterCombat;
+                Physics phys = ctx.CasterPhysics;
+                if (attacker != null && phys != null)
+                {
+                    Vector3 range = CastRange(in hit);
+                    if (range == Vector3.zero && ctx.caster != null)
+                        range = ctx.caster.HurtboxSize;
+                    Vector3 center = GetTargetImpactCenter(in hit);
+                    SkillVfx targetStyle = data.vfx.AsSkill();
+                    EffectUtil.BoxStrike(center, range, phys.Facing, attacker, in hit, in targetStyle);
+                    return;
+                }
+            }
+
             // 고정 궤적 타격 — 시전자가 돌진으로 지나가도 시전 시작점 궤적에 남아 공간을 벤다.
             if (hit.fixedOrigin)
             {
@@ -689,6 +716,43 @@ namespace Prototype
         }
 
         /// <summary>
+        /// 모든 타격(투사체 도착 폭발 · 대상 기준 히트스캔 · 장판)의 공통 착탄/타격 위치.
+        /// 대상 정중앙 + 타별 impactOffset(대상 크기 배수). 대상이 없으면 ctx.Origin.
+        /// </summary>
+        private Vector3 GetImpactPoint(in HitData hit)
+        {
+            if (ctx.target != null && ctx.target.Physics != null)
+            {
+                Vector3 size = ctx.target.HurtboxSize;
+                Vector3 center = ctx.target.Physics.GroundPosition
+                    + Vector3.up * (ctx.target.Physics.Height + size.y * 0.5f);
+
+                return center + Vector3.Scale(hit.impactOffset, size);
+            }
+
+            return ctx.Origin;
+        }
+
+        /// <summary>
+        /// 대상 위치 기준 타격(BoxStrike)의 판정 중심.
+        /// 대상 위치 + 타별 impactOffset(대상 크기 배수).
+        /// BoxStrike의 높이 판정(GroundPosition.y + Height * 0.5f)에 맞춘다.
+        /// </summary>
+        private Vector3 GetTargetImpactCenter(in HitData hit)
+        {
+            if (ctx.target != null && ctx.target.Physics != null)
+            {
+                Vector3 size = ctx.target.HurtboxSize;
+                Vector3 center = ctx.target.Physics.GroundPosition
+                    + Vector3.up * (ctx.target.Physics.Height * 0.5f);
+
+                return center + Vector3.Scale(hit.impactOffset, size);
+            }
+
+            return ctx.Origin;
+        }
+
+        /// <summary>
         /// 도착 폭발의 탄착점 — 대상 히트박스 정중앙 + 타별 오프셋(히트박스 배수).
         /// 발사와 프리뷰가 같은 점을 봐야 "표시한 자리에서 터진다"가 성립한다.
         /// </summary>
@@ -697,10 +761,7 @@ namespace Prototype
             aim = default;
             if (ctx.target == null || ctx.target.Physics == null) return false;
 
-            Vector3 size = ctx.target.HurtboxSize;
-            aim = ctx.target.Physics.GroundPosition
-                + Vector3.up * (ctx.target.Physics.Height + size.y * 0.5f)
-                + Vector3.Scale(hit.impactOffset, size);
+            aim = GetImpactPoint(in hit);
             return true;
         }
 
