@@ -122,14 +122,25 @@ namespace Prototype
 
         public bool IsRanged => projectile != null;
 
+        [Header("설치기")]
+        [Tooltip("켜면 시전자는 <b>설치만 하고</b> castTime + recoveryTime 뒤에 풀려난다.
+
+" +
+                 "hitDataList는 설치 지점(조준 좌표, radius 반경)에서 HitTime 타임라인대로 알아서 터진다 — " +
+                 "불릿타임이면 다음 슬롯이 도는 동안 설치기가 겹쳐서 때린다.
+" +
+                 "실체는 없다. 기존 에셋은 이 키가 없어 false로 로드된다.")]
+        public bool install;
+
         /// <summary>
         /// <see cref="radius"/>가 곧 타격 범위인지. 조준 링과 헛침 경고가 진실인 스킬.
         ///
         /// 원거리는 즉시 장판이든 투사체 도착 폭발이든 결국 radius만큼 터진다.
         /// 근거리만 예외 — 시전자 몸에 붙은 히트박스로 때린다.
         /// 원거리라도 시전 범위를 적은 스킬(마나 스피어)은 전방 상자로 때리므로 근거리와 같은 경로다.
+        /// 설치기는 직업과 무관하게 설치 지점 반경으로 때린다.
         /// </summary>
-        public bool UsesRadius => role != Role.Tanker && role != Role.Warrior && !HasCastRange;
+        public bool UsesRadius => install || (role != Role.Tanker && role != Role.Warrior && !HasCastRange);
 
         /// <summary>
         /// 기다리지 않고 <b>시전 즉시</b> 기준점 반경이 터지는 스킬인지.
@@ -230,6 +241,10 @@ namespace Prototype
         {
             get
             {
+                // 설치기는 타격을 기다리지 않는다 — 시전자는 설치만 하고 풀려나고,
+                // 타격은 Installation이 자기 시계로 낸다.
+                if (install) return castTime + recoveryTime;
+
                 int last = Mathf.Max(0, (hitDataList?.Count ?? 0) - 1);
                 return HitTime(last) + recoveryTime;
             }

@@ -77,6 +77,15 @@ namespace Prototype
             EmitCastVfx();
             ApplyEffects();
 
+            // 설치기는 타격을 몸에서 떼어 낸다. 시전자는 EndTime(castTime + recoveryTime)에 풀려나고
+            // 후속타는 Installation이 자기 시계로 설치 지점에서 낸다 — 불릿타임이면 다음 슬롯과 겹친다.
+            if (data.install)
+            {
+                Installation.Place(data, in ctx, ctx.Origin, BlastRadius);
+                nextHitIndex = data.hitDataList.Count;   // Tick의 while이 안 돌고 EndTime에 finished
+                return;
+            }
+
             // 선딜이 없으면 즉시 첫 타를 낸다.
             if (nextHitTime <= 0f)
                 FireNextHit();
@@ -416,7 +425,8 @@ namespace Prototype
 
             // 때릴 게 아예 없는 스킬이면 마지막 타격이 영영 안 온다. 여기서 같이 내보낸다 —
             // 안 그러면 효과가 조용히 증발한다(검증이 hitDataList 비었다고 이미 경고하는 경우다).
-            if (data.hitDataList == null || data.hitDataList.Count == 0)
+            // 설치기도 같다 — 타격은 Installation이 내므로 이 상태에는 마지막 타격이 없다.
+            if (data.install || data.hitDataList == null || data.hitDataList.Count == 0)
                 ApplyLastHitEffects();
         }
 
