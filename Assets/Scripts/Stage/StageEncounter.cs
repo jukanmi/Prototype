@@ -74,4 +74,54 @@ namespace Prototype
         /// <summary>음수로 저작된 틈은 0으로 본다.</summary>
         public float GapSeconds => Mathf.Max(0f, gapSeconds);
     }
+
+    // ══ EncounterModifier ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 지도 칸이 조우에 거는 보정. <b>애셋을 복제해 고치지 않고, 소환 순간에 한 칸을 뒤집는다</b>(계획서 1.1).
+    ///
+    /// 웨이브 애셋은 씬 보드의 지점 이름에 묶여 있고 디렉터는 그걸 읽기만 한다 — 사본을 끼워 넣으면
+    /// "보드 목록이냐 주입 목록이냐"라는 두 번째 진실이 생긴다. 강화 배율은 이미 소환 창구에 있으므로
+    /// "이 한 기가 강화인가"만 정하면 충분하다.
+    /// </summary>
+    public readonly struct EncounterModifier
+    {
+        /// <summary>몇 번째마다 강화하는가. 0이면 보정 없음.</summary>
+        public readonly int EliteEvery;
+
+        public EncounterModifier(int eliteEvery) => EliteEvery = Mathf.Max(0, eliteEvery);
+
+        /// <summary>저작 그대로. 씬 단독 실행과 일반 전투 칸이 이것이다.</summary>
+        public static readonly EncounterModifier None = default;
+
+        public bool IsNone => EliteEvery <= 0;
+
+        public override string ToString() => IsNone ? "보정 없음" : $"{EliteEvery}기마다 강화";
+    }
+
+    /// <summary>보정의 판단. 순수 함수라 씬 없이 검증한다.</summary>
+    public static class EncounterModifierRules
+    {
+        /// <summary>정예 칸에서 강화가 붙는 간격 — 대략 세 기 중 한 기.</summary>
+        public const int EliteNodeEvery = 3;
+
+        /// <summary>칸 종류가 거는 보정. 정예만 보정이 있다.</summary>
+        public static EncounterModifier For(MapNodeKind kind)
+            => kind == MapNodeKind.Elite ? new EncounterModifier(EliteNodeEvery) : EncounterModifier.None;
+
+        /// <summary>
+        /// 이 한 기가 강화로 나오는가.
+        ///
+        /// <b>보스는 보정으로 강화하지 않는다.</b> 강화 배율은 역할을 가리지 않아서, 규칙이 안 막으면
+        /// 레시피에 보스 씬을 정예로 넣는 순간 체력 2.5배 보스가 나온다. 저작에서 직접 켠 강화는 그대로 둔다.
+        /// </summary>
+        /// <param name="ordinal">조우 안에서 몇 번째 줄인가(증원은 증원 번호). 0부터.</param>
+        public static bool IsElite(bool authored, EnemyRole role, int ordinal, in EncounterModifier modifier)
+        {
+            if (authored) return true;
+            if (role == EnemyRole.Boss || modifier.IsNone || ordinal < 0) return false;
+
+            return ordinal % modifier.EliteEvery == 0;
+        }
+    }
 }

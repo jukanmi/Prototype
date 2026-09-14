@@ -35,10 +35,15 @@ namespace Prototype
         /// <summary>체력 바가 실제로 그려지는 비율. 0~1.</summary>
         public float HealthFillRatio => healthFill != null ? healthFill.anchorMax.x : 0f;
 
+        /// <summary>프리팹이 정한 이름 색. 강화 개체를 비춘 뒤 일반 적으로 돌아올 때 되돌린다.</summary>
+        private Color defaultNameColor = Color.white;
+
         private void Awake()
         {
             if (panel == null || nameLabel == null || healthFill == null)
                 Warn();
+
+            if (nameLabel != null) defaultNameColor = nameLabel.color;
 
             // 프리팹은 판이 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
             SetVisible(false);
@@ -102,7 +107,13 @@ namespace Prototype
                 return;
             }
 
-            if (nameLabel != null) nameLabel.text = currentTarget.name;
+            if (nameLabel != null)
+            {
+                // 강화 개체는 글자로도 말한다. 발밑 고리는 모양 신호라 "강화"라는 뜻까지는 여기가 전한다.
+                bool elite = currentTarget.Owner is Enemy enemy && enemy.IsElite;
+                nameLabel.text = EliteMarkRules.HudName(currentTarget.name, elite);
+                nameLabel.color = elite ? EliteMarkRules.AuraColor : defaultNameColor;
+            }
             SetFillRatio(currentTarget.Health.Ratio);
         }
 

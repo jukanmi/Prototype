@@ -48,6 +48,20 @@ namespace Prototype
         public const string Stage04 = "Stage_04";
         public const string Stage05 = "Stage_05";
 
+        /// <summary>
+        /// 런 지도. 전투를 이기면 여기로 돌아와 다음 칸을 고른다(3단계부터).
+        /// 지금은 단독 실행 미리보기만 된다. 파일은 <c>Assets/Scenes/RunMap.unity</c>.
+        /// </summary>
+        public const string RunMap = "RunMap";
+
+        /// <summary>
+        /// 비전투 칸. 씬에는 <see cref="Prototype.NodeSceneController"/> 하나뿐이고,
+        /// 들어오자마자 창을 띄운다. 파일은 <c>Assets/Scenes/Node/</c> 아래에 있다.
+        /// </summary>
+        public const string NodeRest  = "Node_Rest";
+        public const string NodeShop  = "Node_Shop";
+        public const string NodeEvent = "Node_Event";
+
         /// <summary>본편 스테이지를 번호(1~5)로 얻는다. 범위 밖은 양끝으로 물린다.</summary>
         public static string Stage(int number)
         {

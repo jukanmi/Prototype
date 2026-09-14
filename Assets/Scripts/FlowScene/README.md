@@ -9,9 +9,14 @@
 앱 실행 → Boot (매니저 상주, 언로드 안 됨)
             └→ MainMenu Additive 로드
 
-MainMenu [시작]  → MainMenu 언로드 → SampleScene Additive 로드
-SampleScene [ESC] → SampleScene 언로드 → MainMenu Additive 로드
+MainMenu [시작]   → 지도 굴림(GameManager) → MainMenu 언로드 → RunMap Additive 로드
+RunMap 칸 선택    → RunMap 언로드 → 그 칸의 씬(Stage_* · Node_*) Additive 로드
+전투 승리 + 출구  → 전투 씬 언로드 → RunMap   (보스 층이면 전체 클리어 → MainMenu)
+Node_* [나가기]   → Node 씬 언로드 → RunMap
+전투 [ESC] · 지도 [메인 메뉴] → MainMenu
 ```
+
+런 지도 설계는 `docs/Run_Map_Plan.md`.
 
 "처음부터 재생"은 리셋 코드 없이 **씬을 새로 로드하는 것만으로** 보장된다.
 씬 파일에 저장된 초기 배치가 그대로 복원되기 때문이다.

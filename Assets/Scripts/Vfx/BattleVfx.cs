@@ -181,6 +181,8 @@ namespace Prototype
                 // 상태 게이지는 적뿐 아니라 아군도 그린다 — 내 보호막이 언제 풀리는지는
                 // 상대 경직만큼이나 급한 정보다.
                 go.AddComponent<StatusEffectBar>();
+                // 강화 개체 발밑 고리. 머리 위와 몸 색은 이미 꽉 차 있어 바닥에 둔다(EliteMarkRules).
+                go.AddComponent<EliteAura>();
                 // 표식 레이어. 소스를 같은 오브젝트에서 찾아 매 프레임 모아 그린다.
                 // 레이어를 먼저 얹어도 되고 나중이어도 된다 — 소스 탐색은 첫 LateUpdate에서 한다.
                 go.AddComponent<MarkerLayer>();

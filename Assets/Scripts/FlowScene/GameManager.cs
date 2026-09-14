@@ -5,10 +5,14 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 런(run) 단위 데이터와 <b>스테이지 진행</b>을 소유한다. 씬 오브젝트는 절대 참조하지 않는다.
+    /// 런(run) 단위 데이터와 <b>런 지도 위의 진행</b>을 소유한다. 씬 오브젝트는 절대 참조하지 않는다.
     /// 씬이 언로드되는 순간 그런 참조는 전부 무효가 되기 때문이다 —
-    /// 스테이지 전환도 씬 <b>이름</b>만 주고받는다.
+    /// 전환도 씬 <b>이름</b>만 주고받는다.
     /// Boot 씬에 상주하며 Boot 씬은 언로드되지 않으므로 DontDestroyOnLoad 는 쓰지 않는다.
+    ///
+    /// <b>흐름.</b> [시작] → 지도 굴림 → 지도 씬 → 칸 선택 → 그 칸의 씬 → 끝내면 지도 씬 → … → 보스.
+    /// 지도는 [시작] 순간 한 번 굴리고, 진행은 <see cref="RunMapProgress"/>의 값 두 개뿐이다.
+    /// 계획서: docs/Run_Map_Plan.md (3단계)
     ///
     /// 승패를 <b>판정</b>하는 것은 여기가 아니다. 그건 전투 상황을 봐야 하는 일이라
     /// <see cref="BattleSceneController"/> 가 맡고, 결론이 나면 여기 있는 전환을 부른다.
@@ -18,51 +22,16 @@ namespace Prototype
     {
         public static GameManager Instance { get; private set; }
 
-        /// <summary>
-        /// 스테이지 진행 순서. 이 순서가 곧 게임의 흐름이다.
-        ///
-        /// 역할군(전사 → 돌진전사 → 마법사)이 스테이지마다 늘어나는 순서라
-        /// 이 배열의 순서 자체가 학습 곡선이다.
-        ///
-        /// <b>2 · 5스테이지는 지형이 다르다</b> — 아레나 2개와 통로로 이뤄진 스크롤 스테이지다.
-        /// 5스테이지가 보스방이다. 나머지는 방 하나짜리다. 다섯 다 같은 디렉터가 돌리고,
-        /// 지형 규약은 <see cref="Prototype.StageWaveCatalog"/>에 있다.
-        ///
-        /// 예전 경로(미니 → SampleScene → 보스)는 <see cref="DebugStages"/>에 남겨 뒀다 —
-        /// 씬 하나만 띄워 감각을 보는 용도라 게임의 흐름과는 다른 물건이다.
-        /// </summary>
-        public static readonly string[] DefaultStages =
-        {
-            SceneNames.Stage01,
-            SceneNames.Stage02,
-            SceneNames.Stage03,
-            SceneNames.Stage04,
-            SceneNames.Stage05,
-        };
+        [Header("런 지도")]
+        [Tooltip("[시작]을 누를 때 굴릴 지도 레시피. 비어 있거나 검사에 걸리면 런이 안 열린다.\n\n" +
+                 "일렬 디버그 경로(미니 → SampleScene → 보스)는 RunMap_Debug 를 꽂는다.")]
+        [SerializeField] private RunMapRecipe recipe;
 
-        /// <summary>
-        /// 배치·전투 감각 확인용 짧은 경로. 웨이브 없이 씬에 놓인 적과 그대로 싸운다.
-        /// 인스펙터의 <c>stageScenes</c>에 손으로 넣어 쓴다.
-        /// </summary>
-        public static readonly string[] DebugStages =
-        {
-            SceneNames.StageMini,
-            SceneNames.Battle,
-            SceneNames.StageBoss,
-        };
-
-        /// <summary>
-        /// 인스펙터에서 바꿀 수 있는 진행 순서.
-        ///
-        /// <b>비어 있으면 <see cref="DefaultStages"/>로 채운다.</b> 이 필드가 생기기 전에 만들어진
-        /// Boot 씬의 GameManager 는 빈 배열로 역직렬화되는데, 그대로 두면 스테이지가 0개라
-        /// 게임이 시작조차 안 된다.
-        /// </summary>
-        [Tooltip("비우면 기본 순서(스테이지 1~5)로 채운다.")]
-        [SerializeField] private string[] stageScenes;
+        [Tooltip("0이면 [시작]마다 새 시드. 숫자를 넣으면 매번 같은 지도가 나온다 — 로그에 찍힌 시드로 재현할 때 쓴다.")]
+        [SerializeField] private int debugSeed;
 
         [Header("디버그 — 시작 덱")]
-        [Tooltip("런의 첫 전투에서 시작 덱을 어떻게 정할지. 두 번째 스테이지부터는 런 덱이 이어진다.\n\n" +
+        [Tooltip("런의 첫 전투에서 시작 덱을 어떻게 정할지. 두 번째 전투부터는 런 덱이 이어진다.\n\n" +
                  "· Party — 파티 장착 카드 16장. 게임의 실제 시작이다.\n" +
                  "· Empty — 테스트 모드. 0장으로 시작해 레벨업으로만 카드가 들어온다.\n" +
                  "· Pick  — 디버그 모드. 시작할 때 화면에서 카드를 직접 골라 짠다.\n\n" +
@@ -105,12 +74,30 @@ namespace Prototype
             Loadout = loadout;
         }
 
-        // ── 런 데이터 (프로토타입 단계 최소 구성)
-        public int  CurrentStageIndex { get; private set; }
-        public bool IsRunActive       { get; private set; }
+        // ── 런 데이터 ────────────────────────────────────
+
+        public bool IsRunActive { get; private set; }
+
+        /// <summary>이 런의 지도. 런이 없으면 null.</summary>
+        public RunMap Map => Progress != null ? Progress.Map : null;
+
+        /// <summary>지도 위 진행. 런이 없으면 null.</summary>
+        public RunMapProgress Progress { get; private set; }
+
+        public RunMapRecipe Recipe => recipe;
 
         /// <summary>
-        /// 경험치 · 레벨 · 런 덱. 씬 오브젝트가 아니라 여기가 들고 있어야
+        /// 레시피와 시드를 한 번에 꽂는다. <b>테스트가 들어오는 이음매</b>다 —
+        /// <see cref="StageWaveBoard.Configure(StageEncounter[])"/>와 같은 이유로 <c>SerializedObject</c>를 안 쓴다.
+        /// </summary>
+        public void Configure(RunMapRecipe mapRecipe, int seed)
+        {
+            recipe = mapRecipe;
+            debugSeed = seed;
+        }
+
+        /// <summary>
+        /// 경험치 · 레벨 · 런 덱 · 골드. 씬 오브젝트가 아니라 여기가 들고 있어야
         /// 스테이지를 넘어가도 레벨업으로 얻은 카드가 살아남는다.
         /// </summary>
         public RunProgression Run { get; } = new RunProgression();
@@ -122,9 +109,6 @@ namespace Prototype
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
-
-            if (stageScenes == null || stageScenes.Length == 0)
-                stageScenes = (string[])DefaultStages.Clone();
         }
 
         private void OnDestroy()
@@ -132,36 +116,53 @@ namespace Prototype
             if (Instance == this) Instance = null;
         }
 
-        // ── 스테이지 목록 ────────────────────────────────
+        // ── 지도 위 위치 ─────────────────────────────────
 
-        public IReadOnlyList<string> Stages => stageScenes;
-        public int StageCount => stageScenes != null ? stageScenes.Length : 0;
+        /// <summary>지금 들어가 있는 칸(전투 중 · 패배 후 재시작 대기). 없으면 null.</summary>
+        public MapNode CurrentNode => Progress != null ? Progress.PendingNode : null;
 
-        /// <summary>지금 있어야 할 스테이지의 씬 이름. 목록이 비면 null.</summary>
-        public string CurrentStageScene => StageAt(CurrentStageIndex);
+        /// <summary>사람에게 보여 줄 층 번호, 1부터. 런이 없으면 1.</summary>
+        public int FloorNumber => Progress != null ? Progress.FloorNumber : 1;
 
-        public bool HasNextStage => CurrentStageIndex + 1 < StageCount;
+        public int FloorCount => Map != null ? Map.FloorCount : 0;
 
-        /// <summary>다음 스테이지의 씬 이름. 마지막이면 null.</summary>
-        public string NextStageScene => HasNextStage ? StageAt(CurrentStageIndex + 1) : null;
+        /// <summary>
+        /// 지금 칸을 끝낸 뒤에 고를 칸이 남는가. 들어가 있는 칸이 보스 층이 아니면 참이다.
+        /// 거짓이면 이 칸을 깨는 것이 런의 끝이다.
+        /// </summary>
+        public bool HasNextNode => CurrentNode != null && CurrentNode.Floor < Map.LastFloor;
 
-        /// <summary>사람에게 보여줄 번호. 1부터 센다.</summary>
-        public int CurrentStageNumber => CurrentStageIndex + 1;
-
-        /// <summary>범위를 벗어난 번호는 양끝으로 물린다. 목록이 비면 null.</summary>
-        public string StageAt(int index)
-        {
-            if (StageCount == 0) return null;
-            return stageScenes[Mathf.Clamp(index, 0, StageCount - 1)];
-        }
+        /// <summary>지금 칸이 조우에 거는 보정. 칸이 없으면(씬 단독 실행 포함) 저작 그대로.</summary>
+        public EncounterModifier CurrentNodeModifier
+            => CurrentNode != null ? EncounterModifierRules.For(CurrentNode.Kind) : EncounterModifier.None;
 
         // ── 런 수명 ──────────────────────────────────────
 
-        /// <summary>메인화면 [시작] 클릭 시 호출. 런 상태를 초기값으로 되돌린다.</summary>
-        public void StartNewRun()
+        /// <summary>
+        /// 메인화면 [시작] 클릭 시 호출. 런 상태를 초기값으로 되돌리고 지도를 굴린다.
+        ///
+        /// <b>레시피가 없거나 굴리지 못하면 런을 안 연다.</b> 빈 목록을 기본값으로 채우던 옛 폴백은
+        /// 되살리지 않는다 — 조용한 폴백이 3 · 4스테이지를 1번 표로 돌렸다(<c>c325639f</c>).
+        /// </summary>
+        public bool StartNewRun()
         {
-            CurrentStageIndex = 0;
-            IsRunActive       = true;
+            if (recipe == null)
+            {
+                Debug.LogError("[GameManager] 런 지도 레시피가 비어 있다. 런을 열 수 없다.", this);
+                return false;
+            }
+
+            int seed = debugSeed != 0 ? debugSeed : Environment.TickCount;
+
+            if (!recipe.TryGenerate(seed, out RunMap map, out List<RunMapIssue> issues))
+            {
+                string why = issues.Count > 0 ? issues[0].Describe() : "";
+                Debug.LogError($"[GameManager] 지도를 굴리지 못했다(시드 {seed}, {recipe.name}) — {why}", this);
+                return false;
+            }
+
+            Progress = new RunMapProgress(map);
+            IsRunActive = true;
 
             // 메인화면에서 안 골랐으면 기본 조합으로 간다. 여기서 확정해 두면
             // 이후 스테이지의 PartyAssembler 는 매번 같은 답을 받는다.
@@ -171,13 +172,15 @@ namespace Prototype
 
             RestoreTime();
 
-            Debug.Log($"[GameManager] 새 런 시작 — 스테이지 1/{StageCount} ({CurrentStageScene})");
+            Debug.Log($"[GameManager] 새 런 — 시드 {seed} · {map.FloorCount}층 ({recipe.name})\n{map.Describe()}");
+            return true;
         }
 
         /// <summary>ESC 이탈 또는 패배 시 호출. 런 데이터를 폐기한다.</summary>
         public void EndRun()
         {
             IsRunActive = false;
+            Progress = null;
 
             RestoreTime();
 
@@ -186,62 +189,95 @@ namespace Prototype
 
         public void AddExp(int amount) => Run.AddExp(amount);
 
-        /// <summary>다음 칸으로 한 칸. 마지막에서는 더 가지 않는다.</summary>
-        public void AdvanceStage()
-        {
-            if (!HasNextStage) return;
-            CurrentStageIndex++;
-        }
-
-        // ── 스테이지 전환 ────────────────────────────────
-        // 전부 "지금 떠 있는 전투 씬 이름"을 받아 그 씬을 내리고 새 씬을 얹는다.
+        // ── 전환 ────────────────────────────────────────
+        // 전부 "지금 떠 있는 씬 이름"을 받아 그 씬을 내리고 새 씬을 얹는다.
         // 부르는 쪽이 자기 씬 이름을 아는 유일한 주체라, 여기서 상수로 짐작하지 않는다.
+        //
+        // <b>접수가 먼저, 상태 변경이 나중이다.</b> SceneLoader 가 거절했는데 진행만 바뀌면
+        // 지도에 서 있는데 "들어가 있는 칸"이 박혀 아무 칸도 못 고르는 상태가 된다.
 
-        /// <summary>다음 스테이지로 넘어간다. 마지막 스테이지였거나 전환 중이면 false.</summary>
-        public bool GoToNextStage(string fromScene, Action onComplete = null)
+        /// <summary>
+        /// 지도에서 칸을 고른다. 고를 수 없는 칸이거나 전환이 거절되면 거짓이고 진행은 그대로다.
+        ///
+        /// 씬이 빈 칸(휴식만 허용 — 계획서 2.1)은 씬을 안 열고 이 자리에서 회복한 뒤 끝낸다.
+        /// 그때 <paramref name="onComplete"/>는 안 불린다 — 전환이 없으니 부르는 쪽이 바로 다시 그린다.
+        /// </summary>
+        public bool EnterNode(int nodeId, string fromScene, Action onComplete = null)
         {
-            if (!CanSwap()) return false;
-            if (!HasNextStage)
+            if (Progress == null || !Progress.CanSelect(nodeId)) return false;
+
+            MapNode node = Map.Get(nodeId);
+
+            if (!node.HasScene)
             {
-                Debug.Log("[GameManager] 마지막 스테이지다. 넘어갈 곳이 없다.");
-                return false;
+                if (!RunMapRules.CanSkipScene(node.Kind))
+                {
+                    Debug.LogError($"[GameManager] 씬 없는 {node.Kind} 칸은 처리할 수 없다 — {node}", this);
+                    return false;
+                }
+
+                Progress.TrySelect(nodeId);
+                Run.Party.ChangeHp(NodeRules.RestHealRatio, Loadout != null ? Loadout.Members : null);
+                Progress.CompletePending();
+
+                Debug.Log($"[GameManager] {node.Floor + 1}층 {node} — 지도에서 바로 회복");
+                return true;
             }
 
-            AdvanceStage();
+            if (!CanSwap()) return false;
 
-            Debug.Log($"[GameManager] 스테이지 {CurrentStageNumber}/{StageCount} → {CurrentStageScene}");
-            Swap(CurrentStageScene, fromScene, onComplete);
+            Progress.TrySelect(nodeId);
+            IsRunActive = true;
+            RestoreTime();
+
+            Debug.Log($"[GameManager] {FloorNumber}층 / {FloorCount}층 → {node}");
+            Swap(node.Scene, fromScene, onComplete);
             return true;
         }
 
-        /// <summary>같은 스테이지를 처음부터. 패배 후 [재시작]이 부른다.</summary>
+        /// <summary>
+        /// 들어가 있던 칸을 끝내고 지도로 돌아간다. 전투 씬의 출구와 비전투 씬의 [나가기]가 부른다.
+        /// 들어가 있는 칸이 없거나 전환이 거절되면 거짓이다.
+        /// </summary>
+        public bool CompleteNodeAndReturnToMap(string fromScene, Action onComplete = null)
+        {
+            if (Progress == null || !Progress.HasPending) return false;
+            if (!CanSwap()) return false;
+
+            MapNode done = Progress.PendingNode;
+            Progress.CompletePending();
+
+            Debug.Log($"[GameManager] {done} 완료 → 지도");
+            Swap(SceneNames.RunMap, fromScene, onComplete);
+            return true;
+        }
+
+        /// <summary>
+        /// 같은 칸을 처음부터. 패배 후 [재시작]이 부른다.
+        /// 들어가 있는 칸은 끝나지 않았으므로 그대로 다시 열면 된다 — 되돌릴 진행이 없다.
+        /// </summary>
         public bool RestartCurrentStage(string fromScene, Action onComplete = null)
         {
             if (!CanSwap()) return false;
 
-            string target = CurrentStageScene;
-            if (string.IsNullOrEmpty(target)) return false;
+            MapNode node = CurrentNode;
+            if (node == null || !node.HasScene) return false;
 
-            // 스테이지 번호는 그대로 둔다 — "이 스테이지를 다시"이지 "처음부터"가 아니다.
             IsRunActive = true;
             RestoreTime();
 
-            Debug.Log($"[GameManager] 스테이지 {CurrentStageNumber} 재시작 — {target}");
-            Swap(target, fromScene, onComplete);
+            Debug.Log($"[GameManager] {node} 재시작");
+            Swap(node.Scene, fromScene, onComplete);
             return true;
         }
 
-        /// <summary>런을 버리고 첫 스테이지부터. 전투 씬 우상단 [처음부터]가 부른다.</summary>
+        /// <summary>런을 버리고 새 지도부터. 전투 씬 우상단 [처음부터]가 부른다.</summary>
         public bool RestartRun(string fromScene, Action onComplete = null)
         {
             if (!CanSwap()) return false;
+            if (!StartNewRun()) return false;
 
-            StartNewRun();
-
-            string target = CurrentStageScene;
-            if (string.IsNullOrEmpty(target)) return false;
-
-            Swap(target, fromScene, onComplete);
+            Swap(SceneNames.RunMap, fromScene, onComplete);
             return true;
         }
 

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5741b5b6187a5e945a5a035e2725cff6, type: 3}
+  m_Name: Event_Camp
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.RunEventAsset
+  title: "\uBC84\uB824\uC9C4 \uC57C\uC601\uC9C0"
+  body: "\uB204\uAD70\uAC00 \uAE09\uD788 \uB5A0\uB09C \uD754\uC801\uC774 \uB0A8\uC740
+    \uC57C\uC601\uC9C0\uB2E4. \uC9D0 \uB354\uBBF8 \uC0AC\uC774\uB85C \uBC18\uC9DD\uC774\uB294
+    \uAC83\uC774 \uBCF4\uC778\uB2E4."
+  choices:
+  - label: "\uC9D0\uC744 \uB4A4\uC9C4\uB2E4"
+    goldDelta: 40
+    hpDelta: -0.1
+    grantCard: 0
+    outcome: "\uAE08\uD654\uB97C \uCC59\uACBC\uC9C0\uB9CC \uB36B\uC5D0 \uC190\uC744
+      \uBCA0\uC600\uB2E4."
+  - label: "\uBD88\uAC00\uC5D0\uC11C \uC26C\uACE0 \uAC04\uB2E4"
+    goldDelta: 0
+    hpDelta: 0.15
+    grantCard: 0
+    outcome: "\uC7A0\uAE50\uC774\uC9C0\uB9CC \uD479 \uC26C\uC5C8\uB2E4."

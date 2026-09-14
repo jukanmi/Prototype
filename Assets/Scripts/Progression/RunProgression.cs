@@ -52,6 +52,13 @@ namespace Prototype
         public int Exp { get; private set; }
         public int Level { get; private set; } = ExpRules.FirstLevel;
 
+        /// <summary>
+        /// 런 골드. 스테이지를 클리어할 때 들어오고(<see cref="GoldRules.StageClearReward"/>)
+        /// 상점 · 이벤트 칸에서 나간다. <b>경험치와 따로 둔다</b> — 경험치는 레벨업 단계를 사는 돈이라
+        /// 둘을 한 주머니에 넣으면 상점에서 산 만큼 황금 확률이 줄어드는 교환이 생긴다.
+        /// </summary>
+        public int Gold { get; private set; }
+
         /// <summary>런 덱. 전투 씬이 뜰 때 이걸로 덱을 짠다.</summary>
         public IReadOnlyList<ComboCard> Cards => cards;
 
@@ -76,6 +83,30 @@ namespace Prototype
 
             Exp += amount;
             OnChanged?.Invoke();
+        }
+
+        // ── 골드 ────────────────────────────────────────
+
+        public void AddGold(int amount)
+        {
+            if (amount <= 0) return;
+
+            Gold += amount;
+            OnChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// 가진 만큼만 쓴다. 모자라면 한 푼도 안 빠지고 거짓이다 —
+        /// 음수 골드를 허용하면 "사지도 못한 카드 값이 빚으로 남는" 상태가 생긴다.
+        /// </summary>
+        public bool TrySpendGold(int amount)
+        {
+            if (amount < 0 || amount > Gold) return false;
+            if (amount == 0) return true;
+
+            Gold -= amount;
+            OnChanged?.Invoke();
+            return true;
         }
 
         public bool CanLevelUp(int tier) => ExpRules.CanAfford(Exp, Level, tier);
@@ -184,6 +215,7 @@ namespace Prototype
         public void Reset()
         {
             Exp = 0;
+            Gold = 0;
             Level = ExpRules.FirstLevel;
             Seeded = false;
             cards.Clear();
@@ -297,6 +329,94 @@ namespace Prototype
 
             BattleLog.Log(LogCategory.State,
                 $"{enemy.name} 처치 — 경험치 +{amount} (누적 {run.Exp}, Lv.{run.Level})", enemy);
+        }
+    }
+
+    // ══ GoldRules ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 골드의 <b>수치 전부</b> — 들어오는 값과 나가는 값. 순수 함수라 씬 없이 검증한다.
+    ///
+    /// <code>
+    ///   클리어 보상(n, 칸) = (40 + 10 × (n − 1)) × 배율     n = 1부터 세는 층 번호
+    ///   배율               = 정예 150% · 나머지 100%
+    ///   카드 값            = 일반 50 · 황금 100
+    /// </code>
+    ///
+    /// 1층 보상으로 카드 한 장을 못 산다. 두 판을 모아야 한 장이다 —
+    /// 매 판 한 장씩 사지면 상점이 레벨업 화면의 복사본이 된다.
+    ///
+    /// <b>정예 칸의 대가가 배율이다.</b> 더 어렵기만 하면 아무도 안 고른다. 150%면 3층 정예(90)가
+    /// 일반 전투(60)보다 카드 반 장 값을 더 준다 — "상점 앞에서 정예를 골라 한 장 더 산다"가 실제 선택이 된다.
+    /// 배율은 정수 백분율로 둔다. 기본 보상이 10 단위라 소수 없이 떨어지고, 부동소수점 올림 오차가 안 생긴다.
+    /// </summary>
+    public static class GoldRules
+    {
+        public const int BaseClearReward = 40;
+        public const int ClearRewardPerStage = 10;
+
+        /// <summary>정예 칸 클리어 보상 배율(%).</summary>
+        public const int EliteClearRewardPercent = 150;
+
+        public const int CardPrice = 50;
+        public const int GoldenCardPrice = 100;
+
+        /// <summary>
+        /// 그 층의 그 칸을 클리어하면 받는 골드. 1보다 작은 번호는 1로 본다.
+        ///
+        /// <b>칸 종류를 기본값 없이 받는다.</b> 번호만 받는 오버로드를 남기면 정예 칸에서 그걸 부르는 자리가
+        /// 조용히 일반 보상으로 돈다(Room_Size_Plan 2.3의 "기본값 폴백을 두지 않는다"와 같은 이유).
+        /// </summary>
+        public static int StageClearReward(int floorNumber, MapNodeKind kind)
+            => BaseReward(floorNumber) * ClearRewardPercent(kind) / 100;
+
+        /// <summary>칸 종류가 거는 보상 배율(%). 화면 설명(<c>RunMapViewRules.Describe</c>)도 이 값을 읽는다.</summary>
+        public static int ClearRewardPercent(MapNodeKind kind)
+            => kind == MapNodeKind.Elite ? EliteClearRewardPercent : 100;
+
+        private static int BaseReward(int floorNumber)
+            => BaseClearReward + ClearRewardPerStage * (Math.Max(1, floorNumber) - 1);
+
+        /// <summary>상점에서 이 선택지의 값. 합성 카드도 결과가 황금이라 황금 값이다.</summary>
+        public static int PriceOf(in CardOffer offer) => offer.golden ? GoldenCardPrice : CardPrice;
+    }
+
+    // ══ NodeRules ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 비전투 칸(휴식 · 상점 · 이벤트)의 수치와 판단. 창을 그리는 쪽(<c>NodeWindows</c>)은
+    /// 여기 값을 읽기만 한다.
+    /// </summary>
+    public static class NodeRules
+    {
+        /// <summary>휴식 칸에 들어가면 파티 전원이 회복하는 체력 비율.</summary>
+        public const float RestHealRatio = 0.3f;
+
+        /// <summary>
+        /// 상점 선택지의 황금 확률 단계. 레벨업 2단계와 같다(20%) —
+        /// 황금이 섞여야 값이 두 가지로 갈려 "무엇을 살까"가 선택이 된다.
+        /// </summary>
+        public const int ShopOfferTier = 1;
+
+        /// <summary>
+        /// 카드를 쓸 수 있는 직업들. <b>이번 런에서 죽은 동료의 직업은 뺀다.</b>
+        ///
+        /// 전투 씬은 몸을 보고 거르지만(<c>BulletTimeController.AvailableRoles</c>) 상점에는 몸이 없다.
+        /// 편성과 사망 기록으로 같은 답을 낸다 — 안 거르면 시전자가 없는 카드를 돈 주고 산다.
+        /// </summary>
+        public static List<Role> AvailableRoles(IReadOnlyList<PartyMemberData> roster, PartyState state)
+        {
+            var roles = new List<Role>(PartyLoadout.MaxMembers);
+            if (roster == null) return roles;
+
+            for (int i = 0; i < roster.Count; i++)
+            {
+                PartyMemberData m = roster[i];
+                if (m == null || (state != null && state.IsDead(m))) continue;
+                if (!roles.Contains(m.role)) roles.Add(m.role);
+            }
+
+            return roles;
         }
     }
 
@@ -454,6 +574,34 @@ namespace Prototype
             members[member] = dead
                 ? new MemberState(0f, true)
                 : new MemberState(Mathf.Clamp(hpRatio, 0.01f, 1f), false);
+        }
+
+        /// <summary>
+        /// 몸이 없는 곳(휴식 · 이벤트 칸)에서 파티 체력을 한꺼번에 올리거나 내린다.
+        /// 산 사람만 바뀌고, <b>죽은 동료는 그대로 죽어 있다</b>(영구 사망).
+        ///
+        /// <paramref name="roster"/>를 받는 이유 — 한 번도 기록되지 않은 동료(첫 스테이지 전)는
+        /// 이 표에 없어서 누구인지 알 수가 없다. 편성을 같이 받아야 그 동료도 깎인다.
+        /// 결과는 기록이 되므로 다음 전투의 <see cref="PartyAssembler"/>가 그대로 읽는다.
+        ///
+        /// 산 몸은 <b>0으로 떨어지지 않는다</b> — 이벤트가 동료를 죽이는 통로가 되면 안 된다.
+        /// </summary>
+        public void ChangeHp(float delta, IReadOnlyList<PartyMemberData> roster)
+        {
+            if (Mathf.Approximately(delta, 0f)) return;
+
+            HeroHpRatio = Mathf.Clamp(HeroHpRatio + delta, 0.01f, 1f);
+            HasSnapshot = true;
+
+            if (roster == null) return;
+
+            for (int i = 0; i < roster.Count; i++)
+            {
+                PartyMemberData m = roster[i];
+                if (m == null || IsDead(m)) continue;
+
+                Record(m, HpRatioOf(m) + delta, false);
+            }
         }
 
         /// <summary>

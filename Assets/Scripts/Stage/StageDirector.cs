@@ -119,10 +119,23 @@ namespace Prototype
 
         // ── 수명 ────────────────────────────────────────
 
+        /// <summary>
+        /// 지도 칸이 거는 보정(정예 칸이면 몇 기마다 강화). <see cref="Awake"/>에서 한 번 읽고 판 내내 안 바뀐다.
+        ///
+        /// <b>애셋은 안 건드린다.</b> 소환 예약을 만들 때 강화 여부 한 칸만
+        /// <see cref="EncounterModifierRules.IsElite"/>로 정한다(계획서 1.1). 그 판단을 부르는 곳이
+        /// 벽 · 방 · 증원 <b>세 군데</b>다 — 하나라도 빠지면 그 경로만 저작 그대로 돈다.
+        /// </summary>
+        private EncounterModifier modifier = EncounterModifier.None;
+
         private void Awake()
         {
             if (spawner == null) spawner = GetComponent<EnemySpawnService>();
             if (board == null) board = StageWaveBoard.Find();
+
+            // 씬 단독 실행(GameManager 없음)은 저작 그대로다. 다른 표로 도는 폴백이 아니라 "보정 없음"이다.
+            GameManager gm = GameManager.Instance;
+            modifier = gm != null ? gm.CurrentNodeModifier : EncounterModifier.None;
 
             encounters = FromBoard();
         }
@@ -168,7 +181,7 @@ namespace Prototype
             }
 
             Debug.Log($"[StageDirector] 스테이지 {stageNumber} — {StageWaveCatalog.ThemeOf(stageNumber)} " +
-                      $"(웨이브 {WaveCount}개)");
+                      $"(웨이브 {WaveCount}개, {modifier})");
 
             started = true;
             OpenOrWait(0);
@@ -298,7 +311,7 @@ namespace Prototype
                 pending.Add(new Pending
                 {
                     role = spawns[i].role,
-                    elite = spawns[i].elite,
+                    elite = EncounterModifierRules.IsElite(spawns[i].elite, spawns[i].role, i, in modifier),
                     motion = SpawnMotion.FromWall,
                     placement = place,
                     dueAt = place.appearAt,
@@ -337,7 +350,7 @@ namespace Prototype
                 pending.Add(new Pending
                 {
                     role = entry.role,
-                    elite = entry.elite,
+                    elite = EncounterModifierRules.IsElite(entry.elite, entry.role, i, in modifier),
                     motion = entry.motion,
                     placement = place,
                     dueAt = place.appearAt,
@@ -449,8 +462,12 @@ namespace Prototype
             WaveSpawnEntry entry = WaveSpawnEntry.Auto(wave.reinforceRole, SpawnSide.Both);
             SpawnPlacement place = WaveSpawnPlanner.PlanAuto(in entry, reinforcedSoFar, PlayerDepth());
 
-            Debug.Log($"[StageDirector] 증원 {reinforcedSoFar}/{wave.reinforceCap}");
-            Spawn(wave.reinforceRole, false, SpawnMotion.FlyIn, in place);
+            // 증원은 증원 번호로 센다(1부터) — 정예 칸이면 3번째 · 6번째 … 증원이 강화다.
+            // 첫 등장 줄 번호와 섞지 않는다. 증원은 예약이 다 풀린 뒤에만 돌아 겹칠 상대가 없다.
+            bool elite = EncounterModifierRules.IsElite(false, wave.reinforceRole, reinforcedSoFar, in modifier);
+
+            Debug.Log($"[StageDirector] 증원 {reinforcedSoFar}/{wave.reinforceCap}{(elite ? " (강화)" : "")}");
+            Spawn(wave.reinforceRole, elite, SpawnMotion.FlyIn, in place);
         }
 
         /// <summary>

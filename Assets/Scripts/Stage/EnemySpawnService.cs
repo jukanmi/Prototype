@@ -210,7 +210,7 @@ namespace Prototype
 
             // 대기실(비활성)에서 만든다 — 레이어를 맞추기 전에 Awake 가 돌면 안 된다.
             GameObject go = Instantiate(data.prefab, nursery);
-            go.name = elite ? $"{data.enemyId}_강화" : data.enemyId;
+            go.name = EliteMarkRules.ObjectName(data.enemyId, elite);
             go.transform.position = spawnPoint;
             go.transform.rotation = Quaternion.identity;
 

@@ -16,7 +16,7 @@ namespace Prototype
     /// </summary>
     public class BattleSceneController : MonoBehaviour
     {
-        [Tooltip("이 X좌표를 넘으면 다음 스테이지로 넘어간다. 방 오른쪽 벽이 x = 6이고 " +
+        [Tooltip("이긴 뒤 이 X좌표를 넘으면 지도로 돌아간다. 방 오른쪽 벽이 x = 6이고 " +
                  "몸통 반지름 때문에 실제로는 5.5 근처에서 막힌다.")]
         [SerializeField] private float exitX = 5f;
 
@@ -70,7 +70,13 @@ namespace Prototype
             TimeControl.Reset();
 
             GameManager gm = GameManager.Instance;
-            Debug.Log($"[Battle] 스테이지 시작 {gm.CurrentStageNumber}/{gm.StageCount} ({SceneName})");
+
+            // 지도를 거치지 않고 이 씬이 떴다. 승리하면 갈 칸이 없어 전체 클리어로 보인다 —
+            // Boot 에서 시작하면 생길 수 없는 상태라, 보이면 흐름이 어딘가 새고 있다는 뜻이다.
+            if (gm.CurrentNode == null)
+                Debug.LogWarning($"[Battle] 들어가 있는 지도 칸이 없다({SceneName}). 이기면 전체 클리어로 처리된다.");
+
+            Debug.Log($"[Battle] 전투 시작 {gm.FloorNumber}층 / {gm.FloorCount}층 ({SceneName}) — {gm.CurrentNodeModifier}");
         }
 
         private void Update()
@@ -104,8 +110,8 @@ namespace Prototype
             }
 
             // 이긴 뒤에는 출구만 본다. 진 뒤에는 버튼이 다음 행동을 정한다.
-            if (outcome == StageOutcome.Victory && GameManager.Instance.HasNextStage && ExitReached())
-                GoToNextStage();
+            if (outcome == StageOutcome.Victory && GameManager.Instance.HasNextNode && ExitReached())
+                ReturnToMap();
         }
 
         private void Judge()
@@ -160,12 +166,26 @@ namespace Prototype
             TimeControl.Reset();
 
             GameManager gm = GameManager.Instance;
-            Debug.Log($"[Battle] 스테이지 {gm.CurrentStageNumber} 클리어");
 
-            if (gm.HasNextStage)
+            // 판정이 난 순간 한 번 준다. 이 함수는 결과가 정해질 때 한 번만 불리고, 진 판에서
+            // 재시작해 이기면 그때 처음 받는다 — 같은 스테이지로 두 번 받는 경로가 없다.
+            // 층이 깊을수록 많이 받고, 정예 칸이면 배율이 붙는다. 같은 씬이라도 뒤층 · 정예에서 깨면 더 받는다.
+            // 들어가 있는 칸이 없으면(지도를 안 거친 씬 — BeginStage가 이미 경고했다) 일반 전투로 친다.
+            MapNodeKind kind = gm.CurrentNode != null ? gm.CurrentNode.Kind : MapNodeKind.Battle;
+            int gold = GoldRules.StageClearReward(gm.FloorNumber, kind);
+            RunProgression.Current.AddGold(gold);
+
+            Debug.Log($"[Battle] {gm.FloorNumber}층 {kind} 클리어 — 골드 +{gold} (누적 {RunProgression.Current.Gold})");
+
+            if (gm.HasNextNode)
             {
                 // 안내만 띄우고 조작은 막지 않는다. 걸어가야 넘어가는 방식이다.
-                resultUI?.ShowExitArrow($"다음: {gm.NextStageScene}");
+                // 배율은 보여 준다 — 정예를 고른 값을 받았다는 것이 화면에서 확인돼야 다음에도 고른다.
+                // 안내 칸은 폭 260이라 짧게 쓴다. ×는 기본 폰트에 글리프가 있다는 보장이 없어 x로 쓴다
+                // (CardOfferView의 "데미지 x1.5"와 같은 이유).
+                int percent = GoldRules.ClearRewardPercent(kind);
+                string bonus = percent != 100 ? $" (정예 x{percent / 100f:0.##})" : "";
+                resultUI?.ShowExitArrow($"골드 +{gold}{bonus} · 지도로");
                 return;
             }
 
@@ -178,7 +198,7 @@ namespace Prototype
             TimeControl.Reset();
             StopAllEnemies();
 
-            Debug.Log($"[Battle] 스테이지 {GameManager.Instance.CurrentStageNumber} 패배");
+            Debug.Log($"[Battle] {GameManager.Instance.FloorNumber}층 패배");
 
             restartUI?.SetVisible(false);
             resultUI?.ShowDefeat(RetryStage, ExitToMainMenu);
@@ -201,14 +221,14 @@ namespace Prototype
         /// 유령 전투가 된다. 접수된 뒤에 비우는 것은 안전하다: SwapTo 는 페이드부터 시작하므로
         /// 실제 언로드는 몇 프레임 뒤다.
         /// </summary>
-        private void GoToNextStage()
+        private void ReturnToMap()
         {
             if (isExiting || isRestarting) return;
 
             // 몸이 아직 씬에 있을 때 찍는다. 전환이 시작되면 물어볼 곳이 없다.
             CapturePartyState();
 
-            if (!GameManager.Instance.GoToNextStage(SceneName, OnBattleReloaded)) return;
+            if (!GameManager.Instance.CompleteNodeAndReturnToMap(SceneName, OnReturnedToMap)) return;
 
             isExiting = true;   // 전환이 끝날 때까지 이 씬의 판정을 멈춘다
             CleanupStage();
@@ -281,9 +301,9 @@ namespace Prototype
                 return;
             }
 
-            if (!GameManager.Instance.RestartRun(SceneName, OnBattleReloaded)) return;
+            if (!GameManager.Instance.RestartRun(SceneName, OnReturnedToMap)) return;
 
-            Debug.Log("[Battle] 런 초기화 — 첫 스테이지를 다시 올린다.");
+            Debug.Log("[Battle] 런 초기화 — 새 지도를 올린다.");
 
             isRestarting = true;
             CleanupStage();
@@ -326,6 +346,15 @@ namespace Prototype
         private static void OnBattleReloaded()
         {
             AudioManager.Instance?.PlayBattleBgm();
+        }
+
+        /// <summary>
+        /// 지도 씬이 올라온 뒤 도는 콜백. 이 시점에 this 는 이미 파괴돼 있다.
+        /// 지도는 메뉴 곡이다 — 전투 곡이 계속 돌면 "아직 싸우는 중"으로 들린다.
+        /// </summary>
+        private static void OnReturnedToMap()
+        {
+            AudioManager.Instance?.PlayMenuBgm();
         }
 
         /// <summary>

@@ -14,6 +14,9 @@ namespace Prototype
 
         public EnemyData Data => data;
 
+        /// <summary>강화 개체인가. <see cref="ApplyEliteScale"/>가 켠다. 표시(<see cref="EliteAura"/>)가 읽는다.</summary>
+        public bool IsElite { get; private set; }
+
         public override Faction Faction => Faction.Enemy;
 
         protected override void Awake()
@@ -67,12 +70,13 @@ namespace Prototype
         /// 강화 개체로 만든다. <see cref="ApplyData"/> <b>다음에</b> 불러야 한다 —
         /// ApplyData 가 표의 원본값으로 덮어쓰기 때문이다.
         ///
-        /// 몸집은 건드리지 않는다. 깊이 배율(<see cref="BeltScrollView"/>)이 매 프레임
-        /// localScale 을 다시 쓰므로 여기서 키우면 그대로 지워지고, 히트박스만 어긋난다.
-        /// 강화 개체는 이름과 체력 · 공격력으로 구분한다.
+        /// 몸집은 건드리지 않는다. 판정(루트 콜라이더)은 그대로라 커 보이는 가장자리를 때렸는데
+        /// 안 맞는 일이 생긴다. 화면 표시는 발밑 고리(<see cref="EliteAura"/>)와 적 체력 HUD 이름이 맡는다.
         /// </summary>
         public void ApplyEliteScale(float healthScale, float attackScale)
         {
+            IsElite = true;
+
             float hp = Mathf.Max(1f, healthScale);
             float atk = Mathf.Max(1f, attackScale);
 

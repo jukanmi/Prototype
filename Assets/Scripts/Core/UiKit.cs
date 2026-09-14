@@ -37,6 +37,12 @@ namespace Prototype
         /// <summary>메인화면 파티 편성.</summary>
         public const int PartySelect = 50;
 
+        /// <summary>
+        /// 휴식 · 상점 · 이벤트 칸의 창. 그 씬에는 전투 HUD가 없어서 겹칠 상대가 없다 —
+        /// 값은 편성 화면과 같은 "혼자 뜨는 전면 창" 자리다.
+        /// </summary>
+        public const int NodeWindow = 50;
+
         /// <summary>인게임 [처음부터] 버튼.</summary>
         public const int BattleRestart = 100;
 

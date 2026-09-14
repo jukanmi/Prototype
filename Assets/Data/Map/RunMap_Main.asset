@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e0b21b81a6fcb4da28a75d4a7dcd46, type: 3}
+  m_Name: RunMap_Main
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.RunMapRecipe
+  floors:
+  - minNodes: 1
+    maxNodes: 1
+    candidates:
+    - scene: Stage_01
+      kind: 0
+      weight: 1
+  - minNodes: 2
+    maxNodes: 2
+    candidates:
+    - scene: Stage_02
+      kind: 0
+      weight: 1
+    - scene: Stage_03
+      kind: 0
+      weight: 1
+  - minNodes: 2
+    maxNodes: 3
+    candidates:
+    - scene: Stage_03
+      kind: 0
+      weight: 2
+    - scene: Stage_04
+      kind: 0
+      weight: 2
+    - scene: Stage_01
+      kind: 1
+      weight: 1
+    - scene: Node_Event
+      kind: 4
+      weight: 1
+  - minNodes: 2
+    maxNodes: 2
+    candidates:
+    - scene: Node_Rest
+      kind: 2
+      weight: 1
+    - scene: Node_Shop
+      kind: 3
+      weight: 1
+    - scene: Stage_04
+      kind: 1
+      weight: 1
+    - scene: Stage_03
+      kind: 1
+      weight: 1
+  - minNodes: 1
+    maxNodes: 1
+    candidates:
+    - scene: Stage_05
+      kind: 5
+      weight: 1

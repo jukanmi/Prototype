@@ -58,23 +58,16 @@ namespace Prototype
                 return;
             }
 
-            gm.StartNewRun();
+            // 지도를 못 굴리면(레시피 미배선 · 검사 실패) GameManager 가 이유를 에러로 남기고 거짓을 준다.
+            if (!gm.StartNewRun()) return;
 
-            // 어느 씬을 여는지는 GameManager 의 스테이지 목록이 정한다.
-            // 여기서 상수로 박으면 첫 스테이지를 바꿀 때 고칠 곳이 둘이 된다.
-            string first = gm.CurrentStageScene;
-            if (string.IsNullOrEmpty(first))
-            {
-                Debug.LogError("[MainMenu] 스테이지 목록이 비어 있다.");
-                return;
-            }
-
-            // onComplete 는 배틀 씬 로드 완료 시점에 불린다. 그때 이 컴포넌트는 이미 파괴된 뒤다.
+            // 첫 전투가 아니라 지도로 간다. 무엇과 먼저 싸울지는 지도의 0층이 정한다.
+            // onComplete 는 지도 씬 로드 완료 시점에 불린다. 그때 이 컴포넌트는 이미 파괴된 뒤다.
             // 그래서 콜백 안에서 this 의 필드를 참조하면 안 된다 — 싱글톤만 만진다.
             SceneLoader.Instance.SwapTo(
-                loadScene:   first,
+                loadScene:   SceneNames.RunMap,
                 unloadScene: SceneNames.MainMenu,
-                onComplete:  () => AudioManager.Instance?.PlayBattleBgm());
+                onComplete:  () => AudioManager.Instance?.PlayMenuBgm());
         }
 
         private void OnQuitClicked()

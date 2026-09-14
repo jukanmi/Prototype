@@ -10,7 +10,7 @@ namespace Prototype
     /// 초기화 자체는 여기서 하지 않는다. 확인 버튼은
     /// <see cref="BattleSceneController.RestartStage"/> 로만 넘긴다.
     ///
-    /// "처음부터"는 <b>런 전체</b>를 뜻한다 — 첫 스테이지로 돌아간다.
+    /// "처음부터"는 <b>런 전체</b>를 뜻한다 — 새 지도를 굴려 지도 씬으로 돌아간다.
     /// 진 스테이지만 다시 하는 것은 <see cref="StageResultUI"/> 의 [이 스테이지 재시작] 쪽이다.
     /// </summary>
     public class BattleRestartUI : MonoBehaviour
@@ -118,7 +118,7 @@ namespace Prototype
             UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(520f, 60f));
 
             Text note = UiKit.CreateText(panel.transform, "Note",
-                                            "첫 스테이지로 돌아가며 진행 상황은 모두 사라진다.", 17, NoteColor);
+                                            "새 지도로 다시 시작하며 진행 상황은 모두 사라진다.", 17, NoteColor);
             UiKit.Place(note, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(520f, 30f));
 
             confirmButton = UiKit.CreateButton(panel.transform, "Btn_Confirm", "재시작", ConfirmColor,
