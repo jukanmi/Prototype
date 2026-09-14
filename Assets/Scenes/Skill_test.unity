@@ -166,7 +166,7 @@ PrefabInstance:
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: 'fixedHand.Array.data[1]'
       value: 
-      objectReference: {fileID: 11400000, guid: 9ba8c7cc87c6c9040a39584e3323745a, type: 2}
+      objectReference: {fileID: 11400000, guid: 1d32486380e276c45b77497ac572d2c0, type: 2}
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: 'fixedHand.Array.data[2]'
       value: 
@@ -1087,6 +1087,7 @@ MonoBehaviour:
     debuffDuration: 0
     guardDamage: 0
     snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
   impactVfx: 1
 --- !u!114 &643710686 stripped
 MonoBehaviour:
