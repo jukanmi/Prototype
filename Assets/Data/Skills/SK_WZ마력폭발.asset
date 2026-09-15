@@ -1,0 +1,70 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: "SK_WZ마력폭발"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uB9C8\uB825\uD3ED\uBC1C"
+  icon: {fileID: 0}
+  description: "\uC8FC\uC704\uC758 \uC801\uC5D0\uAC8C \uD53C\uD574\uB97C \uC8FC\uBA70 \uC790\uC2E0\uC5D0\uAC8C\uC11C \uBA40\uB9AC \uBC00\uCE5C\uB2E4."
+  role: 3
+  attackType: 3
+  requireState: 0
+  resultState: 3
+  targeting: 0
+  radius: 3
+  targetPick: 0
+  castTime: 0.2
+  hitInterval: 0.1
+  recoveryTime: 0.35
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  approachDistance: 100
+  hitDataList:
+  - damageData:
+      damage: 10
+    castDelay: 0
+    castRangeScale: {x: 3, y: 1.1, z: 3}
+    castConeAngle: 360
+    fixedOrigin: 0
+    stepDistance: 0
+    targetState: 0
+    nextState: 3
+    canOtg: 0
+    mode: 2
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 4
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.35
+    guardDamage: 0
+    snapZ: 0
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  vfx:
+    custom: 0
+    impact: {r: 1, g: 0.86, b: 0.45, a: 1}
+    shock: {r: 1, g: 0.55, b: 0.3, a: 0.75}
+    scale: 1
+    castClip: {fileID: 0}
+    hitClip: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []
