@@ -16,11 +16,13 @@ namespace Prototype
     {
         [SerializeField] private BulletTimeController bulletTime;
         [SerializeField] private TagSwapController swap;
+        [SerializeField] private PlayerPilot pilot;
 
         private void Awake()
         {
             if (bulletTime == null) bulletTime = FindAnyObjectByType<BulletTimeController>();
             if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
+            if (pilot == null) pilot = FindAnyObjectByType<PlayerPilot>();
         }
 
         /// <summary>
@@ -44,6 +46,10 @@ namespace Prototype
                 if (input.CardUsePressed)
                     bulletTime.UseTopCard();
             }
+
+            // Z — 현재 조작 중인 캐릭터 고유 스킬 즉시 사용.
+            if (input.UniqueSkillPressed && pilot != null && pilot.Body is Ally currentAlly)
+                currentAlly.CastUniqueSkill();
 
             // F — 태그 교대. 쿨타임과 "실시간에서만" 판정은 SwapNext가 직접 본다.
             if (swap != null && input.SwapPressed)

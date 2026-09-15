@@ -147,6 +147,34 @@ namespace Prototype.Tests
             Assert.That(hit.pushDistance, Is.EqualTo(4f), "밀치기 거리는 4유닛이어야 한다");
         }
 
+        [Test]
+        public void Ally_CastUniqueSkill_TriggersSkillAndAppliesCooldown()
+        {
+            var go = new GameObject("WarriorAlly", typeof(Rigidbody), typeof(Physics), typeof(Combat), typeof(Ally));
+            spawned.Add(go);
+            var ally = go.GetComponent<Ally>();
+
+            var skill = ScriptableObject.CreateInstance<SkillData>();
+            skill.skillName = "비켜!";
+            skill.cooldown = 5f;
+            assets.Add(skill);
+
+            var partyData = ScriptableObject.CreateInstance<PartyMemberData>();
+            partyData.role = Role.Warrior;
+            partyData.uniqueSkill = skill;
+            assets.Add(partyData);
+
+            ally.ApplyData(partyData);
+
+            Assert.That(ally.UniqueSkill, Is.EqualTo(skill), "PartyMemberData의 uniqueSkill이 연결되어야 한다");
+            Assert.That(ally.CanCastUniqueSkill, Is.True, "초기 상태에서는 고유 스킬을 사용할 수 있어야 한다");
+
+            bool casted = ally.CastUniqueSkill();
+            Assert.That(casted, Is.True, "고유 스킬 시전이 성공해야 한다");
+            Assert.That(ally.UniqueSkillCooldownRemaining, Is.EqualTo(5f).Within(0.01f), "시전 후 쿨타임이 적용되어야 한다");
+            Assert.That(ally.CanCastUniqueSkill, Is.False, "쿨타임 중에는 고유 스킬을 재사용할 수 없어야 한다");
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────
 
         private Entity CreateDummy(string name, Vector3 pos, Vector3 facing)
