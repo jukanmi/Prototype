@@ -489,31 +489,55 @@ namespace Prototype
             // 거리를 따로 저작하지 않는다 — 판정 박스 깊이와 이동 거리가 가장 흔히 어긋나고,
             // 그러면 벤 자리와 선 자리가 달라진다.
             if (hit.fixedOrigin && nextHitIndex == 0 && ctx.caster != null)
+            // 시전자 이동 (일섬 파고들기, 백스탭, 돌진 등).
+            // stepDistance가 지정되어 있으면 그 거리만큼 이동하고,
+            // 레거시 호환으로 stepDistance == 0이어도 fixedOrigin 첫 타면 기존처럼 판정 깊이만큼 파고든다.
+            float stepDist = hit.stepDistance;
+            if (Mathf.Approximately(stepDist, 0f) && hit.fixedOrigin && nextHitIndex == 0)
+                stepDist = CastRange(in hit).z;
+
+            if (Mathf.Abs(stepDist) > 0.001f && ctx.caster != null)
             {
                 Physics phys = ctx.CasterPhysics;
                 float depth = CastRange(in hit).z;
 
                 if (phys != null && depth > 0f)
+                if (phys != null)
                 {
                     Vector3 dir = phys.Facing;
+                    Vector3 baseDir = phys.Facing;
                     if (ctx.target != null && ctx.target.Physics != null)
                     {
                         Vector3 toTarget = ctx.target.Physics.GroundPosition - phys.GroundPosition;
                         toTarget.y = 0f;
                         if (toTarget.sqrMagnitude > 0.0001f)
                             dir = toTarget.normalized;
+                            baseDir = toTarget.normalized;
                     }
+
+                    // 양수(+)면 전방/대상 방향, 음수(-)면 후방(백스탭)
+                    Vector3 moveDir = stepDist > 0f ? baseDir : -baseDir;
+                    float targetDistance = Mathf.Abs(stepDist);
 
                     // 밀어내는 게 아니라 건너뛴다. 충격량으로 파고들면 솔버가 시전자 몸으로
                     // 적을 같이 밀어버린다 — 베고 지나가는 그림이 아니라 밀고 가는 그림이 된다.
                     float toWall = WallFinder.DistanceToWall(phys.GroundPosition, dir, phys.WallMask);
                     float step = Mathf.Min(depth, Mathf.Max(0f, toWall - ctx.caster.HurtboxSize.z * 0.5f));
+                    float toWall = WallFinder.DistanceToWall(phys.GroundPosition, moveDir, phys.WallMask);
+                    float step = Mathf.Min(targetDistance, Mathf.Max(0f, toWall - ctx.caster.HurtboxSize.z * 0.5f));
 
                     phys.Face(dir);
                     phys.Teleport(phys.GroundPosition + dir * step, phys.Height);
+                    // 전방 파고들기면 타겟을 보고, 후방 백스탭이면 시선(전방 타겟)을 유지한 채 뒤로 빠진다.
+                    if (stepDist > 0f)
+                        phys.Face(baseDir);
+
+                    phys.Teleport(phys.GroundPosition + moveDir * step, phys.Height);
+                    phys.ResetInertia();
 
                     BattleLog.Log(LogCategory.Skill,
                         $"  └ {data.skillName} 파고들기 {step:0.##} 유닛 (판정 깊이 {depth:0.##})", ctx.caster);
+                        $"  └ {data.skillName} {(stepDist > 0f ? "파고들기" : "백스탭")} {step:0.##} 유닛 (목표 {targetDistance:0.##})", ctx.caster);
                 }
             }
 
