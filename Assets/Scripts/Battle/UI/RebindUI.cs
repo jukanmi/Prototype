@@ -41,6 +41,9 @@ namespace Prototype
         [Tooltip("설정 화면에 버튼으로 뜨는 키 세팅들. 비워 두면 프리셋 줄이 안 나온다.")]
         [SerializeField] private KeyBindingPreset[] presets;
 
+        [Tooltip("초기화 버튼이 되돌릴 키 세팅. 비워 두면 액션 자산의 기본 키(WASD)로 간다.")]
+        [SerializeField] private KeyBindingPreset resetPreset;
+
         [Tooltip("플레이어가 없는 씬(부트 · 메인메뉴)에서 쓸 액션 자산. " +
                  "플레이어가 있으면 그쪽 인스턴스를 우선한다.")]
         [SerializeField] private InputActionAsset fallbackActions;
@@ -280,7 +283,8 @@ namespace Prototype
         {
             if (_manager == null || _manager.IsListening) return;
 
-            _manager.ResetAll();
+            if (resetPreset != null) _manager.ApplyPreset(resetPreset);
+            else _manager.ResetAll();
             RefreshKeys();
 
             SetStatus("기본 키로 되돌렸다.", SubColor);

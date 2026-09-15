@@ -2752,6 +2752,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.RebindUI
   presets: []
+  resetPreset: {fileID: 11400000, guid: 73212f08932eb41448c7b098ac434fac, type: 2}
   fallbackActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   _openButton: {fileID: 6657333463462266049}
   _panelRoot: {fileID: 5419336432887656120}
