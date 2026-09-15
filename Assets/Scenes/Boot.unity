@@ -408,7 +408,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.GameManager
   recipe: {fileID: 11400000, guid: 81d721137b41c1e4b829e58cc585005a, type: 2}
   debugSeed: 0
-  deckStartupMode: 0
+  deckStartupMode: 1
   defaultLoadout: {fileID: 11400000, guid: fba9e8aabde39ad41be2d9cede68d05e, type: 2}
 --- !u!4 &1081584061
 Transform:

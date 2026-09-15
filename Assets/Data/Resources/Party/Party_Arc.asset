@@ -21,10 +21,10 @@ MonoBehaviour:
   - data: {fileID: 11400000, guid: 098ad9324be2eb94c839183e89538a3b, type: 2}
     drawWeight: 1
     golden: 0
-  - data: {fileID: 11400000, guid: 979956968c484fc4fb04fe49d3b6f3a4, type: 2}
+  - data: {fileID: 11400000, guid: d4a89e17c05b4e4ba29c1587d60f38ba, type: 2}
     drawWeight: 1
     golden: 0
-  - data: {fileID: 11400000, guid: c454e5b693081074a951013e0fbbb4e8, type: 2}
+  - data: {fileID: 11400000, guid: f2a91b4c73de492ea560d819c43b9e71, type: 2}
     drawWeight: 1
     golden: 0
   - data: {fileID: 11400000, guid: 714e06cac6581824bbf165bee4e9e9c1, type: 2}
