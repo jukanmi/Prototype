@@ -44,6 +44,7 @@ namespace Prototype
         private InputAction dashAction;
         private InputAction bulletTimeAction;
         private InputAction cardUseAction;
+        private InputAction uniqueSkillAction;
         private InputAction swapAction;
 
         private InputActionMap skillShotMap;
@@ -79,6 +80,8 @@ namespace Prototype
         public bool BulletTimePressed => Pressed(bulletTimeAction);
         /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용.</summary>
         public bool CardUsePressed => Pressed(cardUseAction);
+        /// <summary>Z — 현재 캐릭터 고유 스킬 즉시 사용.</summary>
+        public bool UniqueSkillPressed => Pressed(uniqueSkillAction);
 
         /// <summary>F — 동료 교대. 실제로 바꿀지는 <see cref="TagSwapController"/>가 정한다.</summary>
         public bool SwapPressed => Pressed(swapAction);
@@ -282,6 +285,7 @@ namespace Prototype
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
             cardUseAction = gameplayMap.FindAction(InputActionNames.Gameplay.CardUse, throwIfNotFound: true);
+            uniqueSkillAction = gameplayMap.FindAction(InputActionNames.Gameplay.UniqueSkill, throwIfNotFound: false);
             swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: true);
 
             cardNavigate = new NavigateLatch(

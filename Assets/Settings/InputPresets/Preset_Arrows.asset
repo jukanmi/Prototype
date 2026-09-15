@@ -67,17 +67,21 @@ MonoBehaviour:
     part:
     path: <Keyboard>/s
   - map: Gameplay
-    action: Attack
+    action: UniqueSkill
     part: 
     path: <Keyboard>/z
   - map: Gameplay
-    action: Jump
+    action: Attack
     part: 
     path: <Keyboard>/x
   - map: Gameplay
-    action: Dash
+    action: Jump
     part: 
     path: <Keyboard>/c
+  - map: Gameplay
+    action: Dash
+    part: 
+    path: <Keyboard>/v
   - map: Gameplay
     action: BulletTime
     part: 
@@ -89,8 +93,8 @@ MonoBehaviour:
   - map: BulletTimeSkillShot
     action: Confirm
     part: 
-    path: <Keyboard>/z
+    path: <Keyboard>/x
   - map: BulletTimeSkillShot
     action: Cancel
     part: 
-    path: <Keyboard>/x
+    path: <Keyboard>/c

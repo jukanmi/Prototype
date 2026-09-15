@@ -164,6 +164,46 @@ namespace Prototype
             return true;
         }
 
+        // ── 고유 스킬 (실시간 Z키) ──────────────────────
+
+        private float uniqueSkillCooldownTimer;
+
+        /// <summary>이 동료의 고유 스킬 에셋.</summary>
+        public SkillData UniqueSkill => data != null ? data.uniqueSkill : null;
+
+        /// <summary>남은 고유기 쿨타임(초).</summary>
+        public float UniqueSkillCooldownRemaining => Mathf.Max(0f, uniqueSkillCooldownTimer);
+
+        /// <summary>고유기를 사용할 수 있는 상태인지.</summary>
+        public bool CanCastUniqueSkill => UniqueSkill != null && uniqueSkillCooldownTimer <= 0f && CanCastCard;
+
+        protected override void Update()
+        {
+            base.Update();
+
+            if (uniqueSkillCooldownTimer > 0f)
+            {
+                float dt = TimeControl.DeltaTime;
+                if (dt > 0f) uniqueSkillCooldownTimer -= dt;
+            }
+        }
+
+        /// <summary>
+        /// 고유 스킬을 실시간 즉시 시전한다 (Z키).
+        /// </summary>
+        public bool CastUniqueSkill()
+        {
+            if (!CanCastUniqueSkill) return false;
+
+            SkillData skill = UniqueSkill;
+            uniqueSkillCooldownTimer = skill.cooldown;
+
+            BattleLog.Log(LogCategory.Skill,
+                $"<b>{BattleLog.Name(this)}</b> 고유 스킬 발동: {skill.skillName} (쿨타임 {skill.cooldown:0.##}s)", this);
+
+            return CastCard(skill, AutoTarget(skill));
+        }
+
         // ── 실시간 스킬 뒷정리 ────────────────────────────
 
         /// <summary>

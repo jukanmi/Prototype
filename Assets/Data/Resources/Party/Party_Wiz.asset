@@ -30,6 +30,7 @@ MonoBehaviour:
   - data: {fileID: 11400000, guid: 226b683b42e44e449863feea73376cf3, type: 2}
     drawWeight: 1
     golden: 0
+  uniqueSkill: {fileID: 11400000, guid: 66c8f86831d24f4e9ea96ae298997ce0, type: 2}
   hp: 0
   atk: 0
   moveSpeed: 0
