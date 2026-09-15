@@ -31,6 +31,10 @@ namespace Prototype
         [Range(0f, 1f)][SerializeField] private float requiredRatio = 1f;
         [Tooltip("대시 패링 한 번의 게이지 보상. 위험을 감수한 대가를 전술 자원으로 돌려준다.")]
         [SerializeField] private float parryGaugeReward = 12f;
+        [Tooltip("동료의 평타 한 대가 적에게 적중했을 때의 게이지 보상. 0이면 끈다.\n" +
+                 "빗맞거나 패링 · 무적에 흘리면 없다. 한 대가 적 여럿을 맞혀도 한 번만 준다 — " +
+                 "몰려 있는 적을 긁는 것만으로 게이지가 폭주하지 않게. 연타는 타마다 따로 센다.")]
+        [SerializeField] private float basicAttackGaugeReward = 2f;
 
         [Header("코스트 — 둘 다 구현해 두고 실험 후 결정(결정 로그 ⑤)")]
         [SerializeField] private float manaCost = 0f;
@@ -96,6 +100,9 @@ namespace Prototype
         /// 게이지를 통째로 태워서 얻는 한 방이므로 실시간 연사 제한과 별개로 둔다.
         /// </summary>
         private readonly SkillCooldownTracker skillCooldowns = new SkillCooldownTracker();
+
+        /// <summary>평타 적중 보상을 이미 받은 평타 번호. 한 대가 여럿을 맞혀도 한 번만 주려고 든다.</summary>
+        private readonly BasicHitLedger basicHitLedger = new BasicHitLedger();
 
         /// <summary>
         /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
@@ -211,6 +218,7 @@ namespace Prototype
             }
 
             Combat.OnParried += HandleParried;
+            Combat.OnAnyBasicHitLanded += HandleBasicHitLanded;
             SubscribeAllyDeaths();
         }
 
@@ -223,6 +231,7 @@ namespace Prototype
             }
 
             Combat.OnParried -= HandleParried;
+            Combat.OnAnyBasicHitLanded -= HandleBasicHitLanded;
             UnsubscribeAllyDeaths();
         }
 
@@ -250,8 +259,7 @@ namespace Prototype
         /// </summary>
         private void HandleParried(Combat defender, Combat attacker)
         {
-            if (defender == null || defender.Owner == null) return;
-            if (defender.Owner.Faction != Faction.Ally) return;
+            if (defender == null || !EarnsGauge(defender.Owner)) return;
 
             Gauge.Recover(parryGaugeReward);
 
@@ -259,6 +267,32 @@ namespace Prototype
                 $"{BattleLog.Name(defender.Owner)} 패링 보상 — 게이지 +{parryGaugeReward:0.#} " +
                 $"({Gauge.Ratio * 100f:0}%)", this);
         }
+
+        /// <summary>
+        /// 평타 적중 보상. 한 대당 한 번 — 같은 번호로 두 번째 적을 맞힌 건 장부가 거른다.
+        /// 로그는 남기지 않는다. 연타마다 한 줄씩 쌓여 전투 로그가 묻힌다.
+        /// </summary>
+        private void HandleBasicHitLanded(Combat attacker, Combat victim, int swing)
+        {
+            if (basicAttackGaugeReward <= 0f) return;
+            if (attacker == null || victim == null) return;
+            if (!EarnsBasicHitGauge(attacker.Owner, victim.Owner)) return;
+            if (!basicHitLedger.TryClaim(attacker, swing)) return;
+
+            Gauge.Recover(basicAttackGaugeReward);
+        }
+
+        /// <summary>
+        /// 이 몸의 행동이 불릿타임 게이지를 채우는가. 아군 진영만 — 적의 패링 · 평타는 보상이 아니다.
+        /// </summary>
+        public static bool EarnsGauge(Entity actor) => actor != null && actor.Faction == Faction.Ally;
+
+        /// <summary>
+        /// 평타 적중이 보상감인가. 때린 쪽이 아군이고 <b>맞은 쪽이 적</b>이어야 한다.
+        /// 히트박스가 이미 같은 진영을 거르지만, 진영을 모르는 몸(허수아비 · 파괴물)까지 치지 않게 한 번 더 본다.
+        /// </summary>
+        public static bool EarnsBasicHitGauge(Entity attacker, Entity victim)
+            => EarnsGauge(attacker) && victim != null && victim.Faction == Faction.Enemy;
 
         public bool CanEnter
         {

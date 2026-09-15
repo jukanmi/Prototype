@@ -100,9 +100,24 @@ namespace Prototype
         /// <summary>
         /// 연타 <paramref name="stage"/>타째의 타격. 단계가 없으면 기본 평타와 같다 —
         /// 무인자 버전이 여기로 위임하므로 원거리 · 공중 평타 호출부는 손댈 필요가 없다.
+        ///
+        /// <b>부를 때마다 새 평타 한 대로 친다</b> — <see cref="HitData.basicSwing"/>에 새 번호를 찍는다.
+        /// 한 대가 적 여럿을 베거나 관통해도 같은 번호를 달고 가므로, 적중 보상을 "한 대당 한 번"으로 셀 수 있다.
         /// </summary>
         public HitData BuildBasicHit(int stage)
-            => AttackProfile != null ? AttackProfile.Build(stats, stage) : default;
+        {
+            if (AttackProfile == null) return default;
+
+            HitData h = AttackProfile.Build(stats, stage);
+            h.basicSwing = ++basicSwingSerial;
+            return h;
+        }
+
+        /// <summary>
+        /// 평타 번호표. 전역으로 올린다 — 몸마다 따로 세면 두 동료의 번호가 겹친다.
+        /// Domain Reload가 꺼져 static이 살아남아도 상관없다. 겹치지만 않으면 된다.
+        /// </summary>
+        private static int basicSwingSerial;
 
         // ── 평타 연타 ────────────────────────────────────
 

@@ -114,6 +114,17 @@ namespace Prototype
         [NonSerialized] public Vector3 origin;
         [NonSerialized] public bool hasOrigin;
 
+        /// <summary>
+        /// 평타 한 대의 번호. <b>0이면 평타가 아니다</b>(스킬 · 적 패턴 · 패링 반격).
+        /// <see cref="Entity.BuildBasicHit(int)"/>만 찍는다.
+        ///
+        /// 번호인 이유: 한 대가 적 여럿을 베거나 관통하면 적중이 여러 번 들어온다.
+        /// 같은 번호끼리 묶어야 "한 대가 맞았다"를 한 번으로 셀 수 있다.
+        /// </summary>
+        [NonSerialized] public int basicSwing;
+
+        public bool IsBasicAttack => basicSwing != 0;
+
         /// <summary>기준점을 실은 복사본. 원본은 건드리지 않는다.</summary>
         public HitData WithOrigin(Vector3 p)
         {

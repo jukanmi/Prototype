@@ -204,6 +204,13 @@ namespace Prototype
         public static event Action<Combat, Combat> OnParried;
 
         /// <summary>
+        /// 평타가 <b>실제로 적중했다</b>. 인자는 (때린 쪽, 맞은 쪽, 평타 번호) 순이다.
+        /// 무적 · 패링으로 흘린 타격은 오지 않는다. 한 대가 여럿을 맞히면 같은 번호로 여러 번 온다 —
+        /// 한 대당 한 번으로 세는 건 받는 쪽 몫이다(<see cref="HitData.basicSwing"/>).
+        /// </summary>
+        public static event Action<Combat, Combat, int> OnAnyBasicHitLanded;
+
+        /// <summary>
         /// 피해가 <b>실제로</b> 들어갔다. 인자는 (때린 쪽, 맞은 쪽, 깎인 양) 순이다.
         ///
         /// <see cref="OnAnyHitLanded"/>와 나눠 둔 이유: 그쪽은 수치를 주지 않고, 이쪽은
@@ -222,6 +229,7 @@ namespace Prototype
         {
             OnAnyHitLanded = null;
             OnParried = null;
+            OnAnyBasicHitLanded = null;
             OnAnyDamageDealt = null;
         }
 
@@ -434,7 +442,10 @@ namespace Prototype
 
             OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
+            {
                 OnAnyHitLanded?.Invoke(this, victim);
+                if (hit.IsBasicAttack) OnAnyBasicHitLanded?.Invoke(this, victim, hit.basicSwing);
+            }
 
             return true;
         }
