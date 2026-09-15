@@ -161,7 +161,7 @@ namespace Prototype
 
             Text hint = UiKit.NewText(p, "Hint", 14, DimText, FontStyle.Normal);
             Row(hint.rectTransform, ref y, 22f, inner);
-            hint.text = "고른 순서가 교대(F) 순서가 된다";
+            hint.text = "고른 순서가 교대 순서가 된다";
             hint.alignment = TextAnchor.MiddleLeft;
 
             y += Gap;
