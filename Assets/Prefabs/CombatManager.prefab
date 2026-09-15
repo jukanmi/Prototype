@@ -2587,9 +2587,6 @@ MonoBehaviour:
   parryGaugeReward: 12
   manaCost: 0
   cooldown: 0
-  realtimeCooldown: 1
-  realtimeCooldownMul: 1
-  realtimeGlobalCooldown: 1.5
   buildDeckOnStart: 1
   standaloneStartupMode: 0
   purgeCardsOnAllyDeath: 1

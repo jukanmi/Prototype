@@ -43,7 +43,6 @@ namespace Prototype
         private InputAction jumpAction;
         private InputAction dashAction;
         private InputAction bulletTimeAction;
-        private InputAction cardUseAction;
         private InputAction uniqueSkillAction;
         private InputAction swapAction;
 
@@ -78,8 +77,6 @@ namespace Prototype
         /// E · Space — 불릿타임 진입 · 실행 요청. 무엇을 할지는 전술 페이즈가 정한다.
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
-        /// <summary>U — 손패 맨 왼쪽 카드 즉시 사용.</summary>
-        public bool CardUsePressed => Pressed(cardUseAction);
         /// <summary>Z — 현재 캐릭터 고유 스킬 즉시 사용.</summary>
         public bool UniqueSkillPressed => Pressed(uniqueSkillAction);
 
@@ -284,7 +281,6 @@ namespace Prototype
             jumpAction = gameplayMap.FindAction(InputActionNames.Gameplay.Jump, throwIfNotFound: true);
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
-            cardUseAction = gameplayMap.FindAction(InputActionNames.Gameplay.CardUse, throwIfNotFound: true);
             uniqueSkillAction = gameplayMap.FindAction(InputActionNames.Gameplay.UniqueSkill, throwIfNotFound: false);
             swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: true);
 

@@ -86,10 +86,6 @@ MonoBehaviour:
     action: BulletTime
     part: 
     path: <Keyboard>/space
-  - map: Gameplay
-    action: CardUse
-    part: 
-    path: <Keyboard>/a
   - map: BulletTimeSkillShot
     action: Confirm
     part: 

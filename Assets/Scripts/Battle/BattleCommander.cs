@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 몸에서 떨어져 나온 지휘 입력. 불릿타임 진입 · 카드 즉시 사용 · 태그 교대를 받는다.
+    /// 몸에서 떨어져 나온 지휘 입력. 불릿타임 진입 · 고유 스킬 · 태그 교대를 받는다.
     ///
     /// <b>절대 꺼지지 않는 오브젝트에 붙어야 한다</b>. 태그로 내려가는 몸에 붙이면
     /// 교대하는 순간 되돌아올 키까지 함께 죽는다. 같은 이유로
@@ -41,10 +41,6 @@ namespace Prototype
                 // 따로 부를 것이 없다 — 무엇을 할지는 전술 페이즈가 결정한다.
                 if (input.BulletTimePressed)
                     bulletTime.Tactic.OnBulletTimeKey();
-
-                // U — 손패 맨 왼쪽 카드 즉시 사용. RealTime 여부는 UseTopCard가 직접 본다.
-                if (input.CardUsePressed)
-                    bulletTime.UseTopCard();
             }
 
             // Z — 현재 조작 중인 캐릭터 고유 스킬 즉시 사용.

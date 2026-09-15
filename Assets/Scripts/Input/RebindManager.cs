@@ -218,7 +218,7 @@ namespace Prototype
         private static readonly HashSet<string> CommanderActions = new HashSet<string>
         {
             InputActionNames.Gameplay.BulletTime,
-            InputActionNames.Gameplay.CardUse,
+            InputActionNames.Gameplay.UniqueSkill,
         };
 
         /// <summary>키로 바꿀 수 있는 값이 아닌 액션. 포인터 위치 · 이동량.</summary>
