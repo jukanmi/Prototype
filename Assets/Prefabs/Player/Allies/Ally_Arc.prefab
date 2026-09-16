@@ -133,9 +133,12 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
+    castConeAngle: 0
+    fixedOrigin: 0
+    stepDistance: 0
+    radius: 0
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -147,8 +150,11 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
   impactVfx: 1
 --- !u!1 &5599722647530713788
 GameObject:
@@ -229,7 +235,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -99
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 3204480812468917802, guid: e0f8723057d189b448ec92be461e8175, type: 3}
   m_Color: {r: 0.76, g: 1, b: 0.8, a: 1}
@@ -266,9 +272,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6220161390943500129}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.4226183, y: -0, z: -0, w: 0.9063078}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.88, y: 0.88, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2784775797409046813}
@@ -344,9 +350,12 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
+    castConeAngle: 0
+    fixedOrigin: 0
+    stepDistance: 0
+    radius: 0
     targetState: 0
     nextState: 0
     canOtg: 0
@@ -358,8 +367,11 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
   impactVfx: 1
 --- !u!1 &6431140714613573192
 GameObject:
@@ -508,6 +520,8 @@ MonoBehaviour:
   wallMinLaunch: 3
   wallMaxLaunch: 15
   wallBounceCooldown: 0.2
+  wallStunSpeedThreshold: 8
+  wallStunDuration: 1.2
   parryWindow: 0.45
   parryAngle: 180
   parrySuccessInvuln: 0.3
@@ -546,7 +560,7 @@ MonoBehaviour:
   - data: {fileID: 11400000, guid: ec4ee9dda8379094b802f6ffde208562, type: 2}
     drawWeight: 2
     golden: 0
-  - data: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
+  - data: {fileID: 11400000, guid: d4a89e17c05b4e4ba29c1587d60f38ba, type: 2}
     drawWeight: 1
     golden: 0
   - data: {fileID: 11400000, guid: 2009a5bf860006e41b6f85a78b20658a, type: 2}
@@ -651,9 +665,12 @@ MonoBehaviour:
   basicHit:
     damageData:
       damage: 10
-    aerialDamage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
+    castConeAngle: 0
+    fixedOrigin: 0
+    stepDistance: 0
+    radius: 0
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -665,8 +682,11 @@ MonoBehaviour:
     capAirborne: 0
     pullAnchorRatio: 0
     hitStunDuration: 0.3
+    debuff: 0
+    debuffDuration: 0
     guardDamage: 0
     snapZ: 0
+    impactOffset: {x: 0, y: 0, z: 0}
   projectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
   projectileSpeed: 16
   projectileRange: 9
@@ -742,9 +762,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7017627021473596722}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.9, z: 0}
-  m_LocalScale: {x: 0.9, y: 0.35, z: 1}
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.01, z: 0}
+  m_LocalScale: {x: 0.792, y: 0.792, z: 0.88}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 9106262444077026203}
@@ -796,7 +816,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -100
+  m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
   m_Color: {r: 0, g: 0, b: 0, a: 0.35}

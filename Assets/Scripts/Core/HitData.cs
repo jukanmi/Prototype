@@ -34,10 +34,43 @@ namespace Prototype
                  "타마다 선딜이 다른 스킬(연격 0.2 / 0.2 / 0.3)만 여기를 쓴다.")]
         public float castDelay;
 
-        [Header("시전 범위")]
-        [Tooltip("이 타만의 시전 범위 배수. 0이면 SkillData.castRangeScale로 떨어진다.\n\n" +
-                 "타마다 범위가 다른 스킬(연격 — 벨수록 위로 넓어진다)이 여기를 쓴다.")]
+        [Header("시전 범위 — 시전자 피격 범위 배수")]
+        [Tooltip("근접 히트박스의 크기를 시전자 피격 콜라이더에 대한 배수로 적는다.\n\n" +
+                 "· x — 가로(좌우 폭)\n" +
+                 "· y — 높이\n" +
+                 "· z — 세로(정면 깊이)\n\n" +
+                 "기획서 '시전 범위' 행을 그대로 옮기는 자리다. 셋 중 하나라도 0이면 프리팹 SkillHitbox 크기를 그대로 쓴다.\n" +
+                 "장판 · 투사체는 이 값을 보지 않는다 — 그쪽은 radius가 범위다.")]
         public Vector3 castRangeScale;
+
+        /// <summary>시전 범위를 직접 정한 타인지. 셋 중 하나라도 0이면 프리팹 기본값으로 떨어진다.</summary>
+        public bool HasCastRange => castRangeScale.x > 0f && castRangeScale.y > 0f && castRangeScale.z > 0f;
+
+        [Tooltip("전방 부채꼴로 판정할 각도(도). 0이면 박스 히트박스를 쓴다.\n\n" +
+                 "부채꼴일 때는 castRangeScale.x가 <b>반지름</b> 배수가 된다 — " +
+                 "기획서 '반지름 = 플레이어 가로 범위 * 4 / 각도 = 60'이 x=4, 각도 60이다.\n" +
+                 "사슬처럼 앞으로 길게 뻗되 옆으로는 안 닿아야 하는 판정에 쓴다.")]
+        [Range(0f, 360f)] public float castConeAngle;
+
+        /// <summary>전방 부채꼴로 때리는 타인지. 각도가 0이면 여전히 박스 히트박스다.</summary>
+        public bool IsCone => castConeAngle > 0f;
+
+        [Tooltip("타격 판정을 시전자 몸이 아니라 시전 시작 위치에 고정한다. " +
+                 "파고드는 스킬(일섬)이 쓴다 — 첫 타에 판정 깊이만큼 건너뛴 뒤 다단히트가 " +
+                 "터지므로, 몸을 따라가면 지나온 공간이 아니라 도착지만 벤다.")]
+        public bool fixedOrigin;
+
+        [Header("시전자 이동")]
+        [Tooltip("이 타격 발동 시 시전자가 이동할 거리(유닛).\n\n" +
+                 "· 양수(+) : 전방(또는 대상)을 향해 파고들기/돌진\n" +
+                 "· 음수(-) : 바라보는 반대 방향으로 후퇴(백스탭)\n" +
+                 "· 0 : 이동하지 않음")]
+        public float stepDistance;
+
+        [Tooltip("이 타만의 원형 반경(유닛). 0이면 SkillData.radius로 떨어진다.\n" +
+                 "장판 · 투사체 폭발 · 설치기처럼 radius로 때리는 스킬만 본다 — \n" +
+                 "타마다 반경이 다른 스킬(조여드는 균열)이 여기를 쓴다.")]
+        public float radius;
 
         [Header("상태 전이")]
         [Tooltip("선행 조건. Neutral이면 조건 없음.")]
@@ -99,10 +132,12 @@ namespace Prototype
         [Tooltip("모으기 계열에서 Z축을 기준점에 맞춰 정렬한다. 벨트스크롤 특성상 Z가 어긋나면 후속타가 빗나감.")]
         public bool snapZ;
 
-        [Tooltip("도착 폭발(SkillData.detonateOnArrival) 투사체의 탄착점. 대상 히트박스 정중앙에서 이만큼 비켜 터진다.\n\n" +
-                 "단위는 <b>대상 히트박스 크기의 배수</b> — x 좌우(월드 X) · y 상하(고도) · z 깊이. " +
-                 "0이면 정중앙. 마력 화살의 좌상단 (-0.5, 0.5, 0) · 우측 (0.5, 0, 0) · 하단 (0, -0.5, 0)이 예다.")]
+        [Tooltip("타격 착탄점 오프셋. 대상 히트박스 정중앙에서 이만큼 비켜 터진다.\n\n" +
+                 "단위는 대상 히트박스 크기의 배수 — x 좌우(월드 X) · y 상하(고도) · z 깊이")]
         public Vector3 impactOffset;
+
+        /// <summary>대상 적 위치를 기준으로 하는 타격인지 (impactOffset이 지정된 경우).</summary>
+        public bool HasTargetOrigin => impactOffset.sqrMagnitude > 0.00001f;
 
         /// <summary>
         /// 넉백 방향과 Z 정렬의 기준점. 비어 있으면 시전자 위치를 쓴다.

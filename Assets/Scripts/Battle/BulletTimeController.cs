@@ -40,18 +40,6 @@ namespace Prototype
         [SerializeField] private float manaCost = 0f;
         [SerializeField] private float cooldown = 0f;
 
-        [Header("실시간 카드 쿨타임")]
-        [Tooltip("U키 단발 사용에 SkillData.cooldown을 적용한다. 끄면 예전처럼 손패만 있으면 계속 나간다.")]
-        [SerializeField] private bool realtimeCooldown = true;
-
-        [Tooltip("SkillData.cooldown에 곱하는 값. 에셋 27개를 건드리지 않고 전체 템포만 조절한다.")]
-        [SerializeField] private float realtimeCooldownMul = 1f;
-
-        [Tooltip("카드 한 장을 쓴 뒤 U키 전체가 잠기는 시간(초). 0이면 끈다.\n" +
-                 "스킬별 쿨만으로는 연타를 못 막는다 — 손패 4장이 서로 다른 스킬이라 " +
-                 "각자 쿨이 따로 돌기 때문이다. 연사 속도를 정하는 건 이 값이다.")]
-        [SerializeField] private float realtimeGlobalCooldown = 1.5f;
-
         [Header("덱")]
         [Tooltip("Start에서 파티 장착 카드로 덱을 짠다. 포스트 배틀 흐름이 붙기 전까지만.")]
         [SerializeField] private bool buildDeckOnStart = true;
@@ -95,12 +83,6 @@ namespace Prototype
         private TacticStateMachine tactic;
         private float cooldownTimer;
 
-        /// <summary>
-        /// U키로 쓴 스킬의 남은 쿨타임. <b>불릿타임 실행은 여기 걸리지 않는다</b> —
-        /// 게이지를 통째로 태워서 얻는 한 방이므로 실시간 연사 제한과 별개로 둔다.
-        /// </summary>
-        private readonly SkillCooldownTracker skillCooldowns = new SkillCooldownTracker();
-
         /// <summary>평타 적중 보상을 이미 받은 평타 번호. 한 대가 여럿을 맞혀도 한 번만 주려고 든다.</summary>
         private readonly BasicHitLedger basicHitLedger = new BasicHitLedger();
 
@@ -137,23 +119,6 @@ namespace Prototype
 
         /// <summary>게이지만 놓고 봤을 때 진입선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
         public bool IsGaugeReady => Gauge != null && Gauge.Ratio >= requiredRatio;
-
-        /// <summary>실시간(U키) 쿨타임이 켜져 있는지. UI가 표시 여부를 여기서 가른다.</summary>
-        public bool RealtimeCooldownEnabled => realtimeCooldown;
-
-        /// <summary>카드 종류와 무관하게 U키가 잠겨 있는 남은 시간(초).</summary>
-        public float GlobalCardCooldownRemaining
-            => realtimeCooldown ? skillCooldowns.GlobalRemaining : 0f;
-
-        /// <summary>
-        /// 그 스킬을 지금 쓸 수 있기까지 남은 시간(초). 0이면 쓸 수 있다.
-        /// 공용 쿨과 스킬 쿨 중 <b>긴 쪽</b>이다 — 둘 다 풀려야 나간다.
-        /// </summary>
-        public float SkillCooldownRemaining(SkillData data)
-            => realtimeCooldown ? skillCooldowns.Remaining(data) : 0f;
-
-        /// <summary>U키가 지금 눌리면 나갈 카드의 남은 쿨타임. 0이면 나간다.</summary>
-        public float TopCardCooldownRemaining => SkillCooldownRemaining(hand.Get(0).Data);
 
         public Deck Deck => deck;
         public Hand Hand => hand;
@@ -242,13 +207,8 @@ namespace Prototype
 
             if (cooldownTimer > 0f) cooldownTimer -= dt;
 
-            // 스킬 쿨타임도 게이지와 같은 규칙을 따른다 — 정지 중에는 흐르지 않는다.
-            // 불릿타임에 오래 머물러 있다고 실시간 쿨이 공짜로 돌아오면 안 된다.
             if (!IsActive)
-            {
                 Gauge.Recover(gaugeRegen * dt);
-                skillCooldowns.Tick(dt);
-            }
 
             tactic.Tick(dt);
         }
@@ -328,90 +288,6 @@ namespace Prototype
         /// <summary>Spacebar 요청. Order 페이즈에서만 Resolve로 넘어간다.</summary>
         public void Exit() => tactic?.OnExecuteKey();
 
-        // ── 실시간 단발 사용 (U키) ───────────────────────
-
-        /// <summary>
-        /// 손패 맨 왼쪽 카드를 즉시 발동한다. 실시간 전투 전용.
-        /// 조준은 자동 — 시전 동료 기준 가장 가까운 적을 잡는다.
-        ///
-        /// <see cref="ComboExecutor"/>를 거치지 않는다. Executor가 돌면
-        /// <see cref="CanEnter"/>가 막혀 그동안 불릿타임 진입이 불가능해지기 때문이다.
-        /// </summary>
-        public bool UseTopCard()
-        {
-            if (Phase != TacticPhase.RealTime) return false;
-
-            ComboSlot slot = hand.Get(0);
-
-            if (slot.IsEmpty)
-            {
-                BattleLog.Warn(LogCategory.Deck, "손패가 비어 있다 — 덱과 Discard를 확인할 것", this);
-                return false;
-            }
-
-            SkillData data = slot.Data;
-            if (data == null)
-            {
-                // 발동할 수 없는 카드는 붙잡아 두지 않는다. 방치하면 손패 맨 앞이 영구히 막힌다.
-                BattleLog.Warn(LogCategory.Deck, "SkillData가 비어 있는 카드 — 버리고 다음 장을 당긴다", this);
-                hand.Dequeue();
-                Recycle(slot.card);
-                RefillHand();
-                return false;
-            }
-
-            // 쿨타임은 카드를 소모하지 않는다 — 손패 맨 앞에 그대로 두고 시간이 지나면 다시 눌린다.
-            float cool = SkillCooldownRemaining(data);
-            if (cool > 0f)
-            {
-                string kind = skillCooldowns.OwnRemaining(data) >= cool ? "스킬 쿨" : "카드 공용 쿨";
-
-                BattleLog.Log(LogCategory.Combo,
-                    $"{data.skillName} 사용 대기 — {kind} {cool:0.0}s 남음", this);
-                return false;
-            }
-
-            Ally caster = ResolveCaster(data.role);
-            if (caster == null)
-            {
-                BattleLog.Warn(LogCategory.Combo,
-                    $"{data.skillName} 사용 실패 — {data.role} 동료가 파티에 없거나 사망. 카드는 손패에 남는다", this);
-                return false;
-            }
-
-            // 시전자가 벤치에 있으면 끌어올린다. 안 그러면 그 직업 카드가 손패 맨 앞에 있는 동안
-            // U키가 통째로 먹통이 된다 — 유저는 왜 안 나가는지 알 길이 없다.
-            // 태그 시스템이라 끌어올린다는 건 곧 조작 대상이 그 동료로 바뀐다는 뜻이다.
-            if (swap != null && !swap.EnsureActive(caster))
-            {
-                BattleLog.Warn(LogCategory.Combo,
-                    $"{data.skillName} 사용 실패 — {BattleLog.Name(caster)}를 필드에 세우지 못했다", this);
-                return false;
-            }
-
-            if (!caster.CanCastCard)
-            {
-                BattleLog.Log(LogCategory.Combo,
-                    $"{data.skillName} 사용 보류 — {BattleLog.Name(caster)}가 아직 이전 동작 중", this);
-                return false;
-            }
-
-            hand.Dequeue();
-
-            TargetInfo info = slot.aimed && slot.target.IsValid ? slot.target : caster.AutoTarget(data);
-            caster.CastCard(data, in info, slot.card != null ? slot.card.DamageScale : 1f);
-
-            StartSkillCooldown(data);
-
-            BattleLog.Log(LogCategory.Combo,
-                $"<b>즉시 사용</b> {data.skillName} | {BattleLog.Name(caster)} | 조준 {info.type}" +
-                (SkillCooldownRemaining(data) > 0f ? $" | 쿨 {SkillCooldownRemaining(data):0.#}s" : ""), this);
-
-            Recycle(slot.card);
-            RefillHand();
-            return true;
-        }
-
         /// <summary>
         /// 다 쓴 카드를 버린 더미로. 견본 손패는 카드를 그 자리에서 찍어 내므로 회수하지 않는다 —
         /// 넣어 두면 아무도 뽑지 않는 더미만 무한히 커진다.
@@ -420,22 +296,6 @@ namespace Prototype
         {
             if (UsesFixedHand) return;
             discard.Add(card);
-        }
-
-        /// <summary>
-        /// 카드 한 장을 쓴 대가. 공용 쿨과 그 스킬 쿨을 함께 건다.
-        /// 배율은 둘 다에 먹인다 — 하나만 줄이면 템포가 어긋난다.
-        /// </summary>
-        public void StartSkillCooldown(SkillData data)
-        {
-            if (!realtimeCooldown) return;
-
-            float mul = Mathf.Max(0f, realtimeCooldownMul);
-
-            skillCooldowns.StartGlobal(realtimeGlobalCooldown * mul);
-
-            if (data != null)
-                skillCooldowns.Start(data, data.cooldown * mul);
         }
 
         // ── 손패 조작 (불릿타임 중 UI가 호출) ─────────────

@@ -337,7 +337,7 @@ namespace Prototype
         ///
         /// 루트를 안 키우는 원칙은 그대로다. 루트 콜라이더 치수를
         /// <see cref="Entity.HurtboxSize"/>가 읽어 <b>스킬 사거리 배수</b>로 쓰기 때문에
-        /// (<c>SkillData.castRangeScale</c>), 루트를 키우면 몸집이 큰 동료의 스킬만 사거리가 늘어난다.
+        /// (<c>HitData.castRangeScale</c>), 루트를 키우면 몸집이 큰 동료의 스킬만 사거리가 늘어난다.
         /// </summary>
         private static void ApplyBodyScale(Transform body, float scale)
         {

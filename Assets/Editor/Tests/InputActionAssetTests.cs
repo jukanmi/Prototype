@@ -65,7 +65,7 @@ namespace Prototype.Tests
                 InputActionNames.Gameplay.Jump,
                 InputActionNames.Gameplay.Dash,
                 InputActionNames.Gameplay.BulletTime,
-                InputActionNames.Gameplay.CardUse,
+                InputActionNames.Gameplay.UniqueSkill,
                 InputActionNames.Gameplay.Swap,
             };
 
@@ -199,7 +199,7 @@ namespace Prototype.Tests
         [TestCase(InputActionNames.Gameplay.Jump, "<Keyboard>/k")]
         [TestCase(InputActionNames.Gameplay.Dash, "<Keyboard>/leftShift")]
         [TestCase(InputActionNames.Gameplay.BulletTime, "<Keyboard>/e")]
-        [TestCase(InputActionNames.Gameplay.CardUse, "<Keyboard>/u")]
+        [TestCase(InputActionNames.Gameplay.UniqueSkill, "<Keyboard>/z")]
         [TestCase(InputActionNames.Gameplay.Swap, "<Keyboard>/f")]
         public void GameplayDefaultBinding_MatchesDocumentedKey(string actionName, string path)
         {

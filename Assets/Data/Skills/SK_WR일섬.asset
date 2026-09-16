@@ -20,9 +20,6 @@ MonoBehaviour:
   attackType: 2
   requireState: 0
   resultState: 1
-  castRangeScale: {x: 3.5, y: 1.1, z: 2}
-  castConeAngle: 0
-  fixedOrigin: 1
   targeting: 0
   radius: 3
   targetPick: 0
@@ -41,7 +38,10 @@ MonoBehaviour:
   - damageData:
       damage: 10
     castDelay: 0
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
+    stepDistance: 2
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -58,7 +58,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.12
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -75,7 +77,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.06
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -92,7 +96,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.06
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -109,7 +115,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.06
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -126,7 +134,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.06
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0
@@ -143,7 +153,9 @@ MonoBehaviour:
   - damageData:
       damage: 6
     castDelay: 0.06
-    castRangeScale: {x: 0, y: 0, z: 0}
+    castRangeScale: {x: 3.5, y: 1.1, z: 2}
+    castConeAngle: 0
+    fixedOrigin: 1
     targetState: 0
     nextState: 1
     canOtg: 0

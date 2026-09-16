@@ -23,7 +23,7 @@ namespace Prototype
         private readonly HashSet<Combat> alreadyHit = new HashSet<Combat>();
         private Collider box;
 
-        // 스킬이 자기 시전 범위로 히트박스를 갈아 끼울 수 있다(SkillData.castRangeScale).
+        // 스킬이 자기 시전 범위로 히트박스를 갈아 끼울 수 있다(HitData.castRangeScale).
         // 히트박스는 스킬끼리 공유되므로 원래 모양을 여기 기억해 두고 End에서 되돌린다.
         private Vector3 defaultSize;
         private Vector3 defaultLocalPos;

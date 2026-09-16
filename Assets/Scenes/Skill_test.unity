@@ -157,16 +157,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: fixedHand.Array.size
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: 'fixedHand.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: f8dfcc46bfea16d4da64e073e8a846d7, type: 2}
+      objectReference: {fileID: 11400000, guid: 615b3b1212d14b0198bb985095ce4a37, type: 2}
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: 'fixedHand.Array.data[1]'
       value: 
-      objectReference: {fileID: 11400000, guid: 1d32486380e276c45b77497ac572d2c0, type: 2}
+      objectReference: {fileID: 11400000, guid: 615b3b1212d14b0198bb985095ce4a37, type: 2}
     - target: {fileID: 1490962342387795252, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: 'fixedHand.Array.data[2]'
       value: 
@@ -1072,6 +1072,9 @@ MonoBehaviour:
       damage: 0
     castDelay: 0
     castRangeScale: {x: 0, y: 0, z: 0}
+    castConeAngle: 0
+    fixedOrigin: 0
+    radius: 0
     targetState: 0
     nextState: 0
     canOtg: 0

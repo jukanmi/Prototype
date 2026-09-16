@@ -43,6 +43,10 @@ namespace Prototype
                  "BulletTimeController.ResolveCaster 가 직업으로 시전자를 찾기 때문이다.")]
         public List<ComboCard> equipped = new List<ComboCard>(Ally.EquipSlots);
 
+        [Header("고유 스킬")]
+        [Tooltip("이 동료의 안전/위기탈출용 고유 스킬 (Z키 즉발).")]
+        public SkillData uniqueSkill;
+
         [Header("전투 — 0이면 프리팹 값을 그대로 둔다")]
         [Tooltip("최대 체력. 0이면 Ally 프리팹의 값.")]
         public float hp;

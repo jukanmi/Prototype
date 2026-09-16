@@ -622,10 +622,31 @@ namespace Prototype
         private void LateUpdate()
         {
             int used = DrawAll(BattleRegistry.Allies, 0);
+            used += DrawInstallations(used);
 
             // 남는 선은 끈다. 파괴하지 않는다 — 다음 시전에 다시 쓴다.
             for (int i = used; i < pool.Count; i++)
                 pool[i].enabled = false;
+        }
+
+        /// <summary>
+        /// 설치기는 시전자 상태 밖에 산다 — 시전자는 이미 Idle이라 아군 순회로는 안 잡힌다.
+        /// 후속타가 남은 동안 설치 지점 원을 그린다.
+        /// </summary>
+        private int DrawInstallations(int start)
+        {
+            IReadOnlyList<Installation> list = Installation.Live;
+
+            int n = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == null || !list[i].TryGetRangePreview(out AttackRangePreview range)) continue;
+
+                Draw(Take(start + n), in range);
+                n++;
+            }
+
+            return n;
         }
 
         private int DrawAll(IReadOnlyList<Entity> list, int start)

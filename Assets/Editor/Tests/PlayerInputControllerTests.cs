@@ -223,7 +223,6 @@ namespace Prototype.Tests
             Assert.That(controller.JumpPressed, Is.False);
             Assert.That(controller.DashPressed, Is.False);
             Assert.That(controller.BulletTimePressed, Is.False);
-            Assert.That(controller.CardUsePressed, Is.False);
             Assert.That(controller.AimConfirmPressed, Is.False);
             Assert.That(controller.AimCancelPressed, Is.False);
             Assert.That(controller.CancelPressed, Is.False);

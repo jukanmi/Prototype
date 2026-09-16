@@ -26,31 +26,20 @@ namespace Prototype
         [Tooltip("이 스킬이 만들어 내는 결과 상태. 예측 표시에 쓴다.")]
         public CombatState resultState = CombatState.LightHit;
 
-        [Header("시전 범위 — 시전자 피격 범위 배수")]
-        [Tooltip("근접 히트박스의 크기를 시전자 피격 콜라이더에 대한 배수로 적는다.\n\n" +
-                 "· x — 가로(좌우 폭)\n" +
-                 "· y — 높이\n" +
-                 "· z — 세로(정면 깊이)\n\n" +
-                 "기획서 '시전 범위' 행을 그대로 옮기는 자리다. 0이면 프리팹 SkillHitbox 크기를 그대로 쓴다.\n" +
-                 "장판 · 투사체는 이 값을 보지 않는다 — 그쪽은 radius가 범위다.")]
-        public Vector3 castRangeScale = Vector3.zero;
-
-        /// <summary>시전 범위를 직접 정한 스킬인지. 셋 중 하나라도 0이면 프리팹 기본값으로 떨어진다.</summary>
-        public bool HasCastRange => IsRangeSet(castRangeScale);
-
-        [Tooltip("전방 부채꼴로 판정할 각도(도). 0이면 박스 히트박스를 쓴다.\n\n" +
-                 "부채꼴일 때는 castRangeScale.x가 <b>반지름</b> 배수가 된다 — " +
-                 "기획서 '반지름 = 플레이어 가로 범위 * 4 / 각도 = 60'이 x=4, 각도 60이다.\n" +
-                 "사슬처럼 앞으로 길게 뻗되 옆으로는 안 닿아야 하는 판정에 쓴다.")]
-        [Range(0f, 360f)] public float castConeAngle = 0f;
-
-        /// <summary>전방 부채꼴로 때리는 스킬인지. 각도가 0이면 여전히 박스 히트박스다.</summary>
-        public bool IsCone => castConeAngle > 0f;
-
-        [Tooltip("타격 판정을 시전자 몸이 아니라 시전 시작 권적에 고정한다. " +
-                 "파고드는 스킬(일섬)이 쓴다 — 시전자가 이미 건너뛴 뒤에 다단히트가 " +
-                 "터지므로, 몸을 따라가면 지나온 공간이 아니라 도착지만 벤다.")]
-        public bool fixedOrigin;
+        /// <summary>
+        /// 시전 범위를 직접 정한 타가 하나라도 있는지. 시전 범위 · 부채꼴 · 고정 궤적은 전부
+        /// <b>타별</b>(<see cref="HitData"/>)이라 스킬 단위 판단(원거리인데 상자로 때리나)만 여기서 접는다.
+        /// </summary>
+        public bool HasCastRange
+        {
+            get
+            {
+                if (hitDataList == null) return false;
+                for (int i = 0; i < hitDataList.Count; i++)
+                    if (hitDataList[i].HasCastRange) return true;
+                return false;
+            }
+        }
 
         /// <summary>
         /// 대상 <b>위로</b> 올라가 시전하는지. 기획서 '플레이어가 공중으로 이동 후 타격' 행이다.
@@ -65,14 +54,8 @@ namespace Prototype
         /// </summary>
         public bool CastsAboveTarget => targetPick == TargetPick.NearestAerial && !UsesRadius;
 
-        /// <summary>
-        /// 이 타가 실제로 쓸 범위 배수. 타별 값이 있으면 그쪽, 없으면 스킬 공통값이다.
-        /// <see cref="ApproachDistance"/>와 같은 "0이면 접어 준다" 규약.
-        /// </summary>
-        public Vector3 RangeScaleFor(in HitData hit)
-            => IsRangeSet(hit.castRangeScale) ? hit.castRangeScale : castRangeScale;
-
-        private static bool IsRangeSet(Vector3 v) => v.x > 0f && v.y > 0f && v.z > 0f;
+        /// <summary>이 타가 실제로 쓸 원형 반경. <see cref="ApproachDistance"/>와 같은 "0이면 접어 준다" 규약.</summary>
+        public float RadiusFor(in HitData hit) => hit.radius > 0f ? hit.radius : radius;
 
         [Header("조준")]
         public TargetingType targeting = TargetingType.None;
@@ -122,14 +105,22 @@ namespace Prototype
 
         public bool IsRanged => projectile != null;
 
+        [Header("설치기")]
+        [Tooltip("켜면 시전자는 <b>설치만 하고</b> castTime + recoveryTime 뒤에 풀려난다.\n\n"
+         + "hitDataList는 설치 지점(조준 좌표, radius 반경)에서 HitTime 타임라인대로 알아서 터진다 — \n\n"
+         + "불릿타임이면 다음 슬롯이 도는 동안 설치기가 겹쳐서 때린다.\n" +
+         "실체는 없다. 기존 에셋은 이 키가 없어 false로 로드된다.")]
+        public bool install;
+
         /// <summary>
         /// <see cref="radius"/>가 곧 타격 범위인지. 조준 링과 헛침 경고가 진실인 스킬.
         ///
         /// 원거리는 즉시 장판이든 투사체 도착 폭발이든 결국 radius만큼 터진다.
         /// 근거리만 예외 — 시전자 몸에 붙은 히트박스로 때린다.
         /// 원거리라도 시전 범위를 적은 스킬(마나 스피어)은 전방 상자로 때리므로 근거리와 같은 경로다.
+        /// 설치기는 직업과 무관하게 설치 지점 반경으로 때린다.
         /// </summary>
-        public bool UsesRadius => role != Role.Tanker && role != Role.Warrior && !HasCastRange;
+        public bool UsesRadius => install || (role != Role.Tanker && role != Role.Warrior && !HasCastRange);
 
         /// <summary>
         /// 기다리지 않고 <b>시전 즉시</b> 기준점 반경이 터지는 스킬인지.
@@ -230,6 +221,10 @@ namespace Prototype
         {
             get
             {
+                // 설치기는 타격을 기다리지 않는다 — 시전자는 설치만 하고 풀려나고,
+                // 타격은 Installation이 자기 시계로 낸다.
+                if (install) return castTime + recoveryTime;
+
                 int last = Mathf.Max(0, (hitDataList?.Count ?? 0) - 1);
                 return HitTime(last) + recoveryTime;
             }

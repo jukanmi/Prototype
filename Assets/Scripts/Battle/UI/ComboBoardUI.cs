@@ -40,7 +40,6 @@ namespace Prototype
         private const float AimStartGap = 0.5f;
 
         /// <summary>쿨타임 중인 카드의 투명도. 지금 못 쓴다는 걸 글자 없이도 알아보게 한다.</summary>
-        private const float CooldownAlpha = 0.45f;
 
         // 카드 배경색 — 상태마다 갈아 끼운다. 기본값은 프리팹에 박혀 있고 여기서 덮어쓴다.
         private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.3f);
@@ -162,9 +161,6 @@ namespace Prototype
 
             /// <summary>한 번이라도 자리를 잡았는지. 처음 뽑힌 카드는 날아오지 않고 제자리에서 나타난다.</summary>
             [System.NonSerialized] public bool placed;
-
-            /// <summary>쿨타임 표시로 덮어 둔 상태. 풀리는 순간을 잡아 원래 글자를 되돌리는 데 쓴다.</summary>
-            [System.NonSerialized] public bool cooling;
         }
 
         // 카드 드래그. 놓든 실패하든 항상 원래 자리로 스냅백한다 —
@@ -312,45 +308,7 @@ namespace Prototype
 
             AnimateCards(dt);
             AnimateArrow(dt);
-            RefreshCooldowns();
             _gauge.Refresh(_bulletTime, dt);
-        }
-
-        /// <summary>
-        /// 실시간 쿨타임 표시. 손패가 안 바뀌어도 숫자는 매 프레임 줄어야 하므로
-        /// <see cref="RefreshUI"/>(이벤트 구동)가 아니라 여기서 덮어 쓴다.
-        /// </summary>
-        private void RefreshCooldowns()
-        {
-            if (!_bulletTime.RealtimeCooldownEnabled) return;
-
-            // 전술 배치 중에는 실행 순서 · 체인 예측이 상태 띠를 쓴다. 쿨타임은 실시간에만 그린다.
-            if (_bulletTime.AllowsCardEdit) return;
-
-            bool restore = false;
-
-            for (int i = 0; i < Hand.Size; i++)
-            {
-                CardWidgets w = _cards[i];
-                if (w == null || !w.root.activeSelf) continue;
-
-                float left = _bulletTime.SkillCooldownRemaining(_bulletTime.Hand.Get(i).Data);
-
-                if (left > 0f)
-                {
-                    w.statusLabel.text = $"<color=#FF8080>쿨 {left:0.0}s</color>";
-                    w.group.alpha = CooldownAlpha;
-                    w.cooling = true;
-                }
-                else if (w.cooling)
-                {
-                    // 원래 글자를 여기서 다시 조립하지 않는다 — RefreshUI 한 번이면 전부 제자리로 온다.
-                    w.cooling = false;
-                    restore = true;
-                }
-            }
-
-            if (restore) RefreshUI();
         }
 
         /// <summary>
@@ -755,16 +713,16 @@ namespace Prototype
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
 
                 if (_aimingIndex >= 0)
-                    _hintText.text = "조준: WASD 또는 마우스 이동 · J/좌클릭 확정 · K/우클릭 취소";
+                    _hintText.text = "조준: 화살표 또는 마우스 이동 · X/좌클릭 확정 · C/우클릭 취소";
                 else if (_grabbedIndex >= 0)
-                    _hintText.text = "집은 상태: A/D 순서 변경 · W 조준 · S 놓기";
+                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↑ 조준 · ↓ 놓기";
                 else
-                    _hintText.text = "A/D 카드 선택 · W 집기 · 드래그도 가능 · E 또는 Space로 실행";
+                    _hintText.text = "←/→ 카드 선택 · ↑ 집기 · 드래그도 가능 · Space로 실행";
             }
             else
             {
                 _titleText.text = $"손패  <color=#808080>덱 {_bulletTime.Deck.Count} · 버린 더미 {_bulletTime.Discard.Count}</color>";
-                _hintText.text = "U — 맨 왼쪽 카드 사용 / E — 불릿타임";
+                _hintText.text = "Z — 고유 스킬 / Space — 불릿타임";
             }
 
             for (int i = 0; i < Hand.Size; i++)

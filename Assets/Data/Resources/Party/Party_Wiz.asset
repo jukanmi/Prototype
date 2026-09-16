@@ -18,18 +18,19 @@ MonoBehaviour:
   portrait: {fileID: 0}
   prefab: {fileID: 4491905594061447380, guid: 7fcaa6c618a95274293c7b2c05b24128, type: 3}
   equipped:
-  - data: {fileID: 11400000, guid: fedc606f064276b4cbeaa8761ea43011, type: 2}
+  - data: {fileID: 11400000, guid: 1d32486380e276c45b77497ac572d2c0, type: 2}
     drawWeight: 1
     golden: 0
-  - data: {fileID: 11400000, guid: 6bc815d41a0a3384ba58fb6d1f4881a3, type: 2}
+  - data: {fileID: 11400000, guid: 615b3b1212d14b0198bb985095ce4a37, type: 2}
     drawWeight: 2
     golden: 0
-  - data: {fileID: 11400000, guid: d4b5c167348f61e44937a1347b3ee857, type: 2}
+  - data: {fileID: 11400000, guid: 9ba8c7cc87c6c9040a39584e3323745a, type: 2}
     drawWeight: 1
     golden: 0
-  - data: {fileID: 11400000, guid: 226b683b42e44e449863feea73376cf3, type: 2}
+  - data: {fileID: 11400000, guid: f4ed30969ee64107829566adf5187747, type: 2}
     drawWeight: 1
     golden: 0
+  uniqueSkill: {fileID: 11400000, guid: 66c8f86831d24f4e9ea96ae298997ce0, type: 2}
   hp: 0
   atk: 0
   moveSpeed: 0

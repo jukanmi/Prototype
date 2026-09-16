@@ -35,7 +35,7 @@ namespace Prototype
             /// </summary>
             public const string BulletTime = "BulletTime";
 
-            public const string CardUse = "CardUse";
+            public const string UniqueSkill = "UniqueSkill";
 
             /// <summary>
             /// 동료 교대. 실시간 전투에는 동료가 한 명만 서 있고 이 키가 다음 생존자로 돌린다.
@@ -132,7 +132,7 @@ namespace Prototype
             { InputActionNames.Gameplay.Jump, "점프" },
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "불릿타임 진입 · 실행" },
-            { InputActionNames.Gameplay.CardUse, "카드 즉시 사용" },
+            { InputActionNames.Gameplay.UniqueSkill, "고유 스킬" },
             { InputActionNames.Gameplay.Swap, "동료 교대" },
             { InputActionNames.BulletTime.Navigate, "카드 선택 · 순서" },
             { InputActionNames.BulletTimeSkillShot.Aim, "조준점 이동" },

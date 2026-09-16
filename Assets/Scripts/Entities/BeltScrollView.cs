@@ -31,7 +31,7 @@ namespace Prototype
                  "매 프레임 이 컴포넌트가 통째로 덮어쓰므로, 거기 직접 쓴 값은 " +
                  "에디터에서만 보이고 재생하는 순간 사라진다.\n\n" +
                  "루트는 안 키운다 — 루트 콜라이더 치수를 Entity.HurtboxSize 가 읽어 " +
-                 "스킬 사거리 배수로 쓰기 때문에(SkillData.castRangeScale), " +
+                 "스킬 사거리 배수로 쓰기 때문에(HitData.castRangeScale), " +
                  "루트를 키우면 몸집 큰 동료의 스킬만 사거리가 늘어난다.")]
         [SerializeField] private float bodyScale = 1f;
         [Tooltip("발이 바닥에 닿아 보이도록 스프라이트를 화면 위로 올리는 양. 보통 스프라이트 높이의 절반. 피벗이 발밑이면 0.")]

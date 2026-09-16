@@ -52,18 +52,18 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "CardUse",
+                    "name": "Swap",
                     "type": "Button",
-                    "id": "104bf55a-d9fe-403f-b038-67ef7aaadfa8",
+                    "id": "3f6c1e02-8a54-4d3b-9c17-2b0e5d7a91c4",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Swap",
+                    "name": "UniqueSkill",
                     "type": "Button",
-                    "id": "3f6c1e02-8a54-4d3b-9c17-2b0e5d7a91c4",
+                    "id": "8f919f6f-d591-46df-9975-82c59f90ba6f",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -172,23 +172,23 @@
                 },
                 {
                     "name": "",
-                    "id": "b77850f4-059a-49e3-9142-f0966ed9faae",
-                    "path": "<Keyboard>/u",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "CardUse",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "7d2a4b61-05ce-4f18-9b3a-c6e81f40d275",
                     "path": "<Keyboard>/f",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Swap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2ce4249c-b18d-4937-9bf8-11802137fa06",
+                    "path": "<Keyboard>/z",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "UniqueSkill",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
