@@ -19,6 +19,8 @@ MonoBehaviour:
     - scene: Stage_01
       kind: 0
       weight: 1
+    roomPercentMin: 0
+    roomPercentMax: 0
   - minNodes: 2
     maxNodes: 2
     candidates:
@@ -28,6 +30,8 @@ MonoBehaviour:
     - scene: Stage_03
       kind: 0
       weight: 1
+    roomPercentMin: 0
+    roomPercentMax: 0
   - minNodes: 2
     maxNodes: 3
     candidates:
@@ -43,6 +47,8 @@ MonoBehaviour:
     - scene: Node_Event
       kind: 4
       weight: 1
+    roomPercentMin: 90
+    roomPercentMax: 110
   - minNodes: 2
     maxNodes: 2
     candidates:
@@ -58,9 +64,13 @@ MonoBehaviour:
     - scene: Stage_03
       kind: 1
       weight: 1
+    roomPercentMin: 80
+    roomPercentMax: 100
   - minNodes: 1
     maxNodes: 1
     candidates:
     - scene: Stage_05
       kind: 5
       weight: 1
+    roomPercentMin: 0
+    roomPercentMax: 0

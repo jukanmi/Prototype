@@ -266,6 +266,166 @@ namespace Prototype.Tests
             Assert.That(Has(issues, RunMapProblem.NoFloors), Is.True);
         }
 
+        // ── 방 크기 ─────────────────────────────────────
+        // 계획서: docs/Room_Size_Plan.md (2.1 ~ 2.4 · 5단계)
+
+        /// <summary><see cref="Wide"/>에 층마다 방 크기 범위를 얹는다. 보스 층에도 얹어서 보스가 무시하는지 본다.</summary>
+        private static FloorRule[] WideWithRooms()
+        {
+            FloorRule[] floors = Wide();
+            int[,] ranges = { { 0, 0 }, { 90, 110 }, { 80, 100 }, { 100, 125 }, { 80, 125 } };
+
+            for (int f = 0; f < floors.Length; f++)
+            {
+                floors[f].roomPercentMin = ranges[f, 0];
+                floors[f].roomPercentMax = ranges[f, 1];
+            }
+
+            return floors;
+        }
+
+        /// <summary>
+        /// <b>방 범위만 바꾼 레시피는 같은 시드에서 같은 모양이다.</b> 방 크기를 지도 모양 난수에서 뽑으면
+        /// 뒤의 난수가 밀려 갈림길이 흔들리고, 이 기능을 넣는 순간 로그에 남긴 시드가 전부 다른 지도가 된다.
+        /// </summary>
+        [Test]
+        public void RoomRangesOnly_DoNotChangeTheShape()
+        {
+            FloorRule[] plain = Wide();
+            FloorRule[] withRooms = WideWithRooms();
+
+            for (int seed = 0; seed < 200; seed++)
+                Assert.That(Generate(withRooms, seed).Describe(), Is.EqualTo(Generate(plain, seed).Describe()), $"시드 {seed}");
+        }
+
+        [Test]
+        public void SameSeed_SameRoomPercents()
+        {
+            FloorRule[] floors = WideWithRooms();
+
+            RunMap a = Generate(floors, 4321);
+            RunMap b = Generate(floors, 4321);
+
+            Assert.That(a.Nodes.Select(n => n.RoomPercent), Is.EqualTo(b.Nodes.Select(n => n.RoomPercent)));
+            Assert.That(a.DescribeRooms(), Is.EqualTo(b.DescribeRooms()));
+        }
+
+        /// <summary>
+        /// 모든 시드에서: 전투 · 정예 칸은 층 범위 안의 5 단위, 보스 · 비전투 칸은 100, 범위가 없는 층은 100.
+        /// 검사기(<see cref="RunMapRules.Issues(RunMap)"/>)도 같은 규칙으로 통과한다.
+        /// </summary>
+        [Test]
+        public void EverySeed_RoomPercents_FollowTheFloorRule()
+        {
+            FloorRule[] floors = WideWithRooms();
+
+            for (int seed = 0; seed < SeedSweep; seed++)
+            {
+                RunMap map = Generate(floors, seed);
+
+                foreach (MapNode n in map.Nodes)
+                {
+                    FloorRule rule = floors[n.Floor];
+
+                    if (!RunMapRules.GetsRoomModifier(n.Kind) || !rule.HasRoomRange)
+                    {
+                        Assert.That(n.RoomPercent, Is.EqualTo(100), $"시드 {seed} {n}: 보정 없는 칸");
+                        continue;
+                    }
+
+                    Assert.That(n.RoomPercent, Is.InRange(rule.roomPercentMin, rule.roomPercentMax), $"시드 {seed} {n}");
+                    Assert.That(n.RoomPercent % RoomRules.Step, Is.Zero, $"시드 {seed} {n}: 5 단위가 아니다");
+                }
+            }
+        }
+
+        /// <summary>범위의 <b>양끝을 포함해</b> 모든 단위가 실제로 나온다. <c>Next(lo, hi)</c>로 쓰면 상한이 영영 안 나온다.</summary>
+        [Test]
+        public void RoomRange_EveryStepIncludingEnds_Appears()
+        {
+            var floor = FloorRule.Of(1, 1, N("A", MapNodeKind.Battle));
+            floor.roomPercentMin = 90;
+            floor.roomPercentMax = 110;
+
+            var seen = new HashSet<int>();
+            for (int seed = 0; seed < SeedSweep; seed++)
+                seen.Add(RunMapGenerator.RollRoomPercent(floor, MapNodeKind.Battle, seed, 0));
+
+            Assert.That(seen, Is.EquivalentTo(new[] { 90, 95, 100, 105, 110 }));
+        }
+
+        /// <summary>
+        /// 한 지도 안의 칸끼리도 고르게 갈린다. 시드를 그냥 섞지 않고 쓰면 이웃한 칸 Id가 닮은 값을 받아
+        /// "2층은 전부 90%" 같은 줄무늬가 나온다.
+        /// </summary>
+        [Test]
+        public void RoomRoll_VariesAcrossNodesOfOneMap()
+        {
+            var floor = FloorRule.Of(1, 1, N("A", MapNodeKind.Battle));
+            floor.roomPercentMin = 80;
+            floor.roomPercentMax = 125;
+
+            var seen = new HashSet<int>();
+            for (int id = 0; id < 40; id++)
+                seen.Add(RunMapGenerator.RollRoomPercent(floor, MapNodeKind.Battle, 12345, id));
+
+            Assert.That(seen.Count, Is.GreaterThanOrEqualTo(6), "40칸에 10가지 값 중 6가지도 안 나왔다");
+        }
+
+        [TestCase(MapNodeKind.Boss)]
+        [TestCase(MapNodeKind.Rest)]
+        [TestCase(MapNodeKind.Shop)]
+        [TestCase(MapNodeKind.Event)]
+        public void RoomRoll_NonBattleKinds_AreAlwaysFull(MapNodeKind kind)
+        {
+            var floor = FloorRule.Of(1, 1, N("A", kind));
+            floor.roomPercentMin = 80;
+            floor.roomPercentMax = 80;
+
+            for (int seed = 0; seed < 50; seed++)
+                Assert.That(RunMapGenerator.RollRoomPercent(floor, kind, seed, 3), Is.EqualTo(100));
+        }
+
+        /// <summary>범위가 없는 레시피(지금 들어가 있는 두 애셋)는 전부 100이고, 방 로그 줄도 비어 있다.</summary>
+        [Test]
+        public void NoRoomRanges_EverythingFull()
+        {
+            RunMap map = Generate(Wide(), 99);
+
+            Assert.That(map.Nodes.All(n => n.RoomPercent == 100), Is.True);
+            Assert.That(map.DescribeRooms(), Is.Empty);
+        }
+
+        [Test]
+        public void DescribeRooms_ListsOnlyResizedNodes()
+        {
+            var f = new[]
+            {
+                new[] { new MapNode(0, 0, 0, MapNodeKind.Battle, "A", new[] { 1, 2 }, 90) },
+                new[] { new MapNode(1, 1, 0, MapNodeKind.Elite, "B", new[] { 3 }, 105), Node(2, 1, 1, MapNodeKind.Rest, "", 3) },
+                new[] { Node(3, 2, 0, MapNodeKind.Boss, "Z") },
+            };
+
+            Assert.That(new RunMap(0, f).DescribeRooms(), Is.EqualTo("방: #0 90% · #1 105%"));
+        }
+
+        /// <summary>검사기가 규칙에 안 맞는 칸 방 크기를 잡는다 — 생성기가 잘못 넣으면 여기서 막힌다.</summary>
+        [Test]
+        public void Issues_BadRoomPercent_IsCaught()
+        {
+            MapNode[][] bossResized = Diamond();
+            bossResized[2][0] = new MapNode(3, 2, 0, MapNodeKind.Boss, "Z", null, 90);
+            Assert.That(Has(RunMapRules.Issues(new RunMap(0, bossResized)), RunMapProblem.BadRoomPercent), Is.True, "보스가 90%");
+
+            MapNode[][] offStep = Diamond();
+            offStep[1][0] = new MapNode(1, 1, 0, MapNodeKind.Battle, "B", new[] { 3 }, 93);
+            Assert.That(Has(RunMapRules.Issues(new RunMap(0, offStep)), RunMapProblem.BadRoomPercent), Is.True, "5 단위가 아님");
+
+            MapNode[][] tooSmall = Diamond();
+            tooSmall[1][0] = new MapNode(1, 1, 0, MapNodeKind.Battle, "B", new[] { 3 }, 70);
+            Assert.That(Has(RunMapRules.Issues(new RunMap(0, tooSmall)), RunMapProblem.BadRoomPercent), Is.True, "범위 밖");
+        }
+
         // ── 실제 레시피 ─────────────────────────────────
 
         /// <summary>
@@ -287,6 +447,26 @@ namespace Prototype.Tests
 
                 for (int f = 0; f < recipe.FloorCount; f++)
                     Assert.That(map.NodesOn(f).Count, Is.InRange(recipe.floors[f].minNodes, recipe.floors[f].maxNodes));
+            }
+        }
+
+        /// <summary>
+        /// 방 크기 난이도 곡선(docs/Room_Size_Plan.md 2.6) — 입문 · 아레나가 섞인 1층 · 보스는 고정, 뒤층일수록 좁아지고 흔들림이 커진다.
+        /// 레시피 값이 바뀌면 이 테스트도 같이 바꾼다. 조용히 바뀌는 것만 막는다.
+        /// </summary>
+        [Test]
+        public void MainRecipe_RoomRanges_AreTheAgreedCurve()
+        {
+            var recipe = AssetDatabase.LoadAssetAtPath<RunMapRecipe>(MainRecipePath);
+            Assert.That(recipe, Is.Not.Null);
+            Assert.That(recipe.FloorCount, Is.EqualTo(5), "층 수가 바뀌었다 — 아래 표도 같이 볼 것");
+
+            int[,] expected = { { 0, 0 }, { 0, 0 }, { 90, 110 }, { 80, 100 }, { 0, 0 } };
+
+            for (int f = 0; f < recipe.FloorCount; f++)
+            {
+                Assert.That(recipe.floors[f].roomPercentMin, Is.EqualTo(expected[f, 0]), $"{f}층 하한");
+                Assert.That(recipe.floors[f].roomPercentMax, Is.EqualTo(expected[f, 1]), $"{f}층 상한");
             }
         }
 

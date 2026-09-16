@@ -209,6 +209,37 @@ namespace Prototype.Tests
             Assert.That(gm.CurrentNodeModifier.EliteEvery, Is.EqualTo(EncounterModifierRules.EliteNodeEvery));
         }
 
+        /// <summary>
+        /// 들어간 칸이 굴린 방 크기가 보정으로 건너온다. 씬의 <see cref="StageRoom"/>은 이 값 하나를 읽는다 —
+        /// 여기서 끊기면 레시피에 범위를 넣어도 모든 방이 100%로 돈다.
+        /// </summary>
+        [Test]
+        public void CurrentNodeModifier_CarriesTheNodesRoomPercent()
+        {
+            FloorRule start = FloorRule.Of(1, 1, N("Stage_A", MapNodeKind.Battle));
+            start.roomPercentMin = 90;
+            start.roomPercentMax = 90;
+
+            RunMapRecipe sized = Recipe(start, FloorRule.Of(1, 1, N("Stage_Boss", MapNodeKind.Boss)));
+
+            try
+            {
+                gm.Configure(sized, Seed);
+                gm.StartNewRun();
+
+                Assert.That(gm.CurrentNodeModifier.HasRoom, Is.False, "칸 밖에서는 방 크기 보정이 없다");
+
+                gm.Progress.TrySelect(First.Id);
+
+                Assert.That(First.RoomPercent, Is.EqualTo(90));
+                Assert.That(gm.CurrentNodeModifier.RoomPercent, Is.EqualTo(90));
+            }
+            finally
+            {
+                Object.DestroyImmediate(sized);
+            }
+        }
+
         [Test]
         public void CompleteNodeAndReturnToMap_WithoutSceneLoader_KeepsPending()
         {

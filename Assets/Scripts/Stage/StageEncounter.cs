@@ -83,20 +83,53 @@ namespace Prototype
     /// 웨이브 애셋은 씬 보드의 지점 이름에 묶여 있고 디렉터는 그걸 읽기만 한다 — 사본을 끼워 넣으면
     /// "보드 목록이냐 주입 목록이냐"라는 두 번째 진실이 생긴다. 강화 배율은 이미 소환 창구에 있으므로
     /// "이 한 기가 강화인가"만 정하면 충분하다.
+    ///
+    /// <b>방 크기도 같은 통로로 온다</b>(docs/Room_Size_Plan.md 6단계). 그 값을 쓰는 곳은 디렉터가 아니라 씬의
+    /// <see cref="StageRoom"/>이다 — 벽을 옮기는 일은 소환보다 먼저, 파티가 서기 전에 끝나야 한다.
     /// </summary>
     public readonly struct EncounterModifier
     {
-        /// <summary>몇 번째마다 강화하는가. 0이면 보정 없음.</summary>
+        /// <summary>몇 번째마다 강화하는가. 0이면 강화 보정 없음.</summary>
         public readonly int EliteEvery;
 
-        public EncounterModifier(int eliteEvery) => EliteEvery = Mathf.Max(0, eliteEvery);
+        /// <summary>
+        /// 저장값. <b>0이 "보정 없음"</b>이다 — <see cref="None"/>이 <c>default</c>라 새 칸의 기본값이 0이기 때문이다.
+        /// 읽을 때는 <see cref="RoomPercent"/>로 100으로 펴서 읽는다.
+        /// </summary>
+        private readonly int roomPercent;
 
-        /// <summary>저작 그대로. 씬 단독 실행과 일반 전투 칸이 이것이다.</summary>
+        /// <summary>
+        /// 두 값을 다 받는다. 한쪽만 받는 생성자를 두지 않는다 — 정예 간격만 넘기는 호출이 남으면
+        /// 그 경로만 방 크기를 조용히 100%로 돈다(docs/Room_Size_Plan.md 6단계).
+        /// </summary>
+        public EncounterModifier(int eliteEvery, int roomPercent)
+        {
+            EliteEvery = Mathf.Max(0, eliteEvery);
+            this.roomPercent = Mathf.Max(0, roomPercent);
+        }
+
+        /// <summary>저작 그대로. 씬 단독 실행과 보정 없는 칸이 이것이다.</summary>
         public static readonly EncounterModifier None = default;
 
-        public bool IsNone => EliteEvery <= 0;
+        /// <summary>방 크기 비율(%). 보정이 없으면 100.</summary>
+        public int RoomPercent => RoomRules.Normalize(roomPercent);
 
-        public override string ToString() => IsNone ? "보정 없음" : $"{EliteEvery}기마다 강화";
+        /// <summary>강화 보정이 있는가. <see cref="EncounterModifierRules.IsElite"/>가 나눗셈 전에 이것을 본다.</summary>
+        public bool HasElite => EliteEvery > 0;
+
+        /// <summary>방 크기 보정이 있는가.</summary>
+        public bool HasRoom => RoomPercent != RoomRules.FullPercent;
+
+        public bool IsNone => !HasElite && !HasRoom;
+
+        public override string ToString()
+        {
+            if (IsNone) return "보정 없음";
+            if (!HasRoom) return $"{EliteEvery}기마다 강화";
+            if (!HasElite) return $"방 {RoomPercent}%";
+
+            return $"{EliteEvery}기마다 강화 · 방 {RoomPercent}%";
+        }
     }
 
     /// <summary>보정의 판단. 순수 함수라 씬 없이 검증한다.</summary>
@@ -105,9 +138,22 @@ namespace Prototype
         /// <summary>정예 칸에서 강화가 붙는 간격 — 대략 세 기 중 한 기.</summary>
         public const int EliteNodeEvery = 3;
 
-        /// <summary>칸 종류가 거는 보정. 정예만 보정이 있다.</summary>
-        public static EncounterModifier For(MapNodeKind kind)
-            => kind == MapNodeKind.Elite ? new EncounterModifier(EliteNodeEvery) : EncounterModifier.None;
+        /// <summary>
+        /// 칸이 거는 보정. 정예면 강화, 방 크기 보정을 받는 칸(<see cref="RunMapRules.GetsRoomModifier"/>)이면 그 칸의 방 크기.
+        /// 칸이 없으면(씬 단독 실행 · 런 밖) <see cref="EncounterModifier.None"/>.
+        ///
+        /// <b>칸 종류만 받는 서명은 지웠다.</b> 남겨 두면 그걸 부르는 자리가 방 크기를 빠뜨린 채 조용히 100%로 돈다.
+        /// 보스 칸에 방 크기가 박혀 있어도(손으로 만든 지도) 여기서 한 번 더 막는다 — 보스 패턴은 방 크기를 전제로 저작한다.
+        /// </summary>
+        public static EncounterModifier For(MapNode node)
+        {
+            if (node == null) return EncounterModifier.None;
+
+            int elite = node.Kind == MapNodeKind.Elite ? EliteNodeEvery : 0;
+            int room = RunMapRules.GetsRoomModifier(node.Kind) ? node.RoomPercent : 0;
+
+            return new EncounterModifier(elite, room);
+        }
 
         /// <summary>
         /// 이 한 기가 강화로 나오는가.
@@ -119,7 +165,10 @@ namespace Prototype
         public static bool IsElite(bool authored, EnemyRole role, int ordinal, in EncounterModifier modifier)
         {
             if (authored) return true;
-            if (role == EnemyRole.Boss || modifier.IsNone || ordinal < 0) return false;
+
+            // IsNone 이 아니라 HasElite 를 본다. 방 크기 보정만 있는 칸은 IsNone 이 거짓인데 EliteEvery 가 0이라,
+            // IsNone 으로 거르면 아래 나머지 연산이 0으로 나눈다.
+            if (role == EnemyRole.Boss || !modifier.HasElite || ordinal < 0) return false;
 
             return ordinal % modifier.EliteEvery == 0;
         }

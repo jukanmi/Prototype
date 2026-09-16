@@ -107,7 +107,7 @@ namespace Prototype.Tests
                         Is.EqualTo(SpawnRoute.Wall));
 
             WaveSpawnEntry roomRow = WaveSpawnEntry.Auto(EnemyRole.Melee);
-            SpawnPlacement room = WaveSpawnPlanner.PlanAuto(in roomRow, 0, 0f);
+            SpawnPlacement room = WaveSpawnPlanner.PlanAuto(in roomRow, 0, 0f, RoomRect.Default);
 
             Assert.That(room.FromWall, Is.False, "방 배치가 벽을 들고 있다");
             Assert.That(SpawnRouteRules.For(SpawnMotion.FlyIn, room.FromWall),

@@ -42,8 +42,8 @@ namespace Prototype.Tests
             var entry = WaveSpawnEntry.Auto(EnemyRole.Melee);
             var point = WaveSpawnEntry.At(EnemyRole.Melee, "굴");
 
-            Assert.That(WaveSpawnPlanner.PlanAuto(in entry, 0, 0f).FromWall, Is.False);
-            Assert.That(WaveSpawnPlanner.PlanAt(in point, Vector3.zero).FromWall, Is.False);
+            Assert.That(WaveSpawnPlanner.PlanAuto(in entry, 0, 0f, RoomRect.Default).FromWall, Is.False);
+            Assert.That(WaveSpawnPlanner.PlanAt(in point, Vector3.zero, RoomRect.Default).FromWall, Is.False);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Prototype.Tests
         {
             var entry = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Right, 3f);
 
-            Assert.That(WaveSpawnPlanner.PlanAuto(in entry, 0, 0f).HasTelegraph, Is.False);
+            Assert.That(WaveSpawnPlanner.PlanAuto(in entry, 0, 0f, RoomRect.Default).HasTelegraph, Is.False);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Prototype.Tests
         {
             var entry = WaveSpawnEntry.At(EnemyRole.Melee, "굴", 3f, SpawnMotion.Burrow);
 
-            SpawnPlacement place = WaveSpawnPlanner.PlanAt(in entry, new Vector3(2f, 0f, 1f));
+            SpawnPlacement place = WaveSpawnPlanner.PlanAt(in entry, new Vector3(2f, 0f, 1f), RoomRect.Default);
 
             Assert.That(place.HasTelegraph, Is.True);
             Assert.That(place.telegraphAt,
@@ -81,7 +81,7 @@ namespace Prototype.Tests
         {
             var entry = WaveSpawnEntry.At(EnemyRole.Melee, "굴", 3f, SpawnMotion.Burrow);
 
-            SpawnPlacement place = WaveSpawnPlanner.PlanAt(in entry, new Vector3(2f, 0f, 1f));
+            SpawnPlacement place = WaveSpawnPlanner.PlanAt(in entry, new Vector3(2f, 0f, 1f), RoomRect.Default);
 
             Assert.That(place.telegraphPoint, Is.EqualTo(place.spawnPoint));
         }
@@ -130,7 +130,7 @@ namespace Prototype.Tests
             var roomEntry = WaveSpawnEntry.Auto(EnemyRole.Melee, SpawnSide.Right, 2.5f);
             var wallEntry = WaveSpawnEntry.AtWall(EnemyRole.Melee, SpawnWall.Front, 0.5f, 2.5f);
 
-            Assert.That(WaveSpawnPlanner.PlanAuto(in roomEntry, 0, 0f).appearAt,
+            Assert.That(WaveSpawnPlanner.PlanAuto(in roomEntry, 0, 0f, RoomRect.Default).appearAt,
                         Is.EqualTo(2.5f).Within(Eps));
             Assert.That(ArenaSpawnPlanner.PlanFromWall(in wallEntry, -6f, 6f).appearAt,
                         Is.EqualTo(2.5f).Within(Eps));
@@ -143,7 +143,7 @@ namespace Prototype.Tests
             var roomEntry = WaveSpawnEntry.Auto(EnemyRole.Charger);
             var wallEntry = WaveSpawnEntry.AtWall(EnemyRole.Charger, SpawnWall.Front, 0.5f);
 
-            Assert.That(WaveSpawnPlanner.PlanAuto(in roomEntry, 0, 0f).holdSeconds,
+            Assert.That(WaveSpawnPlanner.PlanAuto(in roomEntry, 0, 0f, RoomRect.Default).holdSeconds,
                         Is.GreaterThan(0f));
             Assert.That(ArenaSpawnPlanner.PlanFromWall(in wallEntry, -6f, 6f).holdSeconds,
                         Is.GreaterThan(0f));

@@ -1096,6 +1096,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1744773988}
+  - component: {fileID: 1744773989}
   m_Layer: 0
   m_Name: Room
   m_TagString: Untagged
@@ -1125,6 +1126,35 @@ Transform:
   - {fileID: 173884259}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1744773989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1744773987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d219074504656247a88cea07c5d47f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.StageRoom
+  baseRoom:
+    minX: -6
+    maxX: 6
+    minZ: -3
+    maxZ: 3
+  wallThickness: 0.5
+  wallLeft: {fileID: 1121415245}
+  wallRight: {fileID: 182686510}
+  wallNear: {fileID: 345595178}
+  wallFar: {fileID: 891502961}
+  stretch:
+  - {fileID: 779222352}
+  - {fileID: 629296050}
+  - {fileID: 173884259}
+  anchors:
+  - {fileID: 1100403403}
+  debugRoomPercent: 0
 --- !u!1001 &1966162845
 PrefabInstance:
   m_ObjectHideFlags: 0

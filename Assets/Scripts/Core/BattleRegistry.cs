@@ -53,11 +53,23 @@ namespace Prototype
             return n;
         }
 
-        public static bool AllAlliesDead()
+        /// <summary>
+        /// 지금 <b>필드에 서서 살아 있는</b> 아군 수.
+        ///
+        /// <b>파티가 몇 명 살아 있는가가 아니다.</b> 이 목록에는 필드에 선 몸만 들어 있고
+        /// (벤치로 내려간 동료는 <c>OnDisable</c>에서 빠진다), 교대와 콤보 시전자 전환 사이에는
+        /// <b>아무도 등록돼 있지 않은 프레임</b>이 반드시 생긴다. 그래서 이 값이 0이라고
+        /// 전멸이 아니다 — 전멸은 <see cref="StageOutcomeRules.PartyWiped"/>가 명부를 보고 정한다.
+        ///
+        /// 예전에 있던 <c>AllAlliesDead()</c>를 지운 이유가 이것이다. 그쪽은 빈 목록에 true 를
+        /// 돌려줘서, 파티 체력바가 멀쩡한데 결과 화면이 뜨는 버그의 원인이 됐다.
+        /// </summary>
+        public static int AliveAllyCount()
         {
+            int n = 0;
             for (int i = 0; i < allies.Count; i++)
-                if (allies[i] != null && !allies[i].Combat.IsDead) return false;
-            return true;
+                if (allies[i] != null && !allies[i].Combat.IsDead) n++;
+            return n;
         }
 
         // 아래 조준 함수들은 전부 IsTargetable 을 본다. 벽에서 걸어 나오는 중인 적은

@@ -49,6 +49,17 @@ namespace Prototype
         [Tooltip("반격 밀치기 거리(유닛). 0이면 제자리에서 경직만 먹는다.")]
         [SerializeField] private float parryCounterPush = 0.5f;
 
+        [Header("교대 등장")]
+        [Tooltip("교대로 필드에 설 때 받는 무적 시간. 0이면 무적 없이 그대로 선다.\n\n" +
+                 "교대는 내려간 몸의 자리를 그대로 물려받는다. 사망 교대라면 그 자리는 <b>방금 아군 " +
+                 "하나를 죽인 히트박스 한복판</b>이고, 히트박스의 중복 방지(Attack.alreadyHit)는 " +
+                 "Combat 인스턴스 기준이라 새로 선 몸은 '처음 보는 대상'으로 그대로 또 맞는다. " +
+                 "0이면 보스의 다단히트 하나에 파티가 통째로 연쇄 사망한다.\n\n" +
+                 "보스 패턴이 한 번 켜 둔 히트박스를 <b>끝까지</b> 넘겨야 한다. 지금 가장 긴 것은 " +
+                 "삼연참(active 0.6 / 3타 / 지속 0.12)으로, 마지막 타격 0.4s + 0.12s = 0.52s 다. " +
+                 "SummonInvulnTests 가 보스 표를 직접 읽어 이 값이 모자라면 실패한다.")]
+        [SerializeField] private float summonInvuln = 0.55f;
+
         [Header("가드 (보스)")]
         [Tooltip("가드 게이지 최대치. 단위는 <b>타격 횟수</b>다 — 10이면 열 대 맞고 깨진다.\n\n" +
                  "0 이하면 가드 시스템을 쓰지 않는다(잡몹 기본값). 값이 있으면 이 개체는 평소 " +
@@ -79,6 +90,9 @@ namespace Prototype
 
         /// <summary>패링 성공으로 얻은 무적의 남은 시간. 이 구간은 방향을 보지 않는다.</summary>
         private float parryInvulnTimer;
+
+        /// <summary>교대로 막 서면서 받은 무적의 남은 시간. 이 구간도 방향을 보지 않는다.</summary>
+        private float summonInvulnTimer;
 
         private Energy guard;
         /// <summary>가드브레이크로 무방비인 남은 시간.</summary>
@@ -115,6 +129,9 @@ namespace Prototype
 
         /// <summary>패링 성공 직후의 무적 구간인지.</summary>
         public bool IsParryInvulnerable => parryInvulnTimer > 0f;
+
+        /// <summary>교대로 막 선 직후의 무적 구간인지.</summary>
+        public bool IsSummonInvulnerable => summonInvulnTimer > 0f;
 
         // ── 가드 ────────────────────────────────────────
 
@@ -189,6 +206,12 @@ namespace Prototype
 
         /// <summary>패링 무적의 전체 길이.</summary>
         public float ParryInvulnDuration => parrySuccessInvuln;
+
+        /// <summary>교대 무적의 남은 시간.</summary>
+        public float SummonInvulnRemaining => Mathf.Max(0f, summonInvulnTimer);
+
+        /// <summary>교대 무적의 전체 길이. 프리팹 검사가 읽는다.</summary>
+        public float SummonInvulnDuration => summonInvuln;
 
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
@@ -268,6 +291,7 @@ namespace Prototype
             if (wallBounceTimer > 0f) wallBounceTimer -= dt;
             if (parryTimer > 0f) parryTimer -= dt;
             if (parryInvulnTimer > 0f) parryInvulnTimer -= dt;
+            if (summonInvulnTimer > 0f) summonInvulnTimer -= dt;
 
             TickGuard(dt);
             // 경직 복구가 아래에서 early return을 타므로 그 전에 굴린다 —
@@ -461,6 +485,21 @@ namespace Prototype
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#808080>무적으로 흘림</color> ({CombatState}, OTG {hit.canOtg})", this);
+                return false;
+            }
+
+            // 교대로 막 선 몸 — 방향도 공격자도 보지 않는다. 반격도 없다(그건 패링의 보상이다).
+            //
+            // 여기서 흘리지 않으면 <b>아직 켜져 있는 그 히트박스</b>가 새 몸을 그대로 또 잡는다.
+            // 교대는 쓰러진 자리를 물려받고(TagSwapController.HandleDied), Attack.alreadyHit 은
+            // Combat 인스턴스 기준이라 새 몸이 '처음 보는 대상'이기 때문이다. 그게 보스의
+            // 다단히트 한 번에 파티가 통째로 죽던 경로다.
+            if (IsSummonInvulnerable)
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#8AE234>교대 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
+                    $"(남은 {summonInvulnTimer:0.##}s)", this);
+
                 return false;
             }
 
@@ -845,6 +884,26 @@ namespace Prototype
                 $"{name} <color=#E24AFF><b>가드 브레이크</b></color> — {guardBreakDuration:0.##}s 무방비", this);
         }
 
+        // ── 교대 등장 ───────────────────────────────────
+
+        /// <summary>
+        /// 교대로 필드에 섰다. <b>호출자는 <see cref="TagSwapController"/> 하나뿐</b>이어야 한다 —
+        /// 몸을 세우는 것과 지키는 것이 같은 자리에 묶여 있어야, 나중에 생긴 등장 경로가
+        /// 무적만 빠뜨린 채 몸을 세우는 일이 안 생긴다.
+        ///
+        /// 시체에는 주지 않는다. 사망 자동 교대가 도는 순간 <b>쓰러진 몸은 아직 그 자리에
+        /// 그대로 있고</b>, 시체까지 무적이 되면 이어지는 타격이 전부 흘러 다단히트가 조용히 줄어든다.
+        /// </summary>
+        public void GrantSummonInvuln()
+        {
+            if (IsDead || summonInvuln <= 0f) return;
+
+            summonInvulnTimer = summonInvuln;
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} 교대 등장 — {summonInvuln:0.##}s 무적", this);
+        }
+
         // ── 대시 패링 ───────────────────────────────────
 
         /// <summary>
@@ -1008,6 +1067,7 @@ namespace Prototype
             wallBounceTimer = 0f;
             parryTimer = 0f;
             parryInvulnTimer = 0f;
+            summonInvulnTimer = 0f;
             airHitCount = 0;
 
             SetCombatState(CombatState.Neutral);

@@ -132,9 +132,11 @@ namespace Prototype
         /// </summary>
         public bool HasNextNode => CurrentNode != null && CurrentNode.Floor < Map.LastFloor;
 
-        /// <summary>지금 칸이 조우에 거는 보정. 칸이 없으면(씬 단독 실행 포함) 저작 그대로.</summary>
-        public EncounterModifier CurrentNodeModifier
-            => CurrentNode != null ? EncounterModifierRules.For(CurrentNode.Kind) : EncounterModifier.None;
+        /// <summary>
+        /// 지금 칸이 조우에 거는 보정 — 정예 강화와 방 크기. 칸이 없으면(씬 단독 실행 포함) 저작 그대로.
+        /// 디렉터와 (7단계부터) 씬의 <see cref="StageRoom"/>이 Awake에서 읽는다.
+        /// </summary>
+        public EncounterModifier CurrentNodeModifier => EncounterModifierRules.For(CurrentNode);
 
         // ── 런 수명 ──────────────────────────────────────
 
@@ -172,7 +174,10 @@ namespace Prototype
 
             RestoreTime();
 
-            Debug.Log($"[GameManager] 새 런 — 시드 {seed} · {map.FloorCount}층 ({recipe.name})\n{map.Describe()}");
+            // 방 크기는 모양 문자열과 따로 찍는다 — Describe 는 "같은 모양인가"를 비교하는 용도다.
+            string rooms = map.DescribeRooms();
+            Debug.Log($"[GameManager] 새 런 — 시드 {seed} · {map.FloorCount}층 ({recipe.name})\n{map.Describe()}" +
+                      (rooms.Length > 0 ? "\n" + rooms : ""));
             return true;
         }
 

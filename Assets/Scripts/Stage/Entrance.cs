@@ -136,8 +136,11 @@ namespace Prototype
         /// <summary>
         /// 카메라가 없는 씬(테스트 · 스킬 시험장)에서 쓰는 반폭.
         /// 방 반경보다 넓어야 "밖"이 정말 밖이 된다.
+        ///
+        /// 기준 방을 쓴다 — 카메라가 없는 씬은 방 크기 보정을 받는 전투 칸이 아니다.
+        /// 125% 방(반폭 7.5)도 넘으므로 여유 2는 그대로 둔다.
         /// </summary>
-        public const float FallbackHalfWidth = WaveSpawnPlanner.RoomHalfX + 2f;
+        public static readonly float FallbackHalfWidth = RoomRect.Default.HalfX + 2f;
 
         /// <summary>이 X가 지금 화면 안인가.</summary>
         public static bool IsOnScreen(float x, float cameraX, float halfWidth)

@@ -141,11 +141,25 @@ namespace Prototype
             }
         }
 
-        /// <summary>칸을 골랐을 때 아래 설명줄에 뜨는 글. 수치는 규칙에서 읽는다 — 글과 실제가 어긋나지 않게.</summary>
+        /// <summary>
+        /// 칸을 골랐을 때 아래 설명줄에 뜨는 글. 수치는 규칙에서 읽는다 — 글과 실제가 어긋나지 않게.
+        ///
+        /// 방 크기가 100%가 아니면 끝에 <c> · 방 크기 90%</c>를 붙인다. 비율은 칸에서 바로 읽지 않고
+        /// 전투 씬이 받는 보정(<see cref="EncounterModifierRules.For"/>)에서 읽는다 — 보스 칸에 비율이 박혀 있어도
+        /// 전투에서는 100%로 도는데 지도가 90%라고 말하면 안 된다.
+        /// </summary>
         public static string Describe(MapNode node)
         {
             if (node == null) return "";
 
+            EncounterModifier modifier = EncounterModifierRules.For(node);
+            string text = DescribeKind(node);
+
+            return modifier.HasRoom ? $"{text} · 방 크기 {modifier.RoomPercent}%" : text;
+        }
+
+        private static string DescribeKind(MapNode node)
+        {
             switch (node.Kind)
             {
                 case MapNodeKind.Elite:
@@ -335,7 +349,8 @@ namespace Prototype
                 return;
             }
 
-            Debug.Log($"[RunMap] 미리보기 — 시드 {seed}\n{map.Describe()}");
+            string rooms = map.DescribeRooms();
+            Debug.Log($"[RunMap] 미리보기 — 시드 {seed}\n{map.Describe()}" + (rooms.Length > 0 ? "\n" + rooms : ""));
             Show(new RunMapProgress(map), PreviewPick);
         }
 

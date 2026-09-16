@@ -89,6 +89,17 @@ namespace Prototype
         /// 런타임은 앞 조우 뒤로 접어서 멈추지는 않지만, 저작자가 의도한 동작은 아니다.
         /// </summary>
         CrossLineWithoutSite,
+
+        /// <summary>
+        /// 방 규칙이 필요한데 씬에 <see cref="StageRoom"/>이 없다. 자리 없는 조우가 있거나 스폰 지점이 있으면 필요하다.
+        /// <b>디렉터는 이 상태로 조우를 하나도 안 돌린다</b> — 방을 모르고 적을 세우면 방 크기 보정이 그 씬만 조용히 빠진다.
+        /// </summary>
+        NoStageRoom,
+
+        /// <summary>
+        /// 기준 방이 스폰 규칙을 못 담는다(<see cref="RoomRules.IsLargeEnough"/>). 마법사가 플레이어 줄을 피할 깊이가 없다.
+        /// </summary>
+        RoomTooSmall,
     }
 
     /// <summary>잡힌 실수 하나. 어느 줄의 무엇인지까지 들고 있어야 씬에서 찾아갈 수 있다.</summary>
@@ -121,6 +132,10 @@ namespace Prototype
                     return $"웨이브 {row}번: 다음 웨이브 조건 {name} 은(는) 아직 안 돌아간다. 전멸로 돈다.";
                 case BoardProblem.CrossLineWithoutSite:
                     return $"조우 {row}번: 진입선 조건인데 자리가 없다. 앞 조우 뒤로 연다.";
+                case BoardProblem.NoStageRoom:
+                    return "씬에 StageRoom 이 없다. 방에서 도는 조우 · 스폰 지점이 방 크기를 모른다 — 디렉터가 조우를 안 돌린다.";
+                case BoardProblem.RoomTooSmall:
+                    return $"StageRoom 의 기준 방 {name} 이(가) 너무 얕다. 마법사가 플레이어 줄을 피할 깊이가 없다.";
                 default:
                     return $"웨이브 {row}번: {name} 이(가) 지점 표에 없다. 그 적은 자동 배치로 나온다.";
             }
@@ -230,13 +245,51 @@ namespace Prototype
         {
             var issues = new List<BoardIssue>();
 
-            CollectPointIssues(issues);
+            // 방이 맨 앞이다. 방을 모르면 지점이 방 안인지부터 판정할 수가 없다.
+            StageRoom stageRoom = CollectRoomIssues(issues);
+
+            CollectPointIssues(issues, stageRoom);
             CollectWaveIssues(issues);
 
             return issues;
         }
 
-        private void CollectPointIssues(List<BoardIssue> issues)
+        /// <summary>
+        /// 방 규칙이 필요한 보드인가. 자리 없는 조우(방 배치 · 증원)나 스폰 지점(방 안 검사)이 하나라도 있으면 그렇다.
+        /// 아레나만 도는 보드(자리 있는 조우뿐, 지점 없음)는 방을 안 쓴다.
+        /// </summary>
+        public bool NeedsRoom
+        {
+            get
+            {
+                if (SpawnPointCount > 0) return true;
+                if (encounters == null) return false;
+
+                foreach (StageEncounter e in encounters)
+                    if (e.content != null && !e.HasSite) return true;
+
+                return false;
+            }
+        }
+
+        /// <summary>씬의 방. 방 규칙이 필요한데 없거나 너무 작으면 적는다.</summary>
+        private StageRoom CollectRoomIssues(List<BoardIssue> issues)
+        {
+            StageRoom stageRoom = StageRoom.FindIn(gameObject.scene);
+
+            if (stageRoom == null)
+            {
+                if (NeedsRoom) issues.Add(Issue(-1, null, BoardProblem.NoStageRoom));
+                return null;
+            }
+
+            if (!RoomRules.IsLargeEnough(stageRoom.BaseRoom))
+                issues.Add(Issue(-1, stageRoom.BaseRoom.ToString(), BoardProblem.RoomTooSmall));
+
+            return stageRoom;
+        }
+
+        private void CollectPointIssues(List<BoardIssue> issues, StageRoom stageRoom)
         {
             if (spawnPoints == null) return;
 
@@ -262,7 +315,8 @@ namespace Prototype
                     continue;
                 }
 
-                if (!WaveSpawnPlanner.IsInsideRoom(row.Ground))
+                // 방이 없으면 이미 NoStageRoom 하나로 적었다. 줄마다 방 밖이라고 또 적으면 원인이 묻힌다.
+                if (stageRoom != null && !WaveSpawnPlanner.IsInsideRoom(row.Ground, stageRoom.Room))
                     issues.Add(Issue(i, row.id, BoardProblem.OutsideRoom));
             }
         }
@@ -356,7 +410,10 @@ namespace Prototype
         /// </summary>
         private void OnDrawGizmos()
         {
-            DrawRoomBounds();
+            // 보드는 방 크기를 들지 않는다 — 씬의 StageRoom 을 읽는다. 없으면 방 경계를 안 그리고 지점은 전부 빨강이다.
+            StageRoom stageRoom = StageRoom.FindIn(gameObject.scene);
+
+            if (stageRoom != null) DrawRoomBounds(stageRoom.Room);
 
             if (spawnPoints == null) return;
 
@@ -366,7 +423,7 @@ namespace Prototype
                 if (row.point == null) continue;
 
                 Vector3 g = row.Ground;
-                bool ok = row.HasId && WaveSpawnPlanner.IsInsideRoom(g);
+                bool ok = row.HasId && stageRoom != null && WaveSpawnPlanner.IsInsideRoom(g, stageRoom.Room);
 
                 Gizmos.color = ok ? new Color(0.3f, 0.9f, 0.4f, 0.9f) : new Color(1f, 0.35f, 0.3f, 0.9f);
                 Gizmos.DrawWireSphere(g, 0.4f);
@@ -376,13 +433,13 @@ namespace Prototype
             }
         }
 
-        private static void DrawRoomBounds()
+        private static void DrawRoomBounds(RoomRect room)
         {
-            float x = WaveSpawnPlanner.RoomHalfX - WaveSpawnPlanner.SpawnInset;
-            float z = WaveSpawnPlanner.MaxDepth;
+            float x = room.HalfX - WaveSpawnPlanner.SpawnInset;
+            float z = WaveSpawnPlanner.MaxDepth(in room);
 
             Gizmos.color = new Color(0.4f, 0.6f, 1f, 0.35f);
-            Gizmos.DrawWireCube(Vector3.zero, new Vector3(x * 2f, 0.02f, z * 2f));
+            Gizmos.DrawWireCube(new Vector3(room.CenterX, 0f, room.CenterZ), new Vector3(x * 2f, 0.02f, z * 2f));
         }
 #endif
     }

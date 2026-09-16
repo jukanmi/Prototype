@@ -25,8 +25,14 @@ namespace Prototype
     /// </summary>
     public static class ArenaSpawnPlanner
     {
-        /// <summary>아레나 깊이 반경. 방 규격(<c>SceneLayoutBuilder</c>)과 같은 값이다.</summary>
-        public const float ArenaHalfZ = WaveSpawnPlanner.RoomHalfZ;
+        /// <summary>
+        /// 아레나 깊이 반경. 기준 방(<see cref="RoomRect.Default"/>)의 반깊이와 같은 값이다.
+        ///
+        /// <b>방 크기 보정을 받지 않아서 상수로 남는다.</b> 아레나 폭을 바꾸면 뒤 구간 · 통로가 전부 밀리고,
+        /// 앞뒤 벽이 스테이지 전체를 가로지르는 한 장이라 깊이도 아레나별로 못 바꾼다(docs/Room_Size_Plan.md 7항).
+        /// <c>RoomRect.Default</c>는 <c>static readonly</c>라 <c>const</c> 초기값으로 못 쓴다.
+        /// </summary>
+        public const float ArenaHalfZ = 3f;
 
         /// <summary>예고가 스폰보다 앞서는 시간.</summary>
         public const float TelegraphLead = 0.8f;

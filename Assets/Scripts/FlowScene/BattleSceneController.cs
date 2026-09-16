@@ -16,9 +16,12 @@ namespace Prototype
     /// </summary>
     public class BattleSceneController : MonoBehaviour
     {
-        [Tooltip("이긴 뒤 이 X좌표를 넘으면 지도로 돌아간다. 방 오른쪽 벽이 x = 6이고 " +
-                 "몸통 반지름 때문에 실제로는 5.5 근처에서 막힌다.")]
+        [Tooltip("StageRoom 이 없는 씬에서 쓸 출구선 X. 방이 있으면 실제 방의 오른쪽 벽에서 푼 값이 이긴다 " +
+                 "— 방 크기 보정이 벽을 옮기므로 여기 적은 고정값은 그 방에서 맞지 않는다.")]
         [SerializeField] private float exitX = 5f;
+
+        /// <summary>이번 판의 출구선. <see cref="ResolveExitLine"/>이 방에서 푼다.</summary>
+        private float exitLine;
 
         private bool isExiting;
         private bool isRestarting;
@@ -41,6 +44,17 @@ namespace Prototype
         /// </summary>
         private StageProgressSource progress;
 
+        /// <summary>
+        /// 파티 명부. <b>패배 판정이 보는 곳</b>이고, 파티 체력바가 보는 것과 같은 목록이다.
+        ///
+        /// <see cref="BattleRegistry"/>로 전멸을 판정하면 안 된다 — 거기에는 필드에 선 몸
+        /// 하나만 들어 있어서(벤치는 <c>OnDisable</c>에서 빠진다) 교대와 콤보 시전자 전환
+        /// 사이에 아무도 등록돼 있지 않은 프레임이 생기고, 그 한 프레임이 전멸로 읽혔다.
+        ///
+        /// <b>없어도 된다</b> — 파티 없이 도는 스킬 실험 씬 · 훈련장은 등록 목록으로 떨어진다.
+        /// </summary>
+        private TagSwapController party;
+
         /// <summary>지금 떠 있는 이 씬의 이름. 전환할 때 "무엇을 내릴지"가 된다.</summary>
         private string SceneName => gameObject.scene.name;
 
@@ -50,6 +64,13 @@ namespace Prototype
             restartUI = BattleRestartUI.Create(this);
 
             progress = FindAnyObjectByType<StageProgressSource>();
+
+            // 로스터는 그쪽 Start 에서 만들어지므로 여기서는 참조만 잡는다 —
+            // 실행 순서가 정해져 있지 않아 지금 Roster 를 읽으면 비어 있을 수 있다.
+            party = FindAnyObjectByType<TagSwapController>();
+
+            // 판정이 안 도는 씬 단독 실행에서도 풀어 둔다 — 로그로 방과 문턱을 같이 확인할 수 있다.
+            ResolveExitLine();
 
             // 씬 단독 실행 대응 — Boot 씬 없이 배틀 씬만 Play 했을 때
             if (GameManager.Instance == null)
@@ -116,8 +137,8 @@ namespace Prototype
 
         private void Judge()
         {
-            // Entity 는 Start 에서 스스로 등록한다. 그 전에 판정하면 적 0명 = 승리이면서
-            // 산 아군 0명 = 패배라, 씬이 뜨자마자 결과 화면이 나온다.
+            // Entity 는 Start 에서 스스로 등록한다. 그 전에 판정하면 적 0명 = 승리라,
+            // 씬이 뜨자마자 결과 화면이 나온다.
             if (!judging)
             {
                 // 웨이브·라운드 방은 첫 적이 나오기 전까지 적이 0명이다. 등록 수만 보고 열면
@@ -132,7 +153,7 @@ namespace Prototype
 
             StageOutcome next = StageOutcomeRules.Evaluate(
                 BattleRegistry.AliveEnemyCount(),
-                BattleRegistry.AllAlliesDead(),
+                PartyWiped(),
                 progress != null && progress.ThreatsRemaining);
 
             if (next == StageOutcome.Undecided) return;
@@ -142,6 +163,16 @@ namespace Prototype
             if (next == StageOutcome.Victory) HandleVictory();
             else HandleDefeat();
         }
+
+        /// <summary>
+        /// 파티가 전멸했는가. <b>명부에 묻고</b>, 명부가 없는 씬에서만 등록 목록으로 떨어진다.
+        /// 어느 쪽을 믿을지는 <see cref="StageOutcomeRules.PartyWiped"/>가 정한다.
+        /// </summary>
+        private bool PartyWiped()
+            => StageOutcomeRules.PartyWiped(
+                party != null ? party.Roster.Count : 0,
+                party != null ? party.AliveCount : 0,
+                BattleRegistry.AliveAllyCount());
 
         /// <summary>
         /// 조작 중인 몸이 출구선을 넘었는가.
@@ -154,10 +185,32 @@ namespace Prototype
             foreach (Entity e in BattleRegistry.Allies)
             {
                 if (e == null || !e.isActiveAndEnabled || e.Combat.IsDead) continue;
-                if (StageOutcomeRules.ReachedExit(e.transform.position.x, exitX)) return true;
+                if (StageOutcomeRules.ReachedExit(e.transform.position.x, exitLine)) return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 이번 판의 출구선을 정한다. <b>방이 있으면 방이 이긴다</b> —
+        /// <see cref="StageRoom"/>이 지도 칸의 비율대로 오른쪽 벽을 옮기므로,
+        /// 저작해 둔 고정값은 100% 방에서만 맞는다. 80% 방이면 문턱이 벽보다 밖에 남아
+        /// <b>이겨도 다음 스테이지로 못 넘어간다.</b>
+        ///
+        /// 방이 없는 씬(SampleScene · 훈련장)은 저작값 그대로다.
+        /// <see cref="StageRoom"/>은 실행 순서 -300이라 이 Start 보다 먼저 방을 적용해 둔다.
+        /// </summary>
+        private void ResolveExitLine()
+        {
+            exitLine = exitX;
+
+            StageRoom room = StageRoom.Find();
+            if (room == null) return;
+
+            exitLine = StageOutcomeRules.ExitLine(room.Room.MaxX);
+
+            if (room.Percent != RoomRules.FullPercent)
+                Debug.Log($"[Battle] 출구선 x = {exitLine} (방 {room.Percent}%, 오른쪽 벽 x = {room.Room.MaxX})", this);
         }
 
         private void HandleVictory()

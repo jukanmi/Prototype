@@ -86,6 +86,48 @@ namespace Prototype.Tests
                         Is.EqualTo(new[] { RunMapProblem.LastFloorNotSingleBoss }), "보스가 아닌 후보");
         }
 
+        // ── 방 크기 범위 ────────────────────────────────
+        // 계획서: docs/Room_Size_Plan.md (2.3 · 2.5 · 5단계)
+
+        private static FloorRule WithRoom(int min, int max)
+        {
+            FloorRule f = FloorRule.Of(1, 1, N("A", MapNodeKind.Battle));
+            f.roomPercentMin = min;
+            f.roomPercentMax = max;
+            return f;
+        }
+
+        /// <summary>둘 다 0은 100% 고정이다. 필드가 없는 기존 레시피 애셋이 이 값으로 읽힌다.</summary>
+        [TestCase(0, 0)]
+        [TestCase(80, 125)]
+        [TestCase(100, 100)]
+        [TestCase(90, 110)]
+        public void RoomRange_Valid(int min, int max)
+        {
+            Assert.That(Problems(WithRoom(min, max), Boss()), Is.Empty);
+        }
+
+        /// <summary>범위 밖 · 5 단위 아님 · 뒤집힘 · 한쪽만 0. 전부 문제 하나로만 잡힌다.</summary>
+        [TestCase(75, 100)]
+        [TestCase(80, 130)]
+        [TestCase(110, 90)]
+        [TestCase(0, 100)]
+        [TestCase(100, 0)]
+        [TestCase(83, 100)]
+        public void RoomRange_Bad(int min, int max)
+        {
+            Assert.That(Problems(WithRoom(min, max), Boss()), Is.EqualTo(new[] { RunMapProblem.BadRoomRange }));
+        }
+
+        [Test]
+        public void BadRoomRange_DescribesItself()
+        {
+            string text = RunMapRules.RecipeIssues(new[] { WithRoom(70, 100), Boss() }).Single().Describe();
+
+            Assert.That(text, Does.Contain("0층"));
+            Assert.That(text, Does.Contain("방 크기"), "새 문제가 기본 문구로 떨어졌다 — Describe 에 case 를 빠뜨렸다");
+        }
+
         [Test]
         public void CandidateScene_IsTrimmed()
         {

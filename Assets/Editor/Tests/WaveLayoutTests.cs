@@ -149,7 +149,7 @@ namespace Prototype.Tests
             var entries = new[] { WaveSpawnEntry.Auto(EnemyRole.Charger) };
             int[] lanes = WaveLayout.AutoLaneIndices(entries);
 
-            SpawnPlacement place = WaveSpawnPlanner.PlanAuto(in entries[0], lanes[0], 1.4f);
+            SpawnPlacement place = WaveSpawnPlanner.PlanAuto(in entries[0], lanes[0], 1.4f, RoomRect.Default);
 
             Assert.That(place.entryPoint.z, Is.EqualTo(1.4f).Within(0.0001f));
         }
@@ -164,7 +164,7 @@ namespace Prototype.Tests
             var placements = new List<SpawnPlacement>();
 
             for (int i = 0; i < spawns.Length; i++)
-                placements.Add(WaveSpawnPlanner.PlanAuto(in spawns[i], lanes[i], playerZ));
+                placements.Add(WaveSpawnPlanner.PlanAuto(in spawns[i], lanes[i], playerZ, RoomRect.Default));
 
             return placements;
         }

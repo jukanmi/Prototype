@@ -118,6 +118,28 @@ namespace Prototype
 
         public IReadOnlyList<Entity> Roster => roster;
 
+        /// <summary>
+        /// 살아 있는 파티원 수. <b>패배 판정과 체력바가 같은 목록을 보게 하는 자리</b>다
+        /// (<see cref="StageOutcomeRules.PartyWiped"/> · <c>PartyHealthHUD</c>).
+        ///
+        /// <see cref="BattleRegistry"/>로 세면 안 된다 — 거기에는 필드에 선 몸 하나만 들어 있어서
+        /// 교대 · 콤보 시전자 전환 사이의 한 프레임이 전멸로 읽힌다.
+        ///
+        /// 빈 칸은 죽은 것으로 친다. 이번 런에서 전사한 동료는 <see cref="PartyAssembler"/>가
+        /// 아예 몸을 안 만들어 로스터에 null 로 남기 때문이다 — 그건 실제로 죽은 것이 맞다.
+        /// </summary>
+        public int AliveCount
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < roster.Count; i++)
+                    if (TagSwapRules.IsSelectable(roster, i)) n++;
+
+                return n;
+            }
+        }
+
         public Entity Current
             => CurrentIndex >= 0 && CurrentIndex < roster.Count ? roster[CurrentIndex] : null;
 
@@ -400,7 +422,8 @@ namespace Prototype
 
             // 이미 무대에 있는 몸은 자리를 다시 잡지 않는다. 돌진으로 전진한 시전자가
             // 다음 슬롯에서 제자리로 튕겨 돌아가면 콤보가 통째로 어색해진다.
-            if (!alreadyUp) Summon(caster, partySeat);
+            // 무적은 안 준다 — 이유는 Summon 쪽에 적어 뒀다(슬롯마다 갱신되면 콤보 내내 무적이다).
+            if (!alreadyUp) Summon(caster, partySeat, grantInvuln: false);
 
             // 카메라는 지금 때리는 쪽을 본다. 숨은 조작 캐릭터를 계속 보면
             // 시전자가 돌진해 나간 뒤 화면에 아무것도 안 남는다.
@@ -476,11 +499,28 @@ namespace Prototype
 
         // ── 세우기 · 내리기 ─────────────────────────────────
 
-        private void Summon(Entity body, Seat? seat)
+        /// <summary>
+        /// 몸을 자리에 세운다. <b>필드에 서는 유일한 통로</b>다.
+        ///
+        /// <paramref name="grantInvuln"/>은 <b>교대로 서는 경우만</b> 켠다. 교대는 내려간 몸의
+        /// 자리를 그대로 물려받는데, 사망 교대(<see cref="HandleDied"/>)라면 그 자리는 방금
+        /// 아군 하나를 죽인 히트박스 한복판이다. <c>Attack.alreadyHit</c>은 <see cref="Combat"/>
+        /// 인스턴스 기준이라 새 몸은 '처음 보는 대상'으로 그대로 또 맞고, 보스의 다단히트
+        /// 한 번에 파티가 통째로 연쇄 사망한다 — 무적이 그 사슬을 끊는다.
+        ///
+        /// <b>콤보 시전자 등장은 끈다.</b> 슬롯마다 이 함수를 지나므로 켜 두면 무적이 슬롯마다
+        /// 갱신돼 콤보를 도는 내내 무적이 된다. 그건 교대 안전장치가 아니라 밸런스 변경이다.
+        /// </summary>
+        private void Summon(Entity body, Seat? seat, bool grantInvuln = true)
         {
             if (body == null) return;
 
             body.gameObject.SetActive(true);
+
+            // 자리를 잡기 <b>전에</b> 준다. 아래 seat 없는 경로(파티 없이 도는 스킬 실험 씬)가
+            // 조용히 무적만 빠지는 걸 막는다 — 켜는 것과 지키는 것은 같은 한 묶음이다.
+            if (grantInvuln) body.Combat?.GrantSummonInvuln();
+
             if (!seat.HasValue) return;
 
             // Teleport가 접지 · 관성 · 낙하속도를 함께 정리한다. 위치만 대입하면
@@ -573,6 +613,11 @@ namespace Prototype
 
             // SwapTo가 시체를 내리려 들지 않도록 먼저 자리에서 뗀다.
             // 자리는 교대와 같은 규칙 — 쓰러진 곳과 보던 방향을 그대로 물려받는다.
+            //
+            // <b>그래서 무적이 필요하다.</b> 물려받는 자리는 방금 이 동료를 죽인 히트박스
+            // 한복판이고, 그 히트박스는 아직 켜져 있을 수 있다(보스 삼연참은 0.2s 간격으로
+            // 세 번, 돌진베기는 한 번을 0.45s 켠다). Summon 이 Combat.GrantSummonInvuln 으로
+            // 그 사슬을 끊는다 — 없으면 한 명의 죽음이 파티 전멸로 이어진다.
             Seat seat = CurrentSeat();
             CurrentIndex = -1;
 

@@ -128,16 +128,47 @@ namespace Prototype
         /// </summary>
         private EncounterModifier modifier = EncounterModifier.None;
 
+        /// <summary>
+        /// 이 씬의 방. 크기 비율이 이미 적용돼 있다 — <see cref="StageRoom"/>은 실행 순서 -300이라 이 Awake보다 먼저 돈다.
+        /// 아레나만 도는 씬에는 없어도 된다.
+        /// </summary>
+        private StageRoom stageRoom;
+
+        /// <summary>
+        /// 자리 없는 조우가 적을 세우는 방. 방 배치를 계산하는 <b>두 군데</b>(첫 등장 · 증원)가 여기 하나를 읽는다.
+        /// 방 규칙이 필요한 씬인데 <see cref="stageRoom"/>이 없으면 <see cref="Awake"/>가 조우를 비워 두므로 여기까지 오지 않는다.
+        /// </summary>
+        private RoomRect Room => stageRoom.Room;
+
+        /// <summary>증원이 방을 못 찾았다고 이미 알렸는가. 매 간격마다 같은 에러가 쌓이지 않게.</summary>
+        private bool reportedNoRoomForReinforcements;
+
         private void Awake()
         {
             if (spawner == null) spawner = GetComponent<EnemySpawnService>();
             if (board == null) board = StageWaveBoard.Find();
+            stageRoom = StageRoom.Find();
 
             // 씬 단독 실행(GameManager 없음)은 저작 그대로다. 다른 표로 도는 폴백이 아니라 "보정 없음"이다.
             GameManager gm = GameManager.Instance;
             modifier = gm != null ? gm.CurrentNodeModifier : EncounterModifier.None;
 
             encounters = FromBoard();
+
+            // 방을 모르고 방 배치를 돌리면 기준 방으로 조용히 돌게 된다 — 방 크기 보정이 그 씬만 빠진 채로.
+            // 보드가 없을 때와 같이 조우를 하나도 안 돌린다. 원인은 보드 검사(NoStageRoom)가 이미 경고로 적었다.
+            if (stageRoom == null && board != null && board.NeedsRoom)
+            {
+                Debug.LogError($"[StageDirector] {name}: 방에서 도는 조우가 있는데 씬에 StageRoom 이 없다. " +
+                               "조우를 하나도 못 돌린다.", this);
+                encounters = new StageEncounter[0];
+            }
+
+            // 지도 칸은 방 크기를 바꾸라는데 이 씬엔 바꿀 방이 없다(아레나 스테이지 등). 레시피 저작 실수다 —
+            // 8단계 배선 테스트가 막는 경로라 정상적으로는 안 온다. 저작 크기로 돌되 조용히 넘기지 않는다.
+            if (modifier.HasRoom && stageRoom == null)
+                Debug.LogError($"[StageDirector] {name}: 지도 칸이 방 {modifier.RoomPercent}%를 요청했는데 씬에 StageRoom 이 없다 — " +
+                               "저작 크기로 돈다. 레시피에서 이 씬이 든 층의 방 범위를 0으로 둘 것.", this);
         }
 
         /// <summary>
@@ -338,14 +369,15 @@ namespace Prototype
 
             int[] lanes = WaveLayout.AutoLaneIndices(spawns, atPoint);
             float playerZ = PlayerDepth();
+            RoomRect room = Room;
 
             for (int i = 0; i < spawns.Length; i++)
             {
                 WaveSpawnEntry entry = spawns[i];
 
                 SpawnPlacement place = atPoint[i]
-                    ? WaveSpawnPlanner.PlanAt(in entry, points[i])
-                    : WaveSpawnPlanner.PlanAuto(in entry, lanes[i], playerZ);
+                    ? WaveSpawnPlanner.PlanAt(in entry, points[i], in room)
+                    : WaveSpawnPlanner.PlanAuto(in entry, lanes[i], playerZ, in room);
 
                 pending.Add(new Pending
                 {
@@ -451,6 +483,19 @@ namespace Prototype
             // 예약이 다 풀리기 전에는 세지 않는다. 첫 등장과 증원이 겹쳐 쏟아진다.
             if (pending.Count > 0) return;
 
+            // 증원은 방 규칙으로 선다. 아레나 조우에 증원을 붙이면 방 없는 씬에서 여기 온다 —
+            // 증원을 다 쓴 것으로 접어 조우가 끝날 수 있게 하고, 한 번 크게 알린다.
+            if (stageRoom == null)
+            {
+                if (!reportedNoRoomForReinforcements)
+                    Debug.LogError($"[StageDirector] {name}: '{wave.label}'에 증원이 있는데 씬에 StageRoom 이 없다. " +
+                                   "증원을 건너뛴다.", this);
+
+                reportedNoRoomForReinforcements = true;
+                reinforcedSoFar = wave.reinforceCap;
+                return;
+            }
+
             reinforceClock += dt;
             if (reinforceClock < wave.reinforceInterval) return;
 
@@ -460,7 +505,8 @@ namespace Prototype
             // 증원은 첫 등장과 순번을 나눠 쓰지 않는다. 예약이 전부 풀린 뒤에만 도는 구간이라
             // 겹칠 상대가 없고, 증원끼리는 자기 번호로 좌우 · 깊이가 갈린다.
             WaveSpawnEntry entry = WaveSpawnEntry.Auto(wave.reinforceRole, SpawnSide.Both);
-            SpawnPlacement place = WaveSpawnPlanner.PlanAuto(in entry, reinforcedSoFar, PlayerDepth());
+            RoomRect room = Room;
+            SpawnPlacement place = WaveSpawnPlanner.PlanAuto(in entry, reinforcedSoFar, PlayerDepth(), in room);
 
             // 증원은 증원 번호로 센다(1부터) — 정예 칸이면 3번째 · 6번째 … 증원이 강화다.
             // 첫 등장 줄 번호와 섞지 않는다. 증원은 예약이 다 풀린 뒤에만 돌아 겹칠 상대가 없다.

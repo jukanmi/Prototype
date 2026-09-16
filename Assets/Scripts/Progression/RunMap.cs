@@ -69,7 +69,18 @@ namespace Prototype
 
         public NodeCandidate[] candidates;
 
+        [Tooltip("이 층 전투 · 정예 칸의 방 크기 하한(%). 80~125, 5 단위.\n\n" +
+                 "하한 · 상한 둘 다 0이면 100% 고정이다. 보스 · 비전투 칸은 이 값과 무관하게 항상 100%다.\n\n" +
+                 "방 크기 보정을 받는 씬(StageRoom 이 있는 웨이브 방)만 후보에 있어야 한다 — 아레나 씬이 섞인 층은 0으로 둔다.")]
+        [Range(0, RoomRules.MaxPercent)] public int roomPercentMin;
+
+        [Tooltip("방 크기 상한(%). 굴릴 때 하한~상한에서 5 단위로 고른다.")]
+        [Range(0, RoomRules.MaxPercent)] public int roomPercentMax;
+
         public int CandidateCount => candidates != null ? candidates.Length : 0;
+
+        /// <summary>방 크기 범위를 저작했는가. 둘 다 0이면 100% 고정이다(기존 레시피 애셋은 필드가 없어 0으로 읽힌다).</summary>
+        public bool HasRoomRange => roomPercentMin != 0 || roomPercentMax != 0;
 
         public static FloorRule Of(int minNodes, int maxNodes, params NodeCandidate[] candidates)
             => new FloorRule { minNodes = minNodes, maxNodes = maxNodes, candidates = candidates };
@@ -101,9 +112,21 @@ namespace Prototype
         /// <summary>다음 층에서 갈 수 있는 칸 Id. 열 순으로 정렬돼 있다.</summary>
         public IReadOnlyList<int> Next { get; }
 
+        /// <summary>
+        /// 이 칸의 방 크기 비율(%). 지도를 굴릴 때 정해져 <b>재시작해도 같다</b>(docs/Room_Size_Plan.md 2.1).
+        /// 보스 · 비전투 칸은 100이다. 0 이하로 넘기면 100으로 읽는다.
+        /// </summary>
+        public int RoomPercent { get; }
+
         public bool HasScene => Scene.Length > 0;
 
-        public MapNode(int id, int floor, int column, MapNodeKind kind, string scene, IReadOnlyList<int> next)
+        /// <param name="roomPercent">
+        /// 기본값이 100인 이유 — 이 생성자를 부르는 실제 경로는 <see cref="RunMapGenerator"/> 하나이고 거기서는 항상 넘긴다.
+        /// 나머지는 손으로 모양을 짜는 테스트라, 방 크기와 무관한 검사마다 100을 적게 하면 읽기만 나빠진다.
+        /// 넘겼는지는 생성기 테스트가 본다.
+        /// </param>
+        public MapNode(int id, int floor, int column, MapNodeKind kind, string scene, IReadOnlyList<int> next,
+                       int roomPercent = RoomRules.FullPercent)
         {
             Id = id;
             Floor = floor;
@@ -111,6 +134,7 @@ namespace Prototype
             Kind = kind;
             Scene = scene != null ? scene.Trim() : "";
             Next = next != null ? new List<int>(next).ToArray() : new int[0];
+            RoomPercent = RoomRules.Normalize(roomPercent);
         }
 
         public override string ToString() => HasScene ? $"#{Id} {Kind} {Scene}" : $"#{Id} {Kind}";
@@ -198,6 +222,23 @@ namespace Prototype
 
             return sb.ToString();
         }
+
+        /// <summary>
+        /// 방 크기가 100이 아닌 칸만 한 줄로. <c>방: #3 90% · #4 105%</c> 꼴이고, 전부 100이면 빈 문자열.
+        ///
+        /// <see cref="Describe"/>에 섞지 않는다 — 그쪽은 "모양이 같은가"를 비교하는 문자열이라,
+        /// 방 범위만 바꾼 레시피가 다른 지도로 보이면 안 된다.
+        /// </summary>
+        public string DescribeRooms()
+        {
+            var parts = new List<string>();
+
+            foreach (MapNode n in Nodes)
+                if (n.RoomPercent != RoomRules.FullPercent)
+                    parts.Add($"#{n.Id} {n.RoomPercent}%");
+
+            return parts.Count > 0 ? "방: " + string.Join(" · ", parts) : "";
+        }
     }
 
     // ══ RunMapIssue ═══════════════════════════════════════════
@@ -246,6 +287,15 @@ namespace Prototype
 
         /// <summary>정해진 횟수만큼 굴려도 제약을 맞추는 지도가 안 나왔다. 레시피 후보가 너무 좁다.</summary>
         GenerationFailed,
+
+        /// <summary>
+        /// 레시피 층의 방 크기 범위가 잘못됐다 — 규칙 범위 밖, 5 단위가 아님, 하한 &gt; 상한, 한쪽만 0.
+        /// 조용히 물리면 저작자는 자기가 적은 범위로 도는 줄 안다.
+        /// </summary>
+        BadRoomRange,
+
+        /// <summary>굴린 지도의 칸 방 크기가 규칙에 안 맞는다 — 보스 · 비전투 칸이 100이 아니거나 전투 칸이 범위 밖. 생성기 버그다.</summary>
+        BadRoomPercent,
     }
 
     /// <summary>잡힌 문제 하나. 레시피면 (층, 후보 번호), 지도면 (층, 칸 Id).</summary>
@@ -279,7 +329,11 @@ namespace Prototype
                 case RunMapProblem.CrossingEdges:          return $"칸 #{index}({floor}층): 간선이 다른 간선과 교차한다.";
                 case RunMapProblem.SameSceneInARow:        return $"칸 #{index}({floor}층): 다음 칸과 씬이 같다.";
                 case RunMapProblem.SameNodeKindInARow:     return $"칸 #{index}({floor}층): 다음 칸과 같은 비전투 칸이다.";
-                default:                                   return "지도를 굴리지 못했다 — 레시피 후보가 제약에 비해 너무 좁다.";
+                case RunMapProblem.GenerationFailed:       return "지도를 굴리지 못했다 — 레시피 후보가 제약에 비해 너무 좁다.";
+                case RunMapProblem.BadRoomRange:           return $"{floor}층: 방 크기 범위가 잘못됐다({RoomRules.MinPercent}~{RoomRules.MaxPercent}, " +
+                                                                  $"{RoomRules.Step} 단위, 하한 ≤ 상한. 둘 다 0이면 100% 고정).";
+                case RunMapProblem.BadRoomPercent:         return $"칸 #{index}({floor}층): 방 크기가 규칙에 안 맞는다.";
+                default:                                   return problem.ToString();
             }
         }
     }
@@ -298,6 +352,27 @@ namespace Prototype
 
         /// <summary>씬 없이 지도에서 처리할 수 있는 종류인가. 지금은 휴식뿐이다.</summary>
         public static bool CanSkipScene(MapNodeKind kind) => kind == MapNodeKind.Rest;
+
+        /// <summary>
+        /// 방 크기 보정을 받는 종류인가. 전투 · 정예뿐이다.
+        /// <b>보스는 안 받는다</b> — 보스 패턴은 방 크기를 전제로 저작한다. 정예 강화를 보스에 안 거는 것(<see cref="EncounterModifierRules.IsElite"/>)과 같은 이유다.
+        /// </summary>
+        public static bool GetsRoomModifier(MapNodeKind kind) => kind == MapNodeKind.Battle || kind == MapNodeKind.Elite;
+
+        /// <summary>레시피 층의 방 크기 범위가 저작 가능한가. 둘 다 0(고정 100%)이거나, 둘 다 쓸 수 있는 비율이고 하한 ≤ 상한.</summary>
+        public static bool IsValidRoomRange(int min, int max)
+        {
+            if (min == 0 && max == 0) return true;
+            if (min == 0 || max == 0) return false;
+
+            return RoomRules.IsValidPercent(min) && RoomRules.IsValidPercent(max) && min <= max;
+        }
+
+        /// <summary>굴린 칸의 방 크기가 규칙에 맞는가. 보정 안 받는 칸은 100, 받는 칸은 쓸 수 있는 비율.</summary>
+        public static bool IsValidRoomPercent(MapNodeKind kind, int percent)
+            => GetsRoomModifier(kind)
+                ? percent != 0 && RoomRules.IsValidPercent(percent)
+                : percent == RoomRules.FullPercent;
 
         /// <summary>
         /// (a→b)와 (c→d)가 교차하는가. 넷 다 열 번호다. 같은 칸에서 나가거나 같은 칸으로 모이는 것은 교차가 아니다.
@@ -342,6 +417,9 @@ namespace Prototype
 
                 if (floor.minNodes < 1 || floor.maxNodes < floor.minNodes)
                     issues.Add(new RunMapIssue(f, -1, RunMapProblem.BadNodeRange));
+
+                if (!IsValidRoomRange(floor.roomPercentMin, floor.roomPercentMax))
+                    issues.Add(new RunMapIssue(f, -1, RunMapProblem.BadRoomRange));
 
                 bool lastIsBossOnly = f != last || (floor.minNodes == 1 && floor.maxNodes == 1 && floor.CandidateCount > 0);
 
@@ -404,6 +482,9 @@ namespace Prototype
 
                     if (f != last && n.Kind == MapNodeKind.Boss)
                         issues.Add(new RunMapIssue(f, n.Id, RunMapProblem.BossBeforeLastFloor));
+
+                    if (!IsValidRoomPercent(n.Kind, n.RoomPercent))
+                        issues.Add(new RunMapIssue(f, n.Id, RunMapProblem.BadRoomPercent));
 
                     if (f == last) continue;
 
@@ -561,7 +642,7 @@ namespace Prototype
                 }
             }
 
-            return Build(seed, counts, edges, picked);
+            return Build(floors, seed, counts, edges, picked);
         }
 
         /// <summary>
@@ -685,7 +766,43 @@ namespace Prototype
         /// <summary>같은 층 겹침을 볼 때의 이름. 씬 없는 칸은 종류로 센다.</summary>
         private static string KeyOf(in NodeCandidate c) => c.HasScene ? c.Scene : "kind:" + c.kind;
 
-        private static RunMap Build(int seed, int[] counts, List<int>[][] edges, NodeCandidate[][] picked)
+        /// <summary>
+        /// 이 칸의 방 크기 비율. 보정 안 받는 칸이거나 층에 범위가 없으면 100.
+        ///
+        /// <b>지도 모양을 굴린 <c>rng</c>를 쓰지 않는다</b>(docs/Room_Size_Plan.md 2.2). 거기서 뽑으면 뒤의 난수가 전부 밀려
+        /// ① 이 기능을 넣는 순간 로그에 남긴 시드가 다른 지도가 되고, ② 레시피에서 방 범위만 고쳐도 갈림길 모양이 흔들린다.
+        /// 칸마다 (시드, 칸 Id)로 만든 전용 난수에서 한 번 뽑는다 — 시도(<see cref="MaxAttempts"/>)가 몇 번 돌았는지와도 무관하다.
+        /// </summary>
+        public static int RollRoomPercent(in FloorRule floor, MapNodeKind kind, int seed, int nodeId)
+        {
+            if (!RunMapRules.GetsRoomModifier(kind) || !floor.HasRoomRange) return RoomRules.FullPercent;
+
+            int lo = floor.roomPercentMin / RoomRules.Step;
+            int hi = floor.roomPercentMax / RoomRules.Step;
+
+            var rng = new System.Random(RoomSeed(seed, nodeId));
+            return rng.Next(lo, hi + 1) * RoomRules.Step;
+        }
+
+        /// <summary>
+        /// 칸 전용 난수의 시드. 섞기 함수(murmur 끝단)를 한 번 거친다 —
+        /// <see cref="System.Random"/>은 이웃한 시드의 첫 값이 서로 닮아서, 시드와 Id를 그냥 더하면 칸마다 비율이 줄지어 나온다.
+        /// </summary>
+        public static int RoomSeed(int seed, int nodeId)
+        {
+            unchecked
+            {
+                uint h = (uint)seed * 0x9E3779B1u ^ (uint)nodeId * 0x85EBCA77u;
+                h ^= h >> 16;
+                h *= 0x85EBCA6Bu;
+                h ^= h >> 13;
+                h *= 0xC2B2AE35u;
+                h ^= h >> 16;
+                return (int)(h & 0x7FFFFFFF);
+            }
+        }
+
+        private static RunMap Build(IReadOnlyList<FloorRule> rules, int seed, int[] counts, List<int>[][] edges, NodeCandidate[][] picked)
         {
             var offset = new int[counts.Length];
             for (int f = 1; f < counts.Length; f++) offset[f] = offset[f - 1] + counts[f - 1];
@@ -703,7 +820,10 @@ namespace Prototype
                         foreach (int t in edges[f][c]) next.Add(offset[f + 1] + t);
 
                     NodeCandidate p = picked[f][c];
-                    floors[f][c] = new MapNode(offset[f] + c, f, c, p.kind, p.Scene, next);
+                    int id = offset[f] + c;
+                    int room = RollRoomPercent(rules[f], p.kind, seed, id);
+
+                    floors[f][c] = new MapNode(id, f, c, p.kind, p.Scene, next, room);
                 }
             }
 

@@ -2,6 +2,7 @@
 //   StageWaveCatalog  스테이지가 몇 개고 어디가 아레나인가
 //   EnemyRole/SpawnSide  배치를 짤 때 고르는 축
 //   SpawnEntry        소환된 적이 걸어 들어와 자리 잡는 연출
+//   RoomRect/RoomRules  방 크기와 그 비율 규칙 — 스폰 계산이 받는 방
 //   WaveSpawnPlanner  저작한 한 줄을 실제 스폰 좌표로 푸는 계산
 // 하나를 고치면 나머지도 같이 봐야 해서 한 파일에 둔다.
 //
@@ -225,6 +226,277 @@ namespace Prototype
         }
     }
 
+    // ══ RoomRect · RoomRules ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 적을 세울 수 있는 구역. XZ 평면의 사각형이고 높이는 모른다.
+    ///
+    /// <b>반경 둘이 아니라 네 변으로 든다.</b> 아레나가 이미 <c>minX</c>/<c>maxX</c>로 저작하고,
+    /// 원점 중심을 가정한 <c>Mathf.Abs(x) &lt;= 반경</c> 비교는 방이 옮겨지는 순간 전부 틀린다.
+    ///
+    /// <see cref="GroundRect"/>와 다르다. 저쪽은 <b>밟는 면</b>이고 이쪽은 <b>소환 가능 구역</b>이다 —
+    /// 발판이 여러 장인 방에서 둘이 같을 이유가 없다.
+    ///
+    /// 인스펙터에서 뒤집어 적어도 읽을 때 정렬한다(<see cref="EncounterSite.MinX"/>와 같은 규약).
+    /// <c>default</c>는 크기 0인 방이라 쓰면 안 된다 — 기준 방은 <see cref="Default"/>다.
+    ///
+    /// 계획서: docs/Room_Size_Plan.md (2.3 · 1단계)
+    /// </summary>
+    [System.Serializable]
+    public struct RoomRect
+    {
+        [SerializeField] private float minX;
+        [SerializeField] private float maxX;
+        [SerializeField] private float minZ;
+        [SerializeField] private float maxZ;
+
+        public RoomRect(float minX, float maxX, float minZ, float maxZ)
+        {
+            this.minX = Mathf.Min(minX, maxX);
+            this.maxX = Mathf.Max(minX, maxX);
+            this.minZ = Mathf.Min(minZ, maxZ);
+            this.maxZ = Mathf.Max(minZ, maxZ);
+        }
+
+        /// <summary>
+        /// 기준 방 — 100%일 때의 웨이브 방. 씬의 벽(반폭 6 · 반깊이 3)이 이 값으로 서 있다.
+        /// 방 크기의 숫자가 코드에 남는 곳은 여기 한 군데다.
+        /// </summary>
+        public static readonly RoomRect Default = new RoomRect(-6f, 6f, -3f, 3f);
+
+        public float MinX => Mathf.Min(minX, maxX);
+        public float MaxX => Mathf.Max(minX, maxX);
+        public float MinZ => Mathf.Min(minZ, maxZ);
+        public float MaxZ => Mathf.Max(minZ, maxZ);
+
+        public float CenterX => (minX + maxX) * 0.5f;
+        public float CenterZ => (minZ + maxZ) * 0.5f;
+
+        public float HalfX => (MaxX - MinX) * 0.5f;
+        public float HalfZ => (MaxZ - MinZ) * 0.5f;
+
+        public override string ToString()
+            => $"x[{MinX:0.##}..{MaxX:0.##}] z[{MinZ:0.##}..{MaxZ:0.##}]";
+    }
+
+    /// <summary>
+    /// 방의 네 벽. <b>이름이 앞/뒤가 아니라 가까움/멂이다.</b>
+    ///
+    /// 씬의 <c>Wall_Front</c>는 z = −3.25(화면 아래)에 서 있는데 <see cref="SpawnWall.Front"/>는 +Z(화면 위)다.
+    /// 둘 중 하나를 따라 이름을 지으면 나머지 하나와 반드시 반대가 된다. 카메라에서의 거리로 부르면 헷갈릴 게 없다.
+    /// </summary>
+    public enum RoomSide
+    {
+        /// <summary>−X.</summary>
+        Left,
+
+        /// <summary>+X.</summary>
+        Right,
+
+        /// <summary>−Z. 카메라에 가까운 쪽, 화면 아래.</summary>
+        Near,
+
+        /// <summary>+Z. 카메라에서 먼 쪽, 화면 위 뒷벽.</summary>
+        Far,
+    }
+
+    /// <summary>벽 하나가 설 자리. 높이는 씬이 정하므로 중심의 y는 0이다.</summary>
+    public readonly struct WallPose
+    {
+        /// <summary>바닥 위 벽 중심. y는 0 — 부르는 쪽이 원래 높이를 유지한다.</summary>
+        public readonly Vector3 Center;
+
+        /// <summary>벽이 뻗는 길이.</summary>
+        public readonly float Length;
+
+        /// <summary>벽 두께. 방 안쪽 면이 방 변에 오도록 중심이 반 두께만큼 밖에 있다.</summary>
+        public readonly float Thickness;
+
+        /// <summary>X축으로 뻗는 벽인가(가까운 벽 · 먼 벽).</summary>
+        public readonly bool AlongX;
+
+        public WallPose(Vector3 center, float length, float thickness, bool alongX)
+        {
+            Center = center;
+            Length = length;
+            Thickness = thickness;
+            AlongX = alongX;
+        }
+
+        /// <summary><c>BoxCollider.size</c>에 그대로 넣을 값.</summary>
+        public Vector3 ColliderSize(float height)
+            => AlongX ? new Vector3(Length, height, Thickness) : new Vector3(Thickness, height, Length);
+    }
+
+    /// <summary>
+    /// 방 크기 비율의 규칙. <b>순수 함수</b>라 씬 없이 테스트한다.
+    ///
+    /// 비율은 <b>정수 백분율</b>이고 0은 "보정 없음"이다 — <see cref="EncounterModifier.None"/>이
+    /// <c>default</c>라서 새 칸의 기본값이 0이고, 레시피 애셋에 필드가 없을 때도 0으로 읽힌다.
+    ///
+    /// 계획서: docs/Room_Size_Plan.md (2.3 · 2.5 · 3항)
+    /// </summary>
+    public static class RoomRules
+    {
+        /// <summary>보정 없음. 저작한 크기 그대로.</summary>
+        public const int FullPercent = 100;
+
+        /// <summary>
+        /// 하한. <b>스폰 계산이 아니라 적 AI 수치가 정한다</b> — 마법사 후퇴 거리(4)가
+        /// 등장 순간 기본 배치부터 걸리지 않는 가장 작은 방이다(계획서 2.5). 애셋과의 결속은 2단계 테스트가 본다.
+        /// </summary>
+        public const int MinPercent = 80;
+
+        /// <summary>상한. 뒷벽 윗부분이 고정 카메라 화면 안에 남는 가장 큰 방이다(계획서 2.5).</summary>
+        public const int MaxPercent = 125;
+
+        /// <summary>굴림 단위. 97%와 100%는 눈으로 구분이 안 되고 로그만 지저분해진다.</summary>
+        public const int Step = 5;
+
+        /// <summary>
+        /// 고정 카메라(직교 5 · 16:9)가 옆벽을 화면 안에 담는 최대 반폭. 화면 반폭 8.9에서 벽 두께를 뺐다.
+        /// <b>계산 추정이다</b> — 씬에서 확인하고 조인다.
+        /// </summary>
+        public const float MaxHalfX = 8.4f;
+
+        /// <summary>
+        /// 뒷벽(높이 4)이 잘리지 않는 최대 반깊이. 기울기 50° · lift 0.5에서
+        /// <c>0.766·z + 0.643·4 − 0.5 ≤ 5</c>. <b>계산 추정이다.</b>
+        /// </summary>
+        public const float MaxHalfZ = 3.8f;
+
+        private const float Eps = 0.0001f;
+
+        /// <summary>0 이하는 보정 없음(100)으로 읽는다.</summary>
+        public static int Normalize(int percent) => percent <= 0 ? FullPercent : percent;
+
+        /// <summary>
+        /// 저작 가능한 값인가. 0(보정 없음)이거나, 범위 안의 <see cref="Step"/> 배수.
+        /// 레시피 검사가 부른다 — 조용히 물리지 않고 저작자에게 알린다.
+        /// </summary>
+        public static bool IsValidPercent(int percent)
+        {
+            if (percent == 0) return true;
+            return percent >= MinPercent && percent <= MaxPercent && percent % Step == 0;
+        }
+
+        /// <summary>
+        /// 런타임에서 쓸 수 있는 값으로 맞춘다. 0은 100, 나머지는 가까운 단위로 반올림한 뒤 범위로 물린다.
+        /// 저작 실수를 감추는 용도가 아니다 — 부르는 쪽이 원래 값과 다르면 경고한다.
+        /// </summary>
+        public static int ClampPercent(int percent)
+        {
+            int p = Mathf.RoundToInt(Normalize(percent) / (float)Step) * Step;
+            return Mathf.Clamp(p, MinPercent, MaxPercent);
+        }
+
+        /// <summary>
+        /// 중심을 그대로 두고 반폭 · 반깊이에 같은 비율을 건다. 0은 100이다.
+        /// 축마다 따로 두지 않는 이유는 계획서 2.3 — 한 비율로 두 축의 한계가 다 들어온다.
+        /// </summary>
+        public static RoomRect Scale(in RoomRect room, int percent)
+        {
+            float k = Normalize(percent) / (float)FullPercent;
+
+            float hx = room.HalfX * k;
+            float hz = room.HalfZ * k;
+
+            return new RoomRect(room.CenterX - hx, room.CenterX + hx, room.CenterZ - hz, room.CenterZ + hz);
+        }
+
+        /// <summary>
+        /// <paramref name="from"/> 방 안의 자리를 <paramref name="to"/> 방의 같은 <b>상대 위치</b>로 옮긴다. 높이는 그대로.
+        ///
+        /// 씬 스폰 지점 · 파티 시작 자리가 쓴다 — "방 안 배치"는 방 비율을 따라간다(계획서 3항 ②).
+        /// 크기 0인 방에서 옮기면 상대 위치가 없으므로 새 방의 중심으로 보낸다.
+        /// </summary>
+        public static Vector3 MovePoint(Vector3 point, in RoomRect from, in RoomRect to)
+        {
+            float x = from.HalfX > Eps
+                ? to.CenterX + (point.x - from.CenterX) / from.HalfX * to.HalfX
+                : to.CenterX;
+
+            float z = from.HalfZ > Eps
+                ? to.CenterZ + (point.z - from.CenterZ) / from.HalfZ * to.HalfZ
+                : to.CenterZ;
+
+            return new Vector3(x, point.y, z);
+        }
+
+        /// <summary>
+        /// 벽 하나가 설 자리. <b>안쪽 면이 방 변에 온다</b> — 중심은 반 두께만큼 밖이다.
+        ///
+        /// 길이는 지금 씬 규격을 그대로 따른다. 좌우 벽은 방 깊이만큼, 가까운 · 먼 벽은
+        /// 모서리를 덮도록 방 폭 + 두께 둘(Stage_01: 옆벽 6, 앞뒤 벽 13).
+        /// </summary>
+        public static WallPose WallFor(RoomSide side, in RoomRect room, float thickness)
+        {
+            float t = Mathf.Max(0f, thickness);
+            float half = t * 0.5f;
+
+            switch (side)
+            {
+                case RoomSide.Left:
+                    return new WallPose(new Vector3(room.MinX - half, 0f, room.CenterZ), room.HalfZ * 2f, t, alongX: false);
+
+                case RoomSide.Right:
+                    return new WallPose(new Vector3(room.MaxX + half, 0f, room.CenterZ), room.HalfZ * 2f, t, alongX: false);
+
+                case RoomSide.Near:
+                    return new WallPose(new Vector3(room.CenterX, 0f, room.MinZ - half), room.HalfX * 2f + t * 2f, t, alongX: true);
+
+                default:   // Far
+                    return new WallPose(new Vector3(room.CenterX, 0f, room.MaxZ + half), room.HalfX * 2f + t * 2f, t, alongX: true);
+            }
+        }
+
+        /// <summary>
+        /// 방을 따라 늘고 주는 그림(바닥 · 뒷벽 그림)의 새 <c>localScale</c>.
+        /// <b>바닥과 나란한 축만</b> 비율을 받고, 높이 방향 축은 그대로 둔다.
+        ///
+        /// 축마다 월드에서 어느 쪽을 향하는지 보고 가른다 — 눕힌 바닥(로컬 x · y가 월드 x · z)은 두 축이 다 줄고,
+        /// 세운 뒷벽 그림(로컬 y가 월드 y)은 폭만 준다. 이름이나 종류로 가르면 새 그림을 넣을 때마다 분기가 는다.
+        /// 기울어진 축은 바닥에 비친 길이만큼만 비율을 받는다. X와 Z에 같은 비율을 거므로 어느 수평 방향이든 같다.
+        /// </summary>
+        /// <param name="rotation">그림의 월드 회전.</param>
+        public static Vector3 StretchScale(Vector3 localScale, Quaternion rotation, int percent)
+        {
+            float k = Normalize(percent) / (float)FullPercent;
+
+            return new Vector3(
+                localScale.x * AxisFactor(rotation * Vector3.right, k),
+                localScale.y * AxisFactor(rotation * Vector3.up, k),
+                localScale.z * AxisFactor(rotation * Vector3.forward, k));
+        }
+
+        /// <summary>월드 방향이 바닥에 비친 길이(0~1)만큼 1에서 <paramref name="k"/>로 옮긴 배율.</summary>
+        private static float AxisFactor(Vector3 worldAxis, float k)
+        {
+            float flat = Mathf.Clamp01(new Vector2(worldAxis.x, worldAxis.z).magnitude);
+            return Mathf.Lerp(1f, k, flat);
+        }
+
+        /// <summary>
+        /// 스폰 규칙이 버티는 크기인가. 마법사 깊이 줄이 플레이어 줄을 피할 자리가 남아야 한다 —
+        /// 안 남으면 <see cref="WaveSpawnPlanner.RangedDepth"/>의 탐색이 전부 실패하고 폴백으로 떨어진다.
+        ///
+        /// 마법사 후퇴 거리 조건(계획서 2.5 첫 줄)은 여기 없다. 정착 거리가 비율로 바뀌는 2단계에서
+        /// 적 애셋을 읽는 테스트가 <see cref="MinPercent"/>와 묶는다.
+        /// </summary>
+        public static bool IsLargeEnough(in RoomRect room)
+            => room.HalfZ - WaveSpawnPlanner.DepthInset >= WaveSpawnPlanner.RangedLaneGap - Eps;
+
+        /// <summary>고정 카메라 화면 안에 네 벽이 다 담기는가.</summary>
+        public static bool FitsCamera(in RoomRect room)
+            => room.HalfX <= MaxHalfX + Eps && room.HalfZ <= MaxHalfZ + Eps;
+
+        /// <summary>
+        /// 이 방을 실제로 쓸 수 있는가 — 충분히 크고 화면 안이다.
+        /// 기준 방이 <see cref="RoomRect.Default"/>와 다른 씬에서 <c>기준 × 범위</c>를 다시 볼 때 쓴다(계획서 8단계).
+        /// </summary>
+        public static bool Fits(in RoomRect room) => IsLargeEnough(room) && FitsCamera(room);
+    }
+
     // ══ WaveSpawnPlanner ═══════════════════════════════════════════
 
     /// <summary>
@@ -241,19 +513,20 @@ namespace Prototype
     /// <item><b>마법사</b>는 맵 최상단·최하단에 붙고, 플레이어와 같은 줄이면 반대쪽으로 넘긴다 —
     /// 같은 줄에 서면 걸어가는 김에 잡히고, 축을 옮겨 잡으러 가는 동선이 생기지 않는다.</item>
     /// </list>
+    ///
+    /// <b>방은 인자로 받는다.</b> 지도 칸이 방 크기 비율을 굴리므로 방이 상수일 수 없다.
+    /// 방이 바뀔 때 거리는 뜻에 따라 셋으로 갈린다(계획서 docs/Room_Size_Plan.md 3항).
+    /// <list type="bullet">
+    /// <item>① <b>벽에 붙는 자리</b> — 등장 지점(<see cref="SpawnInset"/>). 벽을 따라가고 거리는 고정.</item>
+    /// <item>② <b>방 안 배치</b> — 정착 지점. 반폭의 <b>비율</b>이라 방과 같이 줄고 는다.</item>
+    /// <item>③ <b>몸 · 사거리</b> — 깊이 줄 간격, 마법사 줄 회피, 몸통 여유. 고정.</item>
+    /// </list>
+    /// 기본값 오버로드는 두지 않는다. 방을 빠뜨린 호출이 조용히 기준 방으로 돌면 그 경로만 옛 방에 적이 선다.
     /// </summary>
     public static class WaveSpawnPlanner
     {
-        // ── 방 규격 (SceneLayoutBuilder와 같은 값) ──
-
-        /// <summary>방 좌우 반경. 벽 콜라이더가 여기 서 있다.</summary>
-        public const float RoomHalfX = 6f;
-
-        /// <summary>방 깊이 반경.</summary>
-        public const float RoomHalfZ = 3f;
-
         /// <summary>
-        /// 등장 지점이 벽에서 떨어지는 거리.
+        /// ① 등장 지점이 벽에서 떨어지는 거리. 방 크기와 무관한 몸통 하나다.
         ///
         /// <b>방 밖에서 소환하지 않는다.</b> 방은 사방이 콜라이더로 막혀 있어서 바깥에 놓으면
         /// 벽에 걸려 영영 못 들어온다. 벽 바로 앞에서 시작해 안쪽으로 걸어 들어오는 것으로
@@ -261,14 +534,18 @@ namespace Prototype
         /// </summary>
         public const float SpawnInset = 0.6f;
 
-        /// <summary>몸통 반지름 여유. 깊이 좌표를 이 안쪽으로 물린다.</summary>
+        /// <summary>③ 몸통 반지름 여유. 깊이 좌표를 이 안쪽으로 물린다.</summary>
         public const float DepthInset = 0.6f;
 
-        // ── 역할별 정착 지점 (벽에서 떨어지는 거리) ──
+        // ── ② 역할별 정착 지점 — 벽에서 반폭의 몇 할 안쪽인가 ──
+        //
+        // 기준 방(반폭 6)에서 벽으로부터 2.8 · 1.8 · 1.2였던 값을 비율로 옮겼다. 그래서 100% 방의 답은 그대로다.
+        // 고정 거리로 두면 좁은 방에서 좌우 전사 두 무리가 나오자마자 플레이어를 낀다 —
+        // 방이 좁아진 것이 아니라 진형이 바뀐 것이 된다(계획서 3.1).
 
-        private const float MeleeInset = 2.8f;
-        private const float ChargerInset = 1.8f;
-        private const float RangedInset = 1.2f;
+        public const float MeleeSettle = 2.8f / 6f;
+        public const float ChargerSettle = 1.8f / 6f;
+        public const float RangedSettle = 1.2f / 6f;
 
         /// <summary>돌진전사가 도착 후 서 있는 시간. 기획 기준 1~1.5초.</summary>
         public const float ChargerHold = 1.2f;
@@ -291,8 +568,13 @@ namespace Prototype
         /// <summary>한 웨이브에서 서로 다른 줄을 갖는 돌진전사 수. 넘으면 앞 줄을 다시 쓴다.</summary>
         public const int ChargerLanes = 3;
 
-        /// <summary>깊이 좌표의 절대 상한. 벽에 낀 채로 소환되지 않게.</summary>
-        public static float MaxDepth => RoomHalfZ - DepthInset;
+        private const float LaneEps = 0.0001f;
+
+        /// <summary>
+        /// 방 중심에서 깊이 좌표가 갈 수 있는 거리. 벽에 낀 채로 소환되지 않게 몸통 여유만큼 안쪽이다.
+        /// <b>중심 기준 거리</b>이지 월드 좌표가 아니다.
+        /// </summary>
+        public static float MaxDepth(in RoomRect room) => Mathf.Max(0f, room.HalfZ - DepthInset);
 
         /// <summary>
         /// 저작한 한 줄의 <b>자동 배치</b>.
@@ -304,16 +586,17 @@ namespace Prototype
         /// </summary>
         /// <param name="entry">저작한 한 줄. <see cref="SpawnOrigin.Point"/>면 이 함수를 부르면 안 된다.</param>
         /// <param name="laneIndex">이 웨이브에서 같은 역할 중 몇 번째 자동 배치인가.</param>
-        /// <param name="playerZ">지금 플레이어의 깊이.</param>
-        public static SpawnPlacement PlanAuto(in WaveSpawnEntry entry, int laneIndex, float playerZ)
+        /// <param name="playerZ">지금 플레이어의 깊이. 월드 좌표.</param>
+        /// <param name="room">적을 세울 방. 월드 좌표.</param>
+        public static SpawnPlacement PlanAuto(in WaveSpawnEntry entry, int laneIndex, float playerZ, in RoomRect room)
         {
             int side = SideSign(entry.side, laneIndex);
-            float z = DepthFor(entry.role, laneIndex, playerZ);
-            float entryX = side * (RoomHalfX - InsetFor(entry.role));
+            float z = DepthFor(entry.role, laneIndex, playerZ, in room);
+            float entryX = room.CenterX + side * SettleOffset(entry.role, entry.side, laneIndex, in room);
 
             return new SpawnPlacement
             {
-                spawnPoint = new Vector3(side * (RoomHalfX - SpawnInset), 0f, z),
+                spawnPoint = new Vector3(room.CenterX + side * (room.HalfX - SpawnInset), 0f, z),
                 entryPoint = new Vector3(entryX, 0f, z),
                 holdSeconds = HoldFor(entry.role),
                 appearAt = entry.AppearAt,
@@ -332,9 +615,9 @@ namespace Prototype
         /// 지점이 애초에 방 밖인지는 <see cref="IsInsideRoom"/>으로 따로 물어 경고한다 —
         /// 조용히 당겨 놓기만 하면 저작자가 자기 실수를 영영 모른다.
         /// </summary>
-        public static SpawnPlacement PlanAt(in WaveSpawnEntry entry, Vector3 point)
+        public static SpawnPlacement PlanAt(in WaveSpawnEntry entry, Vector3 point, in RoomRect room)
         {
-            Vector3 ground = ClampIntoRoom(point);
+            Vector3 ground = ClampIntoRoom(point, in room);
 
             return new SpawnPlacement
             {
@@ -362,14 +645,17 @@ namespace Prototype
             => role == EnemyRole.Charger ? ChargerHold : DefaultHold;
 
         /// <summary>이 지점이 소환 가능한 방 안인가. 저작 검증이 읽는다.</summary>
-        public static bool IsInsideRoom(Vector3 point)
-            => Mathf.Abs(point.x) <= RoomHalfX - SpawnInset && Mathf.Abs(point.z) <= MaxDepth;
+        public static bool IsInsideRoom(Vector3 point, in RoomRect room)
+            => Mathf.Abs(point.x - room.CenterX) <= room.HalfX - SpawnInset + LaneEps
+               && Mathf.Abs(point.z - room.CenterZ) <= MaxDepth(in room) + LaneEps;
 
         /// <summary>방 밖 좌표를 소환 가능한 자리로 당긴다. 높이는 접지가 다시 잡으므로 0으로 누른다.</summary>
-        public static Vector3 ClampIntoRoom(Vector3 point)
+        public static Vector3 ClampIntoRoom(Vector3 point, in RoomRect room)
         {
-            float limitX = RoomHalfX - SpawnInset;
-            return new Vector3(Mathf.Clamp(point.x, -limitX, limitX), 0f, Clamp(point.z));
+            float limitX = Mathf.Max(0f, room.HalfX - SpawnInset);
+            float x = Mathf.Clamp(point.x, room.CenterX - limitX, room.CenterX + limitX);
+
+            return new Vector3(x, 0f, Clamp(point.z, in room));
         }
 
         /// <summary><see cref="SpawnSide.Both"/>는 짝수 오른쪽 · 홀수 왼쪽으로 번갈아 간다.</summary>
@@ -389,32 +675,110 @@ namespace Prototype
         /// 마법사만 <paramref name="playerZ"/>를 <b>피하는</b> 방향으로, 돌진전사는
         /// <b>맞추는</b> 방향으로 쓴다. 둘의 위협이 정반대라 규칙도 반대다.
         /// </summary>
-        public static float DepthFor(EnemyRole role, int index, float playerZ)
+        /// <returns>월드 깊이 좌표.</returns>
+        public static float DepthFor(EnemyRole role, int index, float playerZ, in RoomRect room)
         {
             switch (role)
             {
                 case EnemyRole.Charger:
-                    return ChargerDepth(index, playerZ);
+                    return ChargerDepth(index, playerZ, in room);
 
                 case EnemyRole.Ranged:
-                    return RangedDepth(index, playerZ);
+                    return RangedDepth(index, playerZ, in room);
 
                 default:
-                    return Clamp(MeleeLanes[Mathf.Abs(index) % MeleeLanes.Length]);
+                    return MeleeDepth(index, in room);
             }
         }
 
         /// <summary>깊이를 방 안으로 물린다. 벽에 낀 소환은 그대로 끼어 있는다.</summary>
-        public static float Clamp(float z) => Mathf.Clamp(z, -MaxDepth, MaxDepth);
+        public static float Clamp(float z, in RoomRect room)
+        {
+            float max = MaxDepth(in room);
+            return Mathf.Clamp(z, room.CenterZ - max, room.CenterZ + max);
+        }
 
-        private static float InsetFor(EnemyRole role)
+        /// <summary>② 정착 지점이 벽에서 반폭의 몇 할 안쪽인가.</summary>
+        public static float SettleFor(EnemyRole role)
         {
             switch (role)
             {
-                case EnemyRole.Charger: return ChargerInset;
-                case EnemyRole.Ranged:  return RangedInset;
-                default:                return MeleeInset;
+                case EnemyRole.Charger: return ChargerSettle;
+                case EnemyRole.Ranged:  return RangedSettle;
+                default:                return MeleeSettle;
             }
+        }
+
+        /// <summary>
+        /// 전사의 깊이 줄. <see cref="MeleeLanes"/>를 순서대로 돌려 쓰되 <b>방 밖 줄은 건너뛴다.</b>
+        ///
+        /// 줄 간격은 몸 두 개가 떨어져 서는 거리라 방에 비례시키지 않는다(③). 그런데 방 밖 줄을
+        /// 벽으로 물리기만 하면, 80% 방(깊이 ±1.8)에서 ±1.6과 ±2.4가 0.2 차이로 <b>접혀 겹친다.</b>
+        /// 돌진전사(<see cref="ChargerDepth"/>)가 같은 이유로 먼저 겪고 고친 문제다.
+        ///
+        /// 줄을 한 바퀴 다 쓰고 돌려 쓸 때, <see cref="SpawnSide.Both"/>는 방 안 줄 수가 홀수(1 · 3 · 5)라
+        /// 다음 바퀴의 같은 줄이 반대편 벽에서 나와 겹치지 않는다. <b>한쪽에서만 나오면</b> 앞 바퀴와 같은 점에 선다.
+        /// 그래서 한쪽 등장만 몇 번째 바퀴인지(<see cref="MeleeCycle"/>)만큼 정착 지점을 안쪽으로 당긴다(<see cref="SettleOffset"/>).
+        /// 기준 방은 다섯 줄이라 0~4번은 예전과 같은 답이고, 80% 방은 세 줄이라 한쪽 등장 4번째 전사부터 당겨진다.
+        /// </summary>
+        public static float MeleeDepth(int index, in RoomRect room)
+        {
+            float max = MaxDepth(in room);
+            int inRoom = MeleeLanesInRoom(in room);
+
+            // 0번 줄(중심)은 크기 0인 방이 아니면 항상 들어온다. 못 세면 중심이 가장 안전하다.
+            if (inRoom == 0) return room.CenterZ;
+
+            int wanted = Mathf.Abs(index) % inRoom;
+            int found = 0;
+
+            foreach (float lane in MeleeLanes)
+            {
+                if (Mathf.Abs(lane) > max + LaneEps) continue;
+                if (found == wanted) return room.CenterZ + lane;
+                found++;
+            }
+
+            return room.CenterZ;
+        }
+
+        /// <summary>③ 전사 줄을 한 바퀴 돌려 쓸 때마다 정착 지점이 안쪽으로 당겨지는 거리. 몸 하나다.</summary>
+        public const float MeleeWrapStep = 1.2f;
+
+        /// <summary>이 전사가 방 안 줄을 몇 바퀴째 쓰는가. 0이면 첫 바퀴.</summary>
+        public static int MeleeCycle(int index, in RoomRect room)
+        {
+            int inRoom = MeleeLanesInRoom(in room);
+            return inRoom > 0 ? Mathf.Abs(index) / inRoom : 0;
+        }
+
+        /// <summary>
+        /// 정착 지점이 방 중심에서 떨어진 거리(부호 없음). 역할의 ② 비율에서 나오고,
+        /// 한쪽에서만 나오는 전사는 줄을 돌려 쓴 바퀴만큼 안쪽으로 당긴다. 중심을 넘지는 않는다.
+        ///
+        /// <b>양쪽 등장은 안 당긴다.</b> 증원이 <see cref="SpawnSide.Both"/>로 번호를 계속 올리는데,
+        /// 당기면 늦게 온 증원일수록 플레이어 코앞에 서고 100% 방의 답까지 바뀐다.
+        /// </summary>
+        public static float SettleOffset(EnemyRole role, SpawnSide side, int index, in RoomRect room)
+        {
+            float offset = room.HalfX * (1f - SettleFor(role));
+
+            bool melee = role != EnemyRole.Charger && role != EnemyRole.Ranged;
+            if (melee && side != SpawnSide.Both)
+                offset -= MeleeCycle(index, in room) * MeleeWrapStep;
+
+            return Mathf.Max(0f, offset);
+        }
+
+        private static int MeleeLanesInRoom(in RoomRect room)
+        {
+            float max = MaxDepth(in room);
+
+            int count = 0;
+            foreach (float lane in MeleeLanes)
+                if (Mathf.Abs(lane) <= max + LaneEps) count++;
+
+            return count;
         }
 
         /// <summary>
@@ -426,9 +790,12 @@ namespace Prototype
         ///
         /// 플레이어가 방 안에 있으면 예전과 같은 답을 낸다 — 0, +한 칸, −한 칸.
         /// </summary>
-        public static float ChargerDepth(int index, float playerZ)
+        public static float ChargerDepth(int index, float playerZ, in RoomRect room)
         {
-            float lane = Clamp(playerZ);
+            float max = MaxDepth(in room);
+
+            // 계산은 방 중심 기준으로 하고 돌려줄 때 월드로 옮긴다.
+            float lane = Mathf.Clamp(playerZ - room.CenterZ, -max, max);
             int wanted = Mathf.Abs(index) % ChargerLanes;
             int found = 0;
 
@@ -436,14 +803,14 @@ namespace Prototype
             for (int rung = 0; rung < ChargerLanes * 4; rung++)
             {
                 float candidate = lane + RungOffset(rung) * ChargerLaneStep;
-                if (Mathf.Abs(candidate) > MaxDepth + 0.0001f) continue;
+                if (Mathf.Abs(candidate) > max + LaneEps) continue;
 
-                if (found == wanted) return candidate;
+                if (found == wanted) return room.CenterZ + candidate;
                 found++;
             }
 
-            // 방이 이 값보다 좁아진 적은 없지만, 못 찾으면 플레이어 줄이 가장 안전하다.
-            return lane;
+            // 방이 줄 셋을 못 담을 만큼 좁으면 여기 온다. 플레이어 줄이 가장 안전하다.
+            return room.CenterZ + lane;
         }
 
         /// <summary>0, +1, −1, +2, −2 … 사다리.</summary>
@@ -459,25 +826,28 @@ namespace Prototype
         /// 플레이어 줄을 건너뛰는 규칙은 그대로다 — 같은 줄에 서면 전사와 싸우다
         /// 옆걸음질만 해도 닿아서, 축을 옮겨 잡으러 가는 동선이 아예 생기지 않는다.
         /// </summary>
-        public static float RangedDepth(int index, float playerZ)
+        public static float RangedDepth(int index, float playerZ, in RoomRect room)
         {
+            float max = MaxDepth(in room);
+            float player = playerZ - room.CenterZ;
+
             int wanted = Mathf.Abs(index);
             int found = 0;
 
             for (int rung = 0; rung < 12; rung++)
             {
                 float sign = rung % 2 == 0 ? 1f : -1f;
-                float candidate = sign * (MaxDepth - rung / 2 * RangedLaneStep);
+                float candidate = sign * (max - rung / 2 * RangedLaneStep);
 
-                if (Mathf.Abs(candidate) > MaxDepth + 0.0001f) continue;
-                if (Mathf.Abs(candidate - playerZ) < RangedLaneGap - 0.0001f) continue;
+                if (Mathf.Abs(candidate) > max + LaneEps) continue;
+                if (Mathf.Abs(candidate - player) < RangedLaneGap - LaneEps) continue;
 
-                if (found == wanted) return candidate;
+                if (found == wanted) return room.CenterZ + candidate;
                 found++;
             }
 
-            // 방 깊이가 RangedLaneGap 의 두 배보다 넓어 여기까지 오지 않는다. 와도 먼 구석이 낫다.
-            return playerZ >= 0f ? -MaxDepth : MaxDepth;
+            // RoomRules.IsLargeEnough를 지키는 방이면 여기 오지 않는다. 와도 먼 구석이 낫다.
+            return room.CenterZ + (player >= 0f ? -max : max);
         }
     }
 }

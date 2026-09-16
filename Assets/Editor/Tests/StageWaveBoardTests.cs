@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Prototype;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Prototype.Tests
 {
@@ -20,23 +22,45 @@ namespace Prototype.Tests
         private readonly List<Object> assets = new List<Object>();
         private StageWaveBoard board;
 
+        /// <summary>
+        /// 씬의 방. 보드는 방 크기를 들지 않고 이걸 찾아 읽는다. 기본은 기준 방이라,
+        /// 방과 무관한 검사들은 방이 없던 시절과 같은 답을 낸다. 없는 경우는 "방" 절이 따로 본다.
+        /// </summary>
+        private StageRoom stageRoom;
+
+        /// <summary>
+        /// 테스트 전용 미리보기 씬. 보드는 <b>자기 씬</b>의 방을 찾으므로, 스테이지 씬을 열어 둔 채로 돌려도
+        /// 그 씬의 방이 섞이지 않게 여기에 따로 세운다.
+        /// 일반 씬을 겹쳐 열지 않는 이유 — 제목 없는 씬이 열려 있으면 에디터가 새 씬 추가를 거절한다.
+        /// </summary>
+        private Scene scene;
+
         [SetUp]
-        public void SetUp() => board = NewBoard();
+        public void SetUp()
+        {
+            scene = EditorSceneManager.NewPreviewScene();
+
+            board = NewBoard();
+            stageRoom = NewRoom(RoomRect.Default);
+        }
 
         [TearDown]
         public void TearDown()
         {
             for (int i = 0; i < spawned.Count; i++)
-                Object.DestroyImmediate(spawned[i]);
+                if (spawned[i] != null) Object.DestroyImmediate(spawned[i]);
 
             // 디스크에 없는 ScriptableObject 도 치워야 한다. 안 지우면 에디터가 켜져 있는 동안
             // 계속 살아남아 다음 테스트의 FindObjectsByType 결과까지 흔든다.
             for (int i = 0; i < assets.Count; i++)
                 Object.DestroyImmediate(assets[i]);
 
+            if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
+
             spawned.Clear();
             assets.Clear();
             board = null;
+            stageRoom = null;
         }
 
         // ── 조회 ────────────────────────────────────────
@@ -334,7 +358,135 @@ namespace Prototype.Tests
             Assert.That(board.Issues(), Is.Empty);
         }
 
+        // ── 방 ──────────────────────────────────────────
+        // 계획서: docs/Room_Size_Plan.md (4항 · 3단계)
+
+        /// <summary>
+        /// 방에서 도는 조우가 있는데 방이 없으면 잡는다. 디렉터는 이 상태로 조우를 하나도 안 돌리므로,
+        /// 여기서 못 잡으면 증상은 "그 스테이지가 열리자마자 끝난다"뿐이다.
+        /// </summary>
+        [Test]
+        public void NoStageRoom_WithRoomEncounter_IsReported()
+        {
+            RemoveRoom();
+            board.Configure(Encounters(NewWave(WaveSpawnEntry.Auto(EnemyRole.Melee))));
+
+            Assert.That(board.NeedsRoom, Is.True);
+            Assert.That(ProblemsOf(board), Is.EqualTo(new[] { BoardProblem.NoStageRoom }));
+        }
+
+        /// <summary>방이 없으면 방 밖 판정을 줄마다 또 적지 않는다. 원인 하나에 경고 하나여야 읽힌다.</summary>
+        [Test]
+        public void NoStageRoom_WithPoints_ReportsOnlyOnce()
+        {
+            RemoveRoom();
+            board.Configure(new[]
+            {
+                Bind("굴_좌", new Vector3(-4f, 0f, 1f)),
+                Bind("먼_굴", new Vector3(99f, 0f, 0f)),
+            });
+
+            Assert.That(ProblemsOf(board), Is.EqualTo(new[] { BoardProblem.NoStageRoom }));
+        }
+
+        /// <summary>아레나만 도는 보드(자리 있는 조우뿐, 지점 없음)는 방을 안 쓴다. 방이 없어도 멀쩡하다.</summary>
+        [Test]
+        public void NoStageRoom_SiteOnlyBoard_IsClean()
+        {
+            RemoveRoom();
+
+            var site = Track(new GameObject("Arena_1")).AddComponent<EncounterSite>();
+
+            WaveAsset wave = NewWave(WaveSpawnEntry.AtWall(EnemyRole.Melee, SpawnWall.Front, 0.5f));
+            board.Configure(new[] { new StageEncounter { content = wave, site = site } });
+
+            Assert.That(board.NeedsRoom, Is.False);
+            Assert.That(board.Issues(), Is.Empty);
+        }
+
+        [Test]
+        public void EmptyBoard_WithoutRoom_IsClean()
+        {
+            RemoveRoom();
+            Assert.That(board.NeedsRoom, Is.False);
+            Assert.That(board.Issues(), Is.Empty);
+        }
+
+        /// <summary>
+        /// 지점이 방 안인지는 <b>씬의 방</b>으로 판정한다. 원점 기준으로 보면 옮겨진 방에서
+        /// 멀쩡한 지점이 방 밖으로, 방 밖 지점이 방 안으로 잡힌다.
+        /// </summary>
+        [Test]
+        public void Points_AreJudgedAgainstTheStageRoom()
+        {
+            stageRoom.Configure(new RoomRect(14f, 26f, -2f, 4f));
+
+            board.Configure(new[]
+            {
+                Bind("방_안", new Vector3(20f, 0f, 1f)),
+                Bind("원점", Vector3.zero),
+            });
+
+            List<BoardIssue> issues = board.Issues();
+
+            Assert.That(issues.Count, Is.EqualTo(1));
+            Assert.That(issues[0].problem, Is.EqualTo(BoardProblem.OutsideRoom));
+            Assert.That(issues[0].id, Is.EqualTo("원점"), "기준 방 안인 원점이 옮겨진 방에서도 방 안으로 잡혔다");
+        }
+
+        /// <summary>반깊이 1이면 소환 가능 깊이 ±0.4 — 마법사가 플레이어 줄을 피할 자리가 없다.</summary>
+        [Test]
+        public void ShallowRoom_IsReported()
+        {
+            stageRoom.Configure(new RoomRect(-6f, 6f, -1f, 1f));
+            board.Configure(Encounters(NewWave(WaveSpawnEntry.Auto(EnemyRole.Melee))));
+
+            Assert.That(ProblemsOf(board), Is.EqualTo(new[] { BoardProblem.RoomTooSmall }));
+        }
+
         // ── 도우미 ──────────────────────────────────────
+
+        /// <summary>테스트 씬으로 옮기고 치울 목록에 올린다.</summary>
+        private GameObject Track(GameObject go)
+        {
+            SceneManager.MoveGameObjectToScene(go, scene);
+            spawned.Add(go);
+            return go;
+        }
+
+        private StageRoom NewRoom(RoomRect baseRoom)
+        {
+            var room = Track(new GameObject("StageRoom")).AddComponent<StageRoom>();
+            room.Configure(baseRoom);
+            return room;
+        }
+
+        /// <summary>방이 없는 씬을 만든다. 보드가 씬을 훑어 찾으므로 지우는 것 말고는 방법이 없다.</summary>
+        private void RemoveRoom()
+        {
+            if (stageRoom == null) return;
+
+            spawned.Remove(stageRoom.gameObject);
+            Object.DestroyImmediate(stageRoom.gameObject);
+            stageRoom = null;
+        }
+
+        /// <summary>
+        /// 보드는 <b>자기 씬</b>의 방만 본다. 다른 씬(열어 둔 스테이지 씬)에 방이 있어도 짝이 아니다.
+        /// </summary>
+        [Test]
+        public void RoomInAnotherScene_IsNotThisBoardsRoom()
+        {
+            RemoveRoom();
+
+            var elsewhere = new GameObject("다른 씬의 StageRoom");
+            spawned.Add(elsewhere);   // 테스트 씬으로 안 옮긴다 — 지금 열린 씬에 남는다
+            elsewhere.AddComponent<StageRoom>().Configure(RoomRect.Default);
+
+            board.Configure(Encounters(NewWave(WaveSpawnEntry.Auto(EnemyRole.Melee))));
+
+            Assert.That(ProblemsOf(board), Is.EqualTo(new[] { BoardProblem.NoStageRoom }));
+        }
 
         /// <summary>웨이브 몇 개를 자리 없는 조우 목록으로 편다. 웨이브 방의 모양이다.</summary>
         private static StageEncounter[] Encounters(params WaveAsset[] waves)
@@ -358,17 +510,12 @@ namespace Prototype.Tests
         }
 
         private StageWaveBoard NewBoard()
-        {
-            var go = new GameObject("StageWaveBoard");
-            spawned.Add(go);
-            return go.AddComponent<StageWaveBoard>();
-        }
+            => Track(new GameObject("StageWaveBoard")).AddComponent<StageWaveBoard>();
 
         private SpawnPointBinding Bind(string id, Vector3 at)
         {
-            var go = new GameObject($"SpawnPoint {id}");
+            GameObject go = Track(new GameObject($"SpawnPoint {id}"));
             go.transform.position = at;
-            spawned.Add(go);
 
             return new SpawnPointBinding { id = id, point = go.transform };
         }
