@@ -76,7 +76,7 @@ namespace Prototype
                 return true;
             }
 
-            range = AttackRangePreview.FromCircle(center, data.RadiusFor(in next) * ctx.RadiusScale, progress);
+            range = AttackRangePreview.FromCircle(center, data.RadiusFor(in next), progress);
             return true;
         }
 
@@ -101,7 +101,7 @@ namespace Prototype
             hit.damageData.damage *= ctx.DamageScale;
 
             // 타별 반경 — 조여드는 균열처럼 타마다 다를 수 있다. 차징 배율도 같이 곱한다.
-            float radius = data.RadiusFor(in hit) * ctx.RadiusScale;
+            float radius = data.RadiusFor(in hit);
 
             SkillVfx style = data.vfx.AsSkill();
 

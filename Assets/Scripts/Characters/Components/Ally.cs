@@ -223,11 +223,7 @@ namespace Prototype
         {
             var skillState = state as SkillState;
 
-            // 차징은 게이지가 찰 때까지 제자리에 서 있는 게 정상 동작이다. 모으는 시간까지
-            // 같은 예산에 넣으면 maxChargeTime이 긴 스킬이 터지기도 전에 잘린다.
             float timeout = realtimeSkillTimeout;
-            if (state is IChargeState && skillState != null && skillState.Data != null)
-                timeout += skillState.Data.maxChargeTime;
 
             float elapsed = 0f;
 

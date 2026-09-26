@@ -409,20 +409,14 @@ namespace Prototype
         public StateMachine StateMachine { get; private set; }
 
         /// <summary>
-        /// 지금 무언가를 모으고 있으면 그 주체. 없으면 null.
-        ///
-        /// 모으는 경로가 둘이라 한 창구로 합친다 —
-        /// 동료 스킬은 <see cref="ChargeSkillState"/>로 <b>상태머신</b> 위에서 돌고,
-        /// 보스 패턴은 <see cref="BossPatternAction"/>으로 <b>컴포넌트</b> 위에서 돈다.
-        /// 머리 위 게이지(<see cref="ChargeGauge"/>)는 그 차이를 알 이유가 없다.
+        /// 이 몸에서 무언가를 모으는 주체(지금은 보스 패턴). 없으면 null.
+        /// 머리 위 게이지(<see cref="ChargeGauge"/>)가 읽는다.
         /// </summary>
         public IChargeState ChargeState
         {
             get
             {
-                if (StateMachine?.CurState is IChargeState fromState) return fromState;
-
-                // 컴포넌트 쪽은 한 번만 찾는다. 매 프레임 GetComponent를 도는 자리다.
+                // 한 번만 찾는다. 매 프레임 GetComponent를 도는 자리다.
                 if (!chargeComponentResolved)
                 {
                     chargeComponentResolved = true;

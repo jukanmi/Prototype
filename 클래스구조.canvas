@@ -6,7 +6,7 @@
 			"x": 0,
 			"y": 0,
 			"width": 1360,
-			"height": 1948,
+			"height": 2154,
 			"label": "Entities — 몸 — 전투 · 물리 · 공격",
 			"color": "1"
 		},
@@ -44,7 +44,7 @@
 			"id": "group-Stats",
 			"type": "group",
 			"x": 0,
-			"y": 2302,
+			"y": 2354,
 			"width": 1360,
 			"height": 572,
 			"label": "Stats — 스탯 · 게이지",
@@ -54,9 +54,9 @@
 			"id": "group-Battle",
 			"type": "group",
 			"x": 1560,
-			"y": 2302,
+			"y": 2354,
 			"width": 1360,
-			"height": 4138,
+			"height": 4086,
 			"label": "Battle — 지휘 · 불릿타임 · 전투 UI",
 			"color": "2"
 		},
@@ -64,9 +64,9 @@
 			"id": "group-Skill",
 			"type": "group",
 			"x": 3120,
-			"y": 2302,
+			"y": 2354,
 			"width": 1360,
-			"height": 2180,
+			"height": 1894,
 			"label": "Skill — 스킬 시전 · 효과",
 			"color": "2"
 		},
@@ -74,7 +74,7 @@
 			"id": "group-Deck",
 			"type": "group",
 			"x": 4680,
-			"y": 2302,
+			"y": 2354,
 			"width": 1360,
 			"height": 702,
 			"label": "Deck — 카드",
@@ -106,7 +106,7 @@
 			"x": 3120,
 			"y": 6640,
 			"width": 1360,
-			"height": 2698,
+			"height": 2660,
 			"label": "Vfx — 연출 · 표식",
 			"color": "3"
 		},
@@ -226,8 +226,8 @@
 			"x": 920,
 			"y": 720,
 			"width": 400,
-			"height": 466,
-			"text": "### BasicAttackProfile\n*컴포넌트*\n`BasicAttackProfile.cs`\n\n평타 한 벌. 히트박스 · 타이밍 · 타격(HitData) · 투사체 · 연타 단계가 여기 모인다. **단타는 연타의 특수한 경우다.** 단계 표(stages)가 비어 있으면 단발, 채우면 그 수만큼 이어치기가 된다. 예전에는 아군(연타)/적(단발) 두 클래스로 갈라 두었는데, 차이가 단계 표 하나뿐이라 합쳤다. 이어치기는 유저가 모는 몸에서만 일어난다 — AttackState가 선입력 (AttackInputBuffer)을 보고 넘어가는데, 그 버퍼를 채우는 건 PlayerPilot 하나뿐이다.",
+			"height": 492,
+			"text": "### BasicAttackProfile\n*컴포넌트*\n`BasicAttackProfile.cs`\n\n평타 한 벌. 히트박스 · 타격(HitData) · 투사체 · 단계 표가 여기 모인다. **평타는 단계 표(stages) 하나로 정의된다.** 단타는 칸 하나, 3연타는 칸 셋 — 공격키를 누를 때마다 다음 칸으로 넘어가고, 마지막 칸에서는 눌러도 반응이 없다. 타이밍은 칸마다 적는다. \"비우면 기본값\" 같은 두 번째 층은 없다. 이어치기는 유저가 모는 몸에서만 일어난다 — AttackState가 선입력 (AttackInputBuffer)을 보고 넘어가는데, 그 버퍼를 채우는 건 PlayerPilot 하나뿐이다.",
 			"color": "4"
 		},
 		{
@@ -253,16 +253,26 @@
 			"id": "n-DefenseWindows",
 			"type": "text",
 			"x": 920,
-			"y": 1226,
+			"y": 1252,
 			"width": 400,
 			"height": 310,
 			"text": "### DefenseWindows\n*순수 C#*\n`DefenseWindows.cs`\n\n타격을 **없던 일로** 만드는 시간 창 셋 — 대시 패링 창, 패링 성공 무적, 교대 등장 무적. Combat이 소유한다. 여기는 \"지금 열려 있나\"와 \"앞에서 왔나\"만 안다. 흘려 낸 뒤의 반격 · 로그 · 이벤트는 Combat 몫이다."
 		},
 		{
-			"id": "n-StatusEffects",
+			"id": "n-IChargeState",
 			"type": "text",
 			"x": 480,
 			"y": 1358,
+			"width": 400,
+			"height": 284,
+			"text": "### IChargeState\n*인터페이스*\n`IChargeState.cs`\n\n\"지금 무언가를 모으고 있다\"는 계약. 머리 위 게이지(ChargeGauge)가 ChargeState로 읽어 그린다. 지금 구현은 보스 패턴(BossPatternAction)뿐이다.",
+			"color": "5"
+		},
+		{
+			"id": "n-StatusEffects",
+			"type": "text",
+			"x": 40,
+			"y": 1564,
 			"width": 400,
 			"height": 530,
 			"text": "### StatusEffects\n*순수 C#*\n`StatusEffects.cs`\n\n한 캐릭터에 걸린 **지속시간 있는 상태**의 목록. Combat 하나당 한 벌. 남은 시간을 화면에 띄우려면 그 시간을 아는 곳이 있어야 하는데, 예전에는 EffectRunner에 넘긴 익명 콜백 안에만 있었다 — 밖에서는 지금 보호막이 걸려 있는지조차 알 수 없었다. 그래서 **되돌리기까지 여기로 옮겼다.** 타이머를 두 벌 굴리면 화면과 실제가 반드시 어긋난다. Tick이 굴린다. 따라서 불릿타임 배율을 따르고, 태그로 내려간 몸(`SetActive(false)`)에서는 같이 멈춘다 — 필드 밖에 있는 동안 버프만 녹아 없어지지 않는다.\n\n**내부:** Entry"
@@ -270,8 +280,8 @@
 		{
 			"id": "n-static__Entities",
 			"type": "text",
-			"x": 40,
-			"y": 1564,
+			"x": 920,
+			"y": 1602,
 			"width": 400,
 			"height": 284,
 			"text": "### Entities · 정적 규칙 / 유틸\n*static — 인스턴스를 쥐지 않고 함수로만 부른다*\n\n- **BeltScroll** — 벨트스크롤 공간의 기준.\n- **CombatEvents** — 누가 누구를 때렸든 한 번씩 울리는 **전투 전역 알림**.",
@@ -423,19 +433,9 @@
 			"text": "### StunState\n*순수 C# · 상속 EntityState*\n`StateMachine.cs`\n\n행동 불능(스턴). **시간은 StatusEffects가 재고 여기는 몸만 붙잡는다** — 타이머를 상태에도 두면 화면과 게이지가 서로 다른 숫자를 부른다. 게이팅이 이 클래스의 존재 이유다. CanBeInterrupted가 false면 IsBusy가 true가 되어 입력(PlayerPilot) · AI(EnemyControl) · 카드 시전(Ally.CanCastCard)이 **이미 있는 게이트**로 전부 막힌다. 그리고 여기가 `HandleCommonCommands`를 부르지 않으므로 이동 · 점프 · 대시 · 평타도 같이 죽는다. 들어오고 나가는 판정은 Combat의 정합 루프 한 곳에만 있다."
 		},
 		{
-			"id": "n-Ally",
-			"type": "text",
-			"x": 3160,
-			"y": 60,
-			"width": 400,
-			"height": 258,
-			"text": "### Ally\n*컴포넌트 · 상속 Entity*\n`Ally.cs`\n\n동료 = 스킬의 주체. 실시간에는 손패 카드를, 불릿타임에는 콤보 큐를 받아 시전한다. 실제 움직임과 타격은 전부 SkillState가 수행한다.",
-			"color": "4"
-		},
-		{
 			"id": "n-Enemy",
 			"type": "text",
-			"x": 3600,
+			"x": 3160,
 			"y": 60,
 			"width": 400,
 			"height": 232,
@@ -445,7 +445,7 @@
 		{
 			"id": "n-Player",
 			"type": "text",
-			"x": 4040,
+			"x": 3600,
 			"y": 60,
 			"width": 400,
 			"height": 466,
@@ -453,9 +453,19 @@
 			"color": "4"
 		},
 		{
+			"id": "n-Ally",
+			"type": "text",
+			"x": 4040,
+			"y": 60,
+			"width": 400,
+			"height": 258,
+			"text": "### Ally\n*컴포넌트 · 상속 Entity*\n`Ally.cs`\n\n동료 = 스킬의 주체. 실시간에는 손패 카드를, 불릿타임에는 콤보 큐를 받아 시전한다. 실제 움직임과 타격은 전부 SkillState가 수행한다.",
+			"color": "4"
+		},
+		{
 			"id": "n-EnemyData",
 			"type": "text",
-			"x": 3600,
+			"x": 3160,
 			"y": 332,
 			"width": 400,
 			"height": 180,
@@ -496,7 +506,7 @@
 			"id": "n-Energy",
 			"type": "text",
 			"x": 40,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 232,
 			"text": "### Energy\n*순수 C#*\n`Stats.cs`\n\n게이지 하나(체력 · 마나 · 가드 · 불릿타임). 현재값/최대값, 회복 · 소모, 변화 이벤트."
@@ -505,7 +515,7 @@
 			"id": "n-Energies",
 			"type": "text",
 			"x": 480,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 206,
 			"text": "### Energies\n*순수 C#*\n`Stats.cs`\n\n게이지 묶음. 종류별 Energy를 들고 조회한다."
@@ -514,7 +524,7 @@
 			"id": "n-Stats",
 			"type": "text",
 			"x": 920,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 206,
 			"text": "### Stats\n*순수 C#*\n`Stats.cs`\n\n스탯 묶음. 이동속도 · 공격력 같은 값을 종류별로 들고 조회한다."
@@ -523,7 +533,7 @@
 			"id": "n-Stat",
 			"type": "text",
 			"x": 480,
-			"y": 2608,
+			"y": 2660,
 			"width": 400,
 			"height": 206,
 			"text": "### Stat\n*순수 C#*\n`Stats.cs`\n\n스탯 하나. 기본값 위에 수정치를 얹어 최종값을 낸다."
@@ -532,7 +542,7 @@
 			"id": "n-BulletTimeController",
 			"type": "text",
 			"x": 1600,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 816,
 			"text": "### BulletTimeController\n*컴포넌트*\n`BulletTimeController.cs · TacticStates.cs`\n\n지휘 모드의 관제탑. 덱 · 손패 · 실행을 이어 붙인다. **무엇이 어디 있나.**\n- 자원(게이지 · 쿨 · 마나 · 보상) — TacticGauge\n- 카드 더미(덱 · 손패 · 버린 더미 · 덱 짓기 · 걷어내기) — CardSupply\n- 페이즈(RealTime → Freeze → Order → Resolve) — TacticStates.cs 의 private 중첩 클래스\n- 여기 — 인스펙터 값 · 씬 배선 · 이벤트 구독, 그리고 셋을 잇는 결정 손패는 **불릿타임과 무관하게 항상 4장이 유지된다**. 큐처럼 굴러가서 실시간에는 U키로 왼쪽 한 장씩 소모하고, 불릿타임을 걸었다 풀면 왼쪽부터 전부 발동한다. **Time.timeScale은 쓰지 않는다** — UI와 애니메이션까지 멈추면 정작 손패를 조작할 수 없기 때문(결정 로그 ⑥).\n\n**내부:** FreezeState, OrderState, RealTimeState, ResolveState, TacticState, TacticStateMachine",
@@ -542,7 +552,7 @@
 			"id": "n-TagSwapController",
 			"type": "text",
 			"x": 2040,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 894,
 			"text": "### TagSwapController\n*컴포넌트 · 구현 ICasterStage*\n`TagSwapController.cs`\n\n태그 교대. 로스터(플레이어 + 동료 4명)에서 **한 명만** 필드에 세우고, 그 한 명을 유저가 직접 조작한다. 철권 태그·후레쉬맨 교대와 같은 구조다. 두 가지를 동시에 한다:\n- **몸 전환** — 내려가는 몸은 `SetActive(false)`, 올라오는 몸은 활성화 후 직전 자리로 배치. 뒷정리는 `OnDisable`이 맡는다.\n- **조종 인계** — 씬에 하나뿐인 PlayerPilot에게 올라온 몸을 넘긴다. 나머지 몸은 아무 처리도 필요 없다 — 조종사가 안 보는 몸은 그냥 안 움직인다. 이 컴포넌트는 **절대 꺼지지 않는 오브젝트**에 붙어야 한다 — BattleCommander·입력과 한 자리에 두는 게 맞다. 불릿타임에도 **화면에는 한 명뿐**이라는 규칙이 그대로 유지된다. 이 컴포넌트가 ICasterStage를 구현해 ComboExecutor의 무대 노릇을 한다 — 카드가 발동되는 순간 그 직업이 앞 시전자가 끝낸 자리에 서고, 콤보가 끝나면 마지막 시전자가 그대로 조작 캐릭터가 된다. **자리는 파티 전체가 하나만 쓴다**(partySeat). 몸마다 좌표를 따로 들지 않으므로 교대 · 시전 등장이 전부 같은 자리에서 일어나고, 되…\n\n**내부:** Seat",
@@ -552,27 +562,17 @@
 			"id": "n-TargetSelector",
 			"type": "text",
 			"x": 2480,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 284,
 			"text": "### TargetSelector\n*컴포넌트*\n`TargetSelector.cs`\n\n불릿타임 중 카드를 슬롯에 놓을 때의 조준(결정 로그 ④). 시간이 멈춰 있으므로 조준할 여유가 있다. 기본은 **WASD 키보드 조준**이다. 마우스를 실제로 움직이면 그 프레임부터 마우스가 잡는다.",
 			"color": "4"
 		},
 		{
-			"id": "n-ComboExecutor",
-			"type": "text",
-			"x": 2480,
-			"y": 2686,
-			"width": 400,
-			"height": 322,
-			"text": "### ComboExecutor\n*컴포넌트*\n`ComboExecutor.cs`\n\n큐에 쌓인 슬롯을 순서대로 실행한다. Control을 건드리지 않고 **상태머신을 강탈**하는 방식(결정 로그 ②). 시전자는 몸에 조종사가 없으므로 스킬이 나갈 때까지 스스로 움직이지 않는다.\n\n**내부:** PendingCharge",
-			"color": "4"
-		},
-		{
 			"id": "n-CardSupply",
 			"type": "text",
 			"x": 2480,
-			"y": 3048,
+			"y": 2738,
 			"width": 400,
 			"height": 336,
 			"text": "### CardSupply\n*순수 C#*\n`CardSupply.cs`\n\n이 판의 카드 더미 셋(덱 · 손패 · 버린 더미)과 그 사이를 오가는 규칙. BulletTimeController가 소유하고, 언제 부를지는 그쪽(전술 페이즈)이 정한다. **여기는 \"무엇을\"만 한다.** 시간 · 게이지 · 입력은 모른다 — 그래서 씬 없이 검증할 수 있다."
@@ -580,8 +580,8 @@
 		{
 			"id": "n-BattleCommander",
 			"type": "text",
-			"x": 1600,
-			"y": 3218,
+			"x": 2480,
+			"y": 3114,
 			"width": 400,
 			"height": 414,
 			"text": "### BattleCommander\n*컴포넌트*\n`BattleCommander.cs`\n\n몸에서 떨어져 나온 지휘 입력. 불릿타임 진입 · 고유 스킬 · 태그 교대를 받는다. **절대 꺼지지 않는 오브젝트에 붙어야 한다**. 태그로 내려가는 몸에 붙이면 교대하는 순간 되돌아올 키까지 함께 죽는다. 같은 이유로 `PlayerInput` · PlayerInputController · InputMapSwitcher도 여기 함께 둔다. 몸을 실제로 움직이는 건 PlayerPilot이다. 여기는 몸과 무관한 키만 본다.",
@@ -590,18 +590,28 @@
 		{
 			"id": "n-ComboBoardUI",
 			"type": "text",
-			"x": 2040,
-			"y": 3296,
+			"x": 1600,
+			"y": 3270,
 			"width": 400,
 			"height": 556,
 			"text": "### ComboBoardUI\n*컴포넌트*\n`ComboBoardUI.Input.cs · ComboBoardUI.cs`\n\n손패 4장을 **항상** 보여 주는 런타임 생성 UI. 씬/프리팹 연결 없이 코드로만 만든다 — BulletTimeController가 붙은 GameObject에 이 컴포넌트만 추가하면 동작한다. 손패가 곧 실행 순서다(왼쪽부터). 실시간에는 표시만 하고, 불릿타임 중에만 카드끼리 드래그해 순서를 바꾸거나 클릭해서 조준할 수 있다. 카드는 실제 손에 쥔 것처럼 **부채꼴로 겹쳐** 놓인다. 겹쳐 있으니 선택된 장은 앞으로 나오면서 떠올라야 하고, 집으면 크게 솟아야 무엇을 들고 있는지 읽힌다.\n\n**내부:** CardHandler, CardWidgets",
 			"color": "4"
 		},
 		{
+			"id": "n-ComboExecutor",
+			"type": "text",
+			"x": 2040,
+			"y": 3348,
+			"width": 400,
+			"height": 284,
+			"text": "### ComboExecutor\n*컴포넌트*\n`ComboExecutor.cs`\n\n큐에 쌓인 슬롯을 순서대로 실행한다. Control을 건드리지 않고 **상태머신을 강탈**하는 방식(결정 로그 ②). 시전자는 몸에 조종사가 없으므로 스킬이 나갈 때까지 스스로 움직이지 않는다.",
+			"color": "4"
+		},
+		{
 			"id": "n-EnemyRadiusProbe",
 			"type": "text",
 			"x": 2480,
-			"y": 3424,
+			"y": 3568,
 			"width": 400,
 			"height": 466,
 			"text": "### EnemyRadiusProbe\n*컴포넌트*\n`EnemyRadiusProbe.cs`\n\n지정 좌표 반경 안의 살아 있는 적을 센다 · 모은다. TargetSelector의 조준 HUD(\"몇 명 맞는가\")와 KnockbackIndicator의 화살표 대상 목록이 **같은 함수**를 봐야 한다 — 세는 쪽과 그리는 쪽이 따로 계산하면 \"경고는 없는데 화살표도 없다\" 같은 어긋남이 생긴다. 콤보가 실제로 이어지는지(상태 사슬 · 다운 무적)는 여기서 보지 않는다 — 그건 수치로 보장하는 영역이라 별도 시뮬레이션이 필요 없다. 이 클래스는 순수 공간 질의만 한다.",
@@ -610,7 +620,7 @@
 		{
 			"id": "n-TacticGauge",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 3672,
 			"width": 400,
 			"height": 452,
@@ -619,8 +629,8 @@
 		{
 			"id": "n-BattleRestartUI",
 			"type": "text",
-			"x": 2040,
-			"y": 3892,
+			"x": 1600,
+			"y": 3866,
 			"width": 400,
 			"height": 440,
 			"text": "### BattleRestartUI\n*컴포넌트*\n`BattleRestartUI.cs`\n\n인게임 씬 우상단의 [처음부터] 버튼과 확인 패널. 캔버스를 코드로 만들므로 씬 · 프리팹 배선이 필요 없다 — BattleSceneController 가 Start 에서 붙인다. 초기화 자체는 여기서 하지 않는다. 확인 버튼은 RestartStage 로만 넘긴다. \"처음부터\"는 **런 전체**를 뜻한다 — 새 지도를 굴려 지도 씬으로 돌아간다. 진 스테이지만 다시 하는 것은 StageResultUI 의 [이 스테이지 재시작] 쪽이다.",
@@ -630,7 +640,7 @@
 			"id": "n-DeckInspectorUI",
 			"type": "text",
 			"x": 2480,
-			"y": 3930,
+			"y": 4074,
 			"width": 400,
 			"height": 556,
 			"text": "### DeckInspectorUI\n*컴포넌트*\n`DeckInspectorUI.cs`\n\n덱 상황판. 화면 좌상단에 **사용됨 / 남은 덱** 두 숫자를 띄우고, 각 숫자를 누르면 해당 더미에 든 카드를 펼쳐 보여 주는 팝업이 뜬다. ComboBoardUI와 같은 방식으로 씬/프리팹 연결 없이 코드로만 만든다 — BulletTimeController가 붙은 GameObject에 이 컴포넌트만 추가하면 동작한다. 전투 로직은 건드리지 않고 Deck/Discard의 공개 API 위에서만 읽는다. 남은 덱은 **뽑히는 순서대로 보여 주지 않는다**. Deck.Cards는 맨 위부터가 곧 드로우 순서라 그대로 나열하면 다음에 뭐가 나올지가 전부 드러난다.\n\n**내부:** Entry",
@@ -639,7 +649,7 @@
 		{
 			"id": "n-PartyHealthHUD",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 4164,
 			"width": 400,
 			"height": 530,
@@ -649,8 +659,8 @@
 		{
 			"id": "n-RebindUI",
 			"type": "text",
-			"x": 2040,
-			"y": 4372,
+			"x": 1600,
+			"y": 4346,
 			"width": 400,
 			"height": 374,
 			"text": "### RebindUI\n*컴포넌트*\n`RebindUI.cs`\n\n조작키 설정 화면. ComboBoardUI · DeckInspectorUI와 같은 방식으로 씬/프리팹 연결 없이 코드로만 만든다 — 아무 GameObject에 이 컴포넌트만 붙이면 동작한다. 열려 있는 동안 게임 조작을 잠근다. 안 잠그면 키 목록을 보는 내내 뒤에서 캐릭터가 움직이고 카드가 집힌다.\n\n**내부:** Row",
@@ -660,7 +670,7 @@
 			"id": "n-TrainingDummy",
 			"type": "text",
 			"x": 2480,
-			"y": 4526,
+			"y": 4670,
 			"width": 400,
 			"height": 466,
 			"text": "### TrainingDummy\n*컴포넌트*\n`TrainingDummy.cs`\n\n훈련장 허수아비. **죽지 않고, 제자리로 돌아오고, 맞은 값을 센다.** 콤보 한 싸이클을 몇 번이고 같은 조건에서 굴리기 위한 장치다. 그냥 적을 세워 두면 세 가지가 매번 어긋난다 — 중간에 죽고, 밀려나 자리가 달라지고, 얼마나 들어갔는지 알 수 없다. **수치는 손대지 않는다.** 무게(Physics) · 가드 · 피격 반응은 전부 프리팹이 들고 오는 값 그대로다 — 보스 프리팹에서 떠 온 몸이라 여기서 잰 넉백 거리가 보스전에서 그대로 재현된다. 여기서 값을 덮으면 훈련장이 거짓말을 한다.",
@@ -669,7 +679,7 @@
 		{
 			"id": "n-BasicHitLedger",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 4734,
 			"width": 400,
 			"height": 440,
@@ -678,8 +688,8 @@
 		{
 			"id": "n-BulletTimeGaugeWidget",
 			"type": "text",
-			"x": 2040,
-			"y": 4786,
+			"x": 1600,
+			"y": 4760,
 			"width": 400,
 			"height": 336,
 			"text": "### BulletTimeGaugeWidget\n*순수 C#*\n`HandLayout.cs`\n\n불릿타임 게이지 막대. 손패 바로 아래에 붙는다 — 무엇을 써서 카드를 쏟아내는지가 카드와 같은 눈길 안에 들어와야 한다. MonoBehaviour가 아니다. ComboBoardUI가 만들고 매 프레임 먹인다. 그래야 게이지가 손패 판과 **같은 캔버스·같은 좌표계**에 놓인다."
@@ -687,8 +697,8 @@
 		{
 			"id": "n-ComboDamageHUD",
 			"type": "text",
-			"x": 2480,
-			"y": 5032,
+			"x": 1600,
+			"y": 5136,
 			"width": 400,
 			"height": 492,
 			"text": "### ComboDamageHUD\n*컴포넌트*\n`ComboDamageHUD.cs`\n\n화면 **오른쪽**에 \"지금 콤보 몇 타 · 누적 몇 딜\"을 띄운다. 훈련장은 콘솔에 싸이클 합계를 찍지만(TrainingDummy) 그건 다 끝난 뒤에 뒤돌아보는 숫자다. 콤보를 **굴리는 동안** 몇 대째인지 안 보이면 어디서 끊겼는지 눈으로 못 잡는다. 그래서 실시간으로 같은 값을 화면에 올린다. 계산은 ComboMeter가 전부 한다 — 여기는 그리기만 한다. 아군이 적에게 넣은 피해만 센다. **화면은 프리팹이 쥔다.** 캔버스 · 패널 · 글자 넷은 인스펙터에서 배선한다 — 자리와 크기를 바꾸려면 코드가 아니라 프리팹을 연다.",
@@ -697,8 +707,8 @@
 		{
 			"id": "n-ComboMeter",
 			"type": "text",
-			"x": 2040,
-			"y": 5162,
+			"x": 2480,
+			"y": 5176,
 			"width": 400,
 			"height": 466,
 			"text": "### ComboMeter\n*순수 C#*\n`ComboMeter.cs`\n\n\"지금 콤보를 몇 대, 얼마나 넣었나\". **순수 계산만** 한다 — 유니티에 의존하지 않아 EditMode에서 그대로 돌릴 수 있다 (BasicComboRules와 같은 취지). 콤보의 경계는 **시간**이 정한다. 마지막 타격 뒤 Window만큼 아무것도 안 맞으면 그 콤보는 끝난 것으로 보고, 다음 타격이 1타부터 다시 센다. 상태 사슬(CombatState)로 끊지 않는 이유: 다운·기상까지 이어지는 정상적인 마무리도 사슬 위에서는 \"끊긴 것\"으로 보여서, 정작 완주한 콤보가 안 잡힌다."
@@ -706,7 +716,7 @@
 		{
 			"id": "n-ICasterStage",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 5214,
 			"width": 400,
 			"height": 414,
@@ -716,8 +726,8 @@
 		{
 			"id": "n-ISkillCutin",
 			"type": "text",
-			"x": 2480,
-			"y": 5564,
+			"x": 1600,
+			"y": 5668,
 			"width": 400,
 			"height": 258,
 			"text": "### ISkillCutin\n*인터페이스*\n`ICasterStage.cs`\n\n스킬이 나가기 직전에 끼어드는 인트로 연출. ComboExecutor는 이 계약만 알고 UI 구현은 모른다 — 미배선(null)이면 컷인 없이 곧바로 스킬로 간다.",
@@ -726,7 +736,7 @@
 		{
 			"id": "n-RecentHitEnemyHUD",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 5668,
 			"width": 400,
 			"height": 310,
@@ -736,8 +746,8 @@
 		{
 			"id": "n-StageResultUI",
 			"type": "text",
-			"x": 2040,
-			"y": 5668,
+			"x": 2480,
+			"y": 5682,
 			"width": 400,
 			"height": 492,
 			"text": "### StageResultUI\n*컴포넌트*\n`StageResultUI.cs`\n\n스테이지가 끝난 뒤의 화면. 세 가지 얼굴을 가진다.\n- **출구 화살표** — 이겼고 다음 스테이지가 있다. 오른쪽 벽으로 가라는 안내만 띄우고 조작을 막지 않는다.\n- **전부 클리어** — 마지막 스테이지를 이겼다. 갈 곳이 없으니 메인화면 버튼을 준다.\n- **패배** — 재시작과 메인화면 버튼. 캔버스를 코드로 만들므로 씬·프리팹 배선이 필요 없다. BattleSceneController의 자식으로 붙어 씬과 함께 언로드된다.",
@@ -746,8 +756,8 @@
 		{
 			"id": "n-SkillCutinUI",
 			"type": "text",
-			"x": 2480,
-			"y": 5862,
+			"x": 1600,
+			"y": 5966,
 			"width": 400,
 			"height": 232,
 			"text": "### SkillCutinUI\n*컴포넌트 · 구현 ISkillCutin*\n`SkillCutinUI.cs`\n\n스킬 발동 직전에 화면 왼쪽으로 밀려 들어오는 컷인. 초상화가 먼저, 스킬명이 LabelDelay만큼 뒤따라 들어와 층을 이룬다.",
@@ -756,7 +766,7 @@
 		{
 			"id": "n-static__Battle",
 			"type": "text",
-			"x": 1600,
+			"x": 2040,
 			"y": 6018,
 			"width": 400,
 			"height": 362,
@@ -767,36 +777,17 @@
 			"id": "n-SkillData",
 			"type": "text",
 			"x": 3160,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 258,
 			"text": "### SkillData\n*데이터 에셋*\n`SkillData.cs`\n\n불변 에셋. **에셋 1개 = 스킬 1개**. 런타임 상태는 SkillState가 따로 들고 있으므로 여러 동료가 같은 에셋을 동시에 써도 서로 간섭하지 않는다.",
 			"color": "6"
 		},
 		{
-			"id": "n-ChargeSkillState",
-			"type": "text",
-			"x": 3600,
-			"y": 2362,
-			"width": 400,
-			"height": 518,
-			"text": "### ChargeSkillState\n*순수 C# · 상속 SkillState · 구현 IChargeState*\n`ChargeSkillState.cs`\n\n모았다가 나중에 터지는 스킬. 불릿타임에서 슬롯 순서가 오면 **모으기만 시작하고 큐를 막지 않는다**. 뒤 슬롯이 전부 끝난 뒤 Release로 터진다. 그래서 차징기를 앞에 놓을수록 오래 모이고 세진다 — 슬롯 배치가 곧 위력이다. **실시간(U키 단발)은 다르다.** 큐가 없어 Release를 불러 줄 주체가 없으므로 머리 위 게이지(ChargeGauge)가 가득 차면 스스로 터진다. 실시간에서 최대 위력이 보장되는 대신, 모으는 시간만큼 발동이 늦는 게 대가다. 피격당해도 유지된다(슈퍼아머). 사망만 관통한다."
-		},
-		{
-			"id": "n-IChargeState",
-			"type": "text",
-			"x": 4040,
-			"y": 2362,
-			"width": 400,
-			"height": 206,
-			"text": "### IChargeState\n*인터페이스*\n`ChargeSkillState.cs`\n\n차징 스킬을 큐 밖에서 붙잡아 두기 위한 최소 계약.",
-			"color": "5"
-		},
-		{
 			"id": "n-ISkillEffect",
 			"type": "text",
-			"x": 4040,
-			"y": 2608,
+			"x": 3600,
+			"y": 2414,
 			"width": 400,
 			"height": 284,
 			"text": "### ISkillEffect\n*인터페이스*\n`Effects.cs`\n\n스킬의 부가 효과 한 조각. 스킬 종류를 switch로 분기하는 대신 이 인터페이스의 **조합**으로 24종을 커버한다. 새 스킬 = SO 에셋 1개 추가. 기존 코드 수정 0.",
@@ -805,8 +796,8 @@
 		{
 			"id": "n-Installation",
 			"type": "text",
-			"x": 3160,
-			"y": 2660,
+			"x": 4040,
+			"y": 2414,
 			"width": 400,
 			"height": 492,
 			"text": "### Installation\n*컴포넌트*\n`Installation.cs`\n\n설치기의 몸. 실체(렌더러)는 없다 — 설치 지점에 서서 hitDataList를 HitTime 타임라인대로 터뜨리고, 다 쏘면 스스로 사라진다. 시전자 상태와 **분리**돼 있다. 시전자는 설치만 하고 castTime + recoveryTime 뒤에 풀려나므로 불릿타임이면 다음 슬롯이 도는 동안 여기서 후속타가 겹쳐 나간다. 시계는 DeltaTime — 컷인 정지 · 불릿타임 배율을 그대로 따른다. 시전자가 죽으면 Attack이 false를 돌려 헛침이 된다. 무대에서 내려가 비활성이어도 Attack은 순수 메서드라 그대로 나간다.",
@@ -815,8 +806,8 @@
 		{
 			"id": "n-SkillState",
 			"type": "text",
-			"x": 3600,
-			"y": 2920,
+			"x": 3160,
+			"y": 2712,
 			"width": 400,
 			"height": 336,
 			"text": "### SkillState\n*순수 C# · 구현 IState*\n`SkillState.Aim.cs · SkillState.Fire.cs · SkillState.cs`\n\n스킬의 런타임 인스턴스. 실제로 동료가 움직이고 때리는 건 전부 여기서 일어난다. 피격당해도 중단되지 않는다 — 슈퍼아머(결정 로그 ③). 사망만 ForceChangeState로 관통한다."
@@ -824,8 +815,8 @@
 		{
 			"id": "n-AirborneEffect",
 			"type": "text",
-			"x": 4040,
-			"y": 2932,
+			"x": 3600,
+			"y": 2738,
 			"width": 400,
 			"height": 232,
 			"text": "### AirborneEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n띄우기. Origin 반경 내 적을 공중으로 올린다. 시동기의 실체."
@@ -833,8 +824,8 @@
 		{
 			"id": "n-ChargeEffect",
 			"type": "text",
-			"x": 3160,
-			"y": 3192,
+			"x": 4040,
+			"y": 2946,
 			"width": 400,
 			"height": 310,
 			"text": "### ChargeEffect\n*순수 C# · 구현 ILastHitEffect*\n`Effects.cs`\n\n차징 · 돌진. 시전자를 지정 방향으로 밀어낸다. ILastHitEffect라 **마지막 타격과 같이** 나간다. 시전 순간에 내면 선딜 동안 먼저 달려가 히트박스가 열릴 때는 대상을 지나쳐 있다."
@@ -842,8 +833,8 @@
 		{
 			"id": "n-DamageCutEffect",
 			"type": "text",
-			"x": 4040,
-			"y": 3204,
+			"x": 3600,
+			"y": 3010,
 			"width": 400,
 			"height": 232,
 			"text": "### DamageCutEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n피해감소. 지속시간 동안 받는 데미지를 깎는다."
@@ -851,8 +842,8 @@
 		{
 			"id": "n-EffectRunner",
 			"type": "text",
-			"x": 3600,
-			"y": 3296,
+			"x": 3160,
+			"y": 3088,
 			"width": 400,
 			"height": 452,
 			"text": "### EffectRunner\n*컴포넌트*\n`EffectRunner.cs`\n\n지속시간이 있는 효과를 되돌려 주는 최소 스케줄러. 불릿타임 배율을 따르므로 시간 정지 중에는 지속시간도 흐르지 않는다. **캐릭터에게 걸리는 상태는 여기 넣지 않는다.** 그건 StatusEffects가 지속시간과 원복을 같이 들고 있어야 머리 위 게이지에 남은 시간이 뜬다 — 여기 맡기면 걸렸다는 사실이 익명 콜백 안에만 남는다. 대상 없이 시간만 재면 되는 효과(장판 수명 등)를 위해 남겨 둔다.\n\n**내부:** Pending",
@@ -861,8 +852,8 @@
 		{
 			"id": "n-ILastHitEffect",
 			"type": "text",
-			"x": 4040,
-			"y": 3476,
+			"x": 3600,
+			"y": 3282,
 			"width": 400,
 			"height": 492,
 			"text": "### ILastHitEffect\n*인터페이스 · 구현 ISkillEffect*\n`Effects.cs`\n\n시전 순간이 아니라 **마지막 타격에** 도는 효과. 기본은 시전 순간(`SkillState.Enter`)이다. 그런데 시전자를 움직이는 효과는 그 시점에 돌면 안 된다 — 선딜 동안 먼저 날아가 버려서, 정작 히트박스가 열릴 때는 이미 대상을 지나쳐 있다. 돌진 베기가 그래서 헛쳤다(선딜 0.12s 동안 약 2유닛 이동). 타격과 같이 내면 **베고 지나가는** 그림이 되고 판정도 붙는다. 이 인터페이스만 달면 되고 ISkillEffect 계약은 그대로다 — 나머지 효과는 한 줄도 안 바뀐다.",
@@ -871,8 +862,8 @@
 		{
 			"id": "n-LifestealEffect",
 			"type": "text",
-			"x": 3160,
-			"y": 3542,
+			"x": 4040,
+			"y": 3296,
 			"width": 400,
 			"height": 232,
 			"text": "### LifestealEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n흡혈. 지속시간 동안 준 피해의 일부를 회복한다."
@@ -880,8 +871,8 @@
 		{
 			"id": "n-PullEffect",
 			"type": "text",
-			"x": 3600,
-			"y": 3788,
+			"x": 4040,
+			"y": 3568,
 			"width": 400,
 			"height": 258,
 			"text": "### PullEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n모으기. Origin을 중심으로 반경 내 적을 끌어당긴다. 적을 개별 지정하지 않는다 — 좌표 하나만 받는다."
@@ -890,7 +881,7 @@
 			"id": "n-ShieldEffect",
 			"type": "text",
 			"x": 3160,
-			"y": 3814,
+			"y": 3580,
 			"width": 400,
 			"height": 232,
 			"text": "### ShieldEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n보호막. 지속시간 동안 최대 체력을 늘려 흡수한다."
@@ -898,8 +889,8 @@
 		{
 			"id": "n-TauntEffect",
 			"type": "text",
-			"x": 4040,
-			"y": 4008,
+			"x": 3600,
+			"y": 3814,
 			"width": 400,
 			"height": 232,
 			"text": "### TauntEffect\n*순수 C# · 구현 ISkillEffect*\n`Effects.cs`\n\n도발. 반경 내 적의 타겟을 시전자로 고정한다."
@@ -908,7 +899,7 @@
 			"id": "n-static__Skill",
 			"type": "text",
 			"x": 3160,
-			"y": 4086,
+			"y": 3852,
 			"width": 400,
 			"height": 336,
 			"text": "### Skill · 정적 규칙 / 유틸\n*static — 인스턴스를 쥐지 않고 함수로만 부른다*\n\n- **EffectUtil** — 광역 판정이 필요한 효과의 공통 헬퍼.\n- **KnockbackPreview** — \"이 카드를 놓으면 적이 **어디로** 가는가\"를 미리 계산한다.\n- **WallFinder** — \"여기서 가장 가까운 벽은 어느 쪽인가\".",
@@ -918,7 +909,7 @@
 			"id": "n-ComboCard",
 			"type": "text",
 			"x": 4720,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 232,
 			"text": "### ComboCard\n*순수 C#*\n`Deck.cs`\n\n덱에 들어가는 카드 한 장. SkillData 에셋을 가리키고 드로우 보정만 따로 들고 있다."
@@ -927,7 +918,7 @@
 			"id": "n-Deck",
 			"type": "text",
 			"x": 5160,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 232,
 			"text": "### Deck\n*순수 C#*\n`Deck.cs`\n\n**맨 위에서 순서대로** 뽑는다 — 그래서 Shuffle이 실제 순서를 정한다. 덱이 비면 Discard를 회수해 재셔플한다."
@@ -936,7 +927,7 @@
 			"id": "n-Discard",
 			"type": "text",
 			"x": 5600,
-			"y": 2362,
+			"y": 2414,
 			"width": 400,
 			"height": 206,
 			"text": "### Discard\n*순수 C#*\n`Deck.cs`\n\n사용한 카드가 모이는 곳. 덱이 비면 통째로 회수된다."
@@ -945,7 +936,7 @@
 			"id": "n-Hand",
 			"type": "text",
 			"x": 5600,
-			"y": 2608,
+			"y": 2660,
 			"width": 400,
 			"height": 336,
 			"text": "### Hand\n*순수 C#*\n`Deck.cs`\n\n손패 4장. **큐처럼** 굴러간다 — 왼쪽(0번)이 다음에 나갈 카드이고, 한 장이 빠지면 나머지가 왼쪽으로 당겨지고 오른쪽 끝이 덱에서 채워진다. 카드만이 아니라 조준값까지 함께 들고 있으므로(ComboSlot) 손패 자체가 곧 콤보 실행 순서다. 별도 슬롯 보드가 필요 없다."
@@ -954,7 +945,7 @@
 			"id": "n-static__Deck",
 			"type": "text",
 			"x": 4720,
-			"y": 2634,
+			"y": 2686,
 			"width": 400,
 			"height": 206,
 			"text": "### Deck · 정적 규칙 / 유틸\n*static — 인스턴스를 쥐지 않고 함수로만 부른다*\n\n- **DeckRules** — 이 파티가 짜야 할 덱의 크기.",
@@ -1373,8 +1364,8 @@
 			"x": 3160,
 			"y": 7958,
 			"width": 400,
-			"height": 362,
-			"text": "### ChargeGauge\n*컴포넌트*\n`EnemyVisuals.cs`\n\n모으는 중인 캐릭터 머리 위에 차징 게이지를 띄운다. ChargeSkillState는 불릿타임 큐가 다 끝난 뒤에 터진다. 그동안 화면에는 제자리에 선 동료만 보여서 \"왜 안 나가지\"로 읽혔다. 남은 양이 보이면 차징기를 앞 슬롯에 둘수록 세진다는 규칙이 눈으로 확인된다. RangeIndicator와 같은 자리에 붙는다 — 씬 배선 0.",
+			"height": 284,
+			"text": "### ChargeGauge\n*컴포넌트*\n`EnemyVisuals.cs`\n\n모으는 중인 캐릭터(ChargeState) 머리 위에 차징 게이지를 띄운다. 지금은 보스 패턴의 모으기 구간이 그 대상이다. RangeIndicator와 같은 자리에 붙는다 — 씬 배선 0.",
 			"color": "4"
 		},
 		{
@@ -1390,8 +1381,8 @@
 		{
 			"id": "n-EliteAura",
 			"type": "text",
-			"x": 4040,
-			"y": 8308,
+			"x": 3160,
+			"y": 8282,
 			"width": 400,
 			"height": 414,
 			"text": "### EliteAura\n*컴포넌트*\n`EnemyVisuals.cs`\n\n강화 개체 발밑에 보라 고리를 깐다. 판단 · 수치는 EliteMarkRules가 정한다. 그림자와 같은 규칙으로 바닥에 눕힌다 — 논리 좌표를 ToView로 접고 LieOnGround로 눕히며, 크기에 깊이 배율을 먹인다. 점프해도 바닥에 남는다. 정렬은 고정값이라 모든 캐릭터 · 그림자보다 뒤, 바닥 판보다 앞이다. ChargeGauge와 같은 자리(`[BattleVfx]`)에 붙는다 — 씬 배선 0.",
@@ -1400,8 +1391,8 @@
 		{
 			"id": "n-EnemyStateLabel",
 			"type": "text",
-			"x": 3160,
-			"y": 8360,
+			"x": 4040,
+			"y": 8308,
 			"width": 400,
 			"height": 348,
 			"text": "### EnemyStateLabel\n*컴포넌트*\n`EnemyVisuals.cs`\n\n적 머리 위에 전투 상태를 글자로 띄운다. EnemyStateTint의 색과 짝을 이룬다 — 색만으로는 난전에서 안 읽히고, 색약자는 아예 구분하지 못한다. ChargeGauge와 같은 자리(`[BattleVfx]`)에 붙는다 — 씬 배선 0.\n\n**내부:** Slot",
@@ -1410,8 +1401,8 @@
 		{
 			"id": "n-SkillRangeIndicator",
 			"type": "text",
-			"x": 3600,
-			"y": 8710,
+			"x": 4040,
+			"y": 8696,
 			"width": 400,
 			"height": 466,
 			"text": "### SkillRangeIndicator\n*컴포넌트*\n`Indicators.cs`\n\n아군이 **지금 시전 중인 스킬**이 때릴 자리를 바닥에 그린다. AttackRangeIndicator와 같은 발상이다 — 적의 예고를 보여 주던 걸 내 스킬에도 붙였다. 다만 적은 \"차징·예고 중에만\"이고 이쪽은 **선딜부터 후딜까지** 계속 보인다(TryGetRangePreview) — 근접 스킬은 조준 구간이 아예 없어서 (targeting: None) 실행 중에 보여 주지 않으면 범위를 알 방법이 없기 때문이다. ChargeGauge와 같은 자리에 붙는다 — 씬 배선 0.",
@@ -1420,8 +1411,8 @@
 		{
 			"id": "n-StatusEffectBar",
 			"type": "text",
-			"x": 3160,
-			"y": 8748,
+			"x": 3600,
+			"y": 8710,
 			"width": 400,
 			"height": 530,
 			"text": "### StatusEffectBar\n*컴포넌트*\n`StatusVisuals.cs`\n\n머리 위에 걸린 상태의 **남은 시간**을 게이지로 띄운다. 적과 아군 모두. EnemyStateLabel은 \"지금 경직이다\"까지만 말해 준다. 언제 풀리는지는 안 보여서, 다음 스킬을 지금 넣을지 기다릴지는 감으로 눌러야 했다. 보호막 · 피해감소 · 흡혈은 아예 화면에 흔적이 없었다 — 걸렸는지조차 몰랐다. 무엇을 그릴지는 전부 Collect가 정한다. 여기는 순회 · 배치 · 풀링만 한다. ChargeGauge · EnemyStateLabel과 같은 자리(`[BattleVfx]`)에 붙는다 — 씬 배선 0.\n\n**내부:** Row",
@@ -1430,8 +1421,8 @@
 		{
 			"id": "n-static__Vfx",
 			"type": "text",
-			"x": 4040,
-			"y": 8762,
+			"x": 3160,
+			"y": 8736,
 			"width": 400,
 			"height": 492,
 			"text": "### Vfx · 정적 규칙 / 유틸\n*static — 인스턴스를 쥐지 않고 함수로만 부른다*\n\n- **BattleVfx** — 전투 연출 진입점.\n- **CombatStateVisuals** — 전투 상태를 화면 표현(색 · 글자)으로 옮기는 표.\n- **EliteMarkRules** — 강화 개체 표시의 판단 · 수치 전부.\n- **MarkerRules** — 화면 밖 대상을 **가장자리 어디에 물려** 표시할 것인가.\n- **StatusEffectVisuals** — 지속 상태를 화면 표현(글자 · 색)으로 옮기는 표.",
@@ -1897,9 +1888,9 @@
 		{
 			"id": "e5",
 			"fromNode": "n-BattleCommander",
-			"fromSide": "top",
+			"fromSide": "left",
 			"toNode": "n-BulletTimeController",
-			"toSide": "bottom",
+			"toSide": "right",
 			"toEnd": "arrow",
 			"label": "bulletTime"
 		},
@@ -1915,9 +1906,9 @@
 		{
 			"id": "e7",
 			"fromNode": "n-BattleCommander",
-			"fromSide": "top",
+			"fromSide": "left",
 			"toNode": "n-TagSwapController",
-			"toSide": "bottom",
+			"toSide": "right",
 			"toEnd": "arrow",
 			"label": "swap"
 		},
@@ -2023,18 +2014,18 @@
 		{
 			"id": "e19",
 			"fromNode": "n-BulletTimeController",
-			"fromSide": "right",
+			"fromSide": "bottom",
 			"toNode": "n-ComboExecutor",
-			"toSide": "left",
+			"toSide": "top",
 			"toEnd": "arrow",
 			"label": "executor"
 		},
 		{
 			"id": "e20",
 			"fromNode": "n-BulletTimeController",
-			"fromSide": "right",
+			"fromSide": "top",
 			"toNode": "n-Player",
-			"toSide": "left",
+			"toSide": "bottom",
 			"toEnd": "arrow",
 			"label": "player"
 		},
@@ -2203,9 +2194,9 @@
 		{
 			"id": "e39",
 			"fromNode": "n-ComboBoardUI",
-			"fromSide": "top",
+			"fromSide": "right",
 			"toNode": "n-TargetSelector",
-			"toSide": "bottom",
+			"toSide": "left",
 			"toEnd": "arrow",
 			"label": "targetSelector"
 		},
@@ -2221,32 +2212,14 @@
 		{
 			"id": "e41",
 			"fromNode": "n-ComboDamageHUD",
-			"fromSide": "left",
+			"fromSide": "right",
 			"toNode": "n-ComboMeter",
-			"toSide": "right",
+			"toSide": "left",
 			"toEnd": "arrow",
 			"label": "meter"
 		},
 		{
 			"id": "e42",
-			"fromNode": "n-ComboExecutor",
-			"fromSide": "top",
-			"toNode": "n-Ally",
-			"toSide": "bottom",
-			"toEnd": "arrow",
-			"label": "PendingCharge.caster"
-		},
-		{
-			"id": "e43",
-			"fromNode": "n-ComboExecutor",
-			"fromSide": "right",
-			"toNode": "n-ChargeSkillState",
-			"toSide": "left",
-			"toEnd": "arrow",
-			"label": "PendingCharge.state"
-		},
-		{
-			"id": "e44",
 			"fromNode": "n-ComboExecutor",
 			"fromSide": "bottom",
 			"toNode": "n-ICasterStage",
@@ -2255,7 +2228,7 @@
 			"label": "Stage"
 		},
 		{
-			"id": "e45",
+			"id": "e43",
 			"fromNode": "n-ComboExecutor",
 			"fromSide": "bottom",
 			"toNode": "n-ISkillCutin",
@@ -2264,16 +2237,7 @@
 			"label": "Cutin"
 		},
 		{
-			"id": "e46",
-			"fromNode": "n-ComboExecutor",
-			"fromSide": "right",
-			"toNode": "n-SkillData",
-			"toSide": "left",
-			"toEnd": "arrow",
-			"label": "PendingCharge.data"
-		},
-		{
-			"id": "e47",
+			"id": "e44",
 			"fromNode": "n-Control",
 			"fromSide": "left",
 			"toNode": "n-Entity",
@@ -2282,7 +2246,7 @@
 			"label": "Owner"
 		},
 		{
-			"id": "e48",
+			"id": "e45",
 			"fromNode": "n-Deck",
 			"fromSide": "left",
 			"toNode": "n-ComboCard",
@@ -2291,7 +2255,7 @@
 			"label": "cards"
 		},
 		{
-			"id": "e49",
+			"id": "e46",
 			"fromNode": "n-DeckBuilderUI",
 			"fromSide": "top",
 			"toNode": "n-BulletTimeController",
@@ -2300,7 +2264,7 @@
 			"label": "owner"
 		},
 		{
-			"id": "e50",
+			"id": "e47",
 			"fromNode": "n-DeckBuilderUI",
 			"fromSide": "top",
 			"toNode": "n-SkillData",
@@ -2309,7 +2273,7 @@
 			"label": "Entry.data"
 		},
 		{
-			"id": "e51",
+			"id": "e48",
 			"fromNode": "n-DeckInspectorUI",
 			"fromSide": "top",
 			"toNode": "n-BulletTimeController",
@@ -2318,7 +2282,7 @@
 			"label": "_bulletTime"
 		},
 		{
-			"id": "e52",
+			"id": "e49",
 			"fromNode": "n-DeckInspectorUI",
 			"fromSide": "top",
 			"toNode": "n-SkillData",
@@ -2327,7 +2291,7 @@
 			"label": "Entry.data"
 		},
 		{
-			"id": "e53",
+			"id": "e50",
 			"fromNode": "n-Discard",
 			"fromSide": "left",
 			"toNode": "n-ComboCard",
@@ -2336,7 +2300,7 @@
 			"label": "cards"
 		},
 		{
-			"id": "e54",
+			"id": "e51",
 			"fromNode": "n-EncounterSite",
 			"fromSide": "right",
 			"toNode": "n-ArenaGate",
@@ -2345,7 +2309,7 @@
 			"label": "entryGate, exitGate"
 		},
 		{
-			"id": "e55",
+			"id": "e52",
 			"fromNode": "n-Enemy",
 			"fromSide": "right",
 			"toNode": "n-EnemyControl",
@@ -2354,7 +2318,7 @@
 			"label": "enemyControl"
 		},
 		{
-			"id": "e56",
+			"id": "e53",
 			"fromNode": "n-Enemy",
 			"fromSide": "bottom",
 			"toNode": "n-EnemyData",
@@ -2363,7 +2327,7 @@
 			"label": "data"
 		},
 		{
-			"id": "e57",
+			"id": "e54",
 			"fromNode": "n-EnemyChargeAction",
 			"fromSide": "top",
 			"toNode": "n-Attack",
@@ -2372,7 +2336,7 @@
 			"label": "chargeHitbox"
 		},
 		{
-			"id": "e58",
+			"id": "e55",
 			"fromNode": "n-EnemyChargeAction",
 			"fromSide": "right",
 			"toNode": "n-EnemySpecialSequence",
@@ -2381,7 +2345,7 @@
 			"label": "sequence"
 		},
 		{
-			"id": "e59",
+			"id": "e56",
 			"fromNode": "n-EnemyChargeAction",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2390,7 +2354,7 @@
 			"label": "owner, target"
 		},
 		{
-			"id": "e60",
+			"id": "e57",
 			"fromNode": "n-EnemyControl",
 			"fromSide": "bottom",
 			"toNode": "n-EnemyBrainAsset",
@@ -2399,7 +2363,7 @@
 			"label": "brain"
 		},
 		{
-			"id": "e61",
+			"id": "e58",
 			"fromNode": "n-EnemyControl",
 			"fromSide": "left",
 			"toNode": "n-Entity",
@@ -2408,7 +2372,7 @@
 			"label": "target"
 		},
 		{
-			"id": "e62",
+			"id": "e59",
 			"fromNode": "n-EnemyControl",
 			"fromSide": "bottom",
 			"toNode": "n-IEnemySpecialAction",
@@ -2417,7 +2381,7 @@
 			"label": "special"
 		},
 		{
-			"id": "e63",
+			"id": "e60",
 			"fromNode": "n-EnemyControl",
 			"fromSide": "bottom",
 			"toNode": "n-SpawnEntry",
@@ -2426,7 +2390,7 @@
 			"label": "entry"
 		},
 		{
-			"id": "e64",
+			"id": "e61",
 			"fromNode": "n-EnemyData",
 			"fromSide": "bottom",
 			"toNode": "n-EnemyBrainAsset",
@@ -2435,7 +2399,7 @@
 			"label": "brain"
 		},
 		{
-			"id": "e65",
+			"id": "e62",
 			"fromNode": "n-EnemyData",
 			"fromSide": "left",
 			"toNode": "n-Projectile",
@@ -2444,7 +2408,7 @@
 			"label": "basicProjectile"
 		},
 		{
-			"id": "e66",
+			"id": "e63",
 			"fromNode": "n-EnemyRadiusProbe",
 			"fromSide": "top",
 			"toNode": "n-Combat",
@@ -2453,7 +2417,7 @@
 			"label": "Seen"
 		},
 		{
-			"id": "e67",
+			"id": "e64",
 			"fromNode": "n-EnemySpawnGuard",
 			"fromSide": "top",
 			"toNode": "n-Enemy",
@@ -2462,7 +2426,7 @@
 			"label": "enemy"
 		},
 		{
-			"id": "e68",
+			"id": "e65",
 			"fromNode": "n-EnemySpawnGuard",
 			"fromSide": "top",
 			"toNode": "n-EnemyControl",
@@ -2471,7 +2435,7 @@
 			"label": "control"
 		},
 		{
-			"id": "e69",
+			"id": "e66",
 			"fromNode": "n-EnemySpawnGuard",
 			"fromSide": "left",
 			"toNode": "n-EntranceGuard",
@@ -2480,7 +2444,7 @@
 			"label": "guard"
 		},
 		{
-			"id": "e70",
+			"id": "e67",
 			"fromNode": "n-EnemySpawnService",
 			"fromSide": "top",
 			"toNode": "n-EnemyData",
@@ -2489,7 +2453,7 @@
 			"label": "meleeData, chargerData, rangedData 외 1"
 		},
 		{
-			"id": "e71",
+			"id": "e68",
 			"fromNode": "n-EnemyStateTint",
 			"fromSide": "top",
 			"toNode": "n-Combat",
@@ -2498,7 +2462,7 @@
 			"label": "combat"
 		},
 		{
-			"id": "e72",
+			"id": "e69",
 			"fromNode": "n-EnemyStateTint",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2507,7 +2471,7 @@
 			"label": "owner"
 		},
 		{
-			"id": "e73",
+			"id": "e70",
 			"fromNode": "n-Energies",
 			"fromSide": "left",
 			"toNode": "n-Energy",
@@ -2516,7 +2480,7 @@
 			"label": "energies"
 		},
 		{
-			"id": "e74",
+			"id": "e71",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-BasicAttackProfile",
@@ -2525,7 +2489,7 @@
 			"label": "profileCache"
 		},
 		{
-			"id": "e75",
+			"id": "e72",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-Combat",
@@ -2534,7 +2498,7 @@
 			"label": "cachedCombat"
 		},
 		{
-			"id": "e76",
+			"id": "e73",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-Control",
@@ -2543,7 +2507,7 @@
 			"label": "Control"
 		},
 		{
-			"id": "e77",
+			"id": "e74",
 			"fromNode": "n-Entity",
 			"fromSide": "bottom",
 			"toNode": "n-Energies",
@@ -2552,7 +2516,7 @@
 			"label": "energies"
 		},
 		{
-			"id": "e78",
+			"id": "e75",
 			"fromNode": "n-Entity",
 			"fromSide": "bottom",
 			"toNode": "n-EntityAnimator",
@@ -2561,7 +2525,7 @@
 			"label": "cachedAnimator"
 		},
 		{
-			"id": "e79",
+			"id": "e76",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-EntityState",
@@ -2570,16 +2534,16 @@
 			"label": "EntityState 계열 13개"
 		},
 		{
-			"id": "e80",
+			"id": "e77",
 			"fromNode": "n-Entity",
-			"fromSide": "right",
+			"fromSide": "bottom",
 			"toNode": "n-IChargeState",
-			"toSide": "left",
+			"toSide": "top",
 			"toEnd": "arrow",
 			"label": "chargeComponent"
 		},
 		{
-			"id": "e81",
+			"id": "e78",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-Physics",
@@ -2588,7 +2552,7 @@
 			"label": "cachedPhysics"
 		},
 		{
-			"id": "e82",
+			"id": "e79",
 			"fromNode": "n-Entity",
 			"fromSide": "right",
 			"toNode": "n-StateMachine",
@@ -2597,7 +2561,7 @@
 			"label": "StateMachine"
 		},
 		{
-			"id": "e83",
+			"id": "e80",
 			"fromNode": "n-Entity",
 			"fromSide": "bottom",
 			"toNode": "n-Stats",
@@ -2606,7 +2570,7 @@
 			"label": "stats"
 		},
 		{
-			"id": "e84",
+			"id": "e81",
 			"fromNode": "n-EntityAnimator",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2615,7 +2579,7 @@
 			"label": "entity"
 		},
 		{
-			"id": "e85",
+			"id": "e82",
 			"fromNode": "n-EntityAnimator",
 			"fromSide": "right",
 			"toNode": "n-SkillData",
@@ -2624,7 +2588,7 @@
 			"label": "currentSkill"
 		},
 		{
-			"id": "e86",
+			"id": "e83",
 			"fromNode": "n-EntityState",
 			"fromSide": "left",
 			"toNode": "n-Entity",
@@ -2633,7 +2597,7 @@
 			"label": "Entity"
 		},
 		{
-			"id": "e87",
+			"id": "e84",
 			"fromNode": "n-EntranceGuard",
 			"fromSide": "top",
 			"toNode": "n-BeltScrollView",
@@ -2642,7 +2606,7 @@
 			"label": "view"
 		},
 		{
-			"id": "e88",
+			"id": "e85",
 			"fromNode": "n-EntranceGuard",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2651,7 +2615,7 @@
 			"label": "body"
 		},
 		{
-			"id": "e89",
+			"id": "e86",
 			"fromNode": "n-EntrancePlayer",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2660,7 +2624,7 @@
 			"label": "body"
 		},
 		{
-			"id": "e90",
+			"id": "e87",
 			"fromNode": "n-EntrancePlayer",
 			"fromSide": "left",
 			"toNode": "n-EntranceGuard",
@@ -2669,7 +2633,7 @@
 			"label": "guard"
 		},
 		{
-			"id": "e91",
+			"id": "e88",
 			"fromNode": "n-EntrancePlayer",
 			"fromSide": "top",
 			"toNode": "n-Physics",
@@ -2678,7 +2642,7 @@
 			"label": "physics"
 		},
 		{
-			"id": "e92",
+			"id": "e89",
 			"fromNode": "n-EventWindow",
 			"fromSide": "left",
 			"toNode": "n-PartyMemberData",
@@ -2687,7 +2651,7 @@
 			"label": "roster"
 		},
 		{
-			"id": "e93",
+			"id": "e90",
 			"fromNode": "n-GameManager",
 			"fromSide": "left",
 			"toNode": "n-PartyLoadout",
@@ -2696,7 +2660,7 @@
 			"label": "defaultLoadout, Loadout"
 		},
 		{
-			"id": "e94",
+			"id": "e91",
 			"fromNode": "n-GameManager",
 			"fromSide": "left",
 			"toNode": "n-RunMapProgress",
@@ -2705,7 +2669,7 @@
 			"label": "Progress"
 		},
 		{
-			"id": "e95",
+			"id": "e92",
 			"fromNode": "n-GameManager",
 			"fromSide": "left",
 			"toNode": "n-RunMapRecipe",
@@ -2714,7 +2678,7 @@
 			"label": "recipe"
 		},
 		{
-			"id": "e96",
+			"id": "e93",
 			"fromNode": "n-GameManager",
 			"fromSide": "left",
 			"toNode": "n-RunProgression",
@@ -2723,7 +2687,7 @@
 			"label": "Run"
 		},
 		{
-			"id": "e97",
+			"id": "e94",
 			"fromNode": "n-GuardMeter",
 			"fromSide": "bottom",
 			"toNode": "n-Energy",
@@ -2732,7 +2696,7 @@
 			"label": "Energy"
 		},
 		{
-			"id": "e98",
+			"id": "e95",
 			"fromNode": "n-InputMapSwitcher",
 			"fromSide": "top",
 			"toNode": "n-BulletTimeController",
@@ -2741,7 +2705,7 @@
 			"label": "bulletTime"
 		},
 		{
-			"id": "e99",
+			"id": "e96",
 			"fromNode": "n-InputMapSwitcher",
 			"fromSide": "right",
 			"toNode": "n-PlayerInputController",
@@ -2750,7 +2714,7 @@
 			"label": "input"
 		},
 		{
-			"id": "e100",
+			"id": "e97",
 			"fromNode": "n-InputMapSwitcher",
 			"fromSide": "top",
 			"toNode": "n-TargetSelector",
@@ -2759,16 +2723,16 @@
 			"label": "targetSelector"
 		},
 		{
-			"id": "e101",
+			"id": "e98",
 			"fromNode": "n-Installation",
-			"fromSide": "top",
+			"fromSide": "left",
 			"toNode": "n-SkillData",
-			"toSide": "bottom",
+			"toSide": "right",
 			"toEnd": "arrow",
 			"label": "data"
 		},
 		{
-			"id": "e102",
+			"id": "e99",
 			"fromNode": "n-KnockbackIndicator",
 			"fromSide": "top",
 			"toNode": "n-Combat",
@@ -2777,7 +2741,7 @@
 			"label": "victims"
 		},
 		{
-			"id": "e103",
+			"id": "e100",
 			"fromNode": "n-KnockbackIndicator",
 			"fromSide": "top",
 			"toNode": "n-EnemyRadiusProbe",
@@ -2786,7 +2750,7 @@
 			"label": "radiusProbe"
 		},
 		{
-			"id": "e104",
+			"id": "e101",
 			"fromNode": "n-KnockbackIndicator",
 			"fromSide": "top",
 			"toNode": "n-TargetSelector",
@@ -2795,7 +2759,7 @@
 			"label": "selector"
 		},
 		{
-			"id": "e105",
+			"id": "e102",
 			"fromNode": "n-LevelUpSession",
 			"fromSide": "top",
 			"toNode": "n-BulletTimeController",
@@ -2804,7 +2768,7 @@
 			"label": "bulletTime"
 		},
 		{
-			"id": "e106",
+			"id": "e103",
 			"fromNode": "n-LevelUpSession",
 			"fromSide": "right",
 			"toNode": "n-CardOfferView",
@@ -2813,7 +2777,7 @@
 			"label": "offerViews"
 		},
 		{
-			"id": "e107",
+			"id": "e104",
 			"fromNode": "n-MarkerLayer",
 			"fromSide": "bottom",
 			"toNode": "n-IMarkerSource",
@@ -2822,7 +2786,7 @@
 			"label": "sources"
 		},
 		{
-			"id": "e108",
+			"id": "e105",
 			"fromNode": "n-MarkerLayer",
 			"fromSide": "bottom",
 			"toNode": "n-WorldMarker",
@@ -2831,7 +2795,7 @@
 			"label": "markers"
 		},
 		{
-			"id": "e109",
+			"id": "e106",
 			"fromNode": "n-NodeSceneController",
 			"fromSide": "left",
 			"toNode": "n-RunEventAsset",
@@ -2840,7 +2804,7 @@
 			"label": "events"
 		},
 		{
-			"id": "e110",
+			"id": "e107",
 			"fromNode": "n-PartyAssembler",
 			"fromSide": "top",
 			"toNode": "n-Ally",
@@ -2849,7 +2813,7 @@
 			"label": "defaultAllyPrefab, Members"
 		},
 		{
-			"id": "e111",
+			"id": "e108",
 			"fromNode": "n-PartyAssembler",
 			"fromSide": "top",
 			"toNode": "n-BulletTimeController",
@@ -2858,7 +2822,7 @@
 			"label": "bulletTime"
 		},
 		{
-			"id": "e112",
+			"id": "e109",
 			"fromNode": "n-PartyAssembler",
 			"fromSide": "right",
 			"toNode": "n-PartyLoadout",
@@ -2867,7 +2831,7 @@
 			"label": "standaloneLoadout, Loadout"
 		},
 		{
-			"id": "e113",
+			"id": "e110",
 			"fromNode": "n-PartyAssembler",
 			"fromSide": "top",
 			"toNode": "n-Player",
@@ -2876,7 +2840,7 @@
 			"label": "defaultPlayerPrefab, Hero"
 		},
 		{
-			"id": "e114",
+			"id": "e111",
 			"fromNode": "n-PartyAssembler",
 			"fromSide": "top",
 			"toNode": "n-TagSwapController",
@@ -2885,7 +2849,7 @@
 			"label": "swap"
 		},
 		{
-			"id": "e115",
+			"id": "e112",
 			"fromNode": "n-PartyHealthHUD",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -2894,7 +2858,7 @@
 			"label": "Row.body"
 		},
 		{
-			"id": "e116",
+			"id": "e113",
 			"fromNode": "n-PartyHealthHUD",
 			"fromSide": "top",
 			"toNode": "n-TagSwapController",
@@ -2903,7 +2867,7 @@
 			"label": "swap"
 		},
 		{
-			"id": "e117",
+			"id": "e114",
 			"fromNode": "n-PartyLoadout",
 			"fromSide": "left",
 			"toNode": "n-PartyMemberData",
@@ -2912,7 +2876,7 @@
 			"label": "members"
 		},
 		{
-			"id": "e118",
+			"id": "e115",
 			"fromNode": "n-PartyLoadout",
 			"fromSide": "bottom",
 			"toNode": "n-PlayerData",
@@ -2921,7 +2885,7 @@
 			"label": "hero"
 		},
 		{
-			"id": "e119",
+			"id": "e116",
 			"fromNode": "n-PartyMemberData",
 			"fromSide": "top",
 			"toNode": "n-ComboCard",
@@ -2930,7 +2894,7 @@
 			"label": "equipped"
 		},
 		{
-			"id": "e120",
+			"id": "e117",
 			"fromNode": "n-PartyMemberData",
 			"fromSide": "top",
 			"toNode": "n-Projectile",
@@ -2939,7 +2903,7 @@
 			"label": "basicProjectile"
 		},
 		{
-			"id": "e121",
+			"id": "e118",
 			"fromNode": "n-PartyMemberData",
 			"fromSide": "top",
 			"toNode": "n-SkillData",
@@ -2948,7 +2912,7 @@
 			"label": "uniqueSkill"
 		},
 		{
-			"id": "e122",
+			"id": "e119",
 			"fromNode": "n-PartySelectUI",
 			"fromSide": "left",
 			"toNode": "n-PartyLoadout",
@@ -2957,7 +2921,7 @@
 			"label": "runtime"
 		},
 		{
-			"id": "e123",
+			"id": "e120",
 			"fromNode": "n-PartySelectUI",
 			"fromSide": "left",
 			"toNode": "n-PartyMemberData",
@@ -2966,7 +2930,7 @@
 			"label": "picked"
 		},
 		{
-			"id": "e124",
+			"id": "e121",
 			"fromNode": "n-PartySelectUI",
 			"fromSide": "left",
 			"toNode": "n-PlayerData",
@@ -2975,16 +2939,16 @@
 			"label": "hero"
 		},
 		{
-			"id": "e125",
+			"id": "e122",
 			"fromNode": "n-Player",
-			"fromSide": "left",
+			"fromSide": "right",
 			"toNode": "n-Ally",
-			"toSide": "right",
+			"toSide": "left",
 			"toEnd": "arrow",
 			"label": "party"
 		},
 		{
-			"id": "e126",
+			"id": "e123",
 			"fromNode": "n-Player",
 			"fromSide": "bottom",
 			"toNode": "n-PlayerData",
@@ -2993,7 +2957,7 @@
 			"label": "data"
 		},
 		{
-			"id": "e127",
+			"id": "e124",
 			"fromNode": "n-PlayerPilot",
 			"fromSide": "left",
 			"toNode": "n-Entity",
@@ -3002,7 +2966,7 @@
 			"label": "Body"
 		},
 		{
-			"id": "e128",
+			"id": "e125",
 			"fromNode": "n-Projectile",
 			"fromSide": "right",
 			"toNode": "n-Attack",
@@ -3011,7 +2975,7 @@
 			"label": "hitbox"
 		},
 		{
-			"id": "e129",
+			"id": "e126",
 			"fromNode": "n-RangeIndicator",
 			"fromSide": "top",
 			"toNode": "n-TargetSelector",
@@ -3020,7 +2984,7 @@
 			"label": "selector"
 		},
 		{
-			"id": "e130",
+			"id": "e127",
 			"fromNode": "n-RebindUI",
 			"fromSide": "bottom",
 			"toNode": "n-KeyBindingPreset",
@@ -3029,7 +2993,7 @@
 			"label": "presets, resetPreset"
 		},
 		{
-			"id": "e131",
+			"id": "e128",
 			"fromNode": "n-RebindUI",
 			"fromSide": "bottom",
 			"toNode": "n-RebindManager",
@@ -3038,7 +3002,7 @@
 			"label": "_manager"
 		},
 		{
-			"id": "e132",
+			"id": "e129",
 			"fromNode": "n-RecentHitEnemyHUD",
 			"fromSide": "top",
 			"toNode": "n-Combat",
@@ -3047,7 +3011,7 @@
 			"label": "currentTarget"
 		},
 		{
-			"id": "e133",
+			"id": "e130",
 			"fromNode": "n-RunMap",
 			"fromSide": "top",
 			"toNode": "n-MapNode",
@@ -3056,7 +3020,7 @@
 			"label": "byId"
 		},
 		{
-			"id": "e134",
+			"id": "e131",
 			"fromNode": "n-RunMapProgress",
 			"fromSide": "right",
 			"toNode": "n-RunMap",
@@ -3065,7 +3029,7 @@
 			"label": "Map"
 		},
 		{
-			"id": "e135",
+			"id": "e132",
 			"fromNode": "n-RunMapScreen",
 			"fromSide": "left",
 			"toNode": "n-MapNode",
@@ -3074,7 +3038,7 @@
 			"label": "nodeOf"
 		},
 		{
-			"id": "e136",
+			"id": "e133",
 			"fromNode": "n-RunMapScreen",
 			"fromSide": "left",
 			"toNode": "n-RunMapProgress",
@@ -3083,7 +3047,7 @@
 			"label": "progress"
 		},
 		{
-			"id": "e137",
+			"id": "e134",
 			"fromNode": "n-RunMapScreen",
 			"fromSide": "left",
 			"toNode": "n-RunMapRecipe",
@@ -3092,7 +3056,7 @@
 			"label": "previewRecipe"
 		},
 		{
-			"id": "e138",
+			"id": "e135",
 			"fromNode": "n-RunProgression",
 			"fromSide": "top",
 			"toNode": "n-ComboCard",
@@ -3101,7 +3065,7 @@
 			"label": "cards"
 		},
 		{
-			"id": "e139",
+			"id": "e136",
 			"fromNode": "n-RunProgression",
 			"fromSide": "bottom",
 			"toNode": "n-PartyState",
@@ -3110,7 +3074,7 @@
 			"label": "Party"
 		},
 		{
-			"id": "e140",
+			"id": "e137",
 			"fromNode": "n-ShopWindow",
 			"fromSide": "left",
 			"toNode": "n-CardOfferView",
@@ -3119,7 +3083,7 @@
 			"label": "views"
 		},
 		{
-			"id": "e141",
+			"id": "e138",
 			"fromNode": "n-ShopWindow",
 			"fromSide": "left",
 			"toNode": "n-PartyMemberData",
@@ -3128,7 +3092,7 @@
 			"label": "roster"
 		},
 		{
-			"id": "e142",
+			"id": "e139",
 			"fromNode": "n-SkillCatalog",
 			"fromSide": "top",
 			"toNode": "n-SkillData",
@@ -3137,7 +3101,7 @@
 			"label": "skills"
 		},
 		{
-			"id": "e143",
+			"id": "e140",
 			"fromNode": "n-SkillData",
 			"fromSide": "right",
 			"toNode": "n-ISkillEffect",
@@ -3146,7 +3110,7 @@
 			"label": "effects"
 		},
 		{
-			"id": "e144",
+			"id": "e141",
 			"fromNode": "n-SkillData",
 			"fromSide": "left",
 			"toNode": "n-Projectile",
@@ -3155,7 +3119,7 @@
 			"label": "projectile"
 		},
 		{
-			"id": "e145",
+			"id": "e142",
 			"fromNode": "n-SkillState",
 			"fromSide": "top",
 			"toNode": "n-SkillData",
@@ -3164,7 +3128,7 @@
 			"label": "data"
 		},
 		{
-			"id": "e146",
+			"id": "e143",
 			"fromNode": "n-SpawnBurrow",
 			"fromSide": "top",
 			"toNode": "n-Enemy",
@@ -3173,7 +3137,7 @@
 			"label": "enemy"
 		},
 		{
-			"id": "e147",
+			"id": "e144",
 			"fromNode": "n-StageDirector",
 			"fromSide": "top",
 			"toNode": "n-Enemy",
@@ -3182,7 +3146,7 @@
 			"label": "spawned"
 		},
 		{
-			"id": "e148",
+			"id": "e145",
 			"fromNode": "n-StageDirector",
 			"fromSide": "bottom",
 			"toNode": "n-EnemySpawnService",
@@ -3191,7 +3155,7 @@
 			"label": "spawner"
 		},
 		{
-			"id": "e149",
+			"id": "e146",
 			"fromNode": "n-StageDirector",
 			"fromSide": "bottom",
 			"toNode": "n-StageRoom",
@@ -3200,7 +3164,7 @@
 			"label": "stageRoom"
 		},
 		{
-			"id": "e150",
+			"id": "e147",
 			"fromNode": "n-StageDirector",
 			"fromSide": "bottom",
 			"toNode": "n-StageWaveBoard",
@@ -3209,7 +3173,7 @@
 			"label": "board"
 		},
 		{
-			"id": "e151",
+			"id": "e148",
 			"fromNode": "n-StageRunner",
 			"fromSide": "right",
 			"toNode": "n-StageBounds",
@@ -3218,7 +3182,7 @@
 			"label": "bounds"
 		},
 		{
-			"id": "e152",
+			"id": "e149",
 			"fromNode": "n-StageRunner",
 			"fromSide": "top",
 			"toNode": "n-StageDirector",
@@ -3227,7 +3191,7 @@
 			"label": "director"
 		},
 		{
-			"id": "e153",
+			"id": "e150",
 			"fromNode": "n-StateMachine",
 			"fromSide": "right",
 			"toNode": "n-IState",
@@ -3236,7 +3200,7 @@
 			"label": "CurState"
 		},
 		{
-			"id": "e154",
+			"id": "e151",
 			"fromNode": "n-Stats",
 			"fromSide": "left",
 			"toNode": "n-Stat",
@@ -3245,7 +3209,7 @@
 			"label": "stats"
 		},
 		{
-			"id": "e155",
+			"id": "e152",
 			"fromNode": "n-TacticGauge",
 			"fromSide": "bottom",
 			"toNode": "n-BasicHitLedger",
@@ -3254,7 +3218,7 @@
 			"label": "basicHitLedger"
 		},
 		{
-			"id": "e156",
+			"id": "e153",
 			"fromNode": "n-TacticGauge",
 			"fromSide": "left",
 			"toNode": "n-Energy",
@@ -3263,7 +3227,7 @@
 			"label": "Gauge"
 		},
 		{
-			"id": "e157",
+			"id": "e154",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "left",
 			"toNode": "n-BulletTimeController",
@@ -3272,7 +3236,7 @@
 			"label": "bulletTime"
 		},
 		{
-			"id": "e158",
+			"id": "e155",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "bottom",
 			"toNode": "n-CameraAnchor",
@@ -3281,7 +3245,7 @@
 			"label": "cameraAnchor"
 		},
 		{
-			"id": "e159",
+			"id": "e156",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "bottom",
 			"toNode": "n-CameraFollow",
@@ -3290,7 +3254,7 @@
 			"label": "cameraFollow"
 		},
 		{
-			"id": "e160",
+			"id": "e157",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "top",
 			"toNode": "n-Entity",
@@ -3299,7 +3263,7 @@
 			"label": "roster, onStage, leaving"
 		},
 		{
-			"id": "e161",
+			"id": "e158",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "top",
 			"toNode": "n-Player",
@@ -3308,7 +3272,7 @@
 			"label": "player"
 		},
 		{
-			"id": "e162",
+			"id": "e159",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "right",
 			"toNode": "n-PlayerPilot",
@@ -3317,7 +3281,7 @@
 			"label": "pilot"
 		},
 		{
-			"id": "e163",
+			"id": "e160",
 			"fromNode": "n-TagSwapController",
 			"fromSide": "right",
 			"toNode": "n-TargetSelector",
@@ -3326,7 +3290,7 @@
 			"label": "targetSelector"
 		},
 		{
-			"id": "e164",
+			"id": "e161",
 			"fromNode": "n-TargetSelector",
 			"fromSide": "bottom",
 			"toNode": "n-EnemyRadiusProbe",
@@ -3335,7 +3299,7 @@
 			"label": "radiusProbe"
 		},
 		{
-			"id": "e165",
+			"id": "e162",
 			"fromNode": "n-TargetSelector",
 			"fromSide": "right",
 			"toNode": "n-SkillData",
@@ -3344,7 +3308,7 @@
 			"label": "current"
 		},
 		{
-			"id": "e166",
+			"id": "e163",
 			"fromNode": "n-TrainingDummy",
 			"fromSide": "top",
 			"toNode": "n-Combat",
@@ -3353,7 +3317,7 @@
 			"label": "combat"
 		},
 		{
-			"id": "e167",
+			"id": "e164",
 			"fromNode": "n-TrainingDummy",
 			"fromSide": "top",
 			"toNode": "n-Physics",
@@ -3362,7 +3326,7 @@
 			"label": "physics"
 		},
 		{
-			"id": "e168",
+			"id": "e165",
 			"fromNode": "n-VfxLibrary",
 			"fromSide": "top",
 			"toNode": "n-VfxClip",
@@ -3371,7 +3335,7 @@
 			"label": "impact, shock, cast 외 2"
 		},
 		{
-			"id": "e169",
+			"id": "e166",
 			"fromNode": "n-VfxRunner",
 			"fromSide": "left",
 			"toNode": "n-VfxSprite",
@@ -3380,7 +3344,7 @@
 			"label": "idleSprites"
 		},
 		{
-			"id": "e170",
+			"id": "e167",
 			"fromNode": "n-VfxSprite",
 			"fromSide": "left",
 			"toNode": "n-VfxClip",

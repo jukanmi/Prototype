@@ -13,8 +13,6 @@ namespace Prototype.Tests
     /// 실행되지 않는다 — StateMachine · SkillState · VFX를 세우지 않고도 무대 호출 순서만
     /// 깨끗이 관측된다.
     ///
-    /// 차징 슬롯은 여기서 다루지 않는다. <c>StartCharge</c>가 곧바로
-    /// <c>ForceChangeState</c>를 걸어 Physics · Rigidbody가 붙은 진짜 몸을 요구하기 때문이다.
     /// 무대에 둘 이상이 설 때의 자리 계산은 순수 함수로 떼어 내
     /// <see cref="TagSwapRulesTests"/>에서 검증한다.
     /// </summary>

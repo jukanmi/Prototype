@@ -104,18 +104,11 @@ namespace Prototype
         public int CurrentIndex => IsRunning ? current : -1;
 
         // ── 차징 (IChargeState) ─────────────────────────
-        // 플레이어의 ChargeSkillState와 같은 계약을 구현한다. 머리 위 게이지(ChargeGauge)가
-        // 두 경로를 구분하지 않고 같은 방식으로 그리게 하려는 것 — 모으는 건 모으는 거다.
+        // 머리 위 게이지(ChargeGauge)가 Entity.ChargeState 로 읽어 그린다.
 
         public bool IsCharging => Phase == EnemySpecialPhase.Charge;
 
         public float ChargeRatio => sequence != null ? sequence.ChargeProgress : 0f;
-
-        /// <summary>모으기를 즉시 끝내고 예고로 넘긴다.</summary>
-        public void Release()
-        {
-            sequence?.ReleaseCharge();
-        }
 
         /// <summary>패턴 표. 프리팹 배선 검사용 읽기 전용 창구.</summary>
         public BossPattern[] Patterns => patterns;

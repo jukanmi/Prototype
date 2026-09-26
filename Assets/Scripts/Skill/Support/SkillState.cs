@@ -1,6 +1,6 @@
 // 스킬 시전 상태 — 수명(Enter · Tick · Exit)과 시전 효과.
 // 조준 · 자리 잡기 · 범위 미리보기는 SkillState.Aim.cs, 타격 발사는 SkillState.Fire.cs,
-// 차지 시전은 ChargeSkillState.cs, 입력 문맥은 SkillContext.cs.
+// 입력 문맥은 SkillContext.cs.
 
 using System;
 using UnityEngine;
@@ -38,21 +38,6 @@ namespace Prototype
         /// <summary>후딜까지 끝났는지. ComboExecutor가 다음 슬롯으로 넘어갈 시점 판단에 쓴다.</summary>
         public virtual bool IsFinished => finished;
 
-        /// <summary>파생 상태(차징)가 시전 맥락을 읽고 고칠 수 있게 연다.</summary>
-        protected ref SkillContext Context => ref ctx;
-
-        /// <summary>
-        /// 이번 <see cref="Enter"/>에서 시전 위치를 잡을지.
-        /// 차징은 모으기 시작 시점에 이미 자리를 잡았으므로 터질 때 다시 옮기지 않는다.
-        /// </summary>
-        protected virtual bool PlaceOnEnter => true;
-
-        /// <summary>
-        /// 타격 직전에 HitData를 손볼 마지막 기회. 차징이 배율을 여기서 태운다.
-        /// 원본 에셋은 건드리지 않는다 — 값 복사본만 바뀐다.
-        /// </summary>
-        protected virtual HitData ModifyHit(HitData hit) => hit;
-
         public virtual void Enter()
         {
             timer = 0f;
@@ -69,7 +54,7 @@ namespace Prototype
                 ctx.caster);
 
             // 자리를 먼저 잡아야 아래 연출과 효과가 전부 최종 위치를 기준으로 돈다.
-            if (PlaceOnEnter) PlaceCaster();
+            PlaceCaster();
 
             Physics phys = ctx.CasterPhysics;
             castOrigin = phys != null ? phys.GroundPosition : ctx.Origin;
@@ -128,7 +113,7 @@ namespace Prototype
         private void EmitCastVfx()
         {
             SkillVfx style = data.vfx.AsSkill();
-            BattleVfx.Cast(ctx.Origin, data.radius * ctx.RadiusScale, in style);
+            BattleVfx.Cast(ctx.Origin, data.radius, in style);
         }
 
         /// <summary>

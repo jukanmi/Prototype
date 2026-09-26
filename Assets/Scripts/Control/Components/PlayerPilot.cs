@@ -145,10 +145,6 @@ namespace Prototype
             // 조준은 BulletTime 맵의 Aim이 따로 받는다.
             if (TimeControl.IsFrozen) return;
 
-            // 차징 중도 해제는 IsBusy 게이트보다 먼저 본다 — 모으는 중에는 슈퍼아머라
-            // 아래 입력이 전부 막히기 때문이다.
-            if (TryReleaseCharge(body, input)) return;
-
             if (body.IsBusy) return;
             if (CombatStateRules.IsStunned(body.Combat.CombatState)) return;
 
@@ -182,32 +178,6 @@ namespace Prototype
             }
 
             body.Drive(command, direction);
-        }
-
-        /// <summary>
-        /// 점프키로 차징을 중도 해제한다. <b>모은 만큼</b> 그 자리에서 터진다 —
-        /// 게이지가 다 차기를 기다리면 최대 위력이고, 일찍 끊으면 그만큼 약하다.
-        /// 위력과 타이밍을 유저가 직접 저울질하게 만드는 것이 이 키의 목적이다.
-        ///
-        /// 점프를 고른 이유는 모으는 동안 유일하게 놀고 있는 키라서다 —
-        /// 이동은 제자리 고정, 평타 · 대시는 슈퍼아머에 막힌다.
-        ///
-        /// 불릿타임 콤보(<see cref="Entity.IsCommanded"/>)는 건드리지 않는다.
-        /// 그쪽 해제는 큐를 다 비운 <see cref="ComboExecutor"/>의 몫이고,
-        /// 애초에 <see cref="Tick"/>이 지휘 중에 여기까지 오지 않는다.
-        /// </summary>
-        private bool TryReleaseCharge(Entity body, PlayerInputController input)
-        {
-            if (!input.JumpPressed) return false;
-
-            if (!(body.StateMachine?.CurState is IChargeState charge) || !charge.IsCharging)
-                return false;
-
-            BattleLog.Log(LogCategory.Skill,
-                $"{BattleLog.Name(body)} 차징 중도 해제 — 모은 양 {charge.ChargeRatio * 100f:0}%", this);
-
-            charge.Release();
-            return true;
         }
     }
 }

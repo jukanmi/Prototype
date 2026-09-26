@@ -236,7 +236,7 @@ namespace Prototype
             // 중심은 조준한 좌표. 원거리 직업은 실시간에 텔포하지 않으므로
             // 시전자 위치로 잡으면 범위가 발밑에 생긴다.
             Vector3 center = ctx.Origin;
-            float r = radius * ctx.RadiusScale;   // 차징으로 커진 만큼 넓어진다
+            float r = radius;   // 차징으로 커진 만큼 넓어진다
 
             var hit = new HitData
             {
@@ -290,7 +290,7 @@ namespace Prototype
                 hitStunDuration = hitStun,
             }.WithOrigin(center);
 
-            EffectUtil.OverlapCombats(center, radius * ctx.RadiusScale, caster,
+            EffectUtil.OverlapCombats(center, radius, caster,
                                       c => caster.Attack(c, in hit));
         }
     }

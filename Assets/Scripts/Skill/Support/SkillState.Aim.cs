@@ -172,7 +172,7 @@ namespace Prototype
         /// 조준 링이 그리는 원이 곧 맞는 범위여야 한다.
         /// 타별 반경(<see cref="HitData.radius"/>)이 있으면 그쪽, 없으면 스킬 공통값이다.
         /// </summary>
-        private float BlastRadius(in HitData hit) => data.RadiusFor(in hit) * ctx.RadiusScale;
+        private float BlastRadius(in HitData hit) => data.RadiusFor(in hit);
 
         /// <summary>
         /// 공중 시전 자리. 수평으로는 <b>대상 좌표 그대로</b>, 수직으로는 대상 머리 위
@@ -258,7 +258,7 @@ namespace Prototype
             get
             {
                 if (data.IsRanged) return data.projectileRange;
-                if (IsAreaCaster) return data.radius * ctx.RadiusScale;
+                if (IsAreaCaster) return data.radius;
                 return data.ApproachDistance;
             }
         }
