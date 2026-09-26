@@ -40,7 +40,7 @@ namespace Prototype
                 // 진입과 실행이 한 키다(기본 E). Order 페이즈에서 이 키가 곧 실행이므로
                 // 따로 부를 것이 없다 — 무엇을 할지는 전술 페이즈가 결정한다.
                 if (input.BulletTimePressed)
-                    bulletTime.Tactic.OnBulletTimeKey();
+                    bulletTime.Enter();
             }
 
             // Z — 현재 조작 중인 캐릭터 고유 스킬 즉시 사용.

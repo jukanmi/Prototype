@@ -451,6 +451,9 @@ namespace Prototype
 
             EnsureDefaults();
             BuildStates();
+
+            // 같은 GameObject라 함께 파괴된다 — 해제할 시점이 따로 없다.
+            if (cachedCombat != null) cachedCombat.OnCombatStateChanged += FollowCombatState;
         }
 
         protected virtual void Start()
@@ -464,7 +467,7 @@ namespace Prototype
                 $"스킬 히트박스 {(SkillAttack != null ? "O" : "X")}",
                 this);
 
-            StateMachine.ForceChangeState(IdleState);
+            ForceIdle();
 
             if (AttackProfile != null)
             {
@@ -532,8 +535,37 @@ namespace Prototype
             DeadState = new DeadState(this);
         }
 
+        // ── 전투 상태 → 몸 상태 ─────────────────────────
+        // Combat은 CombatState만 바꾼다. 그 값에 몸(IState)을 맞추는 건 <b>여기 한 곳</b>이다 —
+        // 예전에는 Combat의 다섯 군데와 경직 상태들의 폴링이 제각각 몸을 옮겼다.
+        //
+        //   LightHit                      → HitState
+        //   AerialHit · Knockback · WallBound → AerialHitState
+        //   Down / Getup                  → DownState / GetupState
+        //   Neutral                       → 피격 반응 중이었으면 Idle
+        //   Dead                          → Combat.Die가 ForceDead로 직접 (정리 순서를 그쪽이 쥔다)
+
+        private void FollowCombatState(CombatState prev, CombatState next)
+        {
+            if (next == CombatState.Dead) return;
+
+            if (next == CombatState.Neutral)
+            {
+                // 피격 반응에서 풀려나는 것만 다룬다. 스킬 · 디버프로 굳은 몸은 그쪽 주인이 푼다.
+                if (IsHitReaction(StateMachine.CurState))
+                    StateMachine.TryChangeState(IdleState);
+                return;
+            }
+
+            RequestHitReaction(next);
+        }
+
+        private bool IsHitReaction(IState s)
+            => s != null && (s == HitState || s == AerialHitState || s == DownState || s == GetupState);
+
         /// <summary>
-        /// Combat이 피격 반응을 요청한다. 슈퍼아머 중이면 상태머신이 거부하고 false를 돌려준다.
+        /// 피격 반응으로 몸을 옮긴다. 슈퍼아머 중이면 상태머신이 거부하고 false를 돌려준다.
+        /// <see cref="Combat.Hit"/>가 전투 상태를 바꾸기 <b>전에</b> 이걸로 슈퍼아머를 묻는다.
         /// </summary>
         public bool RequestHitReaction(CombatState next)
         {
@@ -559,12 +591,38 @@ namespace Prototype
             return StateMachine.TryChangeState(target);
         }
 
+        // ── 강제 전이 ───────────────────────────────────
+        // 슈퍼아머(CanBeInterrupted == false)를 관통하는 길은 <b>이 넷뿐이다</b>.
+        // StateMachine.ForceChangeState를 밖에서 직접 부르지 말 것 — 관통 경로를 찾을 곳이 흩어진다.
+
         /// <summary>사망은 슈퍼아머를 관통한다(결정 로그 ②③).</summary>
         public void ForceDead()
         {
             SetTelegraph(false);
             StateMachine.ForceChangeState(DeadState);
         }
+
+        /// <summary>
+        /// 스킬 시전. 지금 무엇을 하든 끊고 들어간다 — 콤보 지휘(<see cref="ComboExecutor"/>)와
+        /// 즉발 카드(<see cref="Ally.CastCard"/>)가 쓴다.
+        /// </summary>
+        public void BeginSkill(IState skill) => StateMachine.ForceChangeState(skill);
+
+        /// <summary>
+        /// 그 스킬이 <b>아직 돌고 있으면</b> 끝내고 Idle로. 사망이나 다른 강제 전이로
+        /// 이미 빼앗겼으면 아무것도 안 한다 — 남의 상태를 끊으면 안 된다.
+        /// </summary>
+        public void EndSkill(IState skill)
+        {
+            if (StateMachine.CurState == skill && !Combat.IsDead)
+                StateMachine.ForceChangeState(IdleState);
+        }
+
+        /// <summary>
+        /// 무조건 Idle로. 시작 · 벤치로 내려갈 때 · 디버프가 풀릴 때(스스로는 못 나오는 상태) 쓴다.
+        /// 시체에 부르면 되살아나므로 부르는 쪽이 사망을 본다.
+        /// </summary>
+        public void ForceIdle() => StateMachine.ForceChangeState(IdleState);
 
         /// <summary>상태머신이 지금 중단 가능한지. AI · UI 판단용.</summary>
         public bool IsBusy => StateMachine.CurState != null && !StateMachine.CurState.CanBeInterrupted;
@@ -623,7 +681,7 @@ namespace Prototype
 
             Combat.ClearHitStun();
             Combat.ClearDebuffs();
-            StateMachine?.ForceChangeState(IdleState);
+            if (StateMachine != null) ForceIdle();
         }
 
         /// <summary>

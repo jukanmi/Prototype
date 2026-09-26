@@ -228,7 +228,7 @@ namespace Prototype
             caster.IsCommanded = true;
 
             IState state = data.CreateState(in ctx);
-            caster.StateMachine.ForceChangeState(state);
+            caster.BeginSkill(state);
 
             if (state is ChargeSkillState charge)
             {
@@ -280,8 +280,7 @@ namespace Prototype
 
                 p.caster.IsCommanded = false;
 
-                if (p.caster.StateMachine.CurState == p.state && !p.caster.Combat.IsDead)
-                    p.caster.StateMachine.ForceChangeState(p.caster.IdleState);
+                p.caster.EndSkill(p.state);
 
                 // 차징 시전자는 모으는 내내 무대에 붙잡혀 있었다. 여기서야 놓아 준다.
                 Stage?.Exit(p.caster);
@@ -328,7 +327,7 @@ namespace Prototype
             caster.IsCommanded = true;
 
             IState state = data.CreateState(in ctx);
-            caster.StateMachine.ForceChangeState(state);
+            caster.BeginSkill(state);
 
             float elapsed = 0f;
             var skillState = state as SkillState;
@@ -348,8 +347,7 @@ namespace Prototype
             if (elapsed >= slotTimeout)
                 BattleLog.Warn(LogCategory.Combo, $"{data.skillName} 타임아웃 {slotTimeout:0.#}s — 강제로 다음 슬롯", this);
 
-            if (caster.StateMachine.CurState == state && !caster.Combat.IsDead)
-                caster.StateMachine.ForceChangeState(caster.IdleState);
+            caster.EndSkill(state);
         }
 
         /// <summary>

@@ -1,5 +1,18 @@
 // 엔티티 상태머신 — 규약 · 기계 · 상태 구현 모음.
-// 전술 층(TacticStateMachine)과는 다른 층이다. 인터페이스를 공유하지 않는다.
+// 전술 층(BulletTimeController의 페이즈)과는 다른 층이다. 인터페이스를 공유하지 않는다.
+//
+// 누가 어느 상태에서 몸을 빼내는가 — 상태가 스스로 나가지 않는 것들은 주인이 따로 있다.
+//
+//   상태                      들어오는 길                       나가는 길
+//   Idle · Move · Jump        명령(HandleCommonCommands)         스스로
+//   Attack · AerialAttack     명령                               스스로(끝 · 착지)
+//   Hit · AerialHit           Entity.FollowCombatState           Entity.FollowCombatState (Neutral → Idle)
+//   Down · Getup              Entity.FollowCombatState           Entity.FollowCombatState (Neutral → Idle)
+//   Stun · Frozen · AirBound  Combat.SyncDebuffState [중단불가]   Combat.SyncDebuffState → Entity.ForceIdle
+//   Skill · ChargeSkill       Entity.BeginSkill [중단불가]        Entity.EndSkill (ComboExecutor · Ally)
+//   Dead                      Entity.ForceDead [중단불가]         없음
+//
+// 슈퍼아머를 관통하는 ForceChangeState는 Entity의 ForceDead · BeginSkill · EndSkill · ForceIdle만 부른다.
 
 using System;
 using UnityEngine;
@@ -59,8 +72,8 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 무조건 전이. <b>사망 처리</b>와 <b>콤보 지휘</b> 전용(결정 로그 ②③).
-        /// ComboExecutor가 동료의 상태머신을 강탈할 때 쓴다.
+        /// 무조건 전이. <b>사망 처리</b>와 <b>스킬 지휘</b> 전용(결정 로그 ②③).
+        /// 직접 부르지 말고 Entity의 창구(ForceDead · BeginSkill · EndSkill · ForceIdle)를 탈 것.
         /// </summary>
         public void ForceChangeState(IState next)
         {
@@ -462,7 +475,10 @@ namespace Prototype
         }
     }
 
-    /// <summary>약경직. Combat이 경직 타이머를 관리하므로 여기서는 입력만 막는다.</summary>
+    /// <summary>
+    /// 약경직. Combat이 경직 타이머를 관리하므로 여기서는 입력만 막는다.
+    /// 나가는 것도 스스로 하지 않는다 — 경직이 풀려 CombatState가 Neutral이 되면 Entity가 Idle로 옮긴다.
+    /// </summary>
     public class HitState : EntityState
     {
         public HitState(Entity entity) : base(entity) { }
@@ -470,12 +486,6 @@ namespace Prototype
         public override void Enter()
         {
             Physics.Move(Vector3.zero, 0f);
-        }
-
-        public override void Tick(float dt)
-        {
-            if (!CombatStateRules.IsStunned(Combat.CombatState))
-                Entity.StateMachine.TryChangeState(Entity.IdleState);
         }
     }
 
@@ -550,7 +560,10 @@ namespace Prototype
         public override void Tick(float dt) { }
     }
 
-    /// <summary>공중 피격 · 넉백 · 벽 바운드. 착지 판정은 Physics가 알린다.</summary>
+    /// <summary>
+    /// 공중 피격 · 넉백 · 벽 바운드. 착지 판정은 Physics가 알린다.
+    /// <see cref="HitState"/>와 같이 나가는 건 Entity 몫이다.
+    /// </summary>
     public class AerialHitState : EntityState
     {
         public AerialHitState(Entity entity) : base(entity) { }
@@ -558,12 +571,6 @@ namespace Prototype
         public override void Enter()
         {
             Physics.Move(Vector3.zero, 0f);
-        }
-
-        public override void Tick(float dt)
-        {
-            if (!CombatStateRules.IsStunned(Combat.CombatState))
-                Entity.StateMachine.TryChangeState(Entity.IdleState);
         }
     }
 

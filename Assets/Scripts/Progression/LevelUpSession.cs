@@ -52,7 +52,7 @@ namespace Prototype
 
         // ── 씬에 하나 ────────────────────────────────────
 
-        public static LevelUpSession Instance { get; private set; }
+        private static LevelUpSession Instance { get; set; }
 
         /// <summary>화면이 떠 있는가. 아레나 · 웨이브 · 승패 판정이 이 값 하나를 본다.</summary>
         public static bool IsOpen => Instance != null && Instance.isOpen;

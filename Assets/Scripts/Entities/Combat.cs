@@ -6,9 +6,20 @@ namespace Prototype
     /// <summary>
     /// 타격 · 피격 · 상태 전이의 단일 창구.
     /// 온힛 트리거 · 흡혈 · 콤보 카운트를 여기 한 곳에서 처리한다(결정 로그 ②).
+    ///
+    /// <b>무엇이 어디 있나.</b>
+    /// <list type="bullet">
+    /// <item>여기 — 체력 · 보호막 · 피격 판정 순서(<see cref="Hit"/>) · 경직 타이머 · 디버프 정합</item>
+    /// <item>가드 게이지 · 브레이크 — <see cref="GuardMeter"/></item>
+    /// <item>패링 창 · 패링 무적 · 교대 무적 — <see cref="DefenseWindows"/></item>
+    /// <item>넉백 · 띄우기 · 벽 바운드 · 벽 스턴 — Combat.Impact.cs</item>
+    /// <item>전역 알림(누가 누구를 때렸나) — <see cref="CombatEvents"/></item>
+    /// </list>
+    /// 튜닝값(<c>[SerializeField]</c>)은 전부 이 파일에 남아 있다 — 프리팹에 저장된 값을 옮기지 않으려고
+    /// 떼어 낸 쪽은 생성자로 값을 받는다.
     /// </summary>
     [RequireComponent(typeof(Physics))]
-    public class Combat : MonoBehaviour, IHittable, IDamageable
+    public partial class Combat : MonoBehaviour, IHittable, IDamageable
     {
         [SerializeField] private float maxHealth = 100f;
         [SerializeField] private float lifestealRatio = 0f;
@@ -85,20 +96,19 @@ namespace Prototype
         private float shield;
         private float wallBounceTimer;
 
-        /// <summary>패링 판정이 열려 있는 남은 시간. 대시가 연다.</summary>
-        private float parryTimer;
+        private GuardMeter guardMeter;
+        private DefenseWindows defense;
 
-        /// <summary>패링 성공으로 얻은 무적의 남은 시간. 이 구간은 방향을 보지 않는다.</summary>
-        private float parryInvulnTimer;
+        /// <summary>
+        /// 가드. Awake 없이 접근하는 경로(에디터 테스트 · 생성기)를 위해 첫 접근에 만든다 —
+        /// <see cref="Health"/>와 같은 이유다.
+        /// </summary>
+        private GuardMeter GuardM => guardMeter ?? (guardMeter = new GuardMeter(
+            maxGuard, guardBreakDuration, defaultGuardDamage, guardRegenDelay, guardRegen));
 
-        /// <summary>교대로 막 서면서 받은 무적의 남은 시간. 이 구간도 방향을 보지 않는다.</summary>
-        private float summonInvulnTimer;
-
-        private Energy guard;
-        /// <summary>가드브레이크로 무방비인 남은 시간.</summary>
-        private float guardBreakTimer;
-        /// <summary>안 맞고 버틴 시간. 이게 다 차면 가드가 자연 회복을 시작한다.</summary>
-        private float guardIdleTimer;
+        /// <summary>패링 · 무적 창. 가드와 같은 이유로 첫 접근에 만든다.</summary>
+        private DefenseWindows Defense => defense ?? (defense = new DefenseWindows(
+            parryWindow, parryAngle, parrySuccessInvuln, summonInvuln));
 
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
@@ -122,30 +132,30 @@ namespace Prototype
         public bool IsDead => CombatState == CombatState.Dead;
 
         /// <summary>패링 판정이 지금 열려 있는지.</summary>
-        public bool IsParrying => parryTimer > 0f;
+        public bool IsParrying => Defense.IsParrying;
 
         /// <summary>패링 창 길이. <see cref="CombatStateRules.TelegraphLead"/>와 짝이 맞는지 보는 쪽이 읽는다.</summary>
-        public float ParryWindow => parryWindow;
+        public float ParryWindow => Defense.ParryWindow;
 
         /// <summary>패링 성공 직후의 무적 구간인지.</summary>
-        public bool IsParryInvulnerable => parryInvulnTimer > 0f;
+        public bool IsParryInvulnerable => Defense.IsParryInvulnerable;
 
         /// <summary>교대로 막 선 직후의 무적 구간인지.</summary>
-        public bool IsSummonInvulnerable => summonInvulnTimer > 0f;
+        public bool IsSummonInvulnerable => Defense.IsSummonInvulnerable;
 
         // ── 가드 ────────────────────────────────────────
 
         /// <summary>가드 시스템을 쓰는 개체인가. 잡몹은 false다.</summary>
-        public bool HasGuard => maxGuard > 0f;
+        public bool HasGuard => GuardM.Enabled;
 
         /// <summary>
         /// 가드 게이지. <see cref="Health"/>와 같은 이유로 첫 접근에 만든다 —
         /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)가 있다.
         /// </summary>
-        public Energy Guard => guard != null ? guard : guard = new Energy(EnergyType.Guard, maxGuard);
+        public Energy Guard => GuardM.Energy;
 
         /// <summary>가드가 깨져 무방비인지. 이 구간에만 경직 · 넉백 · 공중 콤보가 통한다.</summary>
-        public bool IsGuardBroken => guardBreakTimer > 0f;
+        public bool IsGuardBroken => GuardM.IsBroken;
 
         /// <summary>
         /// 지금 슈퍼아머인지. 가드를 가진 개체의 <b>기본 상태</b>다 —
@@ -174,12 +184,11 @@ namespace Prototype
         /// </summary>
         public void SetGuard(float max, float breakDuration)
         {
+            // 인스펙터 값도 같이 맞춘다 — 프리팹 검사 · 디버그가 읽는 자리가 이쪽이다.
             maxGuard = Mathf.Max(0f, max);
             guardBreakDuration = Mathf.Max(0f, breakDuration);
 
-            guardBreakTimer = 0f;
-            guardIdleTimer = 0f;
-            Guard.SetMax(maxGuard, refill: true);
+            GuardM.Configure(maxGuard, guardBreakDuration);
         }
         /// <summary>지금 걸려 있는 지속 상태. 화면 표시(<see cref="StatusEffectBar"/>)와 스킬 효과가 같이 본다.</summary>
         public StatusEffects Statuses => statuses;
@@ -202,59 +211,21 @@ namespace Prototype
         public float StunDuration => hitStunDuration;
 
         /// <summary>패링 무적의 남은 시간.</summary>
-        public float ParryInvulnRemaining => Mathf.Max(0f, parryInvulnTimer);
+        public float ParryInvulnRemaining => Defense.ParryInvulnRemaining;
 
         /// <summary>패링 무적의 전체 길이.</summary>
-        public float ParryInvulnDuration => parrySuccessInvuln;
+        public float ParryInvulnDuration => Defense.ParryInvulnDuration;
 
         /// <summary>교대 무적의 남은 시간.</summary>
-        public float SummonInvulnRemaining => Mathf.Max(0f, summonInvulnTimer);
+        public float SummonInvulnRemaining => Defense.SummonInvulnRemaining;
 
         /// <summary>교대 무적의 전체 길이. 프리팹 검사가 읽는다.</summary>
-        public float SummonInvulnDuration => summonInvuln;
+        public float SummonInvulnDuration => Defense.SummonInvulnDuration;
 
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
 
-        /// <summary>누가 누구를 때렸든 한 번씩. 시전자를 모르는 관전자(HUD 등)가 붙는다.</summary>
-        public static event Action<Combat, Combat> OnAnyHitLanded;
-
-        /// <summary>
-        /// 대시 패링 성공. 인자는 (막은 쪽, 패링당한 공격자) 순이다.
-        /// 게이지 보상 · 연출 · 사운드가 전부 여기 붙는다 — Combat은 "막았다"만 알린다.
-        /// 공격자를 모르는 타격(장판 등)을 막으면 두 번째 인자가 null이다.
-        /// </summary>
-        public static event Action<Combat, Combat> OnParried;
-
-        /// <summary>
-        /// 평타가 <b>실제로 적중했다</b>. 인자는 (때린 쪽, 맞은 쪽, 평타 번호) 순이다.
-        /// 무적 · 패링으로 흘린 타격은 오지 않는다. 한 대가 여럿을 맞히면 같은 번호로 여러 번 온다 —
-        /// 한 대당 한 번으로 세는 건 받는 쪽 몫이다(<see cref="HitData.basicSwing"/>).
-        /// </summary>
-        public static event Action<Combat, Combat, int> OnAnyBasicHitLanded;
-
-        /// <summary>
-        /// 피해가 <b>실제로</b> 들어갔다. 인자는 (때린 쪽, 맞은 쪽, 깎인 양) 순이다.
-        ///
-        /// <see cref="OnAnyHitLanded"/>와 나눠 둔 이유: 그쪽은 수치를 주지 않고, 이쪽은
-        /// 방어력 · 보호막 · 피해감소가 전부 적용된 <b>최종 수치</b>를 준다.
-        /// 무적 · 패링으로 흘린 타격이나 0딜 반격은 여기까지 오지 않는다.
-        /// 콤보 카운터(<see cref="ComboDamageHUD"/>)가 구독한다.
-        /// </summary>
-        public static event Action<Combat, Combat, float> OnAnyDamageDealt;
-
-        /// <summary>
-        /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
-        /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
-        /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics()
-        {
-            OnAnyHitLanded = null;
-            OnParried = null;
-            OnAnyBasicHitLanded = null;
-            OnAnyDamageDealt = null;
-        }
+        // 누가 누구를 때렸든 울리는 전역 알림은 CombatEvents에 있다. 쏘는 곳은 여기뿐이다.
 
         /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
         public event Action<HitData, CombatState> OnHitTaken;
@@ -270,7 +241,8 @@ namespace Prototype
             // Enemy.Awake가 먼저 돌면 ApplyData가 주입한 최대치를 여기서 날려 버린다 —
             // 보스 HP 400이 프리팹 값 100으로 되돌아가는 증상이 그것이었다.
             if (health == null) health = new Energy(EnergyType.Health, maxHealth);
-            if (guard == null) guard = new Energy(EnergyType.Guard, maxGuard);
+            _ = GuardM;
+            _ = Defense;
         }
 
         private void OnEnable()
@@ -289,9 +261,7 @@ namespace Prototype
         public void Tick(float dt)
         {
             if (wallBounceTimer > 0f) wallBounceTimer -= dt;
-            if (parryTimer > 0f) parryTimer -= dt;
-            if (parryInvulnTimer > 0f) parryInvulnTimer -= dt;
-            if (summonInvulnTimer > 0f) summonInvulnTimer -= dt;
+            Defense.Tick(dt);
 
             TickGuard(dt);
             // 경직 복구가 아래에서 early return을 타므로 그 전에 굴린다 —
@@ -329,7 +299,6 @@ namespace Prototype
             if (next == CombatState.Getup)
             {
                 SetCombatState(next);
-                owner?.RequestHitReaction(next);
                 SetStunTimer(getupDuration);
                 return;
             }
@@ -341,10 +310,8 @@ namespace Prototype
                 return;
             }
 
+            // 몸(IState)은 Entity가 OnCombatStateChanged를 보고 맞춘다.
             SetCombatState(next);
-            owner?.RequestHitReaction(next);
-            if (next == CombatState.Neutral && owner != null)
-                owner.StateMachine.TryChangeState(owner.IdleState);
         }
 
         // ── 디버프 (스턴 · 빙결) ─────────────────────────
@@ -407,7 +374,7 @@ namespace Prototype
             if (want != null)
             {
                 // 경직 중에는 손대지 않는다. HitState를 빼앗으면 피격 반응이 한 프레임 만에 사라진다.
-                // 경직이 끝나면 HitState가 스스로 Idle로 나가고, 그 다음 프레임에 여기가 붙잡는다.
+                // 경직이 끝나면 Entity가 HitState를 Idle로 옮기고, 그 다음 프레임에 여기가 붙잡는다.
                 // 슈퍼아머도 같은 이유로 TryChangeState다 — 거부당하면 다음 프레임에 다시 묻는다.
                 if (!CombatStateRules.IsStunned(CombatState))
                     body.StateMachine.TryChangeState(want);
@@ -418,7 +385,7 @@ namespace Prototype
             // 스스로는 중단 불가라 Try로는 못 나온다.
             IState cur = body.StateMachine.CurState;
             if (cur == body.StunState || cur == body.FrozenState || cur == body.AirBoundState)
-                body.StateMachine.ForceChangeState(body.IdleState);
+                body.ForceIdle();
         }
 
         /// <summary>
@@ -467,8 +434,8 @@ namespace Prototype
             OnHitLanded?.Invoke(this, hit);
             if (target is Combat victim)
             {
-                OnAnyHitLanded?.Invoke(this, victim);
-                if (hit.IsBasicAttack) OnAnyBasicHitLanded?.Invoke(this, victim, hit.basicSwing);
+                CombatEvents.RaiseHitLanded(this, victim);
+                if (hit.IsBasicAttack) CombatEvents.RaiseBasicHitLanded(this, victim, hit.basicSwing);
             }
 
             return true;
@@ -498,7 +465,7 @@ namespace Prototype
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#8AE234>교대 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
-                    $"(남은 {summonInvulnTimer:0.##}s)", this);
+                    $"(남은 {SummonInvulnRemaining:0.##}s)", this);
 
                 return false;
             }
@@ -509,7 +476,7 @@ namespace Prototype
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#4CC9F0>패링 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
-                    $"(남은 {parryInvulnTimer:0.##}s)", this);
+                    $"(남은 {ParryInvulnRemaining:0.##}s)", this);
 
                 CounterAttack(attacker);
                 return false;
@@ -596,17 +563,17 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이번 타격이 실제로 깎아 낸 양을 알린다. <see cref="OnAnyHitLanded"/>로는 못 대신한다 —
+        /// 이번 타격이 실제로 깎아 낸 양을 알린다. <see cref="CombatEvents.OnAnyHitLanded"/>로는 못 대신한다 —
         /// 그쪽은 "맞았다"만 알리고 수치를 안 준다.
         /// </summary>
         private void ReportDamageDealt(Combat attacker, float poolBefore)
         {
-            if (OnAnyDamageDealt == null) return;
+            if (!CombatEvents.HasDamageListeners) return;
 
             float dealt = poolBefore - (Health.CurValue + shield);
             if (dealt <= 0f) return;
 
-            OnAnyDamageDealt.Invoke(attacker, this, dealt);
+            CombatEvents.RaiseDamageDealt(attacker, this, dealt);
         }
 
         public void TakeDamage(in DamageData damageData)
@@ -635,233 +602,26 @@ namespace Prototype
                 Die();
         }
 
-        /// <summary>
-        /// 이 타격이 <b>어디서 왔는지</b>. 장판은 시전자와 떨어진 좌표에서 터지므로 기준점을 따로 싣고 오고,
-        /// 없으면 시전자 위치를 쓴다 — 근접 히트박스와 투사체는 그게 맞다.
-        /// 넉백 방향과 패링 전방 판정이 같은 기준을 봐야 해서 한 곳에 모아 둔다.
-        /// </summary>
-        private bool TryResolveHitOrigin(in HitData hit, Combat attacker, out Vector3 origin)
-        {
-            if (hit.hasOrigin)
-            {
-                origin = hit.origin;
-                return true;
-            }
-
-            if (attacker != null)
-            {
-                origin = attacker.transform.position;
-                return true;
-            }
-
-            // 공격자도 기준점도 없다 — 방향을 알 수 없다.
-            origin = transform.position;
-            return false;
-        }
-
-        /// <returns>이번 타격이 실제로 민 방향(수평 단위벡터). 밀지 않았으면 0벡터.</returns>
-        private Vector3 ApplyKnockback(in HitData hit, Combat attacker)
-        {
-            TryResolveHitOrigin(in hit, attacker, out Vector3 casterPos);
-            Vector3 casterFwd = attacker != null ? attacker.Physics.Facing : physics.Facing;
-
-            // 맞은 순간 속력을 0으로 만든다. 남은 관성 위에 힘을 얹으면 같은 데이터인데도
-            // 대상이 달려오던 중이냐 떨어지던 중이냐에 따라 밀리는 거리와 뜨는 높이가
-            // 달라져 연계가 빗나간다. 수직은 낙하 성분만 끊는다 — 올라가는 중에 끊으면
-            // 띄워 둔 몸이 후속타를 맞는 순간 정점에서 뚝 떨어진다.
-            physics.ResetInertia();
-            physics.StopFall();
-
-            if (hit.snapZ && (attacker != null || hit.hasOrigin))
-                physics.SnapZ(casterPos.z);
-
-            // 벽 레이어를 같이 넘긴다 — 밀치기(TowardWall)는 시전자가 아니라 벽이 방향을 정한다.
-            Vector3 dir = hit.ResolveDirection(casterPos, casterFwd, transform.position, physics.WallMask);
-            if (hit.pushDistance > 0f)
-                physics.AddImpulse(dir, physics.ImpulseToTravel(PushClamped(in hit, casterPos)),
-                                   resetInertia: false);
-
-            float launch = ResolveLaunch(in hit);
-
-            // 부호가 방향이다. 위로 올릴 때만 상한이 의미가 있고, 아래로는 그대로 꽂는다.
-            if (launch > 0f) physics.AddLaunch(launch, hit.capAirborne ? hit.airborneHeight : 0f);
-            else if (launch < 0f) physics.AddSlam(-launch);
-
-            return dir;
-        }
-
-        /// <summary>
-        /// 벽 스턴 판정. 밀려 나가기 전에 <b>때린 순간</b> 결정한다.
-        ///
-        /// 접촉 순간의 실측 속도로 재던 때는 두 군데에서 샜다. 하나는 감쇠 —
-        /// <see cref="Physics.AddImpulse"/>가 지수감쇠라 벽에 닿을 때쯤이면 속도가 이미
-        /// 문턱 아래다(밀림 3m · 감쇠 8이면 2m를 밀린 순간 속도가 8 밑으로 떨어진다).
-        /// 다른 하나는 <b>이미 벽에 붙어 있는 적</b> — <c>OnCollisionEnter</c>가 새로 뜨지 않아
-        /// 아무리 세게 밀어도 판정 자체가 열리지 않았다. 벽에 몰아붙이고 치는 게
-        /// 숄더차지의 그림인데 거기서만 안 걸렸다.
-        ///
-        /// 그래서 저작값이 만들어 낼 <b>예상 충돌 속도</b>로 잰다. 지수감쇠는
-        /// 속도 = 감쇠계수 × 남은 거리라, 벽까지의 거리만 알면 값이 그대로 나온다.
-        /// 실제로 안 움직여도(=거리 0) 밀어 넣은 힘 전부가 충돌 속도가 된다.
-        /// </summary>
-        private void TryWallStun(in HitData hit, Vector3 dir)
-        {
-            // 띄우기 · 넉백은 벽 바운드가 가져간다. 벽 스턴은 약경직 전용이다.
-            if (CombatState != CombatState.LightHit) return;
-            if (hit.pushDistance <= 0f || wallBounceTimer > 0f) return;
-
-            dir.y = 0f;
-            if (dir.sqrMagnitude <= 0.0001f) return;
-            dir.Normalize();
-
-            // 레이는 몸 중심에서 나가 반지름만큼 길게 잡힌다 — 그만큼 보수적으로 판정된다.
-            float gap = WallFinder.DistanceToWall(physics.GroundPosition, dir, physics.WallMask);
-            if (gap >= hit.pushDistance) return;   // 벽까지 못 간다(벽이 없으면 무한대)
-
-            float impact = physics.ImpulseDamping * (hit.pushDistance - gap);
-            if (impact < wallStunSpeedThreshold) return;
-
-            // 뒤따라올 실제 접촉이 한 번 더 때리지 않게 막는다 — 판정은 여기 한 번뿐이다.
-            wallBounceTimer = wallBounceCooldown;
-
-            // 경직(SetStunTimer)이 아니라 디버프다. 경직으로 걸면 0.2초 뒤 들어오는 평타의
-            // hitStunDuration이 1.2초를 그대로 덮어써 벽에 처박은 보람이 사라진다.
-            ApplyDebuff(Debuff.Stun, wallStunDuration);
-
-            Vector3 point = physics.GroundPosition + dir * gap;
-            point.y = transform.position.y;
-
-            EmitWallVfx(new Physics.WallHit(-dir, point, impact),
-                        Mathf.Clamp01(impact / Mathf.Max(0.01f, wallHardSpeed)));
-
-            BattleLog.Log(LogCategory.Physics,
-                $"{name} <b>벽 스턴</b> | 벽까지 {gap:0.##}m · 예상 충돌 {impact:0.#} " +
-                $"(문턱 {wallStunSpeedThreshold:0.#} · 스턴 {wallStunDuration:0.##}s)", this);
-        }
-
-        /// <summary>
-        /// 이번 타격이 실을 수직 <b>속도</b>. 양수면 띄우고 음수면 꽂는다 —
-        /// <see cref="HitData.airborneHeight"/>의 부호가 그대로 넘어온다.
-        ///
-        /// 저작은 높이로 하고 환산은 여기서 한 번만 한다. 대상마다 중력이 다를 수 있으므로
-        /// 맞는 쪽의 <see cref="Physics.LaunchForHeight"/>를 쓴다.
-        ///
-        /// 대상이 이미 떠 있으면 <c>aerialAirborneHeight</c>가 우선하고, 0이면
-        /// <c>airborneHeight</c>로 떨어진다.
-        ///
-        /// 공중 대상에는 마지막으로 <see cref="Physics.AirHitLift"/>를 바닥값으로 깐다.
-        /// 띄우기 값이 없는 평타도 한 대마다 조금씩 올려 체공을 벌어 주기 위한 것이다.
-        /// <b>지상 대상은 건드리지 않는다</b> — 지상에까지 걸면 모든 평타가 띄우기가 되어
-        /// 지상 콤보가 통째로 사라진다.
-        /// <b>내려찍기도 건드리지 않는다</b> — 부양을 깔면 꽂으려던 몸이 도로 떠오른다.
-        /// </summary>
-        private float ResolveLaunch(in HitData hit)
-        {
-            if (physics.PhysicsState != PhysicsState.Aerial)
-                return SignedLaunch(hit.airborneHeight);
-
-            float height = hit.aerialAirborneHeight > 0f ? hit.aerialAirborneHeight : hit.airborneHeight;
-            float launch = SignedLaunch(height);
-
-            return launch < 0f ? launch : Mathf.Max(launch, physics.AirHitLift);
-        }
-
-        /// <summary>높이의 크기로 속도를 구하고 부호를 되돌려 준다. 음수 높이 = 아래로.</summary>
-        private float SignedLaunch(float height)
-            => Mathf.Sign(height) * physics.LaunchForHeight(Mathf.Abs(height));
-
-        /// <summary>
-        /// 끌어당기기의 이동 거리를 <b>중심까지의 거리</b>로 잘라 준다.
-        ///
-        /// <see cref="Physics.AddImpulse"/>는 지수감쇠라 이동거리가 충격량에만 비례하고
-        /// 시작 거리와는 무관하다. 그래서 고정값을 쓰면 중심 가까이 있던 적이 중심을 지나쳐
-        /// 반대편으로 튀고, 맞은편 적과 교차하면서 오히려 흩어진다.
-        ///
-        /// 잘라 두면 <c>pushDistance</c>는 "최대 끌어올 거리"의 의미가 되고,
-        /// 멀리 있는 적만 거리를 다 쓰므로 전원이 중심에 모인다.
-        ///
-        /// 저작값이 이미 거리라 <b>여기는 거리 공간에서 끝난다</b> — 힘으로의 환산은 호출부 한 곳뿐이다.
-        /// </summary>
-        private float PushClamped(in HitData hit, Vector3 center)
-        {
-            if (hit.mode != KnockbackMode.TowardCaster) return hit.pushDistance;
-
-            Vector3 flat = center - transform.position;
-            flat.y = 0f;
-
-            return Mathf.Min(hit.pushDistance, flat.magnitude);
-        }
-
         // ── 가드 · 가드브레이크 ──────────────────────────
 
-        /// <summary>
-        /// 브레이크 타이머와 자연 회복. <see cref="Tick"/>이 스케일된 dt로 부른다.
-        /// </summary>
+        /// <summary>브레이크 타이머와 자연 회복. <see cref="Tick"/>이 스케일된 dt로 부른다.</summary>
         private void TickGuard(float dt)
         {
-            if (!HasGuard) return;
+            if (!GuardM.Tick(dt)) return;
 
-            if (guardBreakTimer > 0f)
-            {
-                guardBreakTimer -= dt;
-                if (guardBreakTimer > 0f) return;
-
-                // 브레이크가 끝나면 가드는 가득 찬 상태로 돌아온다 — 다시 벽이 된다.
-                guardBreakTimer = 0f;
-                Guard.Recover(Guard.MaxValue);
-                OnGuardBreakChanged?.Invoke(false);
-
-                BattleLog.Log(LogCategory.Combat, $"{name} 가드 회복 — 슈퍼아머 복귀", this);
-                return;
-            }
-
-            if (Guard.IsFull) return;
-
-            // 맞는 동안은 회복하지 않는다. 찔끔찔끔 때리다 말면 처음부터 다시다.
-            if (guardIdleTimer > 0f)
-            {
-                guardIdleTimer -= dt;
-                if (guardIdleTimer > 0f) return;
-
-                // 지연을 넘긴 만큼만 회복에 쓴다. 남은 dt를 버리면 프레임이 길 때
-                // (불릿타임 복귀 · 에디터 스텝) 회복이 한 프레임씩 밀린다.
-                dt = -guardIdleTimer;
-                guardIdleTimer = 0f;
-            }
-
-            Guard.Recover(guardRegen * dt);
+            OnGuardBreakChanged?.Invoke(false);
+            BattleLog.Log(LogCategory.Combat, $"{name} 가드 회복 — 슈퍼아머 복귀", this);
         }
 
-        /// <summary>
-        /// 이 타격이 깎는 가드. 0이 되면 <see cref="BreakGuard"/>가 무방비 구간을 연다.
-        /// 브레이크 중에는 더 깎지 않는다 — 이미 바닥이고, 회복 시점은 타이머가 정한다.
-        /// </summary>
+        /// <summary>이 타격이 깎는 가드. 0이 되면 <see cref="BreakGuard"/>가 무방비 구간을 연다.</summary>
         private void DrainGuard(in HitData hit)
         {
-            if (!HasGuard || IsGuardBroken) return;
-
-            float loss = GuardLossOf(in hit);
+            bool broke = GuardM.Drain(in hit, out float loss);
             if (loss <= 0f) return;
-
-            Guard.Lose(loss);
-            guardIdleTimer = guardRegenDelay;
 
             OnGuardDrained?.Invoke(loss);
 
-            if (Guard.IsEmpty) BreakGuard();
-        }
-
-        /// <summary>
-        /// 이 타격이 깎을 가드량. 명시값이 있으면 그것을(= 몇 대분인지), 없으면 한 대로 친다.
-        ///
-        /// <b>데미지가 0인 타격은 가드를 깎지 않는다</b> — 패링 반격처럼 "기회"만 주는 판정이
-        /// 벽을 대신 허물면 안 된다. 가드만 깎는 타격을 만들려면 <c>guardDamage</c>를 명시하면 된다.
-        /// </summary>
-        private float GuardLossOf(in HitData hit)
-        {
-            if (hit.guardDamage > 0f) return hit.guardDamage;
-
-            return hit.damageData.damage > 0f ? defaultGuardDamage : 0f;
+            if (broke) BreakGuard();
         }
 
         /// <summary>
@@ -874,14 +634,11 @@ namespace Prototype
         /// </summary>
         private void BreakGuard()
         {
-            guardBreakTimer = guardBreakDuration;
-            guardIdleTimer = 0f;
-
             ClearHitStun();
             OnGuardBreakChanged?.Invoke(true);
 
             BattleLog.Log(LogCategory.Combat,
-                $"{name} <color=#E24AFF><b>가드 브레이크</b></color> — {guardBreakDuration:0.##}s 무방비", this);
+                $"{name} <color=#E24AFF><b>가드 브레이크</b></color> — {GuardM.BreakDuration:0.##}s 무방비", this);
         }
 
         // ── 교대 등장 ───────────────────────────────────
@@ -896,9 +653,7 @@ namespace Prototype
         /// </summary>
         public void GrantSummonInvuln()
         {
-            if (IsDead || summonInvuln <= 0f) return;
-
-            summonInvulnTimer = summonInvuln;
+            if (IsDead || !Defense.GrantSummon()) return;
 
             BattleLog.Log(LogCategory.Combat,
                 $"{name} 교대 등장 — {summonInvuln:0.##}s 무적", this);
@@ -917,7 +672,7 @@ namespace Prototype
         {
             if (IsDead) return;
 
-            parryTimer = parryWindow;
+            Defense.OpenParry();
             BattleLog.Log(LogCategory.Combat, $"{name} 패링 창 열림 ({parryWindow:0.##}s)", this);
         }
 
@@ -925,7 +680,7 @@ namespace Prototype
         /// 전방에서 들어온 타격을 막았는가. 막았으면 <see cref="Hit"/>가 false를 돌려주고
         /// 그 타격은 <b>없던 일이 된다</b> — 데미지 · 경직 · 흡혈 · 피격음까지 전부.
         ///
-        /// <b>성립하는 건 첫 한 대뿐이고, 그 대가로 짧은 무적을 얻는다</b>(<see cref="parrySuccessInvuln"/>).
+        /// <b>성립하는 건 첫 한 대뿐이고, 그 대가로 짧은 무적을 얻는다</b>(<see cref="ParryInvulnDuration"/>).
         /// 개별 타격을 하나씩 지우는 방식이면 다대일에서 한 명분만 막고 나머지를 그대로 맞아
         /// 패링이 사실상 무의미해진다. 뒤이어 들어오는 타격은 무적 구간이 받는다.
         /// </summary>
@@ -936,19 +691,15 @@ namespace Prototype
             // 어디서 온 타격인지 모르면 막을 수 없다.
             if (!TryResolveHitOrigin(in hit, attacker, out Vector3 origin)) return false;
 
-            if (!CombatStateRules.IsFrontal(physics.Facing, origin - transform.position, parryAngle))
-                return false;
-
             // 창을 닫고 무적으로 갈아탄다. 반격이 돌아와도 두 번 성립하지 않는다.
-            parryTimer = 0f;
-            parryInvulnTimer = parrySuccessInvuln;
+            if (!Defense.TryParry(physics.Facing, origin - transform.position)) return false;
 
             BattleLog.Log(LogCategory.Combat,
                 $"{name} <color=#4CC9F0><b>패링</b></color> — {BattleLog.Name(attacker)}의 공격을 흘렸다 " +
                 $"(무효 dmg {hit.damageData.damage:0.#} | 무적 {parrySuccessInvuln:0.##}s)", this);
 
             CounterAttack(attacker);
-            OnParried?.Invoke(this, attacker);
+            CombatEvents.RaiseParried(this, attacker);
 
             return true;
         }
@@ -1000,51 +751,11 @@ namespace Prototype
             BattleLog.Log(LogCategory.Physics, $"{name} 착지 | {CombatState} → <b>{next}</b>", this);
 
             SetCombatState(next);
-            owner?.RequestHitReaction(next);
             if (next == CombatState.Down)
             {
                 SetStunTimer(downDuration);
                 physics.ResetInertia();
             }
-        }
-
-        private void HandleWallHit(Physics.WallHit wall)
-        {
-            // 벽 모서리에서 접촉이 연달아 들어오면 같은 자리에서 계속 튕긴다.
-            if (wallBounceTimer > 0f) return;
-
-            // 벽 스턴(약경직 + 강한 밀림)은 여기서 재지 않는다 — 감쇠 때문에 접촉 순간 속도가
-            // 이미 문턱 아래이고, 벽에 붙은 적은 접촉 이벤트조차 안 뜬다. <see cref="TryWallStun"/> 참고.
-            CombatState next = CombatStateRules.OnWallContact(CombatState);
-            if (next == CombatState) return;
-
-            wallBounceTimer = wallBounceCooldown;
-
-            // 세게 처박을수록 크게 튕기고 높이 뜬다. 0~1로 정규화해 한 값으로 전부 몬다.
-            float force = Mathf.Clamp01(wall.speed / Mathf.Max(0.01f, wallHardSpeed));
-
-            SetCombatState(next);
-            owner?.RequestHitReaction(next);
-
-            float back = physics.Reflect(wall.normal, wallRestitution, wallMinBounce);
-            physics.AddLaunch(Mathf.Lerp(wallMinLaunch, wallMaxLaunch, force));
-
-            EmitWallVfx(in wall, force);
-
-            BattleLog.Log(LogCategory.Physics,
-                $"{name} <b>벽 바운드</b> | {CombatState} → <b>{next}</b> | " +
-                $"충돌 {wall.speed:0.#} → 반사 {back:0.#} (세기 {force * 100f:0}%)", this);
-        }
-
-        /// <summary>부딪힌 벽면에서 터뜨린다. 세게 박을수록 크게.</summary>
-        private void EmitWallVfx(in Physics.WallHit wall, float force)
-        {
-            Vector3 ground = wall.point;
-            float height = Mathf.Max(0f, ground.y - physics.GroundY);
-            ground.y = 0f;
-
-            // 방향은 벽 바깥쪽 — 파편이 벽에서 튀어나오는 것처럼 읽힌다.
-            BattleVfx.WallBounce(ground, height, wall.normal, Mathf.Lerp(0.5f, 1.3f, force));
         }
 
         /// <summary>
@@ -1065,9 +776,7 @@ namespace Prototype
 
             stunTimer = 0f;
             wallBounceTimer = 0f;
-            parryTimer = 0f;
-            parryInvulnTimer = 0f;
-            summonInvulnTimer = 0f;
+            Defense.Clear();
             airHitCount = 0;
 
             SetCombatState(CombatState.Neutral);
@@ -1094,15 +803,13 @@ namespace Prototype
         }
 
         /// <summary>기상 완료. 공중 콤보 카운트를 여기서만 되돌린다(결정 로그 ⑦).</summary>
-        public void OnGetupComplete()
+        private void OnGetupComplete()
         {
             BattleLog.Log(LogCategory.Combat,
                 $"{name} 기상 완료 — airHitCount {airHitCount} → 0", this);
 
             airHitCount = 0;
             SetCombatState(CombatState.Neutral);
-            if (owner != null)
-                owner.StateMachine.TryChangeState(owner.IdleState);
         }
 
         /// <summary>
@@ -1116,6 +823,10 @@ namespace Prototype
             stunTimer = duration;
         }
 
+        /// <summary>
+        /// 전투 상태를 바꾸는 유일한 자리. 몸(IState)은 건드리지 않는다 —
+        /// <see cref="OnCombatStateChanged"/>를 받은 Entity가 맞춘다.
+        /// </summary>
         private void SetCombatState(CombatState next)
         {
             if (CombatState == next) return;

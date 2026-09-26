@@ -43,7 +43,44 @@ namespace Prototype
         {
             allies.Clear();
             enemies.Clear();
+            controlled = null;
         }
+
+        // ── 조작 중인 몸 ────────────────────────────────
+
+        private static Entity controlled;
+
+        /// <summary>
+        /// 지금 유저가 모는 몸. <b>"누가 조작 캐릭터인가"를 묻는 유일한 자리</b>다 —
+        /// 예전에는 디렉터 · 화살표가 각자 태그 컨트롤러를 찾아 묻고 폴백도 제각각이었다.
+        ///
+        /// <see cref="TagSwapController"/>가 교대할 때마다 꽂는다. 태그가 없는 씬(스킬 시험장 · 훈련장)은
+        /// 조종사가 물고 있는 몸, 그것도 없으면 필드에 선 첫 생존 아군이다.
+        ///
+        /// <b>꺼져 있을 수 있다</b> — 콤보 중에는 조작 캐릭터가 벤치에 내려가 있다.
+        /// 필드에 서 있어야 하는 쪽은 부르는 쪽이 <c>activeSelf</c>를 본다.
+        /// </summary>
+        public static Entity Controlled
+        {
+            get
+            {
+                if (controlled != null) return controlled;
+
+                Entity first = null;
+                for (int i = 0; i < allies.Count; i++)
+                {
+                    Entity e = allies[i];
+                    if (e == null || !e.isActiveAndEnabled || e.Combat.IsDead) continue;
+                    if (e.IsPiloted) return e;
+                    if (first == null) first = e;
+                }
+
+                return first;
+            }
+        }
+
+        /// <summary>조작 캐릭터를 꽂는다. <see cref="TagSwapController"/>만 부른다. null이면 폴백으로 간다.</summary>
+        public static void SetControlled(Entity body) => controlled = body;
 
         public static int AliveEnemyCount()
         {

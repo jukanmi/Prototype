@@ -59,11 +59,11 @@ namespace Prototype
                 "CombatManager 프리팹의 RecentHitEnemyCanvas 배선을 확인할 것.", this);
         }
 
-        private void OnEnable() => Combat.OnAnyHitLanded += Track;
+        private void OnEnable() => CombatEvents.OnAnyHitLanded += Track;
 
         private void OnDisable()
         {
-            Combat.OnAnyHitLanded -= Track;
+            CombatEvents.OnAnyHitLanded -= Track;
             UnsubscribeTarget();
         }
 

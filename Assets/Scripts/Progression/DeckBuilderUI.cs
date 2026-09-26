@@ -54,7 +54,7 @@ namespace Prototype
 
         // ── 씬에 하나 ────────────────────────────────────
 
-        public static DeckBuilderUI Instance { get; private set; }
+        private static DeckBuilderUI Instance { get; set; }
 
         public static bool IsOpen => Instance != null && Instance.isOpen;
 

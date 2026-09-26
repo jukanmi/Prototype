@@ -22,8 +22,8 @@ namespace Prototype
     [DisallowMultipleComponent]
     public class StageRoom : MonoBehaviour
     {
-        /// <summary>플레이 중 씬에 하나. 에디트 모드에서는 null이라 <see cref="Find"/>를 쓴다.</summary>
-        public static StageRoom Instance { get; private set; }
+        /// <summary>플레이 중 씬에 하나. 밖에서는 <see cref="Find"/>로만 얻는다 — 에디트 모드에서는 이게 null이다.</summary>
+        private static StageRoom Instance { get; set; }
 
         [Header("기준 방")]
         [Tooltip("100%일 때 적을 세울 수 있는 구역. 벽 콜라이더의 안쪽 면이 이 네 변에 서 있어야 한다.")]

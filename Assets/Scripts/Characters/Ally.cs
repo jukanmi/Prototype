@@ -158,7 +158,7 @@ namespace Prototype
             };
 
             IState state = data.CreateState(in ctx);
-            StateMachine.ForceChangeState(state);
+            BeginSkill(state);
             BeginRelease(state);
 
             return true;
@@ -250,8 +250,7 @@ namespace Prototype
                 BattleLog.Warn(LogCategory.Combo,
                     $"{BattleLog.Name(this)} 실시간 스킬 타임아웃 {timeout:0.#}s — 강제로 Idle", this);
 
-            if (StateMachine.CurState == state && !Combat.IsDead && !IsCommanded)
-                StateMachine.ForceChangeState(IdleState);
+            if (!IsCommanded) EndSkill(state);
 
             releaseRoutine = null;
         }

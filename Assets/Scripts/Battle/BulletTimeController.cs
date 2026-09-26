@@ -7,13 +7,21 @@ namespace Prototype
     /// <summary>
     /// 지휘 모드의 관제탑. 덱 · 손패 · 실행을 이어 붙인다.
     ///
+    /// <b>무엇이 어디 있나.</b>
+    /// <list type="bullet">
+    /// <item>자원(게이지 · 쿨 · 마나 · 보상) — <see cref="TacticGauge"/></item>
+    /// <item>카드 더미(덱 · 손패 · 버린 더미 · 덱 짓기 · 걷어내기) — <see cref="CardSupply"/></item>
+    /// <item>페이즈(RealTime → Freeze → Order → Resolve) — TacticStates.cs 의 private 중첩 클래스</item>
+    /// <item>여기 — 인스펙터 값 · 씬 배선 · 이벤트 구독, 그리고 셋을 잇는 결정</item>
+    /// </list>
+    ///
     /// 손패는 <b>불릿타임과 무관하게 항상 4장이 유지된다</b>. 큐처럼 굴러가서
     /// 실시간에는 U키로 왼쪽 한 장씩 소모하고, 불릿타임을 걸었다 풀면 왼쪽부터 전부 발동한다.
     ///
     /// <b>Time.timeScale은 쓰지 않는다</b> — UI와 애니메이션까지 멈추면
     /// 정작 손패를 조작할 수 없기 때문(결정 로그 ⑥).
     /// </summary>
-    public class BulletTimeController : MonoBehaviour
+    public partial class BulletTimeController : MonoBehaviour
     {
         [Header("참조")]
         [SerializeField] private Player player;
@@ -66,25 +74,13 @@ namespace Prototype
                  "4장을 넘겨도 되며, 손패 4칸이 비는 대로 이 순서를 순환한다.")]
         [SerializeField] private List<SkillData> fixedHand = new List<SkillData>();
 
-        /// <summary>고정 손패에서 다음에 낼 카드의 인덱스. 순환한다.</summary>
-        private int fixedCursor;
-
-        /// <summary>고정 손패가 켜져 있고 실제로 낼 카드가 있는지.</summary>
-        public bool UsesFixedHand => useFixedHand && fixedHand != null && fixedHand.Count > 0;
-
         [Header("전술 페이즈")]
         [Tooltip("Freeze 체류 시간(비배율 초). 0이면 다음 프레임에 곧바로 Order로 넘어간다. UI 확대 연출을 넣을 자리.")]
         [SerializeField] private float freezeDuration = 0f;
 
-        private readonly Deck deck = new Deck();
-        private readonly Hand hand = new Hand();
-        private readonly Discard discard = new Discard();
-
         private TacticStateMachine tactic;
-        private float cooldownTimer;
-
-        /// <summary>평타 적중 보상을 이미 받은 평타 번호. 한 대가 여럿을 맞혀도 한 번만 주려고 든다.</summary>
-        private readonly BasicHitLedger basicHitLedger = new BasicHitLedger();
+        private TacticGauge budget;
+        private CardSupply cards;
 
         /// <summary>
         /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
@@ -92,10 +88,15 @@ namespace Prototype
         /// </summary>
         private readonly List<(Combat combat, Action handler)> deathHooks = new List<(Combat, Action)>();
 
-        public Energy Gauge { get; private set; }
+        /// <summary>자원. 인스펙터 값이 필요해서 Awake에서 만든다.</summary>
+        private TacticGauge Budget => budget;
 
-        /// <summary>전술 상태머신. 입력은 전부 여기로 넣는다.</summary>
-        public TacticStateMachine Tactic => tactic;
+        /// <summary>
+        /// 카드 더미. 첫 접근에 만든다 — Awake 없이 손패를 구독하는 경로(에디터 테스트 · UI)가 있다.
+        /// </summary>
+        private CardSupply Cards => cards ?? (cards = new CardSupply(this));
+
+        // ── 페이즈 ───────────────────────────────────────
 
         public TacticPhase Phase => tactic != null ? tactic.Phase : TacticPhase.RealTime;
 
@@ -105,34 +106,40 @@ namespace Prototype
         /// <summary>손패 순서 변경 · 조준이 열려 있는지. UI가 이 값으로 조작을 켜고 끈다.</summary>
         public bool AllowsCardEdit => tactic != null && tactic.AllowsCardEdit;
 
-        public float FreezeDuration => freezeDuration;
+        /// <summary>페이즈가 바뀌었다. 인자는 (prev, next).</summary>
+        public event Action<TacticPhase, TacticPhase> OnPhaseChanged;
+
+        /// <summary>불릿타임에 들어갔다(Freeze 진입).</summary>
+        public event Action OnEnter;
+
+        /// <summary>불릿타임이 풀리고 실행이 시작됐다(Resolve 진입).</summary>
+        public event Action OnExit;
 
         // ── UI가 읽는 값 ─────────────────────────────────
         // 게이지 막대가 "얼마나 찼나"만으로는 못 그린다. 어디까지 차야 쓸 수 있는지,
         // 지금 쿨타임인지까지 보여야 유저가 E를 눌러도 되는 때를 안다.
 
+        public Energy Gauge => budget?.Gauge;
+
         /// <summary>진입에 필요한 게이지 비율. 막대 위 임계 눈금이 여기 선다.</summary>
         public float RequiredRatio => requiredRatio;
 
         /// <summary>남은 쿨타임(초). 0이면 쿨타임 아님.</summary>
-        public float CooldownRemaining => Mathf.Max(0f, cooldownTimer);
+        public float CooldownRemaining => budget != null ? budget.CooldownRemaining : 0f;
 
         /// <summary>게이지만 놓고 봤을 때 진입선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
-        public bool IsGaugeReady => Gauge != null && Gauge.Ratio >= requiredRatio;
+        public bool IsGaugeReady => budget != null && budget.IsReady;
 
-        public Deck Deck => deck;
-        public Hand Hand => hand;
-        public Discard Discard => discard;
+        public Deck Deck => Cards.Deck;
+        public Hand Hand => Cards.Hand;
+        public Discard Discard => Cards.Discard;
         public ComboExecutor Executor => executor;
-
-        public event Action OnEnter;
-        public event Action OnExit;
 
         /// <summary>
         /// 파티 명단의 주인을 꽂는다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서
         /// 부르므로 이 컴포넌트의 <see cref="Awake"/>(0)보다 먼저 도착한다.
         ///
-        /// 이 참조로 <c>CollectPartyCards</c>가 덱을 짓는다 — 비면 손패가 통째로 빈다.
+        /// 이 참조로 덱을 짓는다 — 비면 손패가 통째로 빈다.
         /// </summary>
         public void SetHero(Player hero)
         {
@@ -141,7 +148,12 @@ namespace Prototype
 
         private void Awake()
         {
-            Gauge = new Energy(EnergyType.BulletTimeGauge, maxGauge);
+            budget = new TacticGauge(new TacticGauge.Config(
+                maxGauge, gaugeRegen, requiredRatio, parryGaugeReward,
+                basicAttackGaugeReward, manaCost, cooldown), this);
+
+            Cards.UseFixedHand(useFixedHand ? fixedHand : null);
+
             if (player == null) player = FindAnyObjectByType<Player>();
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
             if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
@@ -154,7 +166,7 @@ namespace Prototype
         {
             // 견본 손패는 덱을 아예 거치지 않는다. 여기서 덱을 지으면
             // "16장이 아니다" 경고만 뜨고 아무도 그 카드를 뽑지 않는다.
-            if (buildDeckOnStart && !UsesFixedHand)
+            if (buildDeckOnStart && !Cards.UsesFixedHand)
             {
                 if (WantsDeckPicker)
                 {
@@ -179,11 +191,11 @@ namespace Prototype
             if (executor != null)
             {
                 executor.OnSlotConsumed += HandleSlotConsumed;
-                executor.OnExecuteFinished += HandleExecuteFinished;
+                executor.OnExecuteFinished += RefillHand;
             }
 
-            Combat.OnParried += HandleParried;
-            Combat.OnAnyBasicHitLanded += HandleBasicHitLanded;
+            CombatEvents.OnParried += HandleParried;
+            CombatEvents.OnAnyBasicHitLanded += HandleBasicHitLanded;
             SubscribeAllyDeaths();
         }
 
@@ -192,11 +204,11 @@ namespace Prototype
             if (executor != null)
             {
                 executor.OnSlotConsumed -= HandleSlotConsumed;
-                executor.OnExecuteFinished -= HandleExecuteFinished;
+                executor.OnExecuteFinished -= RefillHand;
             }
 
-            Combat.OnParried -= HandleParried;
-            Combat.OnAnyBasicHitLanded -= HandleBasicHitLanded;
+            CombatEvents.OnParried -= HandleParried;
+            CombatEvents.OnAnyBasicHitLanded -= HandleBasicHitLanded;
             UnsubscribeAllyDeaths();
         }
 
@@ -205,71 +217,23 @@ namespace Prototype
             // 게이지와 쿨타임은 실제 시간으로 흐른다. 정지 중 자가 충전을 막는다.
             float dt = TimeControl.UnscaledDeltaTime;
 
-            if (cooldownTimer > 0f) cooldownTimer -= dt;
-
-            if (!IsActive)
-                Gauge.Recover(gaugeRegen * dt);
-
+            budget.Tick(dt, frozen: IsActive);
             tactic.Tick(dt);
         }
 
-        /// <summary>
-        /// 대시 패링 보상. 막은 쪽이 아군일 때만 준다 —
-        /// 적이 패링했는데 플레이어 게이지가 차면 안 된다.
-        /// </summary>
-        private void HandleParried(Combat defender, Combat attacker)
-        {
-            if (defender == null || !EarnsGauge(defender.Owner)) return;
+        private void HandleParried(Combat defender, Combat attacker) => budget?.RewardParry(defender);
 
-            Gauge.Recover(parryGaugeReward);
-
-            BattleLog.Log(LogCategory.Combo,
-                $"{BattleLog.Name(defender.Owner)} 패링 보상 — 게이지 +{parryGaugeReward:0.#} " +
-                $"({Gauge.Ratio * 100f:0}%)", this);
-        }
-
-        /// <summary>
-        /// 평타 적중 보상. 한 대당 한 번 — 같은 번호로 두 번째 적을 맞힌 건 장부가 거른다.
-        /// 로그는 남기지 않는다. 연타마다 한 줄씩 쌓여 전투 로그가 묻힌다.
-        /// </summary>
         private void HandleBasicHitLanded(Combat attacker, Combat victim, int swing)
-        {
-            if (basicAttackGaugeReward <= 0f) return;
-            if (attacker == null || victim == null) return;
-            if (!EarnsBasicHitGauge(attacker.Owner, victim.Owner)) return;
-            if (!basicHitLedger.TryClaim(attacker, swing)) return;
+            => budget?.RewardBasicHit(attacker, victim, swing);
 
-            Gauge.Recover(basicAttackGaugeReward);
-        }
+        // ── 진입 ─────────────────────────────────────────
 
-        /// <summary>
-        /// 이 몸의 행동이 불릿타임 게이지를 채우는가. 아군 진영만 — 적의 패링 · 평타는 보상이 아니다.
-        /// </summary>
-        public static bool EarnsGauge(Entity actor) => actor != null && actor.Faction == Faction.Ally;
-
-        /// <summary>
-        /// 평타 적중이 보상감인가. 때린 쪽이 아군이고 <b>맞은 쪽이 적</b>이어야 한다.
-        /// 히트박스가 이미 같은 진영을 거르지만, 진영을 모르는 몸(허수아비 · 파괴물)까지 치지 않게 한 번 더 본다.
-        /// </summary>
-        public static bool EarnsBasicHitGauge(Entity attacker, Entity victim)
-            => EarnsGauge(attacker) && victim != null && victim.Faction == Faction.Enemy;
+        /// <summary>E키. 실제 판정은 현재 전술 페이즈가 내린다 — Order에서는 이 키가 곧 실행이다.</summary>
+        public bool Enter() => tactic != null && tactic.OnBulletTimeKey();
 
         public bool CanEnter
-        {
-            get
-            {
-                if (IsActive || executor == null || executor.IsRunning) return false;
-                if (cooldownTimer > 0f) return false;
-                if (Gauge.Ratio < requiredRatio) return false;
-                if (manaCost > 0f && player != null)
-                {
-                    Energy mana = player.Energies.GetEnergy(EnergyType.Mana);
-                    if (mana == null || mana.CurValue < manaCost) return false;
-                }
-
-                return true;
-            }
-        }
+            => !IsActive && executor != null && !executor.IsRunning
+               && budget != null && budget.Shortfall(player) == null;
 
         /// <summary>진입이 막힌 이유. 로그 전용.</summary>
         public string BlockReason()
@@ -277,58 +241,17 @@ namespace Prototype
             if (IsActive) return "이미 진입 중";
             if (executor == null) return "ComboExecutor 미연결";
             if (executor.IsRunning) return "이전 콤보 실행 중";
-            if (cooldownTimer > 0f) return $"쿨타임 {cooldownTimer:0.##}s 남음";
-            if (Gauge.Ratio < requiredRatio) return $"게이지 {Gauge.Ratio * 100f:0}% / 필요 {requiredRatio * 100f:0}%";
-            return "마나 부족";
+            return budget?.Shortfall(player) ?? "알 수 없음";
         }
-
-        /// <summary>E키 요청. 실제 판정은 현재 전술 페이즈가 내린다.</summary>
-        public bool Enter() => tactic != null && tactic.OnBulletTimeKey();
-
-        /// <summary>Spacebar 요청. Order 페이즈에서만 Resolve로 넘어간다.</summary>
-        public void Exit() => tactic?.OnExecuteKey();
 
         /// <summary>
-        /// 다 쓴 카드를 버린 더미로. 견본 손패는 카드를 그 자리에서 찍어 내므로 회수하지 않는다 —
-        /// 넣어 두면 아무도 뽑지 않는 더미만 무한히 커진다.
+        /// 페이즈를 곧바로 옮긴다. <b>테스트 전용</b> — 게임 경로는 반드시 <see cref="Enter"/>를 탄다.
+        /// 코스트 · 게이지 검사를 건너뛰므로 게임 코드에서 부르면 규칙이 깨진다.
         /// </summary>
-        private void Recycle(ComboCard card)
-        {
-            if (UsesFixedHand) return;
-            discard.Add(card);
-        }
+        internal void ForcePhase(TacticPhase phase) => tactic?.ChangeTo(tactic.StateOf(phase));
 
-        // ── 손패 조작 (불릿타임 중 UI가 호출) ─────────────
-
-        /// <summary>손패 두 칸의 순서를 바꾼다. 실행 순서가 그대로 바뀐다.</summary>
-        public bool SwapHand(int a, int b)
-        {
-            if (!AllowsCardEdit) return false;
-            if (!hand.Swap(a, b)) return false;
-
-            return true;
-        }
-
-        /// <summary>조준을 확정해 해당 칸에 박제한다.</summary>
-        public bool SetHandTarget(int idx, in TargetInfo target)
-        {
-            if (!AllowsCardEdit) return false;
-            if (!hand.SetTarget(idx, in target)) return false;
-
-            return true;
-        }
-
-        // ── TacticState가 호출하는 실제 동작 ─────────────
-        // 페이즈가 "언제"를 결정하고, 여기가 "무엇을"을 담당한다.
-
-        /// <summary>진입 코스트 지불. Freeze 진입 시 1회.</summary>
-        public void PayEntryCost()
-        {
-            if (manaCost > 0f && player != null)
-                player.Energies.GetEnergy(EnergyType.Mana)?.Lose(manaCost);
-        }
-
-        public void FreezeTime()
+        /// <summary>Freeze 진입. 시간은 <see cref="TimeControl"/>로만 멈춘다(결정 로그 ⑥).</summary>
+        private void FreezeTime()
         {
             TimeControl.Scale = 0f;
 
@@ -336,119 +259,16 @@ namespace Prototype
                 $"<b>불릿타임 진입</b> — TimeControl.Scale = 0 (Time.timeScale 미사용) | 마나 {manaCost:0.#} 소모", this);
         }
 
-        public void ResumeTime() => TimeControl.Scale = 1f;
+        // ── 손패 조작 (불릿타임 중 UI가 호출) ─────────────
 
-        public void ConsumeGauge() => Gauge.Lose(Gauge.MaxValue);
+        /// <summary>손패 두 칸의 순서를 바꾼다. 실행 순서가 그대로 바뀐다.</summary>
+        public bool SwapHand(int a, int b) => AllowsCardEdit && Hand.Swap(a, b);
 
-        public void StartCooldown() => cooldownTimer = cooldown;
-
-        public void CancelTargeting() => targetSelector?.Cancel();
+        /// <summary>조준을 확정해 해당 칸에 박제한다.</summary>
+        public bool SetHandTarget(int idx, in TargetInfo target) => AllowsCardEdit && Hand.SetTarget(idx, in target);
 
         /// <summary>덱에서 뽑아 손패를 4장까지 채운다. 덱이 비면 Discard가 섞여 되돌아온다.</summary>
-        public void RefillHand()
-        {
-            if (UsesFixedHand)
-            {
-                RefillFixedHand();
-                return;
-            }
-
-            int drawn = hand.Refill(deck, discard);
-            if (drawn > 0)
-                BattleLog.Log(LogCategory.Deck,
-                    $"손패 보충 {drawn}장 → {hand.Count}장 | 덱 {deck.Count} | Discard {discard.Count}", this);
-        }
-
-        /// <summary>
-        /// 견본 손패 보충. 덱·Discard를 아예 건드리지 않는다 —
-        /// 여기서 나간 카드는 회수할 필요가 없다(<see cref="HandleSlotConsumed"/>가 넣는 Discard는
-        /// 고정 손패가 쓰지 않으므로 그냥 쌓였다가 무시된다).
-        /// </summary>
-        private void RefillFixedHand()
-        {
-            int added = 0;
-
-            // 리스트가 전부 null이면 아래 continue가 영원히 돌 수 있다.
-            // 손패를 다 채우거나 리스트를 한 바퀴 다 훑으면 그만둔다.
-            int tries = Hand.Size + fixedHand.Count;
-
-            while (hand.Count < Hand.Size && tries-- > 0)
-            {
-                SkillData data = fixedHand[fixedCursor];
-                fixedCursor = (fixedCursor + 1) % fixedHand.Count;
-
-                if (data == null) continue;
-                if (!hand.Add(new ComboCard(data))) break;
-
-                added++;
-            }
-
-            if (added > 0)
-                BattleLog.Log(LogCategory.Deck,
-                    $"<b>견본 손패</b> 보충 {added}장 → {hand.Count}장 | {DescribeHand()}", this);
-        }
-
-        /// <summary>손패를 "A → B → C" 한 줄로. 로그에서 체인 순서를 눈으로 확인하는 용도.</summary>
-        private string DescribeHand()
-        {
-            var names = new string[hand.Count];
-            for (int i = 0; i < hand.Count; i++)
-            {
-                SkillData d = hand.Get(i).Data;
-                names[i] = d != null ? d.skillName : "?";
-            }
-
-            return string.Join(" → ", names);
-        }
-
-        /// <summary>
-        /// 손패를 통째로 실행 큐로 굳힌다. 왼쪽부터 순서대로 들어간다.
-        /// 시전자를 못 찾은 카드는 발동하지 못하므로 그대로 Discard로 보낸다.
-        /// </summary>
-        public Queue<ComboSlot> BuildQueueFromHand()
-        {
-            BattleLog.Log(LogCategory.Bullet, "<b>불릿타임 해제</b> — TimeControl.Scale = 1", this);
-
-            var q = new Queue<ComboSlot>(Hand.Size);
-            List<ComboSlot> all = hand.TakeAll();
-
-            for (int i = 0; i < all.Count; i++)
-            {
-                ComboSlot s = all[i];
-                SkillData data = s.Data;
-                if (data == null)
-                {
-                    // 그냥 continue하면 카드가 덱에서 증발한다. Discard로 돌려보낸다.
-                    Recycle(s.card);
-                    continue;
-                }
-
-                Ally caster = ResolveCaster(data.role);
-                if (caster == null)
-                {
-                    BattleLog.Warn(LogCategory.Combo,
-                        $"{data.skillName} 건너뜀 — {data.role} 동료가 파티에 없거나 사망", this);
-                    Recycle(s.card);
-                    continue;
-                }
-
-                s.caster = caster;
-                if (!s.aimed || !s.target.IsValid)
-                    s.target = caster.AutoTarget(data);
-
-                q.Enqueue(s);
-            }
-
-            BattleLog.Log(LogCategory.Combo,
-                $"실행 큐 생성 {q.Count}장 | " +
-                string.Join(" → ", Array.ConvertAll(q.ToArray(), s => s.Data != null ? s.Data.skillName : "?")), this);
-
-            return q;
-        }
-
-        public void RaiseEnter() => OnEnter?.Invoke();
-
-        public void RaiseExit() => OnExit?.Invoke();
+        private void RefillHand() => Cards.Refill();
 
         /// <summary>카드의 직업에 맞는 동료를 찾는다. 스킬은 직업 전용이다.</summary>
         public Ally ResolveCaster(Role role)
@@ -462,15 +282,16 @@ namespace Prototype
             return null;
         }
 
+        /// <summary>
+        /// 실행이 끝난 카드. 콤보가 전부 끝난 뒤의 보충은 <c>OnExecuteFinished</c>가 한다 —
+        /// 실행 도중에 채우면 아직 Discard로 안 간 카드가 다시 뽑힐 수 있다.
+        /// </summary>
         private void HandleSlotConsumed(ComboCard card)
         {
-            // 견본 손패는 매번 새 ComboCard를 찍어 낸다. 버린 더미에 넣으면 회수되지 않은 채 계속 쌓인다.
-            if (UsesFixedHand) return;
-
             // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 실행 큐는 손패를 통째로 굳혀 두므로
             // 콤보 도중에 시전자가 죽어도 남은 슬롯이 여기까지 흘러온다 —
             // 그대로 넣으면 덱이 소진될 때 Discard가 회수되면서 죽은 동료 카드가 되살아난다.
-            if (purgeCardsOnAllyDeath && IsOrphanCard(card))
+            if (purgeCardsOnAllyDeath && !Cards.UsesFixedHand && IsOrphanCard(card))
             {
                 BattleLog.Log(LogCategory.Deck,
                     $"{(card.Data != null ? card.Data.skillName : "(빈 카드)")} — " +
@@ -478,8 +299,7 @@ namespace Prototype
                 return;
             }
 
-            // 사용한 카드는 즉시 소멸 이동.
-            discard.Add(card);
+            Cards.Recycle(card);
         }
 
         /// <summary>살아 있는 시전자가 없어 영영 쓸 수 없게 된 카드인지.</summary>
@@ -537,38 +357,22 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 한 직업의 카드를 덱 · 손패 · 버린 더미에서 통째로 걷어낸다.
-        /// <b>버린 더미까지 지우는 게 핵심</b> — 남겨 두면 덱이 소진될 때 회수돼 되살아난다.
+        /// 한 직업의 카드를 덱 · 손패 · 버린 더미에서 통째로 걷어낸다(<see cref="CardSupply.PurgeRole"/>).
         /// </summary>
         public int PurgeRole(Role role)
         {
-            bool Match(ComboCard c) => c != null && c.Data != null && c.Data.role == role;
-
-            int fromDeck = deck.RemoveAll(Match);
-            int fromHand = hand.RemoveAll(Match);
-            int fromDiscard = discard.RemoveAll(Match);
-            int total = fromDeck + fromHand + fromDiscard;
-
-            BattleLog.Log(LogCategory.Deck,
-                $"<b>{role} 카드 {total}장 제거</b> — 덱 {fromDeck} · 손패 {fromHand} · 버린 더미 {fromDiscard} → " +
-                $"덱 {deck.Count} · 손패 {hand.Count} · 버린 더미 {discard.Count}", this);
-
+            int total = Cards.PurgeRole(role);
             if (total == 0) return 0;
 
             // 손패에 구멍이 났으면 메운다. 실행 중에는 건드리지 않는다 —
-            // 아직 Discard로 안 간 카드가 다시 뽑히기 때문(HandleExecuteFinished가 대신 채운다).
+            // 아직 Discard로 안 간 카드가 다시 뽑히기 때문(OnExecuteFinished가 대신 채운다).
             if (executor == null || !executor.IsRunning)
                 RefillHand();
 
             return total;
         }
 
-        private void HandleExecuteFinished()
-        {
-            // 콤보가 전부 끝난 뒤에 다시 4장을 채운다.
-            // 실행 도중에 채우면 아직 Discard로 안 간 카드가 다시 뽑힐 수 있다.
-            RefillHand();
-        }
+        // ── 덱 짓기 · 보상 ───────────────────────────────
 
         /// <summary>
         /// 지금 적용되는 시작 덱 규칙.
@@ -622,7 +426,7 @@ namespace Prototype
         public List<SkillData> AvailableSkillPool()
         {
             int ignored = 0;
-            List<ComboCard> partyCards = player != null ? CollectPartyCards(ref ignored) : null;
+            List<ComboCard> partyCards = player != null ? CardSupply.CollectPartyCards(player, ref ignored) : null;
 
             return SkillCatalog.Pool(AvailableRoles(), partyCards);
         }
@@ -634,83 +438,8 @@ namespace Prototype
             RefillHand();
         }
 
-        /// <summary>
-        /// 포스트 배틀에서만 호출. 전투 중 덱 수정은 막는다.
-        /// 카드는 <b>Discard에 적재</b>하고 덱은 0장으로 둔다 — 첫 드로우가 회수 · 셔플을 겸한다.
-        ///
-        /// <b>런 덱이 있으면 그것이 이긴다.</b> 파티 장착 카드는 런의 첫 씨앗일 뿐이고,
-        /// 그 뒤로는 레벨업으로 얻은 카드까지 든 <see cref="RunProgression.Cards"/>가 진짜 덱이다.
-        /// 여기서 매번 파티로 새로 짜면 스테이지를 넘어가는 순간 얻은 카드가 전부 사라진다.
-        /// </summary>
-        public void BuildDeck()
-        {
-            if (player == null) return;
-
-            int empty = 0;
-            List<ComboCard> partyCards = CollectPartyCards(ref empty);
-
-            // 첫 씬에서 한 번만 씨를 뿌리고, 그 뒤로는 런 덱을 그대로 읽는다.
-            // 테스트 모드는 그 씨앗을 <b>비운다</b> — 0장으로 시작해 레벨업으로만 카드가 들어온다.
-            RunProgression run = RunProgression.Current;
-            run.SeedDeck(StartupMode == DeckStartupMode.Empty ? null : partyCards);
-
-            // 장수가 아니라 Seeded로 가른다. 테스트 모드의 0장 덱을 "아직 안 짰다"로 읽으면
-            // 파티 카드 16장이 도로 부어진다.
-            List<ComboCard> cards = run.Seeded ? new List<ComboCard>(run.Cards) : partyCards;
-
-            deck.Clear();
-            discard.Clear();
-            discard.AddRange(cards);
-
-            int members = DeckRules.CountFilled(player.Party);
-
-            BattleLog.Log(LogCategory.Deck,
-                $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작) | " +
-                $"동료 {members}명 · 한 바퀴 {DeckRules.CycleHands(cards.Count)}핸드 | 런 Lv.{run.Level}", this);
-
-            if (empty > 0)
-                BattleLog.Warn(LogCategory.Deck,
-                    $"<b>SkillData가 비어 있는 카드 {empty}장을 덱에서 제외했다.</b> " +
-                    "Ally 인스펙터의 Equipped 항목에 스킬 에셋을 지정할 것.", this);
-
-            // 장수는 <b>파티 장착분</b>으로 따진다. 런 덱은 레벨업으로 늘고 합성으로 줄어드는 게
-            // 정상이라 여기서 세면 성장할 때마다 거짓 경고가 뜬다.
-            //
-            // 목표는 상수 16이 아니라 <b>지금 인원 × 4</b>다. 3인 파티는 12장이 정상이고,
-            // 동료가 영구 사망해 슬롯이 비어도 마찬가지다 — 상수와 비교하면 그때부터
-            // 매 스테이지 거짓 경고가 뜬다.
-            string problem = DeckRules.Explain(partyCards.Count, members);
-            if (problem != null)
-                BattleLog.Warn(LogCategory.Deck, $"파티 {problem}", this);
-        }
-
-        /// <summary>파티 4명이 장착한 카드를 걷는다. SkillData가 빈 카드는 세어서 제외한다.</summary>
-        private List<ComboCard> CollectPartyCards(ref int empty)
-        {
-            var cards = new List<ComboCard>(Prototype.Deck.Size);
-
-            foreach (Ally a in player.Party)
-            {
-                if (a == null) continue;
-
-                foreach (ComboCard c in a.Equipped)
-                {
-                    if (c == null) continue;
-
-                    // SkillData가 없는 카드는 영영 발동할 수 없다.
-                    // 덱에 들이면 손패 맨 앞을 막아 U키가 먹통이 되므로 여기서 잘라 낸다.
-                    if (c.Data == null)
-                    {
-                        empty++;
-                        continue;
-                    }
-
-                    cards.Add(c);
-                }
-            }
-
-            return cards;
-        }
+        /// <summary>포스트 배틀에서만 호출. 전투 중 덱 수정은 막는다(<see cref="CardSupply.Build"/>).</summary>
+        public void BuildDeck() => Cards.Build(player, StartupMode);
 
         /// <summary>
         /// 레벨업으로 받은 카드를 지금 판에 들인다.
@@ -726,297 +455,14 @@ namespace Prototype
         {
             if (card == null || card.Data == null) return;
 
-            if (fusedFrom != null && fuseCount > 0)
-            {
-                int eaten = ConsumeNormalCopies(fusedFrom, fuseCount);
-
-                BattleLog.Log(LogCategory.Deck,
-                    $"합성 재료 회수 — {fusedFrom.skillName} {eaten}/{fuseCount}장", this);
-            }
-
-            PlaceInHand(card);
+            Cards.Grant(card, fusedFrom, fuseCount);
 
             // 합성으로 손패가 빘을 수 있다. 남은 칸은 평소대로 덱에서 채운다.
             RefillHand();
 
             BattleLog.Log(LogCategory.Deck,
                 $"카드 획득 — {card.Data.skillName}{(card.Golden ? " <color=#FFD166>(황금)</color>" : "")} " +
-                $"→ 손패 | 덱 {deck.Count} · 손패 {hand.Count} · Discard {discard.Count}", this);
+                $"→ 손패 | 덱 {Deck.Count} · 손패 {Hand.Count} · Discard {Discard.Count}", this);
         }
-
-        /// <summary>
-        /// 카드를 손패에 바로 꽂는다. 손패가 차 있으면 <b>맨 오른쪽</b> 칸을 덱으로 돌려보내고
-        /// 그 자리를 내준다 — 왼쪽부터 발동하므로 오른쪽 끝이 유저의 다음 몇 수에 가장 영향이 적다.
-        /// </summary>
-        private void PlaceInHand(ComboCard card)
-        {
-            if (hand.IsFull)
-            {
-                ComboSlot pushed = hand.RemoveAt(hand.Count - 1);
-
-                // 밀려난 카드는 잃지 않는다. 덱 아래로 돌아가 제 차례에 다시 나온다.
-                if (pushed.card != null) deck.Add(pushed.card);
-            }
-
-            // 손패가 꽉 찬 채로 여기 오는 경우는 없지만, 실패해도 카드를 잃지는 않는다.
-            if (!hand.Add(card)) discard.Add(card);
-        }
-
-        /// <summary>
-        /// 합성 재료를 지금 판에서 걷어낸다. <b>버린 더미 → 덱 → 손패</b> 순서다 —
-        /// 손패는 유저가 눈으로 짜 둔 순서라 마지막까지 아낀다.
-        /// 황금은 재료가 아니므로 건드리지 않는다.
-        /// </summary>
-        private int ConsumeNormalCopies(SkillData data, int count)
-        {
-            int budget = count;
-
-            bool Match(ComboCard c)
-            {
-                if (budget <= 0) return false;
-                if (c == null || c.Golden || c.Data != data) return false;
-
-                budget--;
-                return true;
-            }
-
-            int removed = discard.RemoveAll(Match);
-            removed += deck.RemoveAll(Match);
-            removed += hand.RemoveAll(Match);
-
-            return removed;
-        }
-    }
-
-    // ══ 전술 층 ═══════════════════════════════════════════
-    // 옛 Battle/Tactic/ 3파일. BulletTimeController가 유일한 소유자라 여기로 들어왔다.
-
-    /// <summary>
-    /// 전술 층의 페이즈. 기획서 "전술" 박스 = 실시간 전투 ↔ 불릿타임.
-    /// 엔티티 상태머신(<see cref="IState"/>)과는 다른 층이므로 인터페이스를 공유하지 않는다.
-    /// </summary>
-    public enum TacticPhase
-    {
-        /// <summary>실시간 전투. 플레이어가 직접 조작한다.</summary>
-        RealTime,
-        /// <summary>시간 정지 · 덱 셔플 · 손패 드로우. 입력을 받지 않는 연출 구간.</summary>
-        Freeze,
-        /// <summary>손패를 슬롯에 배치 · 회수 · 조준한다. 유저가 머무는 구간.</summary>
-        Order,
-        /// <summary>조립한 큐를 실행한다. 카드 편집 입력을 전부 무시한다.</summary>
-        Resolve,
-    }
-
-    /// <summary>전술 페이즈 하나. 키 입력은 각 페이즈가 직접 해석한다.</summary>
-    public abstract class TacticState
-    {
-        protected readonly BulletTimeController Ctx;
-        protected readonly TacticStateMachine SM;
-
-        protected TacticState(BulletTimeController ctx, TacticStateMachine sm)
-        {
-            Ctx = ctx;
-            SM = sm;
-        }
-
-        public abstract TacticPhase Phase { get; }
-
-        public virtual void Enter() { }
-        /// <summary>dt는 항상 <see cref="TimeControl.UnscaledDeltaTime"/>. 정지 중에도 흘러야 한다.</summary>
-        public virtual void Tick(float dt) { }
-        public virtual void Exit() { }
-
-        /// <summary>E키. 처리했으면 true.</summary>
-        public virtual bool OnBulletTimeKey() => false;
-
-        /// <summary>Spacebar. 처리했으면 true.</summary>
-        public virtual bool OnExecuteKey() => false;
-
-        /// <summary>이 페이즈에서 손패 · 슬롯을 만질 수 있는지.</summary>
-        public virtual bool AllowsCardEdit => false;
-    }
-
-    /// <summary>
-    /// 전술 층 상태머신. <see cref="BulletTimeController"/>가 내부에 하나만 들고 있다.
-    /// MonoBehaviour가 아니므로 씬 연결이 필요 없다.
-    /// </summary>
-    public class TacticStateMachine
-    {
-        private readonly BulletTimeController ctx;
-        private TacticState cur;
-
-        public RealTimeState RealTime { get; }
-        public FreezeState Freeze { get; }
-        public OrderState Order { get; }
-        public ResolveState Resolve { get; }
-
-        public TacticPhase Phase => cur != null ? cur.Phase : TacticPhase.RealTime;
-
-        /// <summary>손패 · 슬롯 편집이 열려 있는 페이즈인지. UI가 이 값으로 켜고 끈다.</summary>
-        public bool AllowsCardEdit => cur != null && cur.AllowsCardEdit;
-
-        public event Action<TacticPhase, TacticPhase> OnPhaseChanged; // (prev, next)
-
-        public TacticStateMachine(BulletTimeController ctx)
-        {
-            this.ctx = ctx;
-
-            RealTime = new RealTimeState(ctx, this);
-            Freeze = new FreezeState(ctx, this);
-            Order = new OrderState(ctx, this);
-            Resolve = new ResolveState(ctx, this);
-        }
-
-        /// <summary>BulletTimeController.Start에서 한 번 호출한다.</summary>
-        public void Begin()
-        {
-            cur = RealTime;
-            cur.Enter();
-        }
-
-        public void Tick(float unscaledDt)
-        {
-            cur?.Tick(unscaledDt);
-        }
-
-        public void ChangeTo(TacticState next)
-        {
-            if (next == null || next == cur) return;
-
-            TacticPhase prev = Phase;
-
-            cur?.Exit();
-            cur = next;
-            next.Enter();
-
-            BattleLog.Log(LogCategory.Bullet, $"전술 페이즈: {prev} → <b>{next.Phase}</b>", ctx);
-            OnPhaseChanged?.Invoke(prev, next.Phase);
-        }
-
-        // ── 입력 진입점. 현재 페이즈만 해석한다 ─────────────
-
-        public bool OnBulletTimeKey() => cur != null && cur.OnBulletTimeKey();
-
-        public bool OnExecuteKey() => cur != null && cur.OnExecuteKey();
-    }
-
-    /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · U키 단발 사용 구간.</summary>
-    public class RealTimeState : TacticState
-    {
-        public RealTimeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
-
-        public override TacticPhase Phase => TacticPhase.RealTime;
-
-        public override void Enter()
-        {
-            Ctx.ResumeTime();
-
-            // 실행이 끝난 직후일 수 있다. 손패가 비어 있으면 여기서 마저 채운다.
-            Ctx.RefillHand();
-        }
-
-        public override bool OnBulletTimeKey()
-        {
-            if (!Ctx.CanEnter)
-            {
-                BattleLog.Log(LogCategory.Bullet, $"불릿타임 진입 거부 — {Ctx.BlockReason()}", Ctx);
-                return false;
-            }
-
-            SM.ChangeTo(SM.Freeze);
-            return true;
-        }
-    }
-
-    /// <summary>
-    /// 시간 정지. 연출용 구간이라 입력을 받지 않는다.
-    /// 손패는 이미 채워져 있으므로 여기서 드로우하지 않는다.
-    /// 길이가 0이면 다음 프레임에 곧바로 Order로 넘어간다.
-    /// </summary>
-    public class FreezeState : TacticState
-    {
-        private float timer;
-
-        public FreezeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
-
-        public override TacticPhase Phase => TacticPhase.Freeze;
-
-        public override void Enter()
-        {
-            timer = 0f;
-
-            Ctx.PayEntryCost();
-            Ctx.FreezeTime();
-            Ctx.RaiseEnter();
-        }
-
-        public override void Tick(float dt)
-        {
-            timer += dt;
-            if (timer >= Ctx.FreezeDuration)
-                SM.ChangeTo(SM.Order);
-        }
-    }
-
-    /// <summary>손패 조작 구간. 순서 변경 · 조준. 유저가 실제로 머무는 곳.</summary>
-    public class OrderState : TacticState
-    {
-        public OrderState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
-
-        public override TacticPhase Phase => TacticPhase.Order;
-
-        public override bool AllowsCardEdit => true;
-
-        // E와 Space 모두 해제 · 실행. E 토글 조작을 그대로 유지한다.
-        public override bool OnBulletTimeKey() => GoResolve();
-        public override bool OnExecuteKey() => GoResolve();
-
-        private bool GoResolve()
-        {
-            SM.ChangeTo(SM.Resolve);
-            return true;
-        }
-    }
-
-    /// <summary>
-    /// 손패를 왼쪽부터 순서대로 발동한다. 시간이 다시 흐르고 카드 조작 입력은 전부 막힌다.
-    /// 실행이 끝나야 RealTime으로 돌아간다 — 그 전엔 재진입 불가.
-    /// </summary>
-    public class ResolveState : TacticState
-    {
-        public ResolveState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
-
-        public override TacticPhase Phase => TacticPhase.Resolve;
-
-        public override void Enter()
-        {
-            Ctx.CancelTargeting();
-            Ctx.ResumeTime();
-            Ctx.ConsumeGauge();
-            Ctx.StartCooldown();
-
-            Queue<ComboSlot> queue = Ctx.BuildQueueFromHand();
-            Ctx.RaiseExit();
-
-            if (queue != null && queue.Count > 0)
-                Ctx.Executor?.Execute(queue);
-            else
-                Ctx.RefillHand();   // 실행할 게 없으면 Executor가 안 돌아 보충 신호도 안 온다
-        }
-
-        public override void Tick(float dt)
-        {
-            // 큐가 비어 있었으면 Executor가 시작조차 안 하므로 곧바로 복귀한다.
-            if (Ctx.Executor == null || !Ctx.Executor.IsRunning)
-                SM.ChangeTo(SM.RealTime);
-        }
-
-        public override bool OnBulletTimeKey()
-        {
-            BattleLog.Log(LogCategory.Bullet, "불릿타임 진입 거부 — 콤보 실행 중", Ctx);
-            return false;
-        }
-
-        public override bool OnExecuteKey() => false;
     }
 }

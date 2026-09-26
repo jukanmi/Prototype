@@ -113,8 +113,21 @@ namespace Prototype
         /// </summary>
         private readonly List<(Combat combat, Action handler)> deathHooks = new List<(Combat, Action)>();
 
-        /// <summary>지금 조작 중인 몸의 로스터 칸. 아무도 못 세웠으면 -1.</summary>
-        public int CurrentIndex { get; private set; } = -1;
+        private int currentIndex = -1;
+
+        /// <summary>
+        /// 지금 조작 중인 몸의 로스터 칸. 아무도 못 세웠으면 -1.
+        /// 바뀔 때마다 <see cref="BattleRegistry.Controlled"/>에 알린다 — 밖에서는 그쪽에 묻는다.
+        /// </summary>
+        public int CurrentIndex
+        {
+            get => currentIndex;
+            private set
+            {
+                currentIndex = value;
+                BattleRegistry.SetControlled(Current);
+            }
+        }
 
         public IReadOnlyList<Entity> Roster => roster;
 
@@ -142,13 +155,6 @@ namespace Prototype
 
         public Entity Current
             => CurrentIndex >= 0 && CurrentIndex < roster.Count ? roster[CurrentIndex] : null;
-
-        /// <summary>
-        /// 파티가 서 있는 바닥 좌표. <see cref="Current"/>의 트랜스폼을 직접 읽지 말고 이쪽을 쓸 것 —
-        /// 콤보 중에는 조작 캐릭터가 꺼져 있고 무대에 선 시전자가 그 자리를 들고 있다
-        /// (<see cref="WaveSpawnPlanner.DepthFor"/>).
-        /// </summary>
-        public Vector3 ControlledGround => CurrentSeat().Ground;
 
         public float CooldownRemaining => Mathf.Max(0f, cooldownTimer);
 
@@ -187,8 +193,8 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 구독과 초기 배치는 <b>Start</b>에서 한다. <see cref="BulletTimeController.Tactic"/>이
-        /// 그쪽 Awake에서 만들어지므로 여기서 Awake에 붙으면 실행 순서에 따라 null을 잡는다.
+        /// 구독과 초기 배치는 <b>Start</b>에서 한다. 로스터는 <see cref="PartyAssembler"/>가
+        /// Awake에서 몸을 다 만든 뒤에야 완성된다.
         /// </summary>
         private void Start()
         {
@@ -196,7 +202,7 @@ namespace Prototype
 
             if (bulletTime != null)
             {
-                bulletTime.Tactic.OnPhaseChanged += HandlePhaseChanged;
+                bulletTime.OnPhaseChanged += HandlePhaseChanged;
 
                 // 무대는 이쪽에서 꽂는다. Executor가 태그 시스템을 찾아다니면
                 // 의존이 거꾸로 서고, 스케줄러 없이 도는 에디트모드 테스트가 씬을 타게 된다.
@@ -211,8 +217,10 @@ namespace Prototype
 
         private void OnDestroy()
         {
-            if (bulletTime != null && bulletTime.Tactic != null)
-                bulletTime.Tactic.OnPhaseChanged -= HandlePhaseChanged;
+            BattleRegistry.SetControlled(null);
+
+            if (bulletTime != null)
+                bulletTime.OnPhaseChanged -= HandlePhaseChanged;
 
             UnsubscribeDeaths();
         }

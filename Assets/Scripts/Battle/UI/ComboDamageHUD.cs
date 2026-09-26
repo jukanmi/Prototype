@@ -71,9 +71,9 @@ namespace Prototype
             if (panel != null) panel.SetActive(false);
         }
 
-        private void OnEnable() => Combat.OnAnyDamageDealt += HandleDamage;
+        private void OnEnable() => CombatEvents.OnAnyDamageDealt += HandleDamage;
 
-        private void OnDisable() => Combat.OnAnyDamageDealt -= HandleDamage;
+        private void OnDisable() => CombatEvents.OnAnyDamageDealt -= HandleDamage;
 
         /// <summary>
         /// 스케일된 dt로 굴린다. 불릿타임에 머문 시간이 콤보 길이에 들어가면

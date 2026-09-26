@@ -63,9 +63,9 @@ namespace Prototype
             homeSpot = physics != null ? physics.GroundPosition : transform.position;
         }
 
-        private void OnEnable() => Combat.OnAnyHitLanded += HandleAnyHit;
+        private void OnEnable() => CombatEvents.OnAnyHitLanded += HandleAnyHit;
 
-        private void OnDisable() => Combat.OnAnyHitLanded -= HandleAnyHit;
+        private void OnDisable() => CombatEvents.OnAnyHitLanded -= HandleAnyHit;
 
         /// <summary>
         /// 정지 중에는 아무것도 세지 않아야 한다 — 불릿타임에 머문 시간이 싸이클 길이에 들어가면
@@ -135,7 +135,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이번 프레임에 실제로 들어간 피해. <see cref="Combat.OnAnyHitLanded"/>는 수치를 주지 않으므로
+        /// 이번 프레임에 실제로 들어간 피해. <see cref="CombatEvents.OnAnyHitLanded"/>는 수치를 주지 않으므로
         /// 체력 변화로 잰다 — 방어력 · 보호막 · 피해감소가 <b>다 적용된 뒤</b>의 값이라
         /// 오히려 이쪽이 알고 싶은 값이다.
         /// </summary>

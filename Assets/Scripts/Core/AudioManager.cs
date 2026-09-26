@@ -49,7 +49,7 @@ namespace Prototype
 
         // ── 볼륨 ─────────────────────────────────────────
 
-        /// <summary>0~1. 슬라이더(<see cref="UIManager"/>)가 현재 값을 읽어 자기 위치를 맞춘다.</summary>
+        /// <summary>0~1. 슬라이더(<see cref="SettingsPanel"/>)가 현재 값을 읽어 자기 위치를 맞춘다.</summary>
         public float MasterVolume => masterVolume;
         public float BgmVolume => bgmVolume;
         public float SfxVolume => sfxVolume;
@@ -75,8 +75,8 @@ namespace Prototype
         /// Combat 의 static 이벤트를 문다. 시전자를 모르는 관전자 자리라 여기가 맞다 —
         /// 스킬 · 투사체 · 장판 어느 경로로 맞든 Combat.Attack 한 곳을 지나간다.
         /// </summary>
-        private void OnEnable()  => Combat.OnAnyHitLanded += HandleAnyHitLanded;
-        private void OnDisable() => Combat.OnAnyHitLanded -= HandleAnyHitLanded;
+        private void OnEnable()  => CombatEvents.OnAnyHitLanded += HandleAnyHitLanded;
+        private void OnDisable() => CombatEvents.OnAnyHitLanded -= HandleAnyHitLanded;
 
         private void OnDestroy()
         {

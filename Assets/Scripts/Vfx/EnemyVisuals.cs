@@ -613,7 +613,7 @@ namespace Prototype
     /// 만들게 되면서 빌보드 · 깊이 배율 · 정렬 계산이 두 곳에 생겼다. 지금은 여기가
     /// "누구 머리 위에 무엇을"만 답한다.
     ///
-    /// <see cref="TagSwapController.Current"/>를 추적하며, 교대 시 새 몸으로 즉시 옮겨간다.
+    /// <see cref="BattleRegistry.Controlled"/>를 추적하며, 교대 시 새 몸으로 즉시 옮겨간다.
     /// </summary>
     public class ControlledCharacterArrow : MonoBehaviour, IMarkerSource
     {
@@ -634,8 +634,6 @@ namespace Prototype
 
         [Tooltip("화살표 기본 색상.")]
         [SerializeField] private Color arrowColor = new Color(1f, 0.86f, 0.35f, 1f);
-
-        private TagSwapController cachedSwap;
 
         /// <summary>
         /// 화살표가 놓일 자리.
@@ -675,27 +673,7 @@ namespace Prototype
             });
         }
 
-        private Entity ResolveTarget()
-        {
-            if (cachedSwap == null)
-                cachedSwap = FindAnyObjectByType<TagSwapController>();
-
-            if (cachedSwap != null && cachedSwap.Current != null)
-                return Usable(cachedSwap.Current);
-
-            // 태그 컨트롤러가 없는 씬을 위한 폴백: 아군 중 조종사가 물고 있는 몸
-            var allies = BattleRegistry.Allies;
-            if (allies != null)
-            {
-                for (int i = 0; i < allies.Count; i++)
-                {
-                    Entity e = allies[i];
-                    if (e != null && e.IsPiloted && Usable(e) != null) return e;
-                }
-            }
-
-            return null;
-        }
+        private Entity ResolveTarget() => Usable(BattleRegistry.Controlled);
 
         /// <summary>
         /// 그려도 되는 몸인가. 꺼져 있거나 죽었으면 표식도 없다.
