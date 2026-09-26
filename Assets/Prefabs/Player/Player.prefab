@@ -708,7 +708,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AllyBasicAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 4418688777939350860}
   skillAttack: {fileID: 7850888382636613912}
   windup: 0.12

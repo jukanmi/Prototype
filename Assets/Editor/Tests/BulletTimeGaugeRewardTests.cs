@@ -72,7 +72,7 @@ namespace Prototype.Tests
         public void BuildBasicHit_StampsFreshSwingEveryCall()
         {
             Ally ally = New<Ally>("Ally");
-            ally.gameObject.AddComponent<AllyBasicAttack>();
+            ally.gameObject.AddComponent<BasicAttackProfile>();
 
             HitData first = ally.BuildBasicHit(0);
             HitData second = ally.BuildBasicHit(1);
