@@ -50,7 +50,7 @@ namespace Prototype
                  "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
         public BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
 
-        [Header("조작감 — 0이면 프리팹 값")]
+        [Header("조작감 — 0이면 기본값(대시 쿨 0.6 · 선입력 0.25)")]
         [Tooltip("대시를 다시 쓸 수 있을 때까지의 시간. 캐릭터마다 다른 값이다.")]
         public float dashCooldown;
 

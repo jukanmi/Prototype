@@ -470,7 +470,6 @@ GameObject:
   - component: {fileID: 2347727313910848887}
   - component: {fileID: 3254890401935831399}
   - component: {fileID: 5208665346919485714}
-  - component: {fileID: 4106221556622777783}
   - component: {fileID: 6969689125479973388}
   m_Layer: 10
   m_Name: Player
@@ -698,20 +697,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 3254890401935831399}
   crossFade: 0.05
---- !u!114 &4106221556622777783
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8689976968062280079}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b998316939a736d4fa2c3b775e5ae07d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
-  dashCooldown: 0.6
-  attackBufferWindow: 0.25
 --- !u!114 &6969689125479973388
 MonoBehaviour:
   m_ObjectHideFlags: 0

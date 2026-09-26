@@ -116,6 +116,20 @@ namespace Prototype
         JumpTime,
         AttackPower,
         Defense,
+
+        // ── 조작감 ── 유저가 모는 몸에만 의미가 있다. 캐릭터 성능이라 몸의 스탯이다 —
+        // 조종사(PlayerPilot)에 두면 전사로 대시하고 교대한 마법사가 그 쿨을 물려받는다.
+        // 직렬화된 정수가 밀리지 않게 항상 맨 뒤에 붙인다.
+
+        /// <summary>대시를 다시 쓸 수 있을 때까지의 시간(초).</summary>
+        DashCooldown,
+
+        /// <summary>
+        /// 평타 선입력이 살아 있는 시간(초). 공격 모션 중에 누른 입력을 이만큼 기억했다가 다음 타로 잇는다.
+        /// 너무 짧으면 프레임을 맞춰야 연타가 되고, 너무 길면 한 번 누른 게 두 타로 샌다.
+        /// 1타 캔슬 시점(cancelStart)보다 확실히 길게 잡을 것.
+        /// </summary>
+        AttackBufferWindow,
     }
 
     public enum EnergyType

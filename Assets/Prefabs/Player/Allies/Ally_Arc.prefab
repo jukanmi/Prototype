@@ -390,7 +390,6 @@ GameObject:
   - component: {fileID: 2578054286948040413}
   - component: {fileID: 6958648664858843833}
   - component: {fileID: 162575531633295382}
-  - component: {fileID: 6665003273098374542}
   - component: {fileID: 1103258449401101546}
   m_Layer: 10
   m_Name: Ally_Arc
@@ -631,20 +630,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 6958648664858843833}
   crossFade: 0.05
---- !u!114 &6665003273098374542
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6431140714613573192}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b998316939a736d4fa2c3b775e5ae07d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
-  dashCooldown: 0.6
-  attackBufferWindow: 0.25
 --- !u!114 &1103258449401101546
 MonoBehaviour:
   m_ObjectHideFlags: 0

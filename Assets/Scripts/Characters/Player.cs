@@ -81,9 +81,10 @@ namespace Prototype
 
             ConfigureBasicAttack(data.basicAttackWindup, data.basicAttackActiveEnd, data.basicAttackTotal);
 
-            // 조작감은 몸에 붙은 Pilotable이 들고 있다 — 조종사는 몸을 갈아타므로
+            // 조작감은 몸의 스탯이다 — 조종사는 몸을 갈아타므로
             // 거기 두면 전사로 대시하고 교대한 마법사가 그 쿨을 물려받는다.
-            GetComponent<Pilotable>()?.ApplyData(data);
+            if (data.dashCooldown > 0f) Stats.Set(StatType.DashCooldown, data.dashCooldown);
+            if (data.attackBufferWindow > 0f) Stats.Set(StatType.AttackBufferWindow, data.attackBufferWindow);
         }
 
         /// <summary>

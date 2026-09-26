@@ -356,8 +356,15 @@ namespace Prototype
         /// <summary>선입력을 채운다. 유저 입력을 읽는 쪽만 부른다.</summary>
         public void BufferAttack(float window) => attackBuffer.Press(window);
 
-        /// <summary>선입력 창을 흘린다. <see cref="ClearCommand"/>와 달리 프레임마다 지워지지 않는다.</summary>
-        public void TickAttackBuffer(float dt) => attackBuffer.Tick(dt);
+        /// <summary>
+        /// 선입력 창과 대시 쿨을 흘린다. <see cref="ClearCommand"/>와 달리 프레임마다 지워지지 않는다.
+        /// <b>조종 중인 몸만</b> 흐른다 — 벤치에 내려간 몸은 조종사가 안 부르므로 얼어 있다.
+        /// </summary>
+        public void TickPilotTimers(float dt)
+        {
+            attackBuffer.Tick(dt);
+            if (dashTimer > 0f) dashTimer -= dt;
+        }
 
         /// <summary>선입력이 살아 있는지 들여다본다. 비우지 않는다.</summary>
         public bool HasAttackBuffer => attackBuffer.HasInput;
@@ -367,6 +374,18 @@ namespace Prototype
 
         /// <summary>선입력을 버린다. 공격에 들어가는 순간, 그 입력을 두 번 쓰지 않으려고 부른다.</summary>
         public void ClearAttackBuffer() => attackBuffer.Clear();
+
+        // ── 조작감 (옛 Pilotable) ────────────────────────
+        // 값은 스탯이다(StatType.DashCooldown · AttackBufferWindow). 조종사가 이 몸을 몰 때만 읽는다.
+
+        private float dashTimer;
+
+        /// <summary>평타 선입력이 살아 있는 시간. 조종사가 누름을 버퍼에 넣을 때 쓴다.</summary>
+        public float AttackBufferWindow => stats.GetValue(StatType.AttackBufferWindow, 0.25f);
+
+        public bool DashReady => dashTimer <= 0f;
+
+        public void StartDashCooldown() => dashTimer = stats.GetValue(StatType.DashCooldown, 0.6f);
 
         /// <summary>
         /// 공격 예고(선딜) 중인가. <b>맞기 전에 읽을 수 있는 유일한 신호</b>다.
@@ -514,6 +533,8 @@ namespace Prototype
             if (stats.GetStat(StatType.JumpTime) == null) stats.Set(StatType.JumpTime, 0.35f);
             if (stats.GetStat(StatType.AttackPower) == null) stats.Set(StatType.AttackPower, 10f);
             if (stats.GetStat(StatType.Defense) == null) stats.Set(StatType.Defense, 0f);
+            if (stats.GetStat(StatType.DashCooldown) == null) stats.Set(StatType.DashCooldown, 0.6f);
+            if (stats.GetStat(StatType.AttackBufferWindow) == null) stats.Set(StatType.AttackBufferWindow, 0.25f);
 
             energies.Ensure(EnergyType.Mana, 100f);
         }

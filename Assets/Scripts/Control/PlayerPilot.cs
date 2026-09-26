@@ -23,16 +23,8 @@ namespace Prototype
     [DefaultExecutionOrder(-100)]
     public class PlayerPilot : MonoBehaviour
     {
-        /// <summary>
-        /// <see cref="Pilotable"/>이 없는 몸을 몰게 됐을 때 쓰는 선입력 창.
-        /// 배선이 빠져도 평타 연타가 통째로 죽지는 않게 하는 안전값이다.
-        /// </summary>
-        private const float FallbackAttackBufferWindow = 0.25f;
-
         /// <summary>지금 모는 몸. 아무도 안 몰면 null.</summary>
         public Entity Body { get; private set; }
-
-        private Pilotable pilotable;
 
         /// <summary>
         /// 이 몸을 몬다. 직전 몸은 자동으로 놓는다.
@@ -47,12 +39,7 @@ namespace Prototype
             Body = body;
             if (body == null) return;
 
-            pilotable = body.GetComponent<Pilotable>();
             body.IsPiloted = true;
-
-            if (pilotable == null)
-                BattleLog.Warn(LogCategory.State,
-                    $"{BattleLog.Name(body)}에 Pilotable이 없다 — 대시 쿨 · 선입력 창이 기본값으로 돈다", this);
         }
 
         /// <summary>
@@ -77,16 +64,16 @@ namespace Prototype
             Take(fallback);
         }
 
-        /// <summary>플레이어 몸을 우선한다. 없으면 아무 조종 가능한 몸이나.</summary>
+        /// <summary>플레이어 몸을 우선한다. 없으면 필드에 선 아군 아무나.</summary>
         private static Entity FindFallbackBody()
         {
-            Pilotable[] bodies = FindObjectsByType<Pilotable>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var bodies = BattleRegistry.Allies;
 
             Entity any = null;
 
-            for (int i = 0; i < bodies.Length; i++)
+            for (int i = 0; i < bodies.Count; i++)
             {
-                var e = bodies[i].GetComponent<Entity>();
+                Entity e = bodies[i];
                 if (e == null || e.Combat == null || e.Combat.IsDead) continue;
 
                 if (e is Player) return e;
@@ -108,7 +95,6 @@ namespace Prototype
             Body.ClearIntent();
 
             Body = null;
-            pilotable = null;
         }
 
         /// <summary>
@@ -134,8 +120,7 @@ namespace Prototype
 
             // 선입력 창은 이 아래의 어떤 return보다 먼저 흘러야 한다 —
             // 지휘 · 정지 · 경직으로 빠져나가는 동안 창이 얼면 풀리는 순간 묵은 입력이 터진다.
-            body.TickAttackBuffer(dt);
-            pilotable?.TickCooldowns(dt);
+            body.TickPilotTimers(dt);
 
             // 등장 연출 중에는 조작이 먹지 않는다. 화면 밖에서 날아오는 도중에 입력을 받으면
             // 몸이 두 목표 사이에서 떨고, 착지 자리가 스킬 사거리 기준점이라 그대로 어긋난다.
@@ -180,15 +165,15 @@ namespace Prototype
                 // 같은 누름을 두 곳에 넣는다. Command는 Idle · Move가 읽어 공격에 들어가는 데 쓰고,
                 // 버퍼는 AttackState가 읽어 다음 타로 잇는 데 쓴다.
                 // 공격 중에는 Command를 아무도 안 읽으므로 버퍼가 유일한 통로다.
-                body.BufferAttack(pilotable != null ? pilotable.AttackBufferWindow : FallbackAttackBufferWindow);
+                body.BufferAttack(body.AttackBufferWindow);
             }
             else if (input.JumpPressed)
             {
                 command = Command.Jump;
             }
-            else if (input.DashPressed && pilotable != null && pilotable.DashReady)
+            else if (input.DashPressed && body.DashReady)
             {
-                pilotable.StartDashCooldown();
+                body.StartDashCooldown();
                 command = Command.Dash;
             }
             else if (direction.sqrMagnitude > 0.0001f)
