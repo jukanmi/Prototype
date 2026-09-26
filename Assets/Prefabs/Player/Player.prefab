@@ -711,9 +711,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 4418688777939350860}
   skillAttack: {fileID: 7850888382636613912}
-  windup: 0.12
-  activeEnd: 0.24
-  total: 0.45
   basicHit:
     damageData:
       damage: 10

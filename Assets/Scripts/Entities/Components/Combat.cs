@@ -46,7 +46,7 @@ namespace Prototype
 
         [Header("대시 패링")]
         [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간.\n\n" +
-                 "예고(!)가 basicAttackWindup의 두 배 동안 떠 있으므로, 그 안에 누른 대시가 " +
+                 "예고(!)가 평타 선딜(windup)의 두 배 동안 떠 있으므로, 그 안에 누른 대시가 " +
                  "타격까지 살아 있으려면 이 값이 넉넉해야 한다.\n" +
                  "StatType.DashCooldown(기본 0.6)보다 크면 사실상 상시 무적이 되니 그보다는 작게 둘 것.")]
         [SerializeField] private float parryWindow = 0.45f;

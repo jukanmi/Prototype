@@ -203,7 +203,7 @@ namespace Prototype
             if (entity == null) return 0f;
 
             // 지상 평타는 여기 안 온다 — 단계마다 길이가 달라 Apply가 따로 처리한다.
-            return ReferenceEquals(state, entity.AerialAttackState) ? entity.BasicAttackTotal : 0f;
+            return ReferenceEquals(state, entity.AerialAttackState) ? entity.ActiveAttackTotal : 0f;
         }
 
         /// <summary>

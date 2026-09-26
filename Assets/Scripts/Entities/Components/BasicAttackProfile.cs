@@ -3,11 +3,11 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 평타 한 벌. 히트박스 · 타이밍 · 타격(<see cref="HitData"/>) · 투사체 · 연타 단계가 여기 모인다.
+    /// 평타 한 벌. 히트박스 · 타격(<see cref="HitData"/>) · 투사체 · 단계 표가 여기 모인다.
     ///
-    /// <b>단타는 연타의 특수한 경우다.</b> 단계 표(<see cref="stages"/>)가 비어 있으면 단발,
-    /// 채우면 그 수만큼 이어치기가 된다. 예전에는 아군(연타)/적(단발) 두 클래스로 갈라 두었는데,
-    /// 차이가 단계 표 하나뿐이라 합쳤다.
+    /// <b>평타는 단계 표(<see cref="stages"/>) 하나로 정의된다.</b> 단타는 칸 하나, 3연타는 칸 셋 —
+    /// 공격키를 누를 때마다 다음 칸으로 넘어가고, 마지막 칸에서는 눌러도 반응이 없다.
+    /// 타이밍은 칸마다 적는다. "비우면 기본값" 같은 두 번째 층은 없다.
     ///
     /// 이어치기는 유저가 모는 몸에서만 일어난다 — <see cref="AttackState"/>가 선입력
     /// (<see cref="AttackInputBuffer"/>)을 보고 넘어가는데, 그 버퍼를 채우는 건 <see cref="PlayerPilot"/> 하나뿐이다.
@@ -28,16 +28,8 @@ namespace Prototype
         [Tooltip("스킬 전용 히트박스. 비우면 평타 히트박스를 재사용한다.")]
         [SerializeField] private Attack skillAttack;
 
-        [Header("타이밍")]
-        [Tooltip("선딜. 이 시점에 히트박스가 켜진다.")]
-        [SerializeField] private float windup = 0.12f;
-        [Tooltip("히트박스가 꺼지는 시점.")]
-        [SerializeField] private float activeEnd = 0.24f;
-        [Tooltip("후딜 포함 전체 길이.")]
-        [SerializeField] private float total = 0.45f;
-
         [Header("타격")]
-        [Tooltip("평타 한 대의 기반. 연타 단계는 이 위에 델타만 얹는다.")]
+        [Tooltip("모든 칸이 공유하는 타격. 칸은 이 위에 배율과(필요하면) 반응만 얹는다.")]
         [SerializeField]
         private HitData basicHit = new HitData
         {
@@ -57,11 +49,14 @@ namespace Prototype
         [SerializeField] private float projectileRange = 9f;
         [SerializeField] private int projectilePierce = 0;
 
-        [Header("연타")]
-        [Tooltip("평타 연타 단계. 비워 두면 단발 평타다. 적은 비워 둘 것 — AI는 이어치기를 못 한다.\n\n" +
-                 "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.\n" +
+        [Header("단계")]
+        [Tooltip("평타 전부. 단타는 칸 하나, 연타는 그 수만큼. 적은 칸 하나만 둘 것 — AI는 이어치기를 못 한다.\n\n" +
                  "반응(상태 · 넉백 · 띄우기) 칸은 overrideReaction 을 켠 칸에서만 산다.")]
-        [SerializeField] private BasicAttackStage[] stages = new BasicAttackStage[0];
+        [SerializeField]
+        private BasicAttackStage[] stages =
+        {
+            new BasicAttackStage { label = "1타", windup = 0.12f, activeEnd = 0.24f, total = 0.45f, damageMultiplier = 1f },
+        };
 
         // ── 히트박스 ────────────────────────────────────
 
@@ -77,33 +72,10 @@ namespace Prototype
             if (basicAttack != null && basicAttack.Attacker == null) basicAttack.Attacker = attacker;
         }
 
-        // ── 타이밍 ──────────────────────────────────────
+        // ── 단계 ────────────────────────────────────────
 
-        public float Windup => windup;
-        public float ActiveEnd => activeEnd;
-        public float Total => total;
-
-        /// <summary>
-        /// 타이밍을 갈아 끼운다. 표(<see cref="PlayerData"/> · <see cref="EnemyData"/>)와
-        /// 에디터 생성기가 같은 경로를 쓰게 API로 연다.
-        ///
-        /// <b>0 이하는 "건드리지 않는다"</b>는 뜻이다. 표에 안 적힌 값까지 덮으면
-        /// 프리팹 설정이 조용히 지워진다.
-        ///
-        /// 순서(<c>windup &lt; activeEnd &lt; total</c>)는 여기서 강제하지 않는다 —
-        /// <see cref="Validate"/>가 경고를 내는데, 여기서 조용히 고치면 그 경고가 안 뜬다.
-        /// </summary>
-        public void Configure(float newWindup, float newActiveEnd, float newTotal)
-        {
-            if (newWindup > 0f) windup = newWindup;
-            if (newActiveEnd > 0f) activeEnd = newActiveEnd;
-            if (newTotal > 0f) total = newTotal;
-        }
-
-        // ── 연타 ────────────────────────────────────────
-
-        /// <summary>단계 수. 단계 표가 비었으면 단발 = 1.</summary>
-        public int StageCount => stages != null && stages.Length > 0 ? stages.Length : 1;
+        /// <summary>단계 수. 0이면 평타가 없다(<see cref="Validate"/>가 알린다).</summary>
+        public int StageCount => stages != null ? stages.Length : 0;
 
         /// <summary>연타를 저작한 몸인지.</summary>
         public bool HasCombo => StageCount > 1;
@@ -111,13 +83,13 @@ namespace Prototype
         /// <summary>이 단계에 재생할 클립. 없으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
         public AnimationClip ClipFor(int stage) => Has(stage) ? stages[stage].clip : null;
 
-        /// <summary>단계 타이밍. 0으로 비워 둔 값은 위의 기본 평타 값으로 접어서 돌려준다.</summary>
+        /// <summary>단계 타이밍. 없는 단계면 전부 0 — 상태가 즉시 끝난다.</summary>
         public BasicAttackTiming TimingFor(int stage)
         {
-            if (Has(stage)) return BasicComboRules.ResolveTiming(in stages[stage], windup, activeEnd, total);
+            if (Has(stage)) return BasicComboRules.ResolveTiming(in stages[stage]);
 
             BasicAttackStage none = default;
-            return BasicComboRules.ResolveTiming(in none, windup, activeEnd, total);
+            return BasicComboRules.ResolveTiming(in none);
         }
 
         /// <summary>
@@ -134,7 +106,7 @@ namespace Prototype
             stages = source;
         }
 
-        /// <summary>단계의 델타를 얹는다. 단발이면 기반 그대로.</summary>
+        /// <summary>단계의 델타를 얹는다. 없는 단계면 기반 그대로.</summary>
         private HitData ApplyStage(in HitData basic, int stage)
             => Has(stage) ? BasicComboRules.BuildStageHit(in basic, in stages[stage]) : basic;
 
@@ -194,19 +166,18 @@ namespace Prototype
         /// </summary>
         public void Validate(Object context)
         {
-            if (windup >= total)
+            if (StageCount == 0)
+            {
                 BattleLog.Warn(LogCategory.Combat,
-                    $"{name}: 평타 선딜({windup:0.##}s)이 전체 길이({total:0.##}s) 이상이다. " +
-                    "히트박스가 켜지지 않는다 — windup < activeEnd < total 순서를 지킬 것.", context);
-
-            // 연타는 단계마다 같은 함정을 밟을 수 있다. 폴백을 먹인 뒤의 값으로 본다.
-            if (!HasCombo) return;
+                    $"{name}: 평타 단계가 하나도 없다 — 이 몸은 평타를 못 친다. 칸을 하나 이상 둘 것.", context);
+                return;
+            }
 
             // 적은 선입력을 못 채워 1타에서 멈춘다. 게임은 도니까 여기서 말해 두지 않으면 모른다.
-            if (context is Enemy)
+            if (HasCombo && context is Enemy)
                 BattleLog.Warn(LogCategory.Combat,
                     $"{name}: 적에게 연타 단계 {StageCount}개가 들어갔다 — AI는 이어치기를 못 해 1타에서 멈춘다. " +
-                    "단계 표를 비울 것.", context);
+                    "칸을 하나만 둘 것.", context);
 
             for (int i = 0; i < StageCount; i++)
             {

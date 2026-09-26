@@ -49,21 +49,6 @@ namespace Prototype.EditorTools
         public static bool SetSkillHitbox(GameObject root, Attack hitbox)
             => SetReference(root, "skillAttack", hitbox);
 
-        /// <summary>선딜 · 판정끝 · 전체 길이를 한 번에 박는다.</summary>
-        public static void SetTiming(GameObject root, float windup, float activeEnd, float total)
-        {
-            BasicAttackProfile profile = GetOrAdd(root);
-            if (profile == null) return;
-
-            var so = new SerializedObject(profile);
-            so.FindProperty("windup").floatValue = windup;
-            so.FindProperty("activeEnd").floatValue = activeEnd;
-            so.FindProperty("total").floatValue = total;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            EditorUtility.SetDirty(profile);
-        }
-
         private static bool SetReference(GameObject root, string field, Object value)
         {
             BasicAttackProfile profile = GetOrAdd(root);

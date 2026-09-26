@@ -13,31 +13,30 @@ namespace Prototype.Tests
         // 1타 기준: 선딜 0.10 · 판정끝 0.20 · 캔슬 0.20 · 전체 0.32
         private static readonly BasicAttackTiming Stage = new BasicAttackTiming(0.10f, 0.20f, 0.20f, 0.32f);
 
-        // ── 타이밍 폴백 ──────────────────────────────────
+        // ── 타이밍 ───────────────────────────────────────
 
         [Test]
-        public void ResolveTiming_ZeroFallsBackToEntityDefaults()
-        {
-            var empty = new BasicAttackStage();
-
-            BasicAttackTiming t = BasicComboRules.ResolveTiming(in empty, 0.12f, 0.24f, 0.45f);
-
-            Assert.That(t.windup, Is.EqualTo(0.12f).Within(0.0001f));
-            Assert.That(t.activeEnd, Is.EqualTo(0.24f).Within(0.0001f));
-            Assert.That(t.total, Is.EqualTo(0.45f).Within(0.0001f));
-            Assert.That(t.cancelStart, Is.EqualTo(0.24f).Within(0.0001f),
-                        "캔슬 시점을 안 적으면 판정이 닫히는 순간이다");
-        }
-
-        [Test]
-        public void ResolveTiming_AuthoredValuesWin()
+        public void ResolveTiming_UsesAuthoredValues()
         {
             var stage = new BasicAttackStage { windup = 0.18f, activeEnd = 0.34f, total = 0.7f, cancelStart = 0.5f };
 
-            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage, 0.12f, 0.24f, 0.45f);
+            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage);
 
             Assert.That(t.windup, Is.EqualTo(0.18f).Within(0.0001f));
+            Assert.That(t.activeEnd, Is.EqualTo(0.34f).Within(0.0001f));
+            Assert.That(t.total, Is.EqualTo(0.7f).Within(0.0001f));
             Assert.That(t.cancelStart, Is.EqualTo(0.5f).Within(0.0001f));
+        }
+
+        [Test]
+        public void ResolveTiming_NoCancelStart_CancelsWhenHitboxCloses()
+        {
+            var stage = new BasicAttackStage { windup = 0.12f, activeEnd = 0.24f, total = 0.45f };
+
+            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage);
+
+            Assert.That(t.cancelStart, Is.EqualTo(0.24f).Within(0.0001f),
+                        "캔슬 시점을 안 적으면 판정이 닫히는 순간이다");
         }
 
         // ── 전이표 ───────────────────────────────────────

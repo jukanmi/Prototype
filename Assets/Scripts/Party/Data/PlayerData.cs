@@ -36,18 +36,8 @@ namespace Prototype
         public float atk;
         public float moveSpeed;
 
-        [Header("평타 타이밍 — 0이면 프리팹 값")]
-        [Tooltip("선딜. 이 시점에 히트박스가 켜진다.")]
-        public float basicAttackWindup;
-
-        [Tooltip("히트박스가 꺼지는 시점.")]
-        public float basicAttackActiveEnd;
-
-        [Tooltip("후딜 포함 전체 길이. windup < activeEnd < total 순서를 지킬 것.")]
-        public float basicAttackTotal;
-
-        [Tooltip("평타 연타 단계. 비우면 프리팹의 단계를 그대로 쓴다.\n" +
-                 "각 칸의 타이밍이 0이면 위의 기본 평타 값으로 떨어진다.")]
+        [Header("평타")]
+        [Tooltip("평타 단계. 비우면 프리팹의 단계를 그대로 쓴다. 채우면 통째로 갈아 끼운다.")]
         public BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
 
         [Header("조작감 — 0이면 기본값(대시 쿨 0.6 · 선입력 0.25)")]

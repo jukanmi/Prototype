@@ -79,8 +79,6 @@ namespace Prototype
             if (data.atk > 0f) Stats.Set(StatType.AttackPower, data.atk);
             if (data.moveSpeed > 0f) Stats.Set(StatType.MoveSpeed, data.moveSpeed);
 
-            ConfigureBasicAttack(data.basicAttackWindup, data.basicAttackActiveEnd, data.basicAttackTotal);
-
             // 조작감은 몸의 스탯이다 — 조종사는 몸을 갈아타므로
             // 거기 두면 전사로 대시하고 교대한 마법사가 그 쿨을 물려받는다.
             if (data.dashCooldown > 0f) Stats.Set(StatType.DashCooldown, data.dashCooldown);

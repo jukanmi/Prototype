@@ -42,9 +42,10 @@ namespace Prototype
         public Attack BasicAttack => AttackProfile != null ? AttackProfile.Hitbox : null;
         public Attack SkillAttack => AttackProfile != null ? AttackProfile.SkillHitbox : null;
 
-        public float BasicAttackWindup => AttackProfile != null ? AttackProfile.Windup : 0f;
-        public float BasicAttackActiveEnd => AttackProfile != null ? AttackProfile.ActiveEnd : 0f;
-        public float BasicAttackTotal => AttackProfile != null ? AttackProfile.Total : 0f;
+        // 1타 기준 값. 적 AI의 예고 타이밍이 읽는다(적은 한 타뿐이다).
+        public float BasicAttackWindup => GetBasicStageTiming(0).windup;
+        public float BasicAttackActiveEnd => GetBasicStageTiming(0).activeEnd;
+        public float BasicAttackTotal => GetBasicStageTiming(0).total;
 
         /// <summary>평타가 날아가는지. AttackState가 이걸로 갈린다.</summary>
         public bool BasicIsRanged => AttackProfile != null && AttackProfile.IsRanged;
@@ -64,13 +65,6 @@ namespace Prototype
         /// </summary>
         public void ConfigureBasicProjectile(Projectile prefab, float speed, float range, int pierce)
             => AttackProfile?.ConfigureProjectile(prefab, speed, range, pierce);
-
-        /// <summary>
-        /// 평타 타이밍을 갈아 끼운다. <b>0 이하는 "건드리지 않는다"</b>는 뜻이다 —
-        /// 표에 안 적힌 값까지 덮으면 프리팹 설정이 조용히 지워진다.
-        /// </summary>
-        public void ConfigureBasicAttack(float windup, float activeEnd, float total)
-            => AttackProfile?.Configure(windup, activeEnd, total);
 
         /// <summary>
         /// 평타 연타 단계를 갈아 끼운다. <c>null</c>이나 빈 배열은 무시한다 —
@@ -140,7 +134,7 @@ namespace Prototype
             if (AttackProfile != null) return AttackProfile.TimingFor(stage);
 
             BasicAttackStage none = default;
-            return BasicComboRules.ResolveTiming(in none, 0f, 0f, 0f);
+            return BasicComboRules.ResolveTiming(in none);
         }
 
         /// <summary>

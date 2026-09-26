@@ -4,9 +4,9 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 평타 한 타의 정의. <see cref="Entity"/>가 배열로 들고 있고,
-    /// <b>배열이 비어 있으면 지금까지의 단발 평타 그대로다</b> —
-    /// 적 · 자율 동료 프리팹은 한 줄도 안 바뀐다.
+    /// 평타 한 타의 정의. <see cref="BasicAttackProfile"/>이 배열로 들고 있고,
+    /// <b>배열이 곧 평타 전부다</b> — 단타는 칸 하나, 3연타는 칸 셋.
+    /// 공격키를 누를 때마다 다음 칸으로 넘어가고, 마지막 칸에서는 눌러도 반응이 없다.
     ///
     /// 완전한 <see cref="HitData"/>를 타마다 두지 않는 이유: 그러면 <c>canOtg</c> ·
     /// <c>targetState</c> · <c>snapZ</c>까지 타별로 어긋날 수 있다. 평타 3타가 서로 다른
@@ -23,11 +23,11 @@ namespace Prototype
                  "아트가 아직 없어도 로직은 돈다(세 타가 같은 그림으로 보일 뿐).")]
         public AnimationClip clip;
 
-        [Tooltip("히트박스를 켜는 시점. 0 이하면 Entity의 기본 평타 값을 쓴다.")]
+        [Tooltip("선딜. 이 시점에 히트박스가 켜진다.")]
         public float windup;
-        [Tooltip("히트박스를 끄는 시점. 0 이하면 기본값.")]
+        [Tooltip("히트박스를 끄는 시점.")]
         public float activeEnd;
-        [Tooltip("후딜 포함 이 타의 전체 길이. 0 이하면 기본값.")]
+        [Tooltip("후딜 포함 이 타의 전체 길이. windup < activeEnd <= total 순서를 지킬 것.")]
         public float total;
 
         [Tooltip("다음 타로 넘어갈 수 있는 최초 시점. 0 이하면 activeEnd —\n" +
@@ -52,7 +52,7 @@ namespace Prototype
         public float hitStunDuration;
     }
 
-    /// <summary>0을 기본값으로 접고 난 뒤의 타이밍. 상태가 매 틱 이걸 본다.</summary>
+    /// <summary>캔슬 시점까지 확정한 한 타의 타이밍. 상태가 매 틱 이걸 본다.</summary>
     public readonly struct BasicAttackTiming
     {
         public readonly float windup;
@@ -90,16 +90,12 @@ namespace Prototype
         /// <summary>0 이하를 "미지정"으로 보고 기본값으로 접는다(<see cref="SkillData.ApproachDistance"/>와 같은 규약).</summary>
         public static float Or(float value, float fallback) => value > 0f ? value : fallback;
 
-        /// <summary>단계 하나의 타이밍을 기본 평타 값 위에 얹어 확정한다.</summary>
-        public static BasicAttackTiming ResolveTiming(in BasicAttackStage stage,
-                                                      float baseWindup, float baseActiveEnd, float baseTotal)
-        {
-            float windup = Or(stage.windup, baseWindup);
-            float activeEnd = Or(stage.activeEnd, baseActiveEnd);
-            float total = Or(stage.total, baseTotal);
-
-            return new BasicAttackTiming(windup, activeEnd, Or(stage.cancelStart, activeEnd), total);
-        }
+        /// <summary>
+        /// 한 타의 타이밍을 확정한다. 적힌 값을 그대로 쓰고, 캔슬 시점만 비었으면
+        /// 판정이 닫히는 순간(activeEnd)으로 둔다.
+        /// </summary>
+        public static BasicAttackTiming ResolveTiming(in BasicAttackStage stage)
+            => new BasicAttackTiming(stage.windup, stage.activeEnd, Or(stage.cancelStart, stage.activeEnd), stage.total);
 
         /// <summary>
         /// 기본 평타 타격에 이 단계의 델타를 얹는다.
