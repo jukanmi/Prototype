@@ -131,15 +131,18 @@ namespace Prototype
         /// <summary>
         /// 평타 적중 보상. 한 대당 한 번 — 같은 번호로 두 번째 적을 맞힌 건 장부가 거른다.
         /// 로그는 남기지 않는다. 연타마다 한 줄씩 쌓여 전투 로그가 묻힌다.
+        ///
+        /// 보상받을 적중으로 인정됐으면 true. 게이지 보상이 0이어도 인정은 한다 —
+        /// 평타 카드 추첨(<see cref="BasicAttackDrawRules"/>)이 같은 기준을 쓴다.
         /// </summary>
-        public void RewardBasicHit(Combat attacker, Combat victim, int swing)
+        public bool RewardBasicHit(Combat attacker, Combat victim, int swing)
         {
-            if (cfg.BasicHitReward <= 0f) return;
-            if (attacker == null || victim == null) return;
-            if (!EarnsBasicHitGauge(attacker.Owner, victim.Owner)) return;
-            if (!basicHitLedger.TryClaim(attacker, swing)) return;
+            if (attacker == null || victim == null) return false;
+            if (!EarnsBasicHitGauge(attacker.Owner, victim.Owner)) return false;
+            if (!basicHitLedger.TryClaim(attacker, swing)) return false;
 
-            Gauge.Recover(cfg.BasicHitReward);
+            if (cfg.BasicHitReward > 0f) Gauge.Recover(cfg.BasicHitReward);
+            return true;
         }
     }
 }

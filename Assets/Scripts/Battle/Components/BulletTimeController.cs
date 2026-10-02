@@ -82,6 +82,9 @@ namespace Prototype
         private TacticGauge budget;
         private CardSupply cards;
 
+        /// <summary>평타 카드 추첨에 당첨돼 다음 LateUpdate에 발동을 기다리는 중.</summary>
+        private bool pendingBasicSkill;
+
         /// <summary>
         /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
         /// 해제하려면 그때 넘긴 델리게이트 인스턴스를 그대로 들고 있어야 한다.
@@ -201,6 +204,7 @@ namespace Prototype
 
         private void OnDisable()
         {
+            pendingBasicSkill = false;
             if (executor != null)
             {
                 executor.OnSlotConsumed -= HandleSlotConsumed;
@@ -223,8 +227,52 @@ namespace Prototype
 
         private void HandleParried(Combat defender, Combat attacker) => budget?.RewardParry(defender);
 
+        /// <summary>
+        /// 평타 적중. 게이지 보상을 주고, 추첨에 당첨되면 손패 · 덱의 카드 한 장을 실제 스킬로 실행한다.
+        /// </summary>
         private void HandleBasicHitLanded(Combat attacker, Combat victim, int swing)
-            => budget?.RewardBasicHit(attacker, victim, swing);
+        {
+            if (budget == null || !budget.RewardBasicHit(attacker, victim, swing)) return;
+
+            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
+                executor.IsRunning || pendingBasicSkill) return;
+            if (!BasicAttackDrawRules.ShouldDraw(UnityEngine.Random.value)) return;
+
+            // 적중 콜백 안에서 상태를 바꾸면 진행 중인 평타의 히트박스 처리가 깨질 수 있다.
+            pendingBasicSkill = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!pendingBasicSkill) return;
+            pendingBasicSkill = false;
+            TryExecuteBasicAttackSkill(UnityEngine.Random.value);
+        }
+
+        /// <summary>현재 손패와 덱에서 한 장을 소비하고, 기존 시전자 등장 · 스킬 실행 경로로 보낸다.</summary>
+        public bool TryExecuteBasicAttackSkill(float roll)
+        {
+            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
+                executor.IsRunning) return false;
+
+            bool CanCast(ComboCard c) => ResolveCaster(c.Data.role) != null;
+            ComboCard card = BasicAttackDrawRules.TakeCard(Cards.Hand, Cards.Deck, roll, CanCast);
+            if (card == null) return false;
+
+            Ally caster = ResolveCaster(card.Data.role);
+            var slot = new ComboSlot
+            {
+                card = card,
+                caster = caster,
+                target = caster.AutoTarget(card.Data),
+            };
+            var queue = new Queue<ComboSlot>();
+            queue.Enqueue(slot);
+            executor.Execute(queue);
+            BattleLog.Log(LogCategory.Combo,
+                $"평타 적중 스킬 발동 — {card.Data.skillName}{(card.Golden ? " (황금)" : "")}", this);
+            return true;
+        }
 
         // ── 진입 ─────────────────────────────────────────
 

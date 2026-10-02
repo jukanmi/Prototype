@@ -94,6 +94,16 @@ namespace Prototype
             cards.AddRange(source);
         }
 
+        /// <summary>선택한 카드를 덱에서 꺼내 스킬 실행 큐로 옮긴다.</summary>
+        public ComboCard TakeAt(int index)
+        {
+            if (index < 0 || index >= cards.Count) return null;
+            ComboCard card = cards[index];
+            cards.RemoveAt(index);
+            NotifyChanged();
+            return card;
+        }
+
         public void Shuffle()
         {
             for (int i = cards.Count - 1; i > 0; i--)
@@ -356,6 +366,56 @@ namespace Prototype
 
         /// <summary>같은 스킬의 황금판. 합성 결과를 만들 때 쓴다.</summary>
         public ComboCard AsGolden() => new ComboCard(data, drawWeight, true);
+    }
+
+    /// <summary>평타 적중 추첨. 기존 시동기 DrawWeight와 무관하게 등급만 반영한다.</summary>
+    public static class BasicAttackDrawRules
+    {
+        public const float DrawChance = 0.5f;
+
+        public static bool ShouldDraw(float roll) => roll >= 0f && roll < DrawChance;
+
+        public static int SelectIndex(IReadOnlyList<ComboCard> cards, float roll)
+        {
+            if (cards == null) return -1;
+            int total = 0;
+            int last = -1;
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] == null || cards[i].Data == null) continue;
+                total += cards[i].Golden ? 1 : 2;
+                last = i;
+            }
+            float remaining = Mathf.Clamp01(roll) * total;
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] == null || cards[i].Data == null) continue;
+                remaining -= cards[i].Golden ? 1 : 2;
+                if (remaining < 0f) return i;
+            }
+            return last;
+        }
+
+        /// <summary>손패와 덱을 같은 모집단으로 추첨한다. 버린 더미와 새 카드는 포함하지 않는다.</summary>
+        public static ComboCard TakeCard(Hand hand, Deck deck, float roll,
+                                        Predicate<ComboCard> canCast = null)
+        {
+            var candidates = new List<ComboCard>();
+            var indices = new List<int>();
+            int handCount = hand != null ? hand.Count : 0;
+            int deckCount = deck != null ? deck.Count : 0;
+            for (int i = 0; i < handCount + deckCount; i++)
+            {
+                ComboCard card = i < handCount ? hand.GetCard(i) : deck.Cards[i - handCount];
+                if (card == null || card.Data == null || (canCast != null && !canCast(card))) continue;
+                candidates.Add(card);
+                indices.Add(i);
+            }
+            int picked = SelectIndex(candidates, roll);
+            if (picked < 0) return null;
+            int source = indices[picked];
+            return source < handCount ? hand.RemoveAt(source).card : deck.TakeAt(source - handCount);
+        }
     }
 
     // ══ DeckRules ═══════════════════════════════════════════
