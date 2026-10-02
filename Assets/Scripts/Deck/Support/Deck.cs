@@ -7,6 +7,66 @@ using UnityEngine;
 
 namespace Prototype
 {
+    // ══ CardPile ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 카드 더미 하나. 덱과 버린 더미가 공유하는 뼈대다 — 둘 다 "카드 목록 + 바뀌면 알림"이고,
+    /// 다른 건 덱만 섞고 뽑는다는 것뿐이다.
+    /// </summary>
+    [Serializable]
+    public class CardPile
+    {
+        [SerializeField] protected List<ComboCard> cards = new List<ComboCard>();
+
+        public int Count => cards.Count;
+        public IReadOnlyList<ComboCard> Cards => cards;
+
+        public event Action OnChanged;
+
+        protected void NotifyChanged() => OnChanged?.Invoke();
+
+        public void Add(ComboCard card)
+        {
+            if (card == null) return;
+
+            cards.Add(card);
+            NotifyChanged();
+        }
+
+        public void AddRange(IEnumerable<ComboCard> range)
+        {
+            if (range == null) return;
+
+            cards.AddRange(range);
+            NotifyChanged();
+        }
+
+        /// <summary>조건에 맞는 카드를 걷어낸다. 지운 장수를 돌려준다.</summary>
+        public int RemoveAll(Predicate<ComboCard> match)
+        {
+            if (match == null) return 0;
+
+            int removed = cards.RemoveAll(match);
+            if (removed > 0) NotifyChanged();
+            return removed;
+        }
+
+        public void Clear()
+        {
+            cards.Clear();
+            NotifyChanged();
+        }
+
+        /// <summary>전부 꺼내 돌려주고 비운다.</summary>
+        public List<ComboCard> TakeAll()
+        {
+            var all = new List<ComboCard>(cards);
+            cards.Clear();
+            NotifyChanged();
+            return all;
+        }
+    }
+
     // ══ Deck ═══════════════════════════════════════════
 
     /// <summary>
@@ -14,7 +74,7 @@ namespace Prototype
     /// 덱이 비면 Discard를 회수해 재셔플한다.
     /// </summary>
     [Serializable]
-    public class Deck
+    public class Deck : CardPile
     {
         /// <summary>
         /// <b>만석 기준값</b> — 동료 4명 × 장착 4장. 스킬 표를 짤 때의 기준이다
@@ -27,25 +87,11 @@ namespace Prototype
         /// </summary>
         public const int Size = 16;
 
-        [SerializeField] private List<ComboCard> cards = new List<ComboCard>();
-
-        public int Count => cards.Count;
-        public IReadOnlyList<ComboCard> Cards => cards;
-
-        public event Action OnChanged;
-
         public Deck() { }
 
         public Deck(IEnumerable<ComboCard> source)
         {
             cards.AddRange(source);
-        }
-
-        public void Add(ComboCard card)
-        {
-            if (card == null) return;
-            cards.Add(card);
-            OnChanged?.Invoke();
         }
 
         public void Shuffle()
@@ -56,7 +102,7 @@ namespace Prototype
                 (cards[i], cards[j]) = (cards[j], cards[i]);
             }
 
-            OnChanged?.Invoke();
+            NotifyChanged();
         }
 
         /// <summary>
@@ -83,7 +129,7 @@ namespace Prototype
                 $"드로우 {drawn.Count}/{n}장 | 덱 잔여 {cards.Count} | " +
                 string.Join(", ", drawn.ConvertAll(c => c.Data != null ? c.Data.skillName : "?")));
 
-            OnChanged?.Invoke();
+            NotifyChanged();
             return drawn;
         }
 
@@ -99,28 +145,12 @@ namespace Prototype
             BattleLog.Log(LogCategory.Deck, $"덱 소진 → Discard {recovered}장 회수 후 재셔플 (덱 {cards.Count})");
         }
 
-        /// <summary>조건에 맞는 카드를 덱에서 걷어낸다. 지운 장수를 돌려준다.</summary>
-        public int RemoveAll(Predicate<ComboCard> match)
-        {
-            if (match == null) return 0;
-
-            int removed = cards.RemoveAll(match);
-            if (removed > 0) OnChanged?.Invoke();
-            return removed;
-        }
-
         /// <summary>포스트 배틀에서만 호출한다. 전투 중 덱 수정은 막는다.</summary>
         public void Replace(IEnumerable<ComboCard> newCards)
         {
             cards.Clear();
             if (newCards != null) cards.AddRange(newCards);
-            OnChanged?.Invoke();
-        }
-
-        public void Clear()
-        {
-            cards.Clear();
-            OnChanged?.Invoke();
+            NotifyChanged();
         }
     }
 
@@ -279,54 +309,8 @@ namespace Prototype
 
     /// <summary>사용한 카드가 모이는 곳. 덱이 비면 통째로 회수된다.</summary>
     [Serializable]
-    public class Discard
+    public class Discard : CardPile
     {
-        [SerializeField] private List<ComboCard> cards = new List<ComboCard>();
-
-        public int Count => cards.Count;
-        public IReadOnlyList<ComboCard> Cards => cards;
-
-        public event Action OnChanged;
-
-        public void Add(ComboCard card)
-        {
-            if (card == null) return;
-
-            cards.Add(card);
-            OnChanged?.Invoke();
-        }
-
-        public void AddRange(IEnumerable<ComboCard> range)
-        {
-            if (range == null) return;
-
-            cards.AddRange(range);
-            OnChanged?.Invoke();
-        }
-
-        /// <summary>조건에 맞는 카드를 버린 더미에서 걷어낸다. 지운 장수를 돌려준다.</summary>
-        public int RemoveAll(Predicate<ComboCard> match)
-        {
-            if (match == null) return 0;
-
-            int removed = cards.RemoveAll(match);
-            if (removed > 0) OnChanged?.Invoke();
-            return removed;
-        }
-
-        public void Clear()
-        {
-            cards.Clear();
-            OnChanged?.Invoke();
-        }
-
-        public List<ComboCard> TakeAll()
-        {
-            var all = new List<ComboCard>(cards);
-            cards.Clear();
-            OnChanged?.Invoke();
-            return all;
-        }
     }
 
     // ══ ComboCard ═══════════════════════════════════════════

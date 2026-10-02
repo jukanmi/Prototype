@@ -186,7 +186,7 @@ namespace Prototype
                 ApplyLook(hero.transform, data.animatorController, data.bodyScale, data.spriteTint);
             }
 
-            AllyLayers.Apply(hero.gameObject);
+            CombatLayers.Apply(hero.gameObject, Faction.Ally);
             Wake(hero.gameObject);
 
             return hero;
@@ -231,7 +231,7 @@ namespace Prototype
 
                 // 레이어는 프리팹이 아니라 여기가 보장한다. 동료마다 프리팹이 갈리면서
                 // "그 동료만 적을 통과한다"가 생길 자리가 넷으로 늘었다 — 한 곳에서 칠한다.
-                AllyLayers.Apply(ally.gameObject);
+                CombatLayers.Apply(ally.gameObject, Faction.Ally);
                 Wake(ally.gameObject);
 
                 party[i] = ally;

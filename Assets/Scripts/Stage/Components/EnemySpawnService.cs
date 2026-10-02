@@ -214,7 +214,7 @@ namespace Prototype
             go.transform.position = spawnPoint;
             go.transform.rotation = Quaternion.identity;
 
-            EnemyLayers.Apply(go);
+            CombatLayers.Apply(go, Faction.Enemy);
 
             // 부모에서 꺼내는 순간 활성화되고 Awake · Start 가 돈다. 위치는 그대로 둔다.
             go.transform.SetParent(null, worldPositionStays: true);
