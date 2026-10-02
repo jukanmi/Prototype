@@ -213,6 +213,26 @@ namespace Prototype
 
             return hit;
         }
+
+        /// <summary>
+        /// 반경 안의 살아 있는 적. 조준 HUD(<see cref="TargetSelector"/>, "몇 명 맞나")와
+        /// 넉백 화살표(<see cref="KnockbackIndicator"/>)가 <b>같은 함수</b>를 봐야 한다 —
+        /// 세는 쪽과 그리는 쪽이 따로 계산하면 "경고는 없는데 화살표도 없다"가 된다.
+        /// </summary>
+        public static int EnemiesInRadius(Vector3 center, float radius, List<Combat> outList = null)
+        {
+            outList?.Clear();
+            int n = 0;
+
+            OverlapCombats(center, radius, null, c =>
+            {
+                if (!(c.Owner is Enemy)) return;
+                outList?.Add(c);
+                n++;
+            });
+
+            return n;
+        }
     }
 
     /// <summary>
