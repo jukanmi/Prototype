@@ -162,12 +162,7 @@ namespace Prototype
             Projectile prefab = AttackProfile != null ? AttackProfile.Projectile : null;
             if (prefab == null || Physics == null) return;
 
-            Vector3 from = Physics.GroundPosition;
             Entity target = BattleRegistry.NearestOpponent(this);
-
-            Vector3 dir = target != null
-                ? target.Physics.GroundPosition - from
-                : Physics.Facing;
 
             // 히트박스 레이어를 물려받아야 충돌 매트릭스가 맞는다.
             Attack box = BasicAttack;
@@ -176,34 +171,18 @@ namespace Prototype
             Projectile shot = Instantiate(prefab);
             HitData hit = BuildBasicHit();
 
+            // 내 총구에서 대상 총구로. 공중에서 쏘면 내리꽂고, 띄운 적을 쏘면 올려 쏜다.
+            Vector3 from = shot.Muzzle(Physics);
+            Vector3 dir = target != null && target.Physics != null
+                ? shot.Muzzle(target.Physics) - from
+                : Physics.Facing;
+
             shot.Launch(Combat, in hit, from, dir,
                         BasicProjectileSpeed, BasicProjectileRange, BasicProjectilePierce,
-                        Physics.WallMask, layer, height: BasicProjectileHeight(shot, target));
+                        Physics.WallMask, layer);
 
             // 쏘는 순간 방향을 맞춰 준다. 히트박스 자식과 스프라이트가 따라 돈다.
             Physics.Face(dir);
-        }
-
-        /// <summary>
-        /// 원거리 평타가 날아갈 높이. 음수면 <see cref="Projectile.FlightHeight"/>를 그대로 쓴다.
-        ///
-        /// <b>이 값을 안 넘기면 투사체가 늘 고정 높이로 나간다</b> — 점프해서 쏴도 화살이
-        /// 발밑 바닥에서 튀어나오는 게 그 증상이다. 스킬 쪽은 예전부터
-        /// <c>SkillState.AimHeight</c>로 이 값을 채우고 있었고, 평타 경로만 빠져 있었다.
-        ///
-        /// 쏘는 쪽과 대상 중 <b>높은 쪽</b>을 따른다. 공중에 띄운 적을 지상에서 쏠 때
-        /// 바닥을 긁고 지나가면 공중 콤보 마무리가 통째로 빗나가기 때문이다.
-        /// 거기에 총구 높이를 더해 가슴께에서 나가게 맞춘다.
-        /// </summary>
-        private float BasicProjectileHeight(Projectile shot, Entity target)
-        {
-            float self = Physics.Height;
-            float aim = target != null && target.Physics != null ? target.Physics.Height : 0f;
-
-            float h = Mathf.Max(self, aim);
-
-            // 둘 다 지상이면 프리팹 기본 높이가 정답이다.
-            return h > 0.1f ? h + shot.FlightHeight : -1f;
         }
 
         /// <summary>히트박스가 아군을 때리지 않게 거르는 기준. Enemy만 덮어쓴다.</summary>

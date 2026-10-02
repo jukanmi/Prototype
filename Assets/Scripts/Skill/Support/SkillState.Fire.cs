@@ -239,24 +239,22 @@ namespace Prototype
                         ctx.caster);
             }
 
-            Vector3 dir = AimDirection(phys);
+            Vector3 from = shot.Muzzle(phys);
+            Vector3 dir = AimDirection(phys, shot, from);
             float range = data.projectileRange;
-            float height = shot.AimHeight(phys, ctx.target?.Physics);
 
-            // 도착 폭발은 탄착점이 곧 사거리 끝 — 투사체가 시전자 자리에서 출발하므로 거리를 그대로 넘긴다.
+            // 도착 폭발은 탄착점이 곧 사거리 끝 — 투사체가 총구에서 출발하므로 거리를 그대로 넘긴다.
             // 대상이 없으면 그냥 사거리 끝에서 터진다.
             if (data.detonateOnArrival && TryGetArrivalPoint(in hit, out Vector3 aim))
             {
-                dir = aim - phys.GroundPosition;
-                dir.y = 0f;
+                dir = aim - from;
                 range = dir.magnitude;
-                height = Mathf.Max(0f, aim.y);
             }
 
             shot.Launch(ctx.caster.Combat, in hit,
-                        phys.GroundPosition, dir,
+                        from, dir,
                         data.projectileSpeed, range, data.projectilePierce,
-                        phys.WallMask, layer, in style, height, BlastRadius(in hit),
+                        phys.WallMask, layer, in style, BlastRadius(in hit),
                         data.detonateOnArrival);
         }
 
@@ -311,32 +309,28 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 발사 높이. 대상이 떠 있으면 그 높이로 쏜다.
-        ///
-        /// 투사체는 고정 높이(0.6)로 바닥을 긁고 지나간다. 적 몸통 캡슐이 높이 1이라
-        /// 띄운 뒤에는 겹치는 구간이 사라져 <b>공중 콤보의 마무리가 전부 빗나갔다</b> —
-        /// 아처 체인(그물사격 → 상승 화살 → 연속 사격 → 강력 사격)이 시동 직후 끊기던 원인.
-        ///
-        /// 지상 대상에는 음수를 돌려 프리팹 기본 높이를 그대로 쓴다.
-        /// </summary>
-        /// <summary>
-        /// 발사 방향. 원거리는 제자리에서 쏘므로 <b>대상을 우선</b> 겨눈다 —
+        /// 발사 방향(3D). 원거리는 제자리에서 쏘므로 <b>대상을 우선</b> 겨눈다 —
         /// 찍은 좌표를 그대로 쏘면 그 사이에 적이 움직인 만큼 빗나간다.
+        ///
+        /// 대상이 있으면 그 총구 높이로 오르내린다 — 띄운 적을 지상에서 쏘면 올려 쏴서 공중 콤보 마무리가
+        /// 닿는다(아처 체인: 그물사격 → 상승 화살 → 연속 사격 → 강력 사격). 방향 · 바닥 좌표 조준은
+        /// 수평이다 — 바닥 좌표로 기울이면 그 자리에서 땅에 박힌다.
         /// </summary>
-        private Vector3 AimDirection(Physics phys)
+        private Vector3 AimDirection(Physics phys, Projectile shot, Vector3 from)
         {
+            Vector3 flat;
+
             if (ctx.targetInfo.type == TargetingType.Direction)
-                return ctx.targetInfo.direction;
+                flat = ctx.targetInfo.direction;
+            else if (ctx.target != null && ctx.target.Physics != null)
+                return shot.Muzzle(ctx.target.Physics) - from;
+            else if (ctx.targetInfo.type == TargetingType.GroundPoint)
+                flat = ctx.targetInfo.point - from;
+            else
+                flat = phys.Facing;
 
-            Vector3 from = phys.GroundPosition;
-
-            if (ctx.target != null)
-                return ctx.target.Physics.GroundPosition - from;
-
-            if (ctx.targetInfo.type == TargetingType.GroundPoint)
-                return ctx.targetInfo.point - from;
-
-            return phys.Facing;
+            flat.y = 0f;
+            return flat;
         }
     }
 }

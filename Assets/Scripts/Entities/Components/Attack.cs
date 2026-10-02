@@ -157,8 +157,21 @@ namespace Prototype
                 b.center, b.extents, SweepBuffer, transform.rotation, sweepMask,
                 QueryTriggerInteraction.Ignore);
 
+            // 후보는 바깥 상자로 골랐다. 원반 · 캡슐은 모서리가 비어 있어서 실제 모양으로 한 번 더 본다 —
+            // 안 그러면 둘레 판정이 원 밖 네 귀퉁이까지 때린다.
+            Transform self = box.transform;
+
             for (int i = 0; i < count; i++)
-                TryHit(SweepBuffer[i]);
+            {
+                Collider other = SweepBuffer[i];
+                Transform t = other.transform;
+
+                if (!UnityEngine.Physics.ComputePenetration(box, self.position, self.rotation,
+                                                            other, t.position, t.rotation, out _, out _))
+                    continue;
+
+                TryHit(other);
+            }
         }
 
         /// <summary>

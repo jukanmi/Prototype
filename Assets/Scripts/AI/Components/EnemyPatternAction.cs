@@ -21,7 +21,7 @@ namespace Prototype
         public string chargeClip;
 
         [Header("타이밍")]
-        [Tooltip("예고. 제자리에서 타겟을 노려본다 — 플레이어가 피할 창.")]
+        [Tooltip("예고. 시작할 때 정한 방향을 보고 제자리에 선다 — 플레이어가 피할 창.")]
         public float telegraph;
         [Tooltip("발동. 이 구간 안에서 히트박스가 hitCount번 켜진다.")]
         public float active;
@@ -86,6 +86,12 @@ namespace Prototype
 
         private Entity target;
         private int current = -1;
+
+        /// <summary>
+        /// 이 패턴이 나갈 방향. <b>시작하는 순간</b> 타겟 쪽으로 정하고 끝까지 안 바꾼다 — 유도가 없다.
+        /// 차징 · 예고를 보고 옆으로 빠지면 피한다. XZ 단위 벡터.
+        /// </summary>
+        private Vector3 aim;
 
         /// <summary>1회성 패턴을 이미 썼는지. 브레인이 무상태라 여기서 기억해야 한다.</summary>
         private bool[] used;
@@ -152,6 +158,7 @@ namespace Prototype
 
             current = index;
             target = patternTarget;
+            aim = AimDirection().normalized;
             hitsFired = 0;
             hitboxOpen = false;
             phaseTime = 0f;
@@ -177,7 +184,7 @@ namespace Prototype
             if (sequence == null || !sequence.IsRunning) return;
 
             EnemySpecialPhase before = sequence.Phase;
-            sequence.Tick(dt, AimDirection());
+            sequence.Tick(dt, aim);
             EnemySpecialPhase after = sequence.Phase;
 
             if (before != after) HandleTransition(after);
@@ -194,8 +201,8 @@ namespace Prototype
             {
                 case EnemySpecialPhase.Charge:
                 case EnemySpecialPhase.Telegraph:
-                    // 모으는 동안에도 계속 따라 돈다. 여기까지가 유도다.
-                    owner.Physics.Face(AimDirection());
+                    // 시작할 때 정한 방향을 지킨다. 따라 돌지 않는다.
+                    owner.Physics.Face(aim);
                     owner.Physics.Move(Vector3.zero, 0f);
                     break;
 
@@ -244,10 +251,10 @@ namespace Prototype
             EnemyPattern p = patterns[current];
             Attack box = Hitbox(p);
 
-            // 둘레 판정이 먼저다. 구는 방향을 안 타므로 정면·전진 계산이 통째로 필요 없다.
-            if (AttackRangePreview.TryReadSphere(box, out Vector3 sphereCenter, out float sphereRadius))
+            // 둘레 판정이 먼저다. 원반은 방향을 안 타므로 정면·전진 계산이 통째로 필요 없다.
+            if (AttackRangePreview.TryReadDisk(box, out Vector3 diskCenter, out float diskRadius))
             {
-                range = AttackRangePreview.FromCircle(sphereCenter, sphereRadius, WindupProgress());
+                range = AttackRangePreview.FromCircle(diskCenter, diskRadius, WindupProgress());
                 return true;
             }
 

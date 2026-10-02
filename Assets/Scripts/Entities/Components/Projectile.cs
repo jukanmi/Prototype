@@ -26,21 +26,16 @@ namespace Prototype
         public float FlightHeight => flightHeight;
 
         /// <summary>
-        /// 이 투사체가 날아갈 높이. 쏘는 쪽과 대상 중 <b>높은 쪽</b>을 따르고 총구 높이를 더한다 —
-        /// 공중에 띄운 적을 지상에서 쏠 때 바닥을 긁으면 공중 콤보 마무리가 통째로 빗나가기 때문이다.
-        /// 둘 다 지상이면 음수를 돌려 <see cref="flightHeight"/> 기본값을 그대로 쓰게 한다.
+        /// 몸의 총구 — 발(공중이면 떠 있는 만큼 위) + 총구 높이. 쏘는 쪽은 여기서 출발하고,
+        /// 대상의 같은 자리를 겨눈다. 그래서 둘 다 지상이면 수평으로, 한쪽이 떠 있으면 비스듬히 난다.
+        ///
+        /// 대상 높이로 <b>수평 비행</b>하던 예전 방식은 점프한 대상을 겨눈 적의 화살이 공중에서 생겨나
+        /// 점프 회피가 안 됐다. 지금은 쏘는 순간의 대상 자리로 오르내리므로, 쏜 뒤에 뛰면 밑으로 지나간다.
         ///
         /// 평타(<see cref="Entity.FireBasicProjectile"/>)와 스킬(<see cref="SkillState.LaunchProjectile"/>)이
-        /// 같은 규칙을 봐야 같은 화살이 시전 경로에 따라 다른 높이로 날지 않는다.
+        /// 같은 규칙을 봐야 같은 화살이 시전 경로에 따라 다르게 날지 않는다.
         /// </summary>
-        public float AimHeight(Physics shooter, Physics target)
-        {
-            float self = shooter != null ? shooter.Height : 0f;
-            float aim = target != null ? target.Height : 0f;
-
-            float h = Mathf.Max(self, aim);
-            return h > 0.1f ? h + flightHeight : -1f;
-        }
+        public Vector3 Muzzle(Physics body) => body.transform.position + Vector3.up * flightHeight;
 
         private Attack hitbox;
 
@@ -73,9 +68,8 @@ namespace Prototype
         /// <summary>
         /// 발사. 시전자 · 판정 데이터 · 방향을 받아 살아난다.
         ///
-        /// <paramref name="height"/>가 음수면 프리팹의 <see cref="flightHeight"/>를 쓴다.
-        /// 공중에 띄운 적을 노릴 때는 대상 높이를 넘겨야 한다 — 고정 높이로 쏘면
-        /// 바닥을 긁고 지나가 공중 콤보가 통째로 끊긴다.
+        /// <paramref name="origin"/>은 출발점(보통 <see cref="Muzzle"/>), <paramref name="dir"/>은 <b>3D</b> 방향이다 —
+        /// Y 성분만큼 오르내린다. 사거리도 그 경로를 따라 센다.
         ///
         /// <paramref name="blast"/>가 양수면 <b>첫 적중 지점에서 그 반경만큼 터진다</b>.
         /// 0이면 직격 하나만 맞는다 — 평타가 이쪽이다.
@@ -86,10 +80,9 @@ namespace Prototype
         /// </summary>
         public void Launch(Combat attacker, in HitData hit, Vector3 origin, Vector3 dir,
                            float speed, float range, int pierce, LayerMask wallMask, int layer,
-                           in SkillVfx vfx = default, float height = -1f, float blast = 0f,
+                           in SkillVfx vfx = default, float blast = 0f,
                            bool detonateOnArrival = false)
         {
-            dir.y = 0f;
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
             direction = dir.normalized;
 
@@ -102,7 +95,6 @@ namespace Prototype
             // 시전자 자리에서 그대로 출발한다. 사거리도 여기서부터 센다 —
             // 좌표로 쏘는 쪽이 |도착점 − 시전자|를 그대로 사거리로 넘길 수 있다.
             logical = origin;
-            logical.y = height >= 0f ? height : flightHeight;
 
             blastRadius = Mathf.Max(0f, blast);
             blastStyle = vfx;
@@ -110,7 +102,9 @@ namespace Prototype
 
             gameObject.layer = layer;
             transform.position = logical;
-            transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            // 수직으로 쏘면 LookRotation이 위쪽 축을 못 잡는다. 판정이 구라 회전은 그림에만 쓰인다.
+            if (Mathf.Abs(direction.y) < 0.999f)
+                transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
 
             hitbox.Attacker = attacker;
             hitbox.HitData = hit;   // 폭발이 읽는다. Begin도 같은 값을 넣지만 도착 폭발은 Begin을 안 부른다.
@@ -153,6 +147,14 @@ namespace Prototype
 
             logical += direction * step;
             transform.position = logical;
+
+            // 공중에서 내리꽂은 화살은 대상을 지나 땅으로 들어간다. 바닥 밑에서 계속 날면
+            // 뒤에 선 적의 발목을 땅속에서 맞힌다.
+            if (logical.y < GroundRegistry.HeightAt(logical, 0f))
+            {
+                Despawn();
+                return;
+            }
 
             remaining -= step;
             UpdateView();

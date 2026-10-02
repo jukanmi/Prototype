@@ -121,7 +121,7 @@ namespace Prototype.Tests
 
             Assert.That(hitbox.localPosition.z, Is.GreaterThan(0.5f), "정면(+Z)에 있어야 한다");
             Assert.That(Mathf.Abs(hitbox.localPosition.x), Is.LessThan(0.01f), "X로 밀면 회전 후 깊이축으로 빠진다");
-            Assert.That(hitbox.localPosition.y, Is.GreaterThan(0.5f), "몸통 높이에 맞춰야 한다");
+            // 높이는 EnemyHitboxHeightTests가 본다 — 점프로 넘을 수 있게 낮게 깐다.
         }
 
         /// <summary>몸통 캡슐이 바닥(y=0) 위에 서야 다른 캐릭터의 히트박스 높이와 겹친다.</summary>

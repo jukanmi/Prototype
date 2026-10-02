@@ -261,26 +261,29 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 둘레 판정 히트박스를 읽는다. 구가 아니면 false — 그때는 상자 경로로 떨어진다.
+        /// 둘레 판정 히트박스(<b>원반</b>)를 읽는다. 원반이 아니면 false — 그때는 상자 경로로 떨어진다.
         ///
-        /// 반경에 <c>lossyScale</c>의 <b>최댓값</b>을 곱한다. 유니티의 SphereCollider가
-        /// 그렇게 동작하기 때문이다 — 축마다 다른 배율을 줘도 구는 찌그러지지 않고
-        /// 가장 큰 축을 따른다. 판정과 표시가 같은 규칙을 써야 한다.
+        /// 원반은 유니티 기본 Cylinder 메시를 꽂은 Convex <see cref="MeshCollider"/>다(규약: 메시 판정 = 원반).
+        /// 구를 안 쓰는 이유: SphereCollider는 축별 배율을 무시하고 가장 큰 축을 따라 납작해지지 않는다 —
+        /// 바닥 반경만큼 위로도 뻗어 점프로 넘을 수 없다. 원반은 두께(Y 배율)를 따로 준다.
+        ///
+        /// 예고 중엔 판정이 꺼져 있고 꺼진 콜라이더의 bounds는 0이라, 메시 · 트랜스폼에서 직접 계산한다.
         /// </summary>
-        public static bool TryReadSphere(Attack hitbox, out Vector3 worldCenter, out float radius)
+        public static bool TryReadDisk(Attack hitbox, out Vector3 worldCenter, out float radius)
         {
             worldCenter = default;
             radius = 0f;
 
             if (hitbox == null) return false;
 
-            var sphere = hitbox.GetComponent<SphereCollider>();
-            if (sphere == null) return false;
+            var disk = hitbox.GetComponent<MeshCollider>();
+            if (disk == null || disk.sharedMesh == null) return false;
 
-            worldCenter = sphere.transform.TransformPoint(sphere.center);
+            Bounds b = disk.sharedMesh.bounds;
+            worldCenter = disk.transform.TransformPoint(b.center);
 
-            Vector3 s = sphere.transform.lossyScale;
-            radius = sphere.radius * Mathf.Max(Mathf.Abs(s.x), Mathf.Max(Mathf.Abs(s.y), Mathf.Abs(s.z)));
+            Vector3 s = disk.transform.lossyScale;
+            radius = b.extents.x * Mathf.Max(Mathf.Abs(s.x), Mathf.Abs(s.z));
             return true;
         }
 
@@ -359,7 +362,7 @@ namespace Prototype
         /// 차징 길이가 0인 패턴은 이 단계를 아예 건너뛴다.
         /// </summary>
         Charge,
-        /// <summary>예고. 제자리에서 타겟을 계속 노려본다 — 플레이어가 피할 창.</summary>
+        /// <summary>예고. 제자리에 선다 — 플레이어가 피할 창. 방향은 실행기가 정한다(<see cref="EnemySpecialSequence.Tick"/>).</summary>
         Telegraph,
         /// <summary>발동. 예고가 끝난 순간의 방향으로 판정이 나간다.</summary>
         Active,
@@ -459,8 +462,9 @@ namespace Prototype
         }
 
         /// <summary>
-        /// liveDirection은 예고 중에만 쓴다 — 발동에 들어가면 무시한다.
-        /// 유도되는 돌진은 피할 방법이 없어진다.
+        /// liveDirection은 예고가 끝나는 순간 한 번 읽어 <see cref="LockedDirection"/>으로 굳힌다 —
+        /// 발동에 들어가면 무시한다. 유도되는 돌진은 피할 방법이 없어진다.
+        /// <see cref="EnemyPatternAction"/>은 시작할 때 정한 방향을 줄곧 넘기므로 차징 · 예고 중에도 유도가 없다.
         /// </summary>
         public void Tick(float dt, Vector3 liveDirection)
         {
