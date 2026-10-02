@@ -28,6 +28,96 @@ namespace Prototype.Tests
 
         // ── 목표 장수 ───────────────────────────────────
 
+        [TestCase(0f, true)]
+        [TestCase(0.4999f, true)]
+        [TestCase(0.5f, false)]
+        [TestCase(1f, false)]
+        public void BasicAttackDraw_HasFiftyPercentThreshold(float roll, bool expected)
+        {
+            Assert.That(BasicAttackDrawRules.ShouldDraw(roll), Is.EqualTo(expected));
+        }
+
+        private SkillData Skill()
+        {
+            var skill = ScriptableObject.CreateInstance<SkillData>();
+            spawned.Add(skill);
+            return skill;
+        }
+
+        [Test]
+        public void BasicAttackDraw_AllNormalCardsEqual_GoldenHasHalfWeight()
+        {
+            var cards = new[]
+            {
+                new ComboCard(Skill(), 100f), new ComboCard(Skill(), 0.01f),
+                new ComboCard(Skill(), 100f, true), new ComboCard(Skill(), 0.01f, true),
+            };
+            var counts = new int[4];
+            // 각 가중치 구간의 중심을 순회하므로 난수에 따라 실패하지 않는다.
+            for (int i = 0; i < 600; i++)
+            {
+                counts[BasicAttackDrawRules.SelectIndex(cards, (i + 0.5f) / 600f)]++;
+            }
+
+            Assert.That(counts, Is.EqualTo(new[] { 200, 200, 100, 100 }));
+            Assert.That(BasicAttackDrawRules.SelectIndex(cards, 1f), Is.EqualTo(3));
+        }
+
+        [Test]
+        public void BasicAttackDraw_SkipsMissingSkillsAndEmptyPools()
+        {
+            var valid = new ComboCard(Skill());
+            Assert.That(BasicAttackDrawRules.SelectIndex(null, 0f), Is.EqualTo(-1));
+            Assert.That(BasicAttackDrawRules.SelectIndex(new ComboCard[0], 0f), Is.EqualTo(-1));
+            Assert.That(BasicAttackDrawRules.SelectIndex(new[] { null, new ComboCard(null) }, 0f), Is.EqualTo(-1));
+            Assert.That(BasicAttackDrawRules.SelectIndex(new[] { null, valid }, 0f), Is.EqualTo(1));
+        }
+
+        [Test]
+        [TestCase(0f, true)]
+        [TestCase(0.9f, false)]
+        public void BasicAttackDraw_ConsumesOneExistingCardFromHandOrDeck(float roll, bool fromHand)
+        {
+            var hand = new Hand();
+            var handCard = new ComboCard(Skill());
+            var deckCard = new ComboCard(Skill(), golden: true);
+            hand.Add(handCard);
+            var deck = new Deck(new[] { deckCard });
+            int handChanges = 0, deckChanges = 0;
+            hand.OnChanged += () => handChanges++;
+            deck.OnChanged += () => deckChanges++;
+
+            ComboCard selected = BasicAttackDrawRules.TakeCard(hand, deck, roll);
+            Assert.That(selected, Is.SameAs(fromHand ? handCard : deckCard));
+            Assert.That(hand.Count, Is.EqualTo(fromHand ? 0 : 1));
+            Assert.That(deck.Count, Is.EqualTo(fromHand ? 1 : 0));
+            Assert.That(handChanges, Is.EqualTo(fromHand ? 1 : 0));
+            Assert.That(deckChanges, Is.EqualTo(fromHand ? 0 : 1));
+            var discard = new Discard();
+            discard.Add(selected);
+            Assert.That(hand.Count + deck.Count + discard.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void BasicAttackDraw_EmptyPilesDoNotCreateCards()
+        {
+            Assert.That(BasicAttackDrawRules.TakeCard(new Hand(), new Deck(), 0f), Is.Null);
+        }
+
+        [Test]
+        public void BasicAttackDraw_ExcludesUnavailableCastersBeforeSelecting()
+        {
+            var hand = new Hand();
+            var unavailable = new ComboCard(Skill());
+            var available = new ComboCard(Skill());
+            hand.Add(unavailable);
+            var deck = new Deck(new[] { available });
+            Assert.That(BasicAttackDrawRules.TakeCard(hand, deck, 0f, c => c == available), Is.SameAs(available));
+            Assert.That(hand.GetCard(0), Is.SameAs(unavailable));
+            Assert.That(BasicAttackDrawRules.TakeCard(hand, deck, 0f, c => false), Is.Null);
+            Assert.That(hand.Count, Is.EqualTo(1));
+        }
+
         [Test]
         public void TargetSize_ScalesWithMemberCount()
         {

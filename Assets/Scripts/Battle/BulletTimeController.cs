@@ -85,6 +85,7 @@ namespace Prototype
 
         /// <summary>평타 적중 보상을 이미 받은 평타 번호. 한 대가 여럿을 맞혀도 한 번만 주려고 든다.</summary>
         private readonly BasicHitLedger basicHitLedger = new BasicHitLedger();
+        private bool pendingBasicSkill;
 
         /// <summary>
         /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
@@ -189,6 +190,7 @@ namespace Prototype
 
         private void OnDisable()
         {
+            pendingBasicSkill = false;
             if (executor != null)
             {
                 executor.OnSlotConsumed -= HandleSlotConsumed;
@@ -230,16 +232,54 @@ namespace Prototype
 
         /// <summary>
         /// 평타 적중 보상. 한 대당 한 번 — 같은 번호로 두 번째 적을 맞힌 건 장부가 거른다.
-        /// 로그는 남기지 않는다. 연타마다 한 줄씩 쌓여 전투 로그가 묻힌다.
+        /// 추첨 성공 시 현재 손패 · 덱의 카드 한 장을 실제 스킬로 실행한다.
         /// </summary>
         private void HandleBasicHitLanded(Combat attacker, Combat victim, int swing)
         {
-            if (basicAttackGaugeReward <= 0f) return;
             if (attacker == null || victim == null) return;
             if (!EarnsBasicHitGauge(attacker.Owner, victim.Owner)) return;
             if (!basicHitLedger.TryClaim(attacker, swing)) return;
 
-            Gauge.Recover(basicAttackGaugeReward);
+            if (basicAttackGaugeReward > 0f) Gauge.Recover(basicAttackGaugeReward);
+
+            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
+                executor.IsRunning || pendingBasicSkill) return;
+            if (!BasicAttackDrawRules.ShouldDraw(UnityEngine.Random.value)) return;
+
+            // 적중 콜백 안에서 상태를 바꾸면 진행 중인 평타의 히트박스 처리가 깨질 수 있다.
+            pendingBasicSkill = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!pendingBasicSkill) return;
+            pendingBasicSkill = false;
+            TryExecuteBasicAttackSkill(UnityEngine.Random.value);
+        }
+
+        /// <summary>현재 손패와 덱에서 한 장을 소비하고, 기존 시전자 등장 · 스킬 실행 경로로 보낸다.</summary>
+        public bool TryExecuteBasicAttackSkill(float roll)
+        {
+            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
+                executor.IsRunning) return false;
+
+            bool CanCast(ComboCard card) => ResolveCaster(card.Data.role) != null;
+            ComboCard card = BasicAttackDrawRules.TakeCard(hand, deck, roll, CanCast);
+            if (card == null) return false;
+
+            Ally caster = ResolveCaster(card.Data.role);
+            var slot = new ComboSlot
+            {
+                card = card,
+                caster = caster,
+                target = caster.AutoTarget(card.Data),
+            };
+            var queue = new Queue<ComboSlot>();
+            queue.Enqueue(slot);
+            executor.Execute(queue);
+            BattleLog.Log(LogCategory.Combo,
+                $"평타 적중 스킬 발동 — {card.Data.skillName}{(card.Golden ? " (황금)" : "")}", this);
+            return true;
         }
 
         /// <summary>
