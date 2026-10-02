@@ -9,7 +9,7 @@ namespace Prototype.Tests
     ///
     /// 넉백 · 공중피격 계열은 <c>OnStunEnd</c>가 상태를 바꾸지 않는다 — 착지(<c>Physics.OnLand</c>)로만
     /// 풀리게 되어 있다. 그런데 지상에 서 있던 대상을 <c>airborneHeight</c> 없이 밀치면 Aerial로 가지 않아
-    /// OnLand가 영영 오지 않고, 그대로 영구 경직이 된다(EnemyChargeAction · SK_AR2B 등이 그런 타격이다).
+    /// OnLand가 영영 오지 않고, 그대로 영구 경직이 된다(돌진 패턴 · SK_AR2B 등이 그런 타격이다).
     /// </summary>
     public class HitStunRecoveryTests
     {

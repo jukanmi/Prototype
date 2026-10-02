@@ -119,7 +119,7 @@ namespace Prototype
         /// <summary>
         /// 상태머신을 거치지 않고 클립을 직접 지정한다.
         ///
-        /// 보스 패턴(<see cref="BossPatternAction"/>)이 쓴다. 특수 행동은 IState가 아니라
+        /// 보스 패턴(<see cref="EnemyPatternAction"/>)이 쓴다. 특수 행동은 IState가 아니라
         /// 실행기가 돌리는 것이라 상태 전이가 일어나지 않고, 그래서 <see cref="Apply"/>가
         /// 불리지 않는다 — 가만히 두면 예고·발동 내내 Idle 클립이 돈다.
         ///

@@ -78,7 +78,7 @@ namespace Prototype.Tests
             {
                 if (e.hitCount <= 1) continue;
 
-                float last = BossPatternAction.HitTime(e.active, e.hitCount - 1, e.hitCount);
+                float last = EnemyPatternAction.HitTime(e.active, e.hitCount - 1, e.hitCount);
                 Assert.That(last + e.hitDuration, Is.LessThanOrEqualTo(e.active + 0.0001f),
                             $"{e.label}: 마지막 타격이 발동 구간을 넘어간다");
             }
@@ -214,7 +214,7 @@ namespace Prototype.Tests
             foreach (string required in new[] { "Idle", "Move", "Attack", "Hit", "Dead" })
                 Assert.That(states, Contains.Item(required), $"상태 '{required}' 가 없다");
 
-            // BossPatternAction이 이름으로 재생하는 것들.
+            // EnemyPatternAction이 이름으로 재생하는 것들.
             foreach (BossPatternTable.Entry e in BossPatternTable.All)
             {
                 Assert.That(states, Contains.Item(e.state), $"{e.label}: 발동 상태가 없다");
@@ -257,7 +257,7 @@ namespace Prototype.Tests
             Assert.That(go.GetComponent<EnemyControl>(), Is.Not.Null, "EnemyControl 없음");
             Assert.That(go.GetComponent<Physics>(), Is.Not.Null, "Physics 없음");
             Assert.That(go.GetComponent<Combat>(), Is.Not.Null, "Combat 없음");
-            Assert.That(go.GetComponent<BossPatternAction>(), Is.Not.Null, "패턴 실행기 없음");
+            Assert.That(go.GetComponent<EnemyPatternAction>(), Is.Not.Null, "패턴 실행기 없음");
         }
 
         /// <summary>한 Entity에 특수 실행기는 하나뿐이다. 둘이면 인덱스가 어느 쪽 것인지 알 수 없다.</summary>
@@ -266,7 +266,6 @@ namespace Prototype.Tests
         {
             GameObject go = Prefab();
 
-            Assert.That(go.GetComponent<EnemyChargeAction>(), Is.Null, "돌진 실행기가 남아 있다");
             Assert.That(go.GetComponents<IEnemySpecialAction>().Length, Is.EqualTo(1));
         }
 
@@ -280,7 +279,7 @@ namespace Prototype.Tests
         [Test]
         public void Prefab_PatternCountMatchesTable()
         {
-            var action = Prefab().GetComponent<BossPatternAction>();
+            var action = Prefab().GetComponent<EnemyPatternAction>();
 
             Assert.That(action.Count, Is.EqualTo(BossPatternTable.All.Length));
         }
@@ -292,7 +291,7 @@ namespace Prototype.Tests
         [Test]
         public void Prefab_ChargeFieldsReachTheAction()
         {
-            BossPattern[] patterns = Prefab().GetComponent<BossPatternAction>().Patterns;
+            EnemyPattern[] patterns = Prefab().GetComponent<EnemyPatternAction>().Patterns;
 
             for (int i = 0; i < patterns.Length; i++)
             {
@@ -337,7 +336,7 @@ namespace Prototype.Tests
         [Test]
         public void Prefab_EveryPatternHasItsOwnHitboxWired()
         {
-            BossPattern[] patterns = Prefab().GetComponent<BossPatternAction>().Patterns;
+            EnemyPattern[] patterns = Prefab().GetComponent<EnemyPatternAction>().Patterns;
 
             for (int i = 0; i < patterns.Length; i++)
             {
@@ -354,7 +353,7 @@ namespace Prototype.Tests
         public void Prefab_PatternsUseTheHitboxKindTheTableAsksFor()
         {
             GameObject go = Prefab();
-            BossPattern[] patterns = go.GetComponent<BossPatternAction>().Patterns;
+            EnemyPattern[] patterns = go.GetComponent<EnemyPatternAction>().Patterns;
 
             for (int i = 0; i < patterns.Length; i++)
             {
@@ -525,7 +524,7 @@ namespace Prototype.Tests
         public void Brain_RulesPointAtRealPatterns()
         {
             var brain = AssetDatabase.LoadAssetAtPath<BossBrainAsset>(BrainPath);
-            int count = Prefab().GetComponent<BossPatternAction>().Count;
+            int count = Prefab().GetComponent<EnemyPatternAction>().Count;
 
             Assert.That(brain, Is.Not.Null);
             Assert.That(brain.patterns.Length, Is.EqualTo(BossPatternTable.All.Length));
@@ -572,7 +571,7 @@ namespace Prototype.Tests
 
             Assert.That(basePrefab, Is.Not.Null);
             Assert.That(basePrefab.name, Is.EqualTo("Enemy_Melee"));
-            Assert.That(basePrefab.GetComponent<BossPatternAction>(), Is.Null, "기준 프리팹에 보스 패턴이 붙었다");
+            Assert.That(basePrefab.GetComponent<EnemyPatternAction>(), Is.Null, "기준 프리팹에 보스 패턴이 붙었다");
         }
 
         /// <summary>보스 데이터 애셋이 한 벌만 있어야 한다. 복제본이 늘면 어느 쪽이 물리는지 알 수 없다.</summary>

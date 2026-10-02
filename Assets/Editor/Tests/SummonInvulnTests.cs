@@ -195,13 +195,13 @@ namespace Prototype.Tests
             var boss = AssetDatabase.LoadAssetAtPath<GameObject>(BossPrefabPath);
             Assert.That(boss, Is.Not.Null, $"{BossPrefabPath} 가 없다");
 
-            var action = boss.GetComponentInChildren<BossPatternAction>(true);
-            Assert.That(action, Is.Not.Null, "보스 프리팹에 BossPatternAction 이 없다");
+            var action = boss.GetComponentInChildren<EnemyPatternAction>(true);
+            Assert.That(action, Is.Not.Null, "보스 프리팹에 EnemyPatternAction 이 없다");
 
-            foreach (BossPattern p in action.Patterns)
+            foreach (EnemyPattern p in action.Patterns)
             {
                 int total = Mathf.Max(1, p.hitCount);
-                float last = BossPatternAction.HitTime(p.active, total - 1, total);
+                float last = EnemyPatternAction.HitTime(p.active, total - 1, total);
                 float threat = last + Mathf.Max(0.01f, p.hitDuration);
 
                 if (threat <= worst) continue;

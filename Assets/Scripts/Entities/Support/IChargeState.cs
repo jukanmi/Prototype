@@ -2,7 +2,7 @@ namespace Prototype
 {
     /// <summary>
     /// "지금 무언가를 모으고 있다"는 계약. 머리 위 게이지(<see cref="ChargeGauge"/>)가
-    /// <see cref="Entity.ChargeState"/>로 읽어 그린다. 지금 구현은 보스 패턴(<see cref="BossPatternAction"/>)뿐이다.
+    /// <see cref="Entity.ChargeState"/>로 읽어 그린다. 지금 구현은 보스 패턴(<see cref="EnemyPatternAction"/>)뿐이다.
     /// </summary>
     public interface IChargeState
     {

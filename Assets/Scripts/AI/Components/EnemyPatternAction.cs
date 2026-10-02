@@ -4,11 +4,11 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 보스 패턴 하나의 정의. 판정 · 이동 · 연출 · 버프를 전부 데이터로 들고 있다.
+    /// 적 특수 행동 패턴 하나의 정의. 판정 · 이동 · 연출 · 버프를 전부 데이터로 들고 있다.
     /// 언제 쓸지(사거리 · HP · 쿨)는 여기 없다 — 그건 판단이라 <see cref="BossBrainAsset"/>이 갖는다.
     /// </summary>
     [Serializable]
-    public struct BossPattern
+    public struct EnemyPattern
     {
         [Tooltip("인스펙터와 로그에서 이 패턴을 부르는 이름.")]
         public string label;
@@ -65,16 +65,19 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 보스의 특수 행동 <b>실행</b>. 여러 패턴을 하나의 컴포넌트가 들고,
+    /// 적의 특수 행동 <b>실행</b>. 여러 패턴을 하나의 컴포넌트가 들고,
     /// 브레인이 지목한 인덱스를 <see cref="EnemySpecialSequence"/>에 태워 돌린다.
+    ///
+    /// 보스는 패턴 여럿, 돌진병은 패턴 하나(전진 · 접촉 시 끊김)를 든다. 예전에는 돌진병 전용
+    /// 실행기(EnemyChargeAction)가 따로 있었는데, 이 실행기의 패턴 1개와 줄마다 같아서 합쳤다.
     ///
     /// 패턴마다 컴포넌트를 만들지 않는 이유는 <see cref="IEnemySpecialAction"/>에 적어 뒀다 —
     /// 인스펙터의 컴포넌트 순서가 패턴 번호가 되면 순서를 바꾸는 것만으로 기술이 뒤바뀐다.
     /// </summary>
     [RequireComponent(typeof(Entity))]
-    public class BossPatternAction : MonoBehaviour, IEnemySpecialAction, IChargeState
+    public class EnemyPatternAction : MonoBehaviour, IEnemySpecialAction, IChargeState
     {
-        [SerializeField] private BossPattern[] patterns;
+        [SerializeField] private EnemyPattern[] patterns;
 
         private Entity owner;
         private EntityAnimator animator;
@@ -111,7 +114,7 @@ namespace Prototype
         public float ChargeRatio => sequence != null ? sequence.ChargeProgress : 0f;
 
         /// <summary>패턴 표. 프리팹 배선 검사용 읽기 전용 창구.</summary>
-        public BossPattern[] Patterns => patterns;
+        public EnemyPattern[] Patterns => patterns;
 
         /// <summary>
         /// 패턴 표를 통째로 갈아끼운다. <b>에디터 빌더가 프리팹을 조립할 때만</b> 쓴다 —
@@ -119,7 +122,7 @@ namespace Prototype
         ///
         /// <see cref="Enemy.ConfigureBasicProjectile"/>과 같은 자리의 창구다.
         /// </summary>
-        public void SetPatterns(BossPattern[] value)
+        public void SetPatterns(EnemyPattern[] value)
         {
             patterns = value;
             used = new bool[Count];
@@ -141,7 +144,7 @@ namespace Prototype
             if (index < 0 || index >= Count) return false;
             if (used[index]) return false;
 
-            BossPattern p = patterns[index];
+            EnemyPattern p = patterns[index];
 
             // 소모는 끝날 때가 아니라 <b>시작할 때</b> 기록한다. 발동 도중 경직으로 끊겨도
             // 버프는 이미 걸렸을 수 있어서, 끝까지 갔을 때만 세면 격노가 두 번 걸린다.
@@ -166,7 +169,7 @@ namespace Prototype
         }
 
         /// <summary>차징 중 재생할 상태. 비어 있으면 예고 클립을 쓴다 — 둘 다 정지 자세라 그대로 쓸 수 있다.</summary>
-        private static string ChargeClipOf(in BossPattern p)
+        private static string ChargeClipOf(in EnemyPattern p)
             => string.IsNullOrEmpty(p.chargeClip) ? p.telegraphClip : p.chargeClip;
 
         public void Tick(float dt)
@@ -238,7 +241,7 @@ namespace Prototype
             if (Phase != EnemySpecialPhase.Charge && Phase != EnemySpecialPhase.Telegraph) return false;
             if (owner == null || owner.Physics == null) return false;
 
-            BossPattern p = patterns[current];
+            EnemyPattern p = patterns[current];
             Attack box = Hitbox(p);
 
             // 둘레 판정이 먼저다. 구는 방향을 안 타므로 정면·전진 계산이 통째로 필요 없다.
@@ -285,7 +288,7 @@ namespace Prototype
         /// </summary>
         private void TickActive()
         {
-            BossPattern p = patterns[current];
+            EnemyPattern p = patterns[current];
 
             // 전진. Dash는 속도를 매 프레임 덮어쓴다. 감속에 먹히지 않게 계속 밀어 준다.
             if (p.advanceSpeed > 0f) owner.Physics.Dash(sequence.LockedDirection, p.advanceSpeed);
@@ -322,7 +325,7 @@ namespace Prototype
 
         private void HandleTransition(EnemySpecialPhase next)
         {
-            BossPattern p = patterns[current];
+            EnemyPattern p = patterns[current];
 
             switch (next)
             {
@@ -357,7 +360,7 @@ namespace Prototype
         /// 격노 계열. 되돌리지 않으므로 <c>once</c>와 짝지어 쓴다 —
         /// 매번 곱하면 몇 번 만에 손댈 수 없는 수치가 된다.
         /// </summary>
-        private void ApplyBuffs(in BossPattern p)
+        private void ApplyBuffs(in EnemyPattern p)
         {
             if (p.attackPowerScale > 1f)
                 owner.Stats.Set(StatType.AttackPower,
@@ -371,7 +374,7 @@ namespace Prototype
                 control.ScaleAttackInterval(p.attackIntervalScale);
         }
 
-        private HitData BuildHit(in BossPattern p)
+        private HitData BuildHit(in EnemyPattern p)
         {
             HitData h = p.hit;
             float scale = p.damageScale > 0f ? p.damageScale : 1f;
@@ -380,7 +383,7 @@ namespace Prototype
         }
 
         /// <summary>?. 가 안전하도록 유니티의 가짜 null을 진짜 null로 정규화해서 돌려준다.</summary>
-        private Attack Hitbox(in BossPattern p)
+        private Attack Hitbox(in EnemyPattern p)
         {
             if (p.hitbox != null) return p.hitbox;
             if (owner != null && owner.BasicAttack != null) return owner.BasicAttack;
@@ -410,7 +413,7 @@ namespace Prototype
         // ── 구독 관리 ───────────────────────────────────
         // 전진 패턴에만 붙인다. 제자리 패턴에 붙이면 첫 타 적중이 자기 공격을 끊는다.
 
-        private void Wire(in BossPattern p)
+        private void Wire(in EnemyPattern p)
         {
             if (wired) return;
             wired = true;

@@ -689,34 +689,47 @@ MonoBehaviour:
   m_GameObject: {fileID: 8205942163614616472}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08f6743609ec65542b97cb03b3ebd136, type: 3}
+  m_Script: {fileID: 11500000, guid: ddfb7addeb7cb6045b0f6338349d2e33, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyChargeAction
-  telegraphDuration: 0.6
-  chargeDuration: 0.55
-  recoveryDuration: 0.8
-  chargeSpeed: 16
-  damageScale: 1.5
-  chargeHitbox: {fileID: 8003492778630563237}
-  chargeHit:
-    damageData:
-      damage: 15
-    aerialDamage: 0
-    castDelay: 0
-    castRangeScale: {x: 0, y: 0, z: 0}
-    targetState: 0
-    nextState: 3
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    pushDistance: 1
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    pullAnchorRatio: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyPatternAction
+  patterns:
+  - label: "\uB3CC\uC9C4"
+    chargeTime: 0
+    chargeClip: 
+    telegraph: 0.6
+    active: 0.55
+    recovery: 0.8
+    hitCount: 1
+    hitDuration: 0.55
+    damageScale: 1.5
+    hitbox: {fileID: 8003492778630563237}
+    hit:
+      damageData:
+        damage: 15
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
+      targetState: 0
+      nextState: 3
+      canOtg: 0
+      mode: 0
+      fixedDir: {x: 0, y: 0, z: 1}
+      pushDistance: 1
+      airborneHeight: 0
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
+      hitStunDuration: 0.3
+      guardDamage: 0
+      snapZ: 0
+    advanceSpeed: 16
+    cancelOnContact: 1
+    telegraphClip: 
+    activeClip: 
+    attackPowerScale: 0
+    moveSpeedScale: 0
+    attackIntervalScale: 0
+    once: 0
 --- !u!114 &1843587529696900597
 MonoBehaviour:
   m_ObjectHideFlags: 0
