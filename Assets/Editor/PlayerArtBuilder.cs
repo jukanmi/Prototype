@@ -119,7 +119,7 @@ namespace Prototype.EditorTools
         /// 비어 있어(<c>fileID: 0</c>) 공용 컨트롤러로 도는 중이었다.
         ///
         /// <b>Attack · AerialAttack · Skill은 새로 안 굽는다.</b> Attack은
-        /// <see cref="AllyBasicAttack"/>의 콤보 단계가 런타임에 클립을 갈아 끼우므로 기본값만
+        /// <see cref="BasicAttackProfile"/>의 콤보 단계가 런타임에 클립을 갈아 끼우므로 기본값만
         /// 있으면 되고(1타 클립), AerialAttack은 Ally 관례를 따라 2타 클립을 재활용한다.
         /// Skill은 위 참고.
         /// </summary>

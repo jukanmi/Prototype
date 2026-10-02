@@ -60,7 +60,7 @@ Transform:
   m_GameObject: {fileID: 3271341412504926514}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.9}
+  m_LocalPosition: {x: 0, y: 0.125, z: 0.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -146,7 +146,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2
+  m_Height: 1.25
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &7659659357169560609
@@ -393,7 +393,7 @@ Transform:
   m_GameObject: {fileID: 8107677782723647393}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.8}
+  m_LocalPosition: {x: 0, y: 0.125, z: 0.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -418,7 +418,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.4, y: 2, z: 1.6}
+  m_Size: {x: 1.4, y: 1.25, z: 1.6}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &8003492778630563237
 MonoBehaviour:
@@ -689,34 +689,47 @@ MonoBehaviour:
   m_GameObject: {fileID: 8205942163614616472}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08f6743609ec65542b97cb03b3ebd136, type: 3}
+  m_Script: {fileID: 11500000, guid: ddfb7addeb7cb6045b0f6338349d2e33, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyChargeAction
-  telegraphDuration: 0.6
-  chargeDuration: 0.55
-  recoveryDuration: 0.8
-  chargeSpeed: 16
-  damageScale: 1.5
-  chargeHitbox: {fileID: 8003492778630563237}
-  chargeHit:
-    damageData:
-      damage: 15
-    aerialDamage: 0
-    castDelay: 0
-    castRangeScale: {x: 0, y: 0, z: 0}
-    targetState: 0
-    nextState: 3
-    canOtg: 0
-    mode: 0
-    fixedDir: {x: 0, y: 0, z: 1}
-    pushDistance: 1
-    airborneHeight: 0
-    aerialAirborneHeight: 0
-    capAirborne: 0
-    pullAnchorRatio: 0
-    hitStunDuration: 0.3
-    guardDamage: 0
-    snapZ: 0
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyPatternAction
+  patterns:
+  - label: "\uB3CC\uC9C4"
+    chargeTime: 0
+    chargeClip: 
+    telegraph: 0.6
+    active: 0.55
+    recovery: 0.8
+    hitCount: 1
+    hitDuration: 0.55
+    damageScale: 1.5
+    hitbox: {fileID: 8003492778630563237}
+    hit:
+      damageData:
+        damage: 15
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
+      targetState: 0
+      nextState: 3
+      canOtg: 0
+      mode: 0
+      fixedDir: {x: 0, y: 0, z: 1}
+      pushDistance: 1
+      airborneHeight: 0
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
+      hitStunDuration: 0.3
+      guardDamage: 0
+      snapZ: 0
+    advanceSpeed: 16
+    cancelOnContact: 1
+    telegraphClip: 
+    activeClip: 
+    attackPowerScale: 0
+    moveSpeedScale: 0
+    attackIntervalScale: 0
+    once: 0
 --- !u!114 &1843587529696900597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -788,14 +801,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 8205942163614616472}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8b08696a9f41ba4696dbc2c2d83df3f, type: 3}
+  m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyBasicAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 7659659357169560609}
   skillAttack: {fileID: 0}
-  windup: 0.5
-  activeEnd: 0.65
-  total: 0.9
   basicHit:
     damageData:
       damage: 10
@@ -819,3 +829,19 @@ MonoBehaviour:
   projectileSpeed: 16
   projectileRange: 9
   projectilePierce: 0
+  stages:
+  - label: "1\uD0C0"
+    clip: {fileID: 0}
+    windup: 0.5
+    activeEnd: 0.65
+    total: 0.9
+    cancelStart: 0
+    damageMultiplier: 1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0

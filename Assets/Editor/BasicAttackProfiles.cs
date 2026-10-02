@@ -12,14 +12,14 @@ namespace Prototype.EditorTools
     /// <b>찌르는 순간에만</b> 터진다 — 여섯 군데가 같은 방식으로 깨져 있었다.
     /// 붙일 컴포넌트를 고르는 규칙도 한 곳에 있어야 생성기마다 갈라지지 않는다.
     ///
-    /// 규칙은 하나다 — <see cref="Enemy"/>면 <see cref="EnemyBasicAttack"/>, 아니면
-    /// <see cref="AllyBasicAttack"/>. <see cref="Entity"/>와 <b>같은 GameObject</b>에 붙인다
+    /// 붙이는 컴포넌트는 진영과 무관하게 <see cref="BasicAttackProfile"/> 하나다 — 적은 단계 표를 비워 둔다.
+    /// <see cref="Entity"/>와 <b>같은 GameObject</b>에 붙인다
     /// (런타임이 <c>GetComponent</c>로 찾으므로 자식에 붙으면 조용히 안 잡힌다).
     /// </summary>
     internal static class BasicAttackProfiles
     {
         /// <summary>
-        /// 이 몸의 평타 프로필. 없으면 진영에 맞는 것을 붙여서 돌려준다.
+        /// 이 몸의 평타 프로필. 없으면 붙여서 돌려준다.
         /// <see cref="Entity"/>가 없으면 null — 부르는 쪽이 그냥 건너뛰면 된다.
         /// </summary>
         public static BasicAttackProfile GetOrAdd(GameObject root)
@@ -32,9 +32,7 @@ namespace Prototype.EditorTools
             var profile = root.GetComponent<BasicAttackProfile>();
             if (profile != null) return profile;
 
-            profile = entity is Enemy
-                ? root.AddComponent<EnemyBasicAttack>()
-                : (BasicAttackProfile)root.AddComponent<AllyBasicAttack>();
+            profile = root.AddComponent<BasicAttackProfile>();
 
             EditorUtility.SetDirty(profile);
             return profile;
@@ -50,21 +48,6 @@ namespace Prototype.EditorTools
         /// <summary>스킬 히트박스를 물린다. 비우면 평타 것을 재사용한다.</summary>
         public static bool SetSkillHitbox(GameObject root, Attack hitbox)
             => SetReference(root, "skillAttack", hitbox);
-
-        /// <summary>선딜 · 판정끝 · 전체 길이를 한 번에 박는다.</summary>
-        public static void SetTiming(GameObject root, float windup, float activeEnd, float total)
-        {
-            BasicAttackProfile profile = GetOrAdd(root);
-            if (profile == null) return;
-
-            var so = new SerializedObject(profile);
-            so.FindProperty("windup").floatValue = windup;
-            so.FindProperty("activeEnd").floatValue = activeEnd;
-            so.FindProperty("total").floatValue = total;
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            EditorUtility.SetDirty(profile);
-        }
 
         private static bool SetReference(GameObject root, string field, Object value)
         {

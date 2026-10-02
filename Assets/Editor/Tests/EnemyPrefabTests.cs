@@ -121,7 +121,7 @@ namespace Prototype.Tests
 
             Assert.That(hitbox.localPosition.z, Is.GreaterThan(0.5f), "정면(+Z)에 있어야 한다");
             Assert.That(Mathf.Abs(hitbox.localPosition.x), Is.LessThan(0.01f), "X로 밀면 회전 후 깊이축으로 빠진다");
-            Assert.That(hitbox.localPosition.y, Is.GreaterThan(0.5f), "몸통 높이에 맞춰야 한다");
+            // 높이는 EnemyHitboxHeightTests가 본다 — 점프로 넘을 수 있게 낮게 깐다.
         }
 
         /// <summary>몸통 캡슐이 바닥(y=0) 위에 서야 다른 캐릭터의 히트박스 높이와 겹친다.</summary>
@@ -156,9 +156,9 @@ namespace Prototype.Tests
         {
             GameObject go = Load(MeleePath);
 
-            Assert.That(go.GetComponent<Enemy>().Data.brain, Is.TypeOf<MeleeBrainAsset>());
+            Assert.That(go.GetComponent<Enemy>().Data.brain, Is.TypeOf<StandardBrainAsset>());
             Assert.That(go.GetComponent<Enemy>().BasicIsRanged, Is.False);
-            Assert.That(go.GetComponent<EnemyChargeAction>(), Is.Null, "근접에 돌진 실행기가 붙어 있다");
+            Assert.That(go.GetComponent<EnemyPatternAction>(), Is.Null, "근접에 특수 행동 실행기가 붙어 있다");
         }
 
         [Test]
@@ -167,7 +167,7 @@ namespace Prototype.Tests
             GameObject go = Load(RangedPath);
             Enemy enemy = go.GetComponent<Enemy>();
 
-            Assert.That(enemy.Data.brain, Is.TypeOf<RangedBrainAsset>());
+            Assert.That(enemy.Data.brain, Is.TypeOf<StandardBrainAsset>());
             Assert.That(enemy.BasicIsRanged, Is.True, "투사체가 배선되지 않았다");
             Assert.That(enemy.Data.basicProjectile, Is.Not.Null);
             Assert.That(enemy.Data.preferredMinRange, Is.GreaterThan(0f), "물러날 거리가 없다");
@@ -179,12 +179,16 @@ namespace Prototype.Tests
         {
             GameObject go = Load(ChargerPath);
             Enemy enemy = go.GetComponent<Enemy>();
-            var action = go.GetComponent<EnemyChargeAction>();
+            var action = go.GetComponent<EnemyPatternAction>();
 
-            Assert.That(enemy.Data.brain, Is.TypeOf<ChargerBrainAsset>());
+            Assert.That(enemy.Data.brain, Is.TypeOf<StandardBrainAsset>());
             Assert.That(action, Is.Not.Null, "돌진 실행기가 없다");
-            Assert.That(action.ChargeHitbox, Is.Not.Null, "돌진 전용 히트박스가 배선되지 않았다");
-            Assert.That(action.ChargeHitbox.gameObject, Is.Not.SameAs(enemy.BasicAttack.gameObject),
+            Assert.That(action.Patterns, Has.Length.EqualTo(1), "돌진병은 패턴이 돌진 하나다");
+            EnemyPattern charge = action.Patterns[0];
+            Assert.That(charge.advanceSpeed, Is.GreaterThan(0f), "돌진이 전진하지 않는다");
+            Assert.That(charge.cancelOnContact, Is.True, "적중 · 벽에서 돌진이 끊기지 않는다");
+            Assert.That(charge.hitbox, Is.Not.Null, "돌진 전용 히트박스가 배선되지 않았다");
+            Assert.That(charge.hitbox.gameObject, Is.Not.SameAs(enemy.BasicAttack.gameObject),
                         "돌진 히트박스가 평타 히트박스와 같으면 평타가 돌진을 끊는다");
             Assert.That(enemy.Data.specialRange, Is.GreaterThan(enemy.Data.attackRange));
         }
@@ -198,7 +202,7 @@ namespace Prototype.Tests
             GameObject basePrefab = Load(BasePath);
 
             Assert.That(basePrefab.name, Is.EqualTo("enemy"));
-            Assert.That(basePrefab.GetComponent<EnemyChargeAction>(), Is.Null);
+            Assert.That(basePrefab.GetComponent<EnemyPatternAction>(), Is.Null);
         }
 
         /// <summary>변종마다 애셋이 한 벌씩만 있어야 한다. 복제본이 늘면 어느 쪽이 물리는지 알 수 없다.</summary>

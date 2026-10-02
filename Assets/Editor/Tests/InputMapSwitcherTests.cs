@@ -76,7 +76,7 @@ namespace Prototype.Tests
         private bool AimMapEnabled
             => controller.Actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map).enabled;
 
-        private void EnterOrderPhase() => bulletTime.Tactic.ChangeTo(bulletTime.Tactic.Order);
+        private void EnterOrderPhase() => bulletTime.ForcePhase(TacticPhase.Order);
 
         // ── 실시간 전투 ─────────────────────────────────────
 
@@ -147,7 +147,7 @@ namespace Prototype.Tests
             // 페이즈 · 조준 조합을 전부 훑는다.
             foreach (bool order in new[] { false, true })
             {
-                bulletTime.Tactic.ChangeTo(order ? bulletTime.Tactic.Order : bulletTime.Tactic.Freeze);
+                bulletTime.ForcePhase(order ? TacticPhase.Order : TacticPhase.Freeze);
 
                 foreach (bool aiming in new[] { false, true })
                 {
@@ -172,7 +172,7 @@ namespace Prototype.Tests
             Assert.That(CardMapEnabled, Is.True, "전제가 깨졌다.");
 
             // Freeze는 연출 구간이라 카드 편집을 안 받는다.
-            bulletTime.Tactic.ChangeTo(bulletTime.Tactic.Freeze);
+            bulletTime.ForcePhase(TacticPhase.Freeze);
             switcher.Apply();
 
             Assert.That(CardMapEnabled, Is.False);

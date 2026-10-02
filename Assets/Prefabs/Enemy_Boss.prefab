@@ -27,14 +27,14 @@ Transform:
   m_GameObject: {fileID: 1082728197986764551}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.125, z: 0}
+  m_LocalScale: {x: 6.4, y: 0.625, z: 6.4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2472837118664560790}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &1151692722329106538
-SphereCollider:
+--- !u!64 &1151692722329106538
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -51,9 +51,10 @@ SphereCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 3.2
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!114 &6619083006190313644
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -604,7 +605,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ddfb7addeb7cb6045b0f6338349d2e33, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BossPatternAction
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyPatternAction
   patterns:
   - label: "\uACA9\uB178"
     chargeTime: 0
@@ -800,14 +801,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7152174809819393455}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8b08696a9f41ba4696dbc2c2d83df3f, type: 3}
+  m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyBasicAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 3345747072517173204}
   skillAttack: {fileID: 0}
-  windup: 0.18
-  activeEnd: 0.36
-  total: 0.55
   basicHit:
     damageData:
       damage: 10
@@ -831,6 +829,22 @@ MonoBehaviour:
   projectileSpeed: 16
   projectileRange: 9
   projectilePierce: 0
+  stages:
+  - label: "1\uD0C0"
+    clip: {fileID: 0}
+    windup: 0.18
+    activeEnd: 0.36
+    total: 0.55
+    cancelStart: 0
+    damageMultiplier: 1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0
 --- !u!1 &8896743679997549617
 GameObject:
   m_ObjectHideFlags: 0
@@ -858,7 +872,7 @@ Transform:
   m_GameObject: {fileID: 8896743679997549617}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 1.5}
+  m_LocalPosition: {x: 0, y: 0.125, z: 1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -916,7 +930,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.9, y: 1.8, z: 1.8}
+  m_Size: {x: 1.9, y: 1.25, z: 1.8}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9110906291745030581
 GameObject:
@@ -945,7 +959,7 @@ Transform:
   m_GameObject: {fileID: 9110906291745030581}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 1.9}
+  m_LocalPosition: {x: 0, y: 0.125, z: 1.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -970,7 +984,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.6, y: 2.4, z: 3.2}
+  m_Size: {x: 3.6, y: 1.25, z: 3.2}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &8781116491409578958
 MonoBehaviour:

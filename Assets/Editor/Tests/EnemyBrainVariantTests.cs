@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// 원거리·돌진 브레인의 <b>판단</b>만 검증한다.
+    /// 원거리·돌진 수치를 준 보통 적 브레인(<see cref="StandardBrainAsset"/>)의 <b>판단</b>만 검증한다.
     /// 실행(투사체 발사·돌진 이동)은 여기 없다 — 브레인은 무상태 판단기다.
     /// </summary>
     public class EnemyBrainVariantTests
     {
         private GameObject targetObject;
-        private RangedBrainAsset ranged;
-        private ChargerBrainAsset charger;
+        private StandardBrainAsset ranged;
+        private StandardBrainAsset charger;
 
         private static readonly EnemyBrainParams RangedParams = new EnemyBrainParams
         {
@@ -33,8 +33,8 @@ namespace Prototype.Tests
             targetObject = new GameObject("Target");
             targetObject.AddComponent<Ally>();
 
-            ranged = ScriptableObject.CreateInstance<RangedBrainAsset>();
-            charger = ScriptableObject.CreateInstance<ChargerBrainAsset>();
+            ranged = ScriptableObject.CreateInstance<StandardBrainAsset>();
+            charger = ScriptableObject.CreateInstance<StandardBrainAsset>();
         }
 
         [TearDown]

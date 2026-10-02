@@ -9,6 +9,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a734edb625a06024fa56ae3101246a39, type: 3}
+  m_Script: {fileID: 11500000, guid: 6a939c118316ab249a5a8fab71e91b15, type: 3}
   m_Name: Brain_Charger
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.ChargerBrainAsset
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.StandardBrainAsset
