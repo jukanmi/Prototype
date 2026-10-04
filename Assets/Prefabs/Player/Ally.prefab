@@ -199,7 +199,6 @@ GameObject:
   - component: {fileID: 7635194681133861568}
   - component: {fileID: 8329762577736369492}
   - component: {fileID: 3542221482747386564}
-  - component: {fileID: 4897394032611718660}
   - component: {fileID: 7848563964723852200}
   m_Layer: 10
   m_Name: Ally
@@ -510,20 +509,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.EntityAnimator
   animator: {fileID: 8329762577736369492}
   crossFade: 0.05
---- !u!114 &4897394032611718660
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6734300126761519738}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b998316939a736d4fa2c3b775e5ae07d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Pilotable
-  dashCooldown: 0.6
-  attackBufferWindow: 0.25
 --- !u!114 &7848563964723852200
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,12 +520,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AllyBasicAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 8313081159196065631}
   skillAttack: {fileID: 4654731296532544185}
-  windup: 0.5
-  activeEnd: 0.65
-  total: 0.9
   basicHit:
     damageData:
       damage: 10

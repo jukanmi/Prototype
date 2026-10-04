@@ -19,9 +19,6 @@ MonoBehaviour:
   hp: 0
   atk: 0
   moveSpeed: 0
-  basicAttackWindup: 0
-  basicAttackActiveEnd: 0
-  basicAttackTotal: 0
   basicComboStages: []
   dashCooldown: 0
   attackBufferWindow: 0

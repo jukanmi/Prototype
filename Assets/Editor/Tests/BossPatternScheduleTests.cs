@@ -16,22 +16,22 @@ namespace Prototype.Tests
         [Test]
         public void SingleHit_FiresAtStartOfActive()
         {
-            Assert.That(BossPatternAction.HitTime(Active, 0, 1), Is.EqualTo(0f));
+            Assert.That(EnemyPatternAction.HitTime(Active, 0, 1), Is.EqualTo(0f));
         }
 
         [Test]
         public void TripleHit_SplitsActiveEvenly()
         {
-            Assert.That(BossPatternAction.HitTime(Active, 0, 3), Is.EqualTo(0f).Within(0.0001f));
-            Assert.That(BossPatternAction.HitTime(Active, 1, 3), Is.EqualTo(0.2f).Within(0.0001f));
-            Assert.That(BossPatternAction.HitTime(Active, 2, 3), Is.EqualTo(0.4f).Within(0.0001f));
+            Assert.That(EnemyPatternAction.HitTime(Active, 0, 3), Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(EnemyPatternAction.HitTime(Active, 1, 3), Is.EqualTo(0.2f).Within(0.0001f));
+            Assert.That(EnemyPatternAction.HitTime(Active, 2, 3), Is.EqualTo(0.4f).Within(0.0001f));
         }
 
         /// <summary>마지막 타격이 발동 구간 끝에 걸리면 판정이 켜지기 전에 후딜로 넘어간다.</summary>
         [Test]
         public void LastHit_LandsBeforeActiveEnds()
         {
-            float last = BossPatternAction.HitTime(Active, 2, 3);
+            float last = EnemyPatternAction.HitTime(Active, 2, 3);
 
             Assert.That(last, Is.LessThan(Active));
         }
@@ -43,7 +43,7 @@ namespace Prototype.Tests
 
             for (int i = 0; i < 5; i++)
             {
-                float t = BossPatternAction.HitTime(Active, i, 5);
+                float t = EnemyPatternAction.HitTime(Active, i, 5);
                 Assert.That(t, Is.GreaterThan(prev), $"{i}번째 타격이 앞 타격보다 늦지 않다");
                 prev = t;
             }
@@ -53,13 +53,13 @@ namespace Prototype.Tests
         [Test]
         public void NegativeDuration_ClampsToZero()
         {
-            Assert.That(BossPatternAction.HitTime(-1f, 2, 3), Is.EqualTo(0f));
+            Assert.That(EnemyPatternAction.HitTime(-1f, 2, 3), Is.EqualTo(0f));
         }
 
         [Test]
         public void ZeroOrNegativeTotal_FallsBackToImmediate()
         {
-            Assert.That(BossPatternAction.HitTime(Active, 0, 0), Is.EqualTo(0f));
+            Assert.That(EnemyPatternAction.HitTime(Active, 0, 0), Is.EqualTo(0f));
         }
     }
 }

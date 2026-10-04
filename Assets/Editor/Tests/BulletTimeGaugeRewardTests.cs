@@ -29,13 +29,13 @@ namespace Prototype.Tests
         [Test]
         public void Ally_EarnsGauge()
         {
-            Assert.That(BulletTimeController.EarnsGauge(New<Ally>("Ally")), Is.True);
+            Assert.That(TacticGauge.EarnsGauge(New<Ally>("Ally")), Is.True);
         }
 
         [Test]
         public void Enemy_DoesNotEarnGauge()
         {
-            Assert.That(BulletTimeController.EarnsGauge(New<Enemy>("Enemy")), Is.False,
+            Assert.That(TacticGauge.EarnsGauge(New<Enemy>("Enemy")), Is.False,
                 "적이 패링할 때마다 플레이어 게이지가 차면 안 된다");
         }
 
@@ -43,26 +43,26 @@ namespace Prototype.Tests
         public void Null_DoesNotEarnGauge()
         {
             // 공격자를 모르는 타격(장판 등)이 흘러 들어오는 경로가 있다.
-            Assert.That(BulletTimeController.EarnsGauge(null), Is.False);
+            Assert.That(TacticGauge.EarnsGauge(null), Is.False);
         }
 
         [Test]
         public void AllyHittingEnemy_EarnsBasicHitGauge()
         {
-            Assert.That(BulletTimeController.EarnsBasicHitGauge(New<Ally>("Ally"), New<Enemy>("Enemy")), Is.True);
+            Assert.That(TacticGauge.EarnsBasicHitGauge(New<Ally>("Ally"), New<Enemy>("Enemy")), Is.True);
         }
 
         [Test]
         public void EnemyHittingAlly_DoesNotEarnBasicHitGauge()
         {
-            Assert.That(BulletTimeController.EarnsBasicHitGauge(New<Enemy>("Enemy"), New<Ally>("Ally")), Is.False,
+            Assert.That(TacticGauge.EarnsBasicHitGauge(New<Enemy>("Enemy"), New<Ally>("Ally")), Is.False,
                 "적 평타에 맞았다고 플레이어 게이지가 차면 안 된다");
         }
 
         [Test]
         public void AllyHittingAlly_DoesNotEarnBasicHitGauge()
         {
-            Assert.That(BulletTimeController.EarnsBasicHitGauge(New<Ally>("A"), New<Ally>("B")), Is.False,
+            Assert.That(TacticGauge.EarnsBasicHitGauge(New<Ally>("A"), New<Ally>("B")), Is.False,
                 "적에게 맞혀야 보상이다");
         }
 
@@ -72,7 +72,7 @@ namespace Prototype.Tests
         public void BuildBasicHit_StampsFreshSwingEveryCall()
         {
             Ally ally = New<Ally>("Ally");
-            ally.gameObject.AddComponent<AllyBasicAttack>();
+            ally.gameObject.AddComponent<BasicAttackProfile>();
 
             HitData first = ally.BuildBasicHit(0);
             HitData second = ally.BuildBasicHit(1);
@@ -101,7 +101,7 @@ namespace Prototype.Tests
             var calls = new List<(Combat a, Combat v, int swing)>();
             void Handler(Combat a, Combat v, int s) => calls.Add((a, v, s));
 
-            Combat.OnAnyBasicHitLanded += Handler;
+            CombatEvents.OnAnyBasicHitLanded += Handler;
             try
             {
                 Assert.That(attacker.Attack(victim, in hit), Is.True, "선행 조건: 적중했다");
@@ -109,7 +109,7 @@ namespace Prototype.Tests
             finally
             {
                 // static 이벤트라 해제하지 않으면 파괴된 구독자가 다음 테스트까지 따라온다.
-                Combat.OnAnyBasicHitLanded -= Handler;
+                CombatEvents.OnAnyBasicHitLanded -= Handler;
             }
 
             Assert.That(calls.Count, Is.EqualTo(1));
@@ -127,14 +127,14 @@ namespace Prototype.Tests
             int calls = 0;
             void Handler(Combat a, Combat v, int s) => calls++;
 
-            Combat.OnAnyBasicHitLanded += Handler;
+            CombatEvents.OnAnyBasicHitLanded += Handler;
             try
             {
                 attacker.Attack(victim, in Poke);
             }
             finally
             {
-                Combat.OnAnyBasicHitLanded -= Handler;
+                CombatEvents.OnAnyBasicHitLanded -= Handler;
             }
 
             Assert.That(calls, Is.Zero, "스킬 적중은 평타 보상이 아니다");
@@ -150,7 +150,7 @@ namespace Prototype.Tests
             int calls = 0;
             void Handler(Combat a, Combat v, int s) => calls++;
 
-            Combat.OnAnyBasicHitLanded += Handler;
+            CombatEvents.OnAnyBasicHitLanded += Handler;
             try
             {
                 victim.BeginParryWindow();
@@ -158,7 +158,7 @@ namespace Prototype.Tests
             }
             finally
             {
-                Combat.OnAnyBasicHitLanded -= Handler;
+                CombatEvents.OnAnyBasicHitLanded -= Handler;
             }
 
             Assert.That(calls, Is.Zero, "흘려낸 평타는 적중이 아니다");

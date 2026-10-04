@@ -1,0 +1,851 @@
+using System;
+using UnityEngine;
+
+namespace Prototype
+{
+    /// <summary>
+    /// 타격 · 피격 · 상태 전이의 단일 창구.
+    /// 온힛 트리거 · 흡혈 · 콤보 카운트를 여기 한 곳에서 처리한다(결정 로그 ②).
+    ///
+    /// <b>무엇이 어디 있나.</b>
+    /// <list type="bullet">
+    /// <item>여기 — 체력 · 보호막 · 피격 판정 순서(<see cref="Hit"/>) · 경직 타이머 · 디버프 정합</item>
+    /// <item>가드 게이지 · 브레이크 — <see cref="GuardMeter"/></item>
+    /// <item>패링 창 · 패링 무적 · 교대 무적 — <see cref="DefenseWindows"/></item>
+    /// <item>넉백 · 띄우기 · 벽 바운드 · 벽 스턴 — Combat.Impact.cs</item>
+    /// <item>전역 알림(누가 누구를 때렸나) — <see cref="CombatEvents"/></item>
+    /// </list>
+    /// 튜닝값(<c>[SerializeField]</c>)은 전부 이 파일에 남아 있다 — 프리팹에 저장된 값을 옮기지 않으려고
+    /// 떼어 낸 쪽은 생성자로 값을 받는다.
+    /// </summary>
+    [RequireComponent(typeof(Physics))]
+    public partial class Combat : MonoBehaviour, IHittable, IDamageable
+    {
+        [SerializeField] private float maxHealth = 100f;
+        [SerializeField] private float lifestealRatio = 0f;
+        [SerializeField] private float damageCutRatio = 0f;
+        [SerializeField] private float downDuration = 1.2f;
+        [SerializeField] private float getupDuration = 0.4f;
+
+        [Header("벽 바운드 · 벽 스턴")]
+        [Tooltip("반발 계수. 1이면 들어온 속도 그대로 튕긴다.")]
+        [SerializeField] private float wallRestitution = 1.5f;
+        [Tooltip("최소 반사 속력. 살살 닿아도 이만큼은 튕긴다.")]
+        [SerializeField] private float wallMinBounce = 10f;
+        [Tooltip("이 속도로 처박으면 띄우기가 최대가 된다.")]
+        [SerializeField] private float wallHardSpeed = 18f;
+        [Tooltip("벽에서 뜨는 높이 속도. 약하게 → 세게 박았을 때.")]
+        [SerializeField] private float wallMinLaunch = 3f;
+        [SerializeField] private float wallMaxLaunch = 15f;
+        [Tooltip("연속 재바운드 방지. 이 시간 안에는 다시 튕기지 않는다.")]
+        [SerializeField] private float wallBounceCooldown = 0.2f;
+        [Tooltip("약경직(LightHit) 상태에서 벽 스턴을 유발하는 최소 충돌 속도.")]
+        [SerializeField] private float wallStunSpeedThreshold = 8f;
+        [Tooltip("벽 스턴 지속 시간.")]
+        [SerializeField] private float wallStunDuration = 1.2f;
+
+        [Header("대시 패링")]
+        [Tooltip("대시 시작 후 패링 판정이 열려 있는 시간.\n\n" +
+                 "예고(!)가 평타 선딜(windup)의 두 배 동안 떠 있으므로, 그 안에 누른 대시가 " +
+                 "타격까지 살아 있으려면 이 값이 넉넉해야 한다.\n" +
+                 "StatType.DashCooldown(기본 0.6)보다 크면 사실상 상시 무적이 되니 그보다는 작게 둘 것.")]
+        [SerializeField] private float parryWindow = 0.45f;
+        [Tooltip("전방으로 인정할 부채꼴의 전체 폭(도). 180이면 옆구리까지 막고 등 뒤만 통과한다.")]
+        [SerializeField] private float parryAngle = 180f;
+        [Tooltip("패링에 성공하면 이 시간 동안 완전 무적이 된다. 다대일에서 동시에 들어오는 " +
+                 "나머지 타격까지 흘려 내는 구간이라, 이 값이 곧 '한 번의 패링으로 몇 대를 받아치는가'다.")]
+        [SerializeField] private float parrySuccessInvuln = 0.3f;
+        [Tooltip("패링당한 공격자가 먹는 경직.")]
+        [SerializeField] private float parryCounterStun = 0.6f;
+        [Tooltip("반격 밀치기 거리(유닛). 0이면 제자리에서 경직만 먹는다.")]
+        [SerializeField] private float parryCounterPush = 0.5f;
+
+        [Header("교대 등장")]
+        [Tooltip("교대로 필드에 설 때 받는 무적 시간. 0이면 무적 없이 그대로 선다.\n\n" +
+                 "교대는 내려간 몸의 자리를 그대로 물려받는다. 사망 교대라면 그 자리는 <b>방금 아군 " +
+                 "하나를 죽인 히트박스 한복판</b>이고, 히트박스의 중복 방지(Attack.alreadyHit)는 " +
+                 "Combat 인스턴스 기준이라 새로 선 몸은 '처음 보는 대상'으로 그대로 또 맞는다. " +
+                 "0이면 보스의 다단히트 하나에 파티가 통째로 연쇄 사망한다.\n\n" +
+                 "보스 패턴이 한 번 켜 둔 히트박스를 <b>끝까지</b> 넘겨야 한다. 지금 가장 긴 것은 " +
+                 "삼연참(active 0.6 / 3타 / 지속 0.12)으로, 마지막 타격 0.4s + 0.12s = 0.52s 다. " +
+                 "SummonInvulnTests 가 보스 표를 직접 읽어 이 값이 모자라면 실패한다.")]
+        [SerializeField] private float summonInvuln = 0.55f;
+
+        [Header("가드 (보스)")]
+        [Tooltip("가드 게이지 최대치. 단위는 <b>타격 횟수</b>다 — 10이면 열 대 맞고 깨진다.\n\n" +
+                 "0 이하면 가드 시스템을 쓰지 않는다(잡몹 기본값). 값이 있으면 이 개체는 평소 " +
+                 "슈퍼아머고, 맞아도 밀리거나 멈추지 않고 데미지만 받는다.")]
+        [SerializeField] private float maxGuard = 0f;
+        [Tooltip("hit.guardDamage가 비어 있는 타격이 깎는 양. 1이 곧 '한 대'다.\n\n" +
+                 "데미지에 비례시키지 않는 이유: 연타로 깨는 맛을 살리기 위해서다. " +
+                 "큰 기술 한 방보다 빠르게 몰아치는 쪽이 벽을 먼저 허문다.")]
+        [SerializeField] private float defaultGuardDamage = 1f;
+        [Tooltip("가드가 0이 됐을 때 무방비로 있는 시간. 이 구간에만 경직 · 넉백 · 공중 콤보가 통한다.")]
+        [SerializeField] private float guardBreakDuration = 4f;
+        [Tooltip("마지막 피격 후 이 시간이 지나면 가드가 자연 회복을 시작한다.")]
+        [SerializeField] private float guardRegenDelay = 3f;
+        [Tooltip("자연 회복 속도(초당 몇 대분). 연타를 끊으면 벽이 도로 서야 한다.")]
+        [SerializeField] private float guardRegen = 2f;
+
+        private Physics physics;
+        private Entity owner;
+        private Energy health;
+
+        private float hitStunDuration;
+        private float stunTimer;
+        private float shield;
+        private float wallBounceTimer;
+
+        private GuardMeter guardMeter;
+        private DefenseWindows defense;
+
+        /// <summary>
+        /// 가드. Awake 없이 접근하는 경로(에디터 테스트 · 생성기)를 위해 첫 접근에 만든다 —
+        /// <see cref="Health"/>와 같은 이유다.
+        /// </summary>
+        private GuardMeter GuardM => guardMeter ?? (guardMeter = new GuardMeter(
+            maxGuard, guardBreakDuration, defaultGuardDamage, guardRegenDelay, guardRegen));
+
+        /// <summary>패링 · 무적 창. 가드와 같은 이유로 첫 접근에 만든다.</summary>
+        private DefenseWindows Defense => defense ?? (defense = new DefenseWindows(
+            parryWindow, parryAngle, parrySuccessInvuln, summonInvuln));
+
+        /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
+        private int airHitCount;
+
+        /// <summary>지속시간이 있는 상태(보호막 · 피해감소 · 흡혈 · 스턴 · 빙결). 지속시간과 원복을 한 곳에서 든다.</summary>
+        private readonly StatusEffects statuses = new StatusEffects();
+
+        /// <summary>마지막으로 알린 디버프 마스크. 달라졌을 때만 <see cref="OnDebuffsChanged"/>를 쏜다.</summary>
+        private Debuff lastDebuffs;
+
+        public CombatState CombatState { get; private set; } = CombatState.Neutral;
+
+        /// <summary>
+        /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)를 위해 첫 접근에 만든다.
+        /// Owner를 지연 해석하는 것과 같은 이유다.
+        /// </summary>
+        public Energy Health => health != null ? health : health = new Energy(EnergyType.Health, maxHealth);
+        public Physics Physics => physics;
+        public Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
+        public int AirHitCount => airHitCount;
+        public bool IsDead => CombatState == CombatState.Dead;
+
+        /// <summary>패링 판정이 지금 열려 있는지.</summary>
+        public bool IsParrying => Defense.IsParrying;
+
+        /// <summary>패링 창 길이. <see cref="CombatStateRules.TelegraphLead"/>와 짝이 맞는지 보는 쪽이 읽는다.</summary>
+        public float ParryWindow => Defense.ParryWindow;
+
+        /// <summary>패링 성공 직후의 무적 구간인지.</summary>
+        public bool IsParryInvulnerable => Defense.IsParryInvulnerable;
+
+        /// <summary>교대로 막 선 직후의 무적 구간인지.</summary>
+        public bool IsSummonInvulnerable => Defense.IsSummonInvulnerable;
+
+        // ── 가드 ────────────────────────────────────────
+
+        /// <summary>가드 시스템을 쓰는 개체인가. 잡몹은 false다.</summary>
+        public bool HasGuard => GuardM.Enabled;
+
+        /// <summary>
+        /// 가드 게이지. <see cref="Health"/>와 같은 이유로 첫 접근에 만든다 —
+        /// Awake 없이 접근하는 경로(에디터 테스트 · 생성기)가 있다.
+        /// </summary>
+        public Energy Guard => GuardM.Energy;
+
+        /// <summary>가드가 깨져 무방비인지. 이 구간에만 경직 · 넉백 · 공중 콤보가 통한다.</summary>
+        public bool IsGuardBroken => GuardM.IsBroken;
+
+        /// <summary>
+        /// 지금 슈퍼아머인지. 가드를 가진 개체의 <b>기본 상태</b>다 —
+        /// 깨지거나 죽었을 때만 풀린다.
+        /// </summary>
+        public bool IsSuperArmored => HasGuard && !IsGuardBroken && !IsDead;
+
+        /// <summary>가드가 깨질 때 true, 복구될 때 false. 연출 · 라벨 · 사운드가 여기 붙는다.</summary>
+        public event Action<bool> OnGuardBreakChanged;
+
+        /// <summary>
+        /// 가드가 깎였다. 인자는 이번에 깎인 양(= 몇 대분).
+        ///
+        /// <see cref="OnHitTaken"/>으로는 대신할 수 없다 — 슈퍼아머인 동안은
+        /// <see cref="Hit"/>가 그 이벤트를 발화하기 <b>전에</b> 돌아간다. 그런데 가드를 가진 개체는
+        /// 평소가 슈퍼아머라, "맞았다"를 알 유일한 경로가 여기다.
+        ///
+        /// 지금은 구독자가 없다. 보스 차징을 늦추던 쪽이 쓰다가 그 메커니즘째 걷어냈고,
+        /// 이벤트는 남겨 둔다 — 슈퍼아머 중 피격 연출 · HUD가 붙을 자리가 여기뿐이다.
+        /// </summary>
+        public event Action<float> OnGuardDrained;
+
+        /// <summary>
+        /// 가드 수치를 외부 테이블(EnemyData 등)로 덮어쓴다.
+        /// <see cref="SetMaxHealth"/>와 같은 자리의 창구다 — private [SerializeField]를 밖에서 만지지 않게.
+        /// </summary>
+        public void SetGuard(float max, float breakDuration)
+        {
+            // 인스펙터 값도 같이 맞춘다 — 프리팹 검사 · 디버그가 읽는 자리가 이쪽이다.
+            maxGuard = Mathf.Max(0f, max);
+            guardBreakDuration = Mathf.Max(0f, breakDuration);
+
+            GuardM.Configure(maxGuard, guardBreakDuration);
+        }
+        /// <summary>지금 걸려 있는 지속 상태. 화면 표시(<see cref="StatusEffectBar"/>)와 스킬 효과가 같이 본다.</summary>
+        public StatusEffects Statuses => statuses;
+
+        /// <summary>지금 걸린 디버프 비트.</summary>
+        public Debuff Debuffs => statuses.Debuffs;
+
+        public bool HasDebuff(Debuff mask) => (statuses.Debuffs & mask) != 0;
+
+        /// <summary>
+        /// 디버프 마스크가 실제로 달라졌을 때만. 몸 색을 칠하는 쪽(<see cref="EnemyStateTint"/>)이
+        /// 매 프레임 묻지 않게 하려고 있다 — 버프가 걸리고 풀릴 때마다 다시 칠할 이유는 없다.
+        /// </summary>
+        public event Action<Debuff> OnDebuffsChanged;
+
+        /// <summary>남은 경직 시간. 다운 · 기상도 같은 타이머를 쓴다.</summary>
+        public float StunRemaining => Mathf.Max(0f, stunTimer);
+
+        /// <summary>지금 걸린 경직의 전체 길이. 게이지가 남은 비율을 그릴 때 분모다.</summary>
+        public float StunDuration => hitStunDuration;
+
+        /// <summary>패링 무적의 남은 시간.</summary>
+        public float ParryInvulnRemaining => Defense.ParryInvulnRemaining;
+
+        /// <summary>패링 무적의 전체 길이.</summary>
+        public float ParryInvulnDuration => Defense.ParryInvulnDuration;
+
+        /// <summary>교대 무적의 남은 시간.</summary>
+        public float SummonInvulnRemaining => Defense.SummonInvulnRemaining;
+
+        /// <summary>교대 무적의 전체 길이. 프리팹 검사가 읽는다.</summary>
+        public float SummonInvulnDuration => Defense.SummonInvulnDuration;
+
+        /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
+        public event Action<Combat, HitData> OnHitLanded;
+
+        // 누가 누구를 때렸든 울리는 전역 알림은 CombatEvents에 있다. 쏘는 곳은 여기뿐이다.
+
+        /// <summary>피격이 실제로 반영됐을 때. 경직 상태 진입 신호.</summary>
+        public event Action<HitData, CombatState> OnHitTaken;
+        public event Action<CombatState, CombatState> OnCombatStateChanged;
+        public event Action OnDead;
+
+        private void Awake()
+        {
+            physics = GetComponent<Physics>();
+            owner = GetComponent<Entity>();
+
+            // 이미 만들어진 것은 덮지 않는다. 컴포넌트 간 Awake 순서는 보장되지 않아
+            // Enemy.Awake가 먼저 돌면 ApplyData가 주입한 최대치를 여기서 날려 버린다 —
+            // 보스 HP 400이 프리팹 값 100으로 되돌아가는 증상이 그것이었다.
+            if (health == null) health = new Energy(EnergyType.Health, maxHealth);
+            _ = GuardM;
+            _ = Defense;
+        }
+
+        private void OnEnable()
+        {
+            physics.OnLand += HandleLand;
+            physics.OnWallHit += HandleWallHit;
+        }
+
+        private void OnDisable()
+        {
+            physics.OnLand -= HandleLand;
+            physics.OnWallHit -= HandleWallHit;
+        }
+
+        /// <summary>Entity가 스케일된 dt로 호출한다.</summary>
+        public void Tick(float dt)
+        {
+            if (wallBounceTimer > 0f) wallBounceTimer -= dt;
+            Defense.Tick(dt);
+
+            TickGuard(dt);
+            // 경직 복구가 아래에서 early return을 타므로 그 전에 굴린다 —
+            // 뒤에 두면 경직 중인 캐릭터의 버프만 시간이 안 간다.
+            statuses.Tick(dt);
+
+            // 경직 복구보다 먼저 본다. 아래 stunTimer 분기가 early return을 타므로
+            // 뒤에 두면 경직 중인 몸은 디버프에 영영 안 굳고, 풀릴 때도 안 풀린다.
+            SyncDebuffState();
+
+            // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
+            // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
+            // 여기서 끊으면 복구 검사가 다시는 돌지 않아 경직이 영구히 남는다.
+            if (stunTimer > 0f)
+            {
+                stunTimer -= dt;
+                if (stunTimer > 0f) return;
+            }
+
+            CombatState prev = CombatState;
+            CombatState next = CombatStateRules.OnStunEnd(prev);
+            if (next == prev)
+            {
+                // 넉백 · 공중피격 계열은 착지로만 풀린다. 그런데 OnLand 없이 지면에 서는
+                // 경로가 둘 있다 — 띄우기 없는 넉백(애초에 뜨질 않는다)과
+                // Physics.Teleport(교대 복귀 · 불릿타임 배치). 그대로 두면 경직이 고착되므로
+                // 지면에 있으면 착지와 같게 처리해 다운 흐름에 합류시킨다.
+                if (physics.PhysicsState == PhysicsState.Ground &&
+                    CombatStateRules.OnGroundContact(prev) != prev)
+                    HandleLand();
+                return;
+            }
+
+            // 다운 → 기상 → 복귀는 각각 고유 지속시간을 갖는다.
+            if (next == CombatState.Getup)
+            {
+                SetCombatState(next);
+                SetStunTimer(getupDuration);
+                return;
+            }
+
+            // airHitCount 리셋은 오직 기상 완료 시점에만(결정 로그 ⑦).
+            if (prev == CombatState.Getup)
+            {
+                OnGetupComplete();
+                return;
+            }
+
+            // 몸(IState)은 Entity가 OnCombatStateChanged를 보고 맞춘다.
+            SetCombatState(next);
+        }
+
+        // ── 디버프 (스턴 · 빙결) ─────────────────────────
+
+        /// <summary>
+        /// 디버프를 건다. <b>거는 유일한 창구</b>다 — <see cref="StatusEffects.Apply"/>를 직접 부르면
+        /// 사망 검사와 로그가 빠지고, 무엇보다 "누가 걸었나"를 찾을 곳이 흩어진다.
+        ///
+        /// <b>상태 전이는 여기서 하지 않는다.</b> <see cref="SyncDebuffState"/>가 프레임마다 맞춘다 —
+        /// 걸린 순간에 밀어 넣으면 슈퍼아머 시전(차징) 중에는 전이가 거부되고 그걸로 끝이라,
+        /// 시전이 끝난 뒤에도 몸이 멀쩡히 걸어 다닌다.
+        ///
+        /// 스택 규칙은 <see cref="StatusEffects.Apply"/> 그대로 <b>긴 쪽이 남는다</b>.
+        /// 벽스턴 1.2초 위에 스킬 스턴 0.5초를 얹어도 1.2초다.
+        /// </summary>
+        public void ApplyDebuff(Debuff mask, float duration)
+        {
+            if (IsDead || mask == Debuff.None || duration <= 0f) return;
+
+            for (int i = 0; i < StatusRules.Bits.Length; i++)
+            {
+                Debuff bit = StatusRules.Bits[i];
+                if ((mask & bit) == 0) continue;
+                if (!StatusRules.TryStatusOf(bit, out StatusKind kind)) continue;
+
+                statuses.Apply(kind, duration);
+
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <b>{StatusEffectVisuals.Label(kind)}</b> {duration:0.##}s " +
+                    $"(남은 {statuses.Remaining(kind):0.##}s)", this);
+            }
+
+            // 굳는 그림은 다음 Tick을 기다리지 않고 이번 프레임에 시작한다.
+            SyncDebuffState();
+        }
+
+        /// <summary>
+        /// 디버프와 상태머신을 맞춘다. 들어가고 나가는 판정이 여기 <b>한 곳에만</b> 있다 —
+        /// 상태 쪽에서도 재면 규칙이 두 벌이 되고, 그 둘은 반드시 언젠가 어긋난다.
+        /// </summary>
+        private void SyncDebuffState()
+        {
+            NotifyDebuffsChanged();
+
+            // 물리 정지는 상태머신을 안 거친다. 바인드는 띄워 둔 적(AerialHit 경직)에게 거는 게
+            // 본래 용도인데, 아래 진입은 경직이 끝나길 기다린다 — 공중 경직은 착지로만 끝나므로
+            // 상태에 묶어 두면 떨어지고 나서야 붙잡는다. 시간(Statuses)이 곧 스위치다.
+            // 사망 · 벤치로 목록이 비면 여기서 같이 풀린다(시체는 떨어져야 한다).
+            if (physics != null) physics.Suspended = !IsDead && statuses.Has(StatusKind.AirBind);
+
+            Entity body = Owner;
+            if (IsDead || body == null || body.StateMachine == null) return;
+
+            // 바인드 > 빙결 > 스턴. 둘 이상 걸렸을 때 화면에 나갈 그림은 하나여야 한다.
+            IState want = statuses.Has(StatusKind.AirBind) ? (IState)body.AirBoundState
+                        : statuses.Has(StatusKind.Freeze)  ? body.FrozenState
+                        : statuses.Has(StatusKind.Stun)    ? body.StunState
+                        : null;
+
+            if (want != null)
+            {
+                // 경직 중에는 손대지 않는다. HitState를 빼앗으면 피격 반응이 한 프레임 만에 사라진다.
+                // 경직이 끝나면 Entity가 HitState를 Idle로 옮기고, 그 다음 프레임에 여기가 붙잡는다.
+                // 슈퍼아머도 같은 이유로 TryChangeState다 — 거부당하면 다음 프레임에 다시 묻는다.
+                if (!CombatStateRules.IsStunned(CombatState))
+                    body.StateMachine.TryChangeState(want);
+
+                return;
+            }
+
+            // 스스로는 중단 불가라 Try로는 못 나온다.
+            IState cur = body.StateMachine.CurState;
+            if (cur == body.StunState || cur == body.FrozenState || cur == body.AirBoundState)
+                body.ForceIdle();
+        }
+
+        /// <summary>
+        /// 마스크가 실제로 달라졌을 때만 알린다. 구독 대신 <see cref="Tick"/>에서 비교하는 이유는
+        /// <see cref="StatusEffects"/>가 Awake를 안 거치는 경로(에디터 테스트 · 생성기)에서도
+        /// 만들어지기 때문이다 — 구독을 Awake에 두면 그 경로에서 조용히 빠진다.
+        /// </summary>
+        private void NotifyDebuffsChanged()
+        {
+            Debuff now = statuses.Debuffs;
+            if (now == lastDebuffs) return;
+
+            lastDebuffs = now;
+            OnDebuffsChanged?.Invoke(now);
+        }
+
+        // ── 때리는 쪽 ───────────────────────────────────
+
+        /// <summary>
+        /// 판정과 부가효과의 주체. Attack 컴포넌트는 대상만 넘겨준다.
+        /// </summary>
+        /// <returns>
+        /// 타격이 <b>실제로 성립했는지</b>. 무적 · 패링으로 흘렸으면 false다.
+        ///
+        /// 이 값을 돌려주는 이유: <see cref="Hit"/>가 "없던 일"로 처리한 타격을 호출부가 알 길이
+        /// 없었다. 그래서 흘려낸 공격에도 타격 이펙트가 뜨고, 투사체 관통이 소모되고,
+        /// 보스 돌진이 명중한 것처럼 끊겼다 — 전부 여기서 false가 새어 나가지 못한 탓이다.
+        /// </returns>
+        public bool Attack(IHittable target, in HitData hit)
+        {
+            if (target == null || IsDead) return false;
+            if (ReferenceEquals(target, this)) return false;
+
+            if (!target.Hit(in hit, this)) return false;
+
+            if (lifestealRatio > 0f)
+            {
+                float heal = hit.damageData.damage * lifestealRatio;
+                Health.Recover(heal);
+                BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
+            }
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
+
+            OnHitLanded?.Invoke(this, hit);
+            if (target is Combat victim)
+            {
+                CombatEvents.RaiseHitLanded(this, victim);
+                if (hit.IsBasicAttack) CombatEvents.RaiseBasicHitLanded(this, victim, hit.basicSwing);
+            }
+
+            return true;
+        }
+
+        // ── 맞는 쪽 ─────────────────────────────────────
+
+        public bool Hit(in HitData hit, Combat attacker)
+        {
+            if (IsDead) return false;
+
+            // 무적 판정 — 다운/기상은 OTG를 제외하면 통과하지 않는다.
+            if (CombatStateRules.IsInvincible(CombatState, hit.canOtg))
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#808080>무적으로 흘림</color> ({CombatState}, OTG {hit.canOtg})", this);
+                return false;
+            }
+
+            // 교대로 막 선 몸 — 방향도 공격자도 보지 않는다. 반격도 없다(그건 패링의 보상이다).
+            //
+            // 여기서 흘리지 않으면 <b>아직 켜져 있는 그 히트박스</b>가 새 몸을 그대로 또 잡는다.
+            // 교대는 쓰러진 자리를 물려받고(TagSwapController.HandleDied), Attack.alreadyHit 은
+            // Combat 인스턴스 기준이라 새 몸이 '처음 보는 대상'이기 때문이다. 그게 보스의
+            // 다단히트 한 번에 파티가 통째로 죽던 경로다.
+            if (IsSummonInvulnerable)
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#8AE234>교대 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
+                    $"(남은 {SummonInvulnRemaining:0.##}s)", this);
+
+                return false;
+            }
+
+            // 패링 성공 후의 무적 구간 — 방향을 보지 않는다. 사방에서 동시에 들어오는
+            // 타격을 통째로 흘려 내는 게 이 구간의 존재 이유다.
+            if (IsParryInvulnerable)
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#4CC9F0>패링 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
+                    $"(남은 {ParryInvulnRemaining:0.##}s)", this);
+
+                CounterAttack(attacker);
+                return false;
+            }
+
+            // 대시 패링 — 데미지가 들어가기 전에 본다. 막았으면 맞지 않은 것으로 친다.
+            if (TryParry(in hit, attacker)) return false;
+
+            // 방어력 · 보호막 · 피해감소가 다 적용된 <b>실제로 들어간 양</b>을 재려면
+            // TakeDamage 앞뒤를 재는 수밖에 없다 — 그 안에서 값이 여러 번 깎인다.
+            // 보호막이 먹은 몫도 "들어간 피해"로 친다. 화면에 뜨는 숫자는 때린 쪽 기준이다.
+            float poolBefore = Health.CurValue + shield;
+
+            TakeDamage(hit.damageData);
+
+            ReportDamageDealt(attacker, poolBefore);
+
+            if (IsDead) return true;
+
+            // 가드를 먼저 깎는다. 이 타격이 가드를 0으로 만들면 아래 아머 검사가 이미 풀려 있어
+            // <b>깨뜨린 그 타격부터</b> 경직이 걸린다 — 브레이크가 한 대 늦게 열리지 않는다.
+            DrainGuard(in hit);
+
+            // 가드를 가진 개체는 평소가 슈퍼아머다. 데미지만 받고 밀리거나 멈추지 않는다.
+            if (IsSuperArmored)
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#FFD166>슈퍼아머</color> — 경직·넉백 무시 " +
+                    $"(데미지만 적용, 가드 {Guard.CurValue:0}/{Guard.MaxValue:0})", this);
+                return true;
+            }
+
+            // 디버프로 이미 굳어 있는 몸. 상태머신은 StunState · FrozenState가 쥐고 있어
+            // 어떤 피격 반응도 거부하는데, 그걸 슈퍼아머로 읽으면 넉백까지 사라져
+            // 얼린 적을 벽으로 밀어붙이는 그림이 통째로 죽는다. 그래서 <b>전이만</b> 건너뛰고
+            // 데미지 · 넉백은 그대로 먹인다.
+            bool locked = HasDebuff(Debuff.ActionBlocking);
+
+            // 슈퍼아머: 상태머신이 전이를 거부하면 경직 · 넉백을 적용하지 않는다.
+            // 데미지는 이미 들어갔다(결정 로그 ③).
+            CombatState next = CombatStateRules.Next(CombatState, in hit, airHitCount);
+            if (!locked && owner != null && !owner.RequestHitReaction(next))
+            {
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} <color=#FFD166>슈퍼아머</color> — 경직·넉백 무시 (데미지만 적용)", this);
+                return true;
+            }
+
+            // 바인드는 넉백까지 안 먹는다 — 못 박힌 몸이 밀리면 바인드가 아니다.
+            // 물리(Suspended)가 어차피 다음 스텝에 지우지만, 방향을 안 넘겨야 벽 스턴 판정도 안 선다.
+            Vector3 pushDir = HasDebuff(Debuff.AirBind) ? Vector3.zero : ApplyKnockback(in hit, attacker);
+
+            CombatState before = CombatState;
+
+            if (!locked)
+            {
+                SetCombatState(next);
+                SetStunTimer(hit.hitStunDuration);
+            }
+
+            // 저작된 디버프. 굳어 있어도 다시 건다 — 긴 쪽이 남으므로 재시전이 시간을 잘라 내지 않는다.
+            ApplyDebuff(hit.debuff, hit.debuffDuration);
+
+            // 두 축이 갈라져 있어 순서는 더는 의미가 없다. 벽 스턴은 경직이 아니라 디버프를 건다.
+            TryWallStun(in hit, pushDir);
+
+            if (!locked && next == CombatState.AerialHit)
+            {
+                airHitCount++;
+                // 맞을수록 무겁게 떨어뜨리던 가중치는 걷어냈다 — 조기 착지가 다운을 부르고
+                // 그 뒤 슬롯이 통째로 무적에 흘렀다. 무한 홀딩은 MaxAirHit이 막는다.
+                BattleLog.Log(LogCategory.Combat,
+                    $"{name} 공중히트 {airHitCount}/{CombatStateRules.MaxAirHit}", this);
+            }
+
+            BattleLog.Log(LogCategory.Combat,
+                locked
+                    ? $"{name} 피격 | <b>{CombatState}</b> 유지(디버프) | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 넉백만 적용"
+                    : $"{name} 피격 | {before} → <b>{next}</b> | HP {Health.CurValue:0.#}/{Health.MaxValue:0.#} | 경직 {hit.hitStunDuration:0.##}s",
+                this);
+
+            OnHitTaken?.Invoke(hit, locked ? CombatState : next);
+            return true;
+        }
+
+        /// <summary>
+        /// 이번 타격이 실제로 깎아 낸 양을 알린다. <see cref="CombatEvents.OnAnyHitLanded"/>로는 못 대신한다 —
+        /// 그쪽은 "맞았다"만 알리고 수치를 안 준다.
+        /// </summary>
+        private void ReportDamageDealt(Combat attacker, float poolBefore)
+        {
+            if (!CombatEvents.HasDamageListeners) return;
+
+            float dealt = poolBefore - (Health.CurValue + shield);
+            if (dealt <= 0f) return;
+
+            CombatEvents.RaiseDamageDealt(attacker, this, dealt);
+        }
+
+        public void TakeDamage(in DamageData damageData)
+        {
+            if (IsDead) return;
+
+            float dmg = damageData.damage * (1f - Mathf.Clamp01(damageCutRatio));
+
+            // 보호막이 먼저 닳는다.
+            if (shield > 0f)
+            {
+                float absorbed = Mathf.Min(shield, dmg);
+                shield -= absorbed;
+                dmg -= absorbed;
+                BattleLog.Log(LogCategory.Combat, $"{name} 보호막 흡수 {absorbed:0.#} (잔여 {shield:0.#})", this);
+
+                // 시간이 아니라 다 닳아서 끝나는 경우. 여기서 안 풀면 게이지에
+                // 이미 사라진 보호막이 계속 떠 있다.
+                if (shield <= 0f) statuses.Cancel(StatusKind.Shield);
+            }
+
+            if (dmg > 0f)
+                Health.Lose(dmg);
+
+            if (Health.IsEmpty)
+                Die();
+        }
+
+        // ── 가드 · 가드브레이크 ──────────────────────────
+
+        /// <summary>브레이크 타이머와 자연 회복. <see cref="Tick"/>이 스케일된 dt로 부른다.</summary>
+        private void TickGuard(float dt)
+        {
+            if (!GuardM.Tick(dt)) return;
+
+            OnGuardBreakChanged?.Invoke(false);
+            BattleLog.Log(LogCategory.Combat, $"{name} 가드 회복 — 슈퍼아머 복귀", this);
+        }
+
+        /// <summary>이 타격이 깎는 가드. 0이 되면 <see cref="BreakGuard"/>가 무방비 구간을 연다.</summary>
+        private void DrainGuard(in HitData hit)
+        {
+            bool broke = GuardM.Drain(in hit, out float loss);
+            if (loss <= 0f) return;
+
+            OnGuardDrained?.Invoke(loss);
+
+            if (broke) BreakGuard();
+        }
+
+        /// <summary>
+        /// 가드브레이크. 정해진 시간 동안 슈퍼아머가 풀리고 아무 행동도 하지 못한다
+        /// (<see cref="EnemyControl"/>이 이 값을 보고 명령을 끊는다).
+        ///
+        /// <see cref="ClearHitStun"/>을 부르는 이유: 여기까지 오는 동안은 아머라 경직이 없었지만
+        /// 공중 히트 누적 · 중력 보정 · 벽바운드 쿨 같은 잔재가 남아 있다.
+        /// 그걸 정리해야 이어지는 콤보가 <b>처음부터</b> 걸린다.
+        /// </summary>
+        private void BreakGuard()
+        {
+            ClearHitStun();
+            OnGuardBreakChanged?.Invoke(true);
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} <color=#E24AFF><b>가드 브레이크</b></color> — {GuardM.BreakDuration:0.##}s 무방비", this);
+        }
+
+        // ── 교대 등장 ───────────────────────────────────
+
+        /// <summary>
+        /// 교대로 필드에 섰다. <b>호출자는 <see cref="TagSwapController"/> 하나뿐</b>이어야 한다 —
+        /// 몸을 세우는 것과 지키는 것이 같은 자리에 묶여 있어야, 나중에 생긴 등장 경로가
+        /// 무적만 빠뜨린 채 몸을 세우는 일이 안 생긴다.
+        ///
+        /// 시체에는 주지 않는다. 사망 자동 교대가 도는 순간 <b>쓰러진 몸은 아직 그 자리에
+        /// 그대로 있고</b>, 시체까지 무적이 되면 이어지는 타격이 전부 흘러 다단히트가 조용히 줄어든다.
+        /// </summary>
+        public void GrantSummonInvuln()
+        {
+            if (IsDead || !Defense.GrantSummon()) return;
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} 교대 등장 — {summonInvuln:0.##}s 무적", this);
+        }
+
+        // ── 대시 패링 ───────────────────────────────────
+
+        /// <summary>
+        /// 패링 판정을 연다. 대시 명령을 처리하는 <see cref="EntityState"/>가 부른다.
+        ///
+        /// 대시는 상태가 아니라 <see cref="Physics.Dash"/> 한 번으로 끝나는 속도 덮어쓰기라
+        /// "대시 도중"이라는 시간이 코드에 없다. 그 시간을 여기 타이머로만 만든다 —
+        /// 상태머신도 대시 감각도 건드리지 않는다.
+        /// </summary>
+        public void BeginParryWindow()
+        {
+            if (IsDead) return;
+
+            Defense.OpenParry();
+            BattleLog.Log(LogCategory.Combat, $"{name} 패링 창 열림 ({parryWindow:0.##}s)", this);
+        }
+
+        /// <summary>
+        /// 전방에서 들어온 타격을 막았는가. 막았으면 <see cref="Hit"/>가 false를 돌려주고
+        /// 그 타격은 <b>없던 일이 된다</b> — 데미지 · 경직 · 흡혈 · 피격음까지 전부.
+        ///
+        /// <b>성립하는 건 첫 한 대뿐이고, 그 대가로 짧은 무적을 얻는다</b>(<see cref="ParryInvulnDuration"/>).
+        /// 개별 타격을 하나씩 지우는 방식이면 다대일에서 한 명분만 막고 나머지를 그대로 맞아
+        /// 패링이 사실상 무의미해진다. 뒤이어 들어오는 타격은 무적 구간이 받는다.
+        /// </summary>
+        private bool TryParry(in HitData hit, Combat attacker)
+        {
+            if (!IsParrying) return false;
+
+            // 어디서 온 타격인지 모르면 막을 수 없다.
+            if (!TryResolveHitOrigin(in hit, attacker, out Vector3 origin)) return false;
+
+            // 창을 닫고 무적으로 갈아탄다. 반격이 돌아와도 두 번 성립하지 않는다.
+            if (!Defense.TryParry(physics.Facing, origin - transform.position)) return false;
+
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} <color=#4CC9F0><b>패링</b></color> — {BattleLog.Name(attacker)}의 공격을 흘렸다 " +
+                $"(무효 dmg {hit.damageData.damage:0.#} | 무적 {parrySuccessInvuln:0.##}s)", this);
+
+            CounterAttack(attacker);
+            CombatEvents.RaiseParried(this, attacker);
+
+            return true;
+        }
+
+        /// <summary>
+        /// 패링당한 쪽에 되돌려 주는 경직. 데미지는 0이다 — 패링의 보상은 딜이 아니라 <b>기회</b>다.
+        ///
+        /// <see cref="Attack"/>이 아니라 <see cref="Hit"/>를 직접 부른다.
+        /// 흡혈 · 콤보 카운트 · 피격음이 반격에 붙으면 안 되기 때문이다.
+        /// 상대가 슈퍼아머면 기존 규칙대로 경직만 무시된다 — 그건 정상 동작이다.
+        /// </summary>
+        private void CounterAttack(Combat attacker)
+        {
+            if (attacker == null || attacker.IsDead) return;
+
+            var counter = new HitData
+            {
+                damageData = new DamageData(0f),
+                targetState = CombatState.Neutral,
+                nextState = CombatState.LightHit,
+                mode = KnockbackMode.AwayFromCaster,
+                pushDistance = parryCounterPush,
+                airborneHeight = 0f,
+                hitStunDuration = parryCounterStun,
+            };
+
+            attacker.Hit(in counter, this);
+        }
+
+        private void Die()
+        {
+            BattleLog.Log(LogCategory.Combat, $"<b>{name} 사망</b> — ForceChangeState로 관통", this);
+            SetCombatState(CombatState.Dead);
+            statuses.CancelAll();
+            stunTimer = 0f;
+            physics.ResetInertia();
+            physics.Suspended = false;   // 공중에 못 박힌 채 죽었으면 시체는 떨어져야 한다
+            owner?.ForceDead();
+            OnDead?.Invoke();
+        }
+
+        // ── 물리 이벤트 반응 ─────────────────────────────
+
+        private void HandleLand()
+        {
+            CombatState next = CombatStateRules.OnGroundContact(CombatState);
+            if (next == CombatState) return;
+
+            BattleLog.Log(LogCategory.Physics, $"{name} 착지 | {CombatState} → <b>{next}</b>", this);
+
+            SetCombatState(next);
+            if (next == CombatState.Down)
+            {
+                SetStunTimer(downDuration);
+                physics.ResetInertia();
+            }
+        }
+
+        /// <summary>
+        /// 경직을 통째로 지우고 중립으로 되돌린다. <b>태그로 내려가는 몸</b>이 쓴다
+        /// (<see cref="Entity.ReleaseBody"/>).
+        ///
+        /// 내려가는 몸은 <c>SetActive(false)</c>로 꺼져 <see cref="Tick"/>이 멈춘다 —
+        /// 경직을 물고 내려가면 그 상태가 그대로 얼어붙고, 다시 설 때
+        /// <see cref="Physics.Teleport"/>가 착지 이벤트 없이 지면에 세우기 때문에
+        /// 착지로만 풀리는 상태(넉백 · 공중피격)가 영영 안 풀린다.
+        /// 필드에서 뺀 몸에 경직을 남길 이유도 없다.
+        ///
+        /// 사망은 건드리지 않는다 — 시체를 중립으로 되돌리면 다시 섰을 때 되살아난다.
+        /// </summary>
+        public void ClearHitStun()
+        {
+            if (IsDead) return;
+
+            stunTimer = 0f;
+            wallBounceTimer = 0f;
+            Defense.Clear();
+            airHitCount = 0;
+
+            SetCombatState(CombatState.Neutral);
+        }
+
+        /// <summary>
+        /// 디버프만 푼다. 버프는 남긴다 — 필드 밖에서 보호막이 녹으면 안 된다는
+        /// <see cref="StatusEffects"/>의 원칙 그대로다.
+        ///
+        /// <see cref="ClearHitStun"/>과 <b>따로 두는 이유</b>: 그쪽은 가드 브레이크
+        /// (<see cref="BreakGuard"/>)도 부른다. 거기서 같이 지우면 가드를 깨는 순간
+        /// 방금 건 스턴이 사라져, 가장 무방비여야 할 구간이 오히려 안전해진다.
+        ///
+        /// 반대로 <b>벤치</b>에서는 반드시 지워야 한다. 꺼진 몸은 <see cref="Tick"/>이 멈춰
+        /// 시간이 안 가므로, 교대로 내려가 디버프를 피하거나 영영 얼어 있는 몸이 된다.
+        /// </summary>
+        public void ClearDebuffs()
+        {
+            statuses.Cancel(Debuff.All);
+
+            // 알림만이 아니라 정합까지 — 바인드의 물리 정지 스위치가 여기서 내려가야
+            // 벤치로 내려간 몸이 공중에 못 박힌 채 남지 않는다.
+            SyncDebuffState();
+        }
+
+        /// <summary>기상 완료. 공중 콤보 카운트를 여기서만 되돌린다(결정 로그 ⑦).</summary>
+        private void OnGetupComplete()
+        {
+            BattleLog.Log(LogCategory.Combat,
+                $"{name} 기상 완료 — airHitCount {airHitCount} → 0", this);
+
+            airHitCount = 0;
+            SetCombatState(CombatState.Neutral);
+        }
+
+        /// <summary>
+        /// 경직 타이머를 건다. 남은 시간과 <b>전체 길이를 같이</b> 세운다 —
+        /// 머리 위 게이지가 남은 비율을 그리려면 분모가 지금 걸린 경직의 것이어야 한다.
+        /// 다운 · 기상도 같은 타이머를 쓰므로 여기 한 곳으로 모은다.
+        /// </summary>
+        private void SetStunTimer(float duration)
+        {
+            hitStunDuration = duration;
+            stunTimer = duration;
+        }
+
+        /// <summary>
+        /// 전투 상태를 바꾸는 유일한 자리. 몸(IState)은 건드리지 않는다 —
+        /// <see cref="OnCombatStateChanged"/>를 받은 Entity가 맞춘다.
+        /// </summary>
+        private void SetCombatState(CombatState next)
+        {
+            if (CombatState == next) return;
+
+            CombatState prev = CombatState;
+            CombatState = next;
+            OnCombatStateChanged?.Invoke(prev, next);
+        }
+
+        // ── 외부 조작 (ISkillEffect 용) ───────────────────
+
+        public void SetDamageCut(float ratio) => damageCutRatio = Mathf.Clamp01(ratio);
+        public void SetLifesteal(float ratio) => lifestealRatio = Mathf.Max(0f, ratio);
+
+        /// <summary>EnemyData 등 외부 테이블로 최대 체력을 덮어쓴다.</summary>
+        public void SetMaxHealth(float value, bool refill = true) => Health.SetMax(value, refill);
+
+        public float Shield => shield;
+        public void AddShield(float amount) => shield += Mathf.Max(0f, amount);
+        public void ClearShield() => shield = 0f;
+    }
+}

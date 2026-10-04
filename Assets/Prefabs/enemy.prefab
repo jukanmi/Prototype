@@ -296,14 +296,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 636828377596309778}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8b08696a9f41ba4696dbc2c2d83df3f, type: 3}
+  m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyBasicAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
   basicAttack: {fileID: 6625414945858625202}
   skillAttack: {fileID: 0}
-  windup: 0.5
-  activeEnd: 0.65
-  total: 0.9
   basicHit:
     damageData:
       damage: 10
@@ -327,6 +324,22 @@ MonoBehaviour:
   projectileSpeed: 16
   projectileRange: 9
   projectilePierce: 0
+  stages:
+  - label: "1\uD0C0"
+    clip: {fileID: 0}
+    windup: 0.5
+    activeEnd: 0.65
+    total: 0.9
+    cancelStart: 0
+    damageMultiplier: 1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0
 --- !u!1 &1291197405684396114
 GameObject:
   m_ObjectHideFlags: 0

@@ -107,29 +107,29 @@ namespace Prototype.Tests
         /// 레이어가 틀리면 <see cref="Attack"/>이 충돌 매트릭스를 그대로 읽어
         /// <b>그 동료만 적을 통과한다</b> — 스킬이 나가고 이펙트도 뜨는데 데미지만 없다.
         ///
-        /// 런타임에는 <see cref="AllyLayers"/>가 몸마다 다시 칠하므로 이건 <b>한 겹 더</b>다.
+        /// 런타임에는 <see cref="CombatLayers"/>가 몸마다 다시 칠하므로 이건 <b>한 겹 더</b>다.
         /// 그래도 여기서 잡는 편이 낫다 — 프리팹을 씬에 직접 끌어다 놓고 시험하는 경로
         /// (스킬 실험 씬)에는 조립기가 없어서 칠할 사람이 없다.
         /// </summary>
         [Test]
         public void Bodies_UseAllyLayers()
         {
-            int hurt = LayerMask.NameToLayer(AllyLayers.HurtboxLayer);
-            int hit = LayerMask.NameToLayer(AllyLayers.HitboxLayer);
+            int hurt = LayerMask.NameToLayer(CombatLayers.AllyHurtbox);
+            int hit = LayerMask.NameToLayer(CombatLayers.AllyHitbox);
 
             Assert.That(hurt, Is.GreaterThanOrEqualTo(0),
-                $"프로젝트에 '{AllyLayers.HurtboxLayer}' 레이어가 없다.");
+                $"프로젝트에 '{CombatLayers.AllyHurtbox}' 레이어가 없다.");
             Assert.That(hit, Is.GreaterThanOrEqualTo(0),
-                $"프로젝트에 '{AllyLayers.HitboxLayer}' 레이어가 없다.");
+                $"프로젝트에 '{CombatLayers.AllyHitbox}' 레이어가 없다.");
 
             foreach ((string path, GameObject go) in Bodies())
             {
                 Assert.That(go.layer, Is.EqualTo(hurt),
-                    $"{path} 의 몸통 레이어가 {AllyLayers.HurtboxLayer} 가 아니다.");
+                    $"{path} 의 몸통 레이어가 {CombatLayers.AllyHurtbox} 가 아니다.");
 
                 foreach (Attack a in go.GetComponentsInChildren<Attack>(true))
                     Assert.That(a.gameObject.layer, Is.EqualTo(hit),
-                        $"{path} 의 '{a.name}' 레이어가 {AllyLayers.HitboxLayer} 가 아니다.");
+                        $"{path} 의 '{a.name}' 레이어가 {CombatLayers.AllyHitbox} 가 아니다.");
             }
         }
 

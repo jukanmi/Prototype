@@ -166,30 +166,6 @@ namespace Prototype.Tests
                 "Player 프리팹에 InputMapSwitcher 가 남아 있다.");
         }
 
-        [Test]
-        public void PlayerBody_IsPilotable()
-        {
-            // 조종사는 몸 밖에 하나뿐이다. 몸에 남는 건 "몰 수 있다"는 표식과
-            // 그 캐릭터의 조작 수치(대시 쿨 · 선입력 창)뿐이다.
-            Assert.That(Load(PlayerPath).GetComponent<Pilotable>(), Is.Not.Null,
-                "Player 프리팹에 Pilotable 이 없다 — 조종사가 대시 쿨 · 선입력 창을 기본값으로 돌린다.");
-        }
-
-        [Test]
-        public void AllyBodies_ArePilotable()
-        {
-            // 동료도 태그로 조작 대상이 된다.
-            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (go == null || go.GetComponent<Ally>() == null) continue;
-
-                Assert.That(go.GetComponent<Pilotable>(), Is.Not.Null,
-                    $"{path} 에 Pilotable 이 없다 — 교대해도 조작 수치가 기본값으로 돈다.");
-            }
-        }
-
         /// <summary>
         /// 빙의 모델의 잔해가 남아 있으면 안 된다. 몸에 조종사가 붙어 있던 시절에는
         /// 프리팹과 씬이 조용히 어긋났다 — 어떤 몸에는 붙고 어떤 몸에는 안 붙어도

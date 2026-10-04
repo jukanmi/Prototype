@@ -203,7 +203,7 @@ namespace Prototype.Tests
             int calls = 0;
             void Handler(Combat d, Combat a) => calls++;
 
-            Combat.OnParried += Handler;
+            CombatEvents.OnParried += Handler;
             try
             {
                 victim.BeginParryWindow();
@@ -212,7 +212,7 @@ namespace Prototype.Tests
             }
             finally
             {
-                Combat.OnParried -= Handler;
+                CombatEvents.OnParried -= Handler;
             }
 
             Assert.That(calls, Is.EqualTo(1), "게이지 보상은 패링 한 번당 한 번이다");
@@ -241,7 +241,7 @@ namespace Prototype.Tests
             var calls = new List<(Combat defender, Combat attacker)>();
             void Handler(Combat d, Combat a) => calls.Add((d, a));
 
-            Combat.OnParried += Handler;
+            CombatEvents.OnParried += Handler;
             try
             {
                 victim.BeginParryWindow();
@@ -250,7 +250,7 @@ namespace Prototype.Tests
             finally
             {
                 // static 이벤트라 해제하지 않으면 파괴된 구독자가 다음 테스트까지 따라온다.
-                Combat.OnParried -= Handler;
+                CombatEvents.OnParried -= Handler;
             }
 
             Assert.That(calls.Count, Is.EqualTo(1));
