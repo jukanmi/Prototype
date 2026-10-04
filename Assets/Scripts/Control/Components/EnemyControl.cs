@@ -315,7 +315,8 @@ namespace Prototype
             // 이미 휘두르는 중이면 AttackState가 예고를 쥐고 있다. 여기서 건드리면 선딜 표시가 끊긴다.
             if (Owner.StateMachine != null && Owner.StateMachine.CurState == Owner.AttackState) return;
 
-            bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange;
+            bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange
+                           && (!ctx.IsRanged || ctx.LinedUp);
             Owner.SetTelegraph(inRange && attackTimer <= Owner.BasicAttackWindup);
         }
 

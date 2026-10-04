@@ -177,6 +177,16 @@ namespace Prototype
                 ? shot.Muzzle(target.Physics) - from
                 : Physics.Facing;
 
+            // 적 투사체는 자기 총구 높이 · Z 줄을 따라 수평으로 곧게 나간다. 줄 맞추기(EnemyControl)가
+            // 전제하는 규칙이라 Z를 안 지우면 오차 안에서도 비스듬하고, 상대가 점프 · 공중에 떠 있어도
+            // 위아래로 겨누지 않는다 — 피할 수 있는 높이 정보를 투사체가 지워 주지 않는다.
+            if (Faction == Faction.Enemy)
+            {
+                dir.y = 0f;
+                dir.z = 0f;
+                if (dir.sqrMagnitude < 0.0001f) dir = new Vector3(Physics.Facing.x >= 0f ? 1f : -1f, 0f, 0f);
+            }
+
             shot.Launch(Combat, in hit, from, dir,
                         BasicProjectileSpeed, BasicProjectileRange, BasicProjectilePierce,
                         Physics.WallMask, layer);

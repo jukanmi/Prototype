@@ -73,6 +73,15 @@ namespace Prototype
         public EnemyBrainParams p;
         public float dt;
 
+        /// <summary>원거리 평타가 "같은 줄"로 치는 Z 오차. 투사체는 직선이라 줄이 어긋나면 허공을 쏜다.</summary>
+        public const float AimZTolerance = 0.4f;
+
+        /// <summary>평타가 투사체인 적인가.</summary>
+        public bool IsRanged => self != null && self.BasicIsRanged;
+
+        /// <summary>타겟과 Z가 겹치는가. 원거리가 쏠 수 있는 조건이다.</summary>
+        public bool LinedUp => Mathf.Abs(toTarget.z) <= AimZTolerance;
+
         /// <summary>인덱스 하나의 쿨 완료 여부. 브레인이 비트 연산을 직접 쓰지 않게 감싼다.</summary>
         public bool IsSpecialReady(int index)
             => index >= 0 && index < MaxSpecials && (specialReadyMask & (1 << index)) != 0;
