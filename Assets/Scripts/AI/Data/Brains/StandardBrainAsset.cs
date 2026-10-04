@@ -25,7 +25,13 @@ namespace Prototype
 
             // 붙어 있으면 돌진할 거리가 없다. 평타가 맞다.
             if (ctx.distance <= ctx.p.attackRange)
+            {
+                // 원거리는 Z 줄이 맞아야 쏜다. 사거리만 보면 옆 줄에서 허공에 쏜다 — 줄부터 맞춘다.
+                if (ctx.IsRanged && !ctx.LinedUp)
+                    return EnemyIntent.Move(new Vector3(0f, 0f, Mathf.Sign(ctx.toTarget.z)));
+
                 return ctx.attackReady ? EnemyIntent.Attack(dir) : EnemyIntent.None;
+            }
 
             // 특수 행동은 실행기(EnemyPatternAction)가 가진 0번 하나다.
             // 쿨은 안 실어 보낸다 — EnemyControl의 specialInterval을 그대로 쓴다.

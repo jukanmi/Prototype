@@ -51,6 +51,22 @@ namespace Prototype
 
         private float tokenGrace;
 
+        /// <summary>공격권을 쥐고 덮치러 가는 데 쓴 시간. 휘두르기 시작하면 의미가 없다.</summary>
+        private float approachTime;
+
+        /// <summary>덮치는 데 이보다 오래 걸리면 포기하고 반납한다. 길 막힘으로 자리를 붙들지 않게.</summary>
+        private const float ApproachTimeout = 3f;
+
+        /// <summary>패트롤 링 허용 오차. 이 안이면 거리를 조정하지 않고 옆으로만 돈다.</summary>
+        private const float PatrolBand = 0.5f;
+
+        /// <summary>패트롤 방향(±1)이 바뀌는 주기 범위(초). 같은 방향으로만 돌면 줄지어 서서 읽힌다.</summary>
+        private const float PatrolFlipMin = 2f;
+        private const float PatrolFlipMax = 4f;
+
+        private float patrolSide = 1f;
+        private float patrolFlipTimer;
+
         /// <summary>특수 행동 실행기. Entity 하나에 하나만 붙는다(<see cref="IEnemySpecialAction"/>).</summary>
         private IEnemySpecialAction special;
 
@@ -160,6 +176,7 @@ namespace Prototype
             parameters.leashRange = data.leashRange;
             parameters.preferredMinRange = data.preferredMinRange;
             parameters.specialRange = data.specialRange;
+            parameters.patrolRange = data.patrolRange;
 
             // 0이면 사거리 판정에 영영 들어가지 않는다. 저작 실수를 조용히 넘기지 않는다.
             // leashRange는 0이 "무제한"이라는 정상값이므로 검사하지 않는다.
@@ -234,6 +251,32 @@ namespace Prototype
 
             EnemyIntent intent = brain.Decide(ctx);
 
+            // 근접 패트롤. 공격권이 없으면 링 위를 돌다가, 공격할 차례(쿨 완료 + 토큰 획득)가 오면 덮친다.
+            if (CanPatrol(in ctx) && !holdsToken)
+            {
+                if (!TryStartApproach(in ctx))
+                {
+                    if (Owner != null) Owner.SetTelegraph(false);
+                    Patrol(in ctx, dt);
+                    return;
+                }
+            }
+
+            // 덮치는 중(공격권을 쥐고 아직 안 휘두름). 안 봐 주면 grace 로 곧장 반납되고 쿨타임까지 붙는다.
+            if (holdsToken && intent.kind == EnemyActionKind.Move && !IsSwinging)
+            {
+                approachTime += dt;
+
+                if (approachTime > ApproachTimeout)
+                {
+                    ReleaseAttackToken(handoffCooldown: true);
+                    return;
+                }
+
+                tokenGrace = TokenGrace;
+                EnemyAttackTokens.Pool.TryAcquire(this, EnemyAttackTokens.Now, tokenLease);
+            }
+
             // 다구리 방지. 공격권을 못 얻은 적은 사거리 안에서 기다린다 —
             // 몰려 있는 그림은 그대로 두고 들어오는 타격 수만 일정하게 유지한다.
             if (NeedsAttackToken(intent.kind) && !TakeAttackToken(intent.kind))
@@ -272,7 +315,8 @@ namespace Prototype
             // 이미 휘두르는 중이면 AttackState가 예고를 쥐고 있다. 여기서 건드리면 선딜 표시가 끊긴다.
             if (Owner.StateMachine != null && Owner.StateMachine.CurState == Owner.AttackState) return;
 
-            bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange;
+            bool inRange = ctx.target != null && ctx.distance <= ctx.p.attackRange
+                           && (!ctx.IsRanged || ctx.LinedUp);
             Owner.SetTelegraph(inRange && attackTimer <= Owner.BasicAttackWindup);
         }
 
@@ -324,7 +368,72 @@ namespace Prototype
             holdsToken = true;
             tokenLease = lease;
             tokenGrace = TokenGrace;
+            approachTime = 0f;
             return true;
+        }
+
+        // ── 패트롤 ───────────────────────────────────────
+
+        /// <summary>
+        /// 패트롤하는 적인가. 표준 브레인의 <b>근접</b>만 한다 — 원거리는 카이팅이 따로 있고,
+        /// 보스 브레인은 자기 접근 규칙이 있어 여기서 끼어들면 패턴이 깨진다.
+        /// 링 밖에서는 브레인이 평소대로 추격해 들어온다.
+        /// </summary>
+        private bool CanPatrol(in EnemyBrainContext ctx)
+        {
+            if (!(brain is StandardBrainAsset)) return false;
+            if (ctx.target == null || ctx.p.patrolRange <= 0f) return false;
+            if (ctx.p.preferredMinRange > 0f || (Owner != null && Owner.BasicIsRanged)) return false;
+
+            return ctx.distance <= PatrolRing(in ctx) + PatrolBand;
+        }
+
+        /// <summary>링 반지름. 사거리 안쪽이면 패트롤이 곧 공격 자리가 되므로 바깥으로 민다.</summary>
+        private static float PatrolRing(in EnemyBrainContext ctx)
+            => Mathf.Max(ctx.p.patrolRange, ctx.p.attackRange + 0.75f);
+
+        /// <summary>
+        /// 공격할 차례인가 보고, 맞으면 공격권을 요청한다. 얻으면 이 프레임부터 브레인이 덮친다.
+        /// 쿨이 안 끝났으면 요청도 안 한다 — 토큰을 쥐고 멀뚱히 서 있으면 남의 자리만 막는다.
+        /// </summary>
+        private bool TryStartApproach(in EnemyBrainContext ctx)
+        {
+            bool basicReady = ctx.attackReady;
+            bool specialReady = ctx.specialReady && ctx.p.specialRange > 0f;
+            if (!basicReady && !specialReady) return false;
+
+            // 사거리 밖에서 시작하는 덮치기는 돌진이 맞다. 평타 사거리 안이면 평타다.
+            EnemyActionKind kind = specialReady && ctx.distance > ctx.p.attackRange
+                ? EnemyActionKind.Special
+                : EnemyActionKind.Attack;
+
+            return TakeAttackToken(kind);
+        }
+
+        /// <summary>
+        /// 링 거리를 유지하며 돈다. 멀면 다가가고 가까우면 물러나고, 링 위에서는 옆으로 걷는다.
+        /// 방향은 몇 초마다 뒤집는다.
+        /// </summary>
+        private void Patrol(in EnemyBrainContext ctx, float dt)
+        {
+            patrolFlipTimer -= dt;
+            if (patrolFlipTimer <= 0f)
+            {
+                patrolFlipTimer = Random.Range(PatrolFlipMin, PatrolFlipMax);
+                patrolSide = Random.value < 0.5f ? -1f : 1f;
+            }
+
+            if (ctx.distance < 0.0001f) return;
+
+            Vector3 toward = ctx.toTarget / ctx.distance;
+            Vector3 tangent = new Vector3(-toward.z, 0f, toward.x) * patrolSide;
+
+            // -1(너무 가깝다) ~ +1(너무 멀다). 링 위면 0이라 옆걸음만 남는다.
+            float radial = Mathf.Clamp((ctx.distance - PatrolRing(in ctx)) / PatrolBand, -1f, 1f);
+
+            Vector3 move = toward * radial + tangent * (1f - Mathf.Abs(radial) * 0.5f);
+
+            Drive(Command.Move, move.normalized);
         }
 
         /// <summary>
@@ -347,15 +456,20 @@ namespace Prototype
 
             // 명령을 낸 프레임에는 아직 휘두르는 상태가 아니다. 그 한 프레임을 봐 준다.
             tokenGrace -= TimeControl.UnscaledDeltaTime;
-            if (tokenGrace <= 0f) ReleaseAttackToken();
+            if (tokenGrace <= 0f) ReleaseAttackToken(handoffCooldown: true);
         }
 
-        private void ReleaseAttackToken()
+        /// <param name="handoffCooldown">공격을 마친 정상 반납이면 참 — 자리가 바로 다음 적에게 안 넘어간다.</param>
+        private void ReleaseAttackToken(bool handoffCooldown = false)
         {
             if (!holdsToken) return;
 
             holdsToken = false;
-            EnemyAttackTokens.Pool.Release(this);
+
+            if (handoffCooldown)
+                EnemyAttackTokens.Pool.Release(this, EnemyAttackTokens.Now, AttackTokenPool.HandoffCooldown);
+            else
+                EnemyAttackTokens.Pool.Release(this);
         }
 
         /// <summary>

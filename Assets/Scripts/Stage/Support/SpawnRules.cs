@@ -242,6 +242,12 @@ namespace Prototype
         public const float SpecialLease = 4f;
 
         /// <summary>
+        /// 공격을 마치고 반납한 자리가 다음 적에게 넘어가기까지의 쿨타임.
+        /// 없으면 한 놈이 끝내는 프레임에 다음 놈이 바로 휘둘러 토큰이 있으나 마나다.
+        /// </summary>
+        public const float HandoffCooldown = 2f;
+
+        /// <summary>
         /// 쥔 주체 → 만료 시각.
         ///
         /// 키가 <c>object</c>인 이유는 이 풀이 <b>순수 C#</b>이기 때문이다 —
@@ -252,6 +258,9 @@ namespace Prototype
 
         /// <summary>만료 정리용. 매 프레임 도는 자리라 할당을 남기지 않는다.</summary>
         private readonly List<object> expired = new List<object>();
+
+        /// <summary>쿨타임 중인 자리의 풀림 시각. 하나가 정원 한 칸을 차지한다.</summary>
+        private readonly List<float> cooling = new List<float>();
 
         public int Capacity { get; private set; } = DefaultCapacity;
 
@@ -277,7 +286,7 @@ namespace Prototype
                 return true;
             }
 
-            if (leases.Count >= Capacity) return false;
+            if (leases.Count + cooling.Count >= Capacity) return false;
 
             leases[holder] = now + Mathf.Max(0.1f, lease);
             return true;
@@ -289,11 +298,22 @@ namespace Prototype
             if (holder != null) leases.Remove(holder);
         }
 
+        /// <summary>
+        /// 공격을 <b>끝까지 마치고</b> 반납한다. 자리는 <paramref name="cooldown"/>초 뒤에야 다음 적에게 열린다.
+        /// 끊겨서(경직 · 사망 · 정지) 놓는 경우는 쿨타임 없이 <see cref="Release(object)"/>를 쓴다.
+        /// </summary>
+        public void Release(object holder, float now, float cooldown)
+        {
+            if (holder == null || !leases.Remove(holder)) return;
+
+            if (cooldown > 0f) cooling.Add(now + cooldown);
+        }
+
         /// <summary>지금 이 주체가 공격권을 쥐고 있는가.</summary>
         public bool Holds(object holder, float now)
             => holder != null && leases.TryGetValue(holder, out float until) && until > now;
 
-        /// <summary>만료되지 않은 공격권의 수. 디버그 HUD와 테스트가 읽는다.</summary>
+        /// <summary>만료되지 않은 공격권의 수. 쿨타임 중인 자리는 세지 않는다. 디버그 HUD와 테스트가 읽는다.</summary>
         public int ActiveCount(float now)
         {
             Prune(now);
@@ -301,7 +321,11 @@ namespace Prototype
         }
 
         /// <summary>전부 반납. 웨이브가 바뀌거나 씬이 내려갈 때.</summary>
-        public void Clear() => leases.Clear();
+        public void Clear()
+        {
+            leases.Clear();
+            cooling.Clear();
+        }
 
         /// <summary>정원까지 기본값으로 되돌린다. 씬 경계에서 부른다.</summary>
         public void ResetAll()
@@ -312,6 +336,8 @@ namespace Prototype
 
         private void Prune(float now)
         {
+            cooling.RemoveAll(until => until <= now);
+
             if (leases.Count == 0) return;
 
             expired.Clear();

@@ -26,6 +26,9 @@ namespace Prototype
 
         [Tooltip("특수 행동(돌진)이 닿는 최대 거리. 0이면 특수 행동을 쓰지 않는다.")]
         public float specialRange;
+
+        [Tooltip("근접 전용. 공격권이 없을 때 타겟과 유지하는 거리. 0이면 패트롤하지 않는다.")]
+        public float patrolRange;
     }
 
     /// <summary>브레인이 판단에 쓰는 입력. EnemyControl이 매 프레임 채운다.</summary>
@@ -69,6 +72,15 @@ namespace Prototype
 
         public EnemyBrainParams p;
         public float dt;
+
+        /// <summary>원거리 평타가 "같은 줄"로 치는 Z 오차. 투사체는 직선이라 줄이 어긋나면 허공을 쏜다.</summary>
+        public const float AimZTolerance = 0.4f;
+
+        /// <summary>평타가 투사체인 적인가.</summary>
+        public bool IsRanged => self != null && self.BasicIsRanged;
+
+        /// <summary>타겟과 Z가 겹치는가. 원거리가 쏠 수 있는 조건이다.</summary>
+        public bool LinedUp => Mathf.Abs(toTarget.z) <= AimZTolerance;
 
         /// <summary>인덱스 하나의 쿨 완료 여부. 브레인이 비트 연산을 직접 쓰지 않게 감싼다.</summary>
         public bool IsSpecialReady(int index)
