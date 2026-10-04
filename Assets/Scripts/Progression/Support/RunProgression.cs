@@ -85,6 +85,26 @@ namespace Prototype
             OnChanged?.Invoke();
         }
 
+        /// <summary>
+        /// 웨이브 도중 처치로 쌓인, 아직 정산 전인 경험치. <see cref="Exp"/>에는 안 들어간다 —
+        /// 웨이브가 끝나기 전에 레벨업 화면이 새 값을 읽으면 안 된다.
+        /// </summary>
+        public int PendingExp { get; private set; }
+
+        public void BankExp(int amount)
+        {
+            if (amount > 0) PendingExp += amount;
+        }
+
+        /// <summary>보류분을 한 번에 <see cref="Exp"/>로 옮기고 옮긴 양을 돌려준다.</summary>
+        public int SettleExp()
+        {
+            int settled = PendingExp;
+            PendingExp = 0;
+            AddExp(settled);
+            return settled;
+        }
+
         // ── 골드 ────────────────────────────────────────
 
         public void AddGold(int amount)
@@ -215,6 +235,7 @@ namespace Prototype
         public void Reset()
         {
             Exp = 0;
+            PendingExp = 0;
             Gold = 0;
             Level = ExpRules.FirstLevel;
             Seeded = false;
@@ -325,10 +346,22 @@ namespace Prototype
             int amount = enemy.Data.exp;
             if (amount <= 0) return;
 
-            run.AddExp(amount);
+            run.BankExp(amount);
 
             BattleLog.Log(LogCategory.State,
-                $"{enemy.name} 처치 — 경험치 +{amount} (누적 {run.Exp}, Lv.{run.Level})", enemy);
+                $"{enemy.name} 처치 — 경험치 +{amount} 적립 (정산 대기 {run.PendingExp})", enemy);
+        }
+
+        /// <summary>웨이브가 끝났을 때 쌓인 경험치를 한꺼번에 넣는다. 레벨업 화면을 열기 <b>전에</b> 부른다.</summary>
+        public static void Settle()
+        {
+            RunProgression run = RunProgression.Current;
+
+            int amount = run.SettleExp();
+            if (amount <= 0) return;
+
+            BattleLog.Log(LogCategory.State,
+                $"웨이브 정산 — 경험치 +{amount} (누적 {run.Exp}, Lv.{run.Level})");
         }
     }
 

@@ -555,12 +555,15 @@ namespace Prototype
             // 카메라를 먼저 푼다. 안 풀면 문이 열려도 다음 자리로 못 걸어간다.
             running = false;
 
-            // 아레나 방과 같은 자리다 — 한 묶음을 다 잡은 직후, 다음 묶음이 나오기 전.
-            // 마지막 웨이브에서도 연다. 승리 판정은 세션이 닫힐 때까지 기다린다.
-            LevelUpSession.RequestOpen();
-
             if (waveIndex + 1 >= WaveCount)
             {
+                // 정산 · 레벨업은 방의 스폰이 <b>전부</b> 끝난 뒤 한 번만 한다 —
+                // 웨이브 중간에 필드가 비었다고 정산하면 다음 웨이브가 남았는데 창이 뜬다.
+                // 세션이 "쓸 수 있는 경험치"를 보고 열리므로 정산이 먼저다.
+                // 승리 판정은 세션이 닫힐 때까지 기다린다.
+                ExpRewards.Settle();
+                LevelUpSession.RequestOpen();
+
                 finished = true;
                 Debug.Log("[StageDirector] 모든 웨이브 소탕 완료");
                 return;
