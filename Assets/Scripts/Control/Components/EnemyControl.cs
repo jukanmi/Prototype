@@ -347,15 +347,20 @@ namespace Prototype
 
             // 명령을 낸 프레임에는 아직 휘두르는 상태가 아니다. 그 한 프레임을 봐 준다.
             tokenGrace -= TimeControl.UnscaledDeltaTime;
-            if (tokenGrace <= 0f) ReleaseAttackToken();
+            if (tokenGrace <= 0f) ReleaseAttackToken(handoffCooldown: true);
         }
 
-        private void ReleaseAttackToken()
+        /// <param name="handoffCooldown">공격을 마친 정상 반납이면 참 — 자리가 바로 다음 적에게 안 넘어간다.</param>
+        private void ReleaseAttackToken(bool handoffCooldown = false)
         {
             if (!holdsToken) return;
 
             holdsToken = false;
-            EnemyAttackTokens.Pool.Release(this);
+
+            if (handoffCooldown)
+                EnemyAttackTokens.Pool.Release(this, EnemyAttackTokens.Now, AttackTokenPool.HandoffCooldown);
+            else
+                EnemyAttackTokens.Pool.Release(this);
         }
 
         /// <summary>
