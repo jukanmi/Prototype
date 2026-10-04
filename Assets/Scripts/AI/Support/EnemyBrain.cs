@@ -26,6 +26,9 @@ namespace Prototype
 
         [Tooltip("특수 행동(돌진)이 닿는 최대 거리. 0이면 특수 행동을 쓰지 않는다.")]
         public float specialRange;
+
+        [Tooltip("근접 전용. 공격권이 없을 때 타겟과 유지하는 거리. 0이면 패트롤하지 않는다.")]
+        public float patrolRange;
     }
 
     /// <summary>브레인이 판단에 쓰는 입력. EnemyControl이 매 프레임 채운다.</summary>

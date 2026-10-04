@@ -28,6 +28,9 @@ namespace Prototype
         [Tooltip("원거리 전용. 이보다 가까우면 물러난다. 0이면 물러나지 않는다.")]
         public float preferredMinRange = 0f;
 
+        [Tooltip("근접 전용. 공격권이 없을 때 타겟과 이 거리를 유지하며 주변을 돈다. 0이면 패트롤하지 않는다.")]
+        public float patrolRange = 3.5f;
+
         [Header("특수 행동 (돌진)")]
         [Tooltip("돌진이 닿는 최대 거리. 0이면 돌진하지 않는다.")]
         public float specialRange = 0f;
