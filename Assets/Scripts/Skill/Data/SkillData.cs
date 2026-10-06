@@ -161,6 +161,10 @@ namespace Prototype
         [Tooltip("타격마다 나오는 이펙트. custom을 끄면 전역 기본색을 쓴다.")]
         public SkillVfx vfx = SkillVfx.Default;
 
+        [Tooltip("시전자 몸에서 나오는 전용 연출(참격 · 장판 · 사슬). 타격 시각(HitTime)에 맞춰 재생된다.\n" +
+                 "적중 이펙트(vfx)와 별개라 둘 다 나온다.")]
+        public SkillFxKind fx = SkillFxKind.None;
+
         /// <summary>
         /// 런타임 인스턴스를 매번 새로 만드는 팩토리.
         /// 에셋이 IState를 필드로 들고 있으면 동시 사용 시 상태가 꼬인다.

@@ -31,6 +31,21 @@ namespace Prototype
         [Tooltip("차징 게이지. 프레임 0이 가득 참, 마지막이 빈 상태여야 한다.")]
         public VfxClip chargeGauge;
 
+        // 런타임에 붙이는 컴포넌트라 Shader.Find에 기대면 빌드에서 셰이더가 빠진다. 여기서 참조를 잡아 둔다.
+        [Header("스킬 전용 연출 셰이더 (SkillFx)")]
+        public Shader animeSlash;
+        public Shader slashSpark;
+        public Shader spinSlash;
+        public Shader frostField;
+        public Shader flashSlash;
+        public Shader hookChain;
+        public Shader chainBind;
+        public Shader magicMissile;
+        public Shader manaRift;
+        public Shader manaSpear;
+        public Shader shoulderCharge;
+        public Shader spriteSilhouette;
+
         private static VfxLibrary cached;
         private static bool loaded;
 
