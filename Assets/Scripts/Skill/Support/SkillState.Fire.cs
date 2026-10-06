@@ -73,6 +73,9 @@ namespace Prototype
             // 타격보다 먼저 내면 선딜 동안 대상을 지나쳐 히트박스가 허공에서 열린다.
             if (last) ApplyLastHitEffects();
 
+            // 전용 연출은 이동 · 판정이 다 끝난 뒤에 — 일섬 궤적이 도착점을 알아야 한다.
+            fx?.OnHit(nextHitIndex);
+
             BattleLog.Log(LogCategory.Skill,
                 $"  └ {data.skillName} {nextHitIndex + 1}/{data.hitDataList.Count}타 발동 (t={timer:0.##}s)", ctx.caster);
 
@@ -220,6 +223,9 @@ namespace Prototype
             if (phys == null || ctx.caster == null) return;
 
             Projectile shot = UnityEngine.Object.Instantiate(data.projectile);
+
+            // 전용 연출(마력 화살)이 탄을 대신 그리면 투사체 그림만 끈다. 판정 · 착탄 이펙트는 그대로.
+            if (fx != null && fx.HidesProjectile) SkillFx.HideRenderers(shot.gameObject);
 
             // 히트박스 레이어를 그대로 물려받아야 충돌 매트릭스가 맞는다.
             int layer = ctx.caster.BasicAttack != null

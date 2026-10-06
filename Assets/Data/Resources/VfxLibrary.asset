@@ -17,3 +17,15 @@ MonoBehaviour:
   cast: {fileID: 11400000, guid: 6bcb42c6aa62fae48beb765125a0cd22, type: 2}
   wall: {fileID: 11400000, guid: 379d713dc0be67c4f8f53b9e48c37a5f, type: 2}
   chargeGauge: {fileID: 11400000, guid: f7a4c7abcfc1c9549bffddd02e29bff2, type: 2}
+  animeSlash: {fileID: 4800000, guid: 2b6bcb24ffdc4dac919c2ddb523a5421, type: 3}
+  slashSpark: {fileID: 4800000, guid: 0bb9cc79b38249a1be7af545ef476967, type: 3}
+  spinSlash: {fileID: 4800000, guid: 1ea8921a87b04eebbe619853aa8c4d54, type: 3}
+  frostField: {fileID: 4800000, guid: 06106e0051c4490ca56e8db9994f8053, type: 3}
+  flashSlash: {fileID: 4800000, guid: 6a21612bb4184470bc2c4acef8907ed1, type: 3}
+  hookChain: {fileID: 4800000, guid: 21387ecd044e4a17a94f6f5b7ea9277d, type: 3}
+  chainBind: {fileID: 4800000, guid: 27bb4f87a5114503a93fc257ffac215c, type: 3}
+  magicMissile: {fileID: 4800000, guid: 47e78a533a8240afaca1565196161115, type: 3}
+  manaRift: {fileID: 4800000, guid: f793a443c8ca4427a78a91ace1c84152, type: 3}
+  manaSpear: {fileID: 4800000, guid: bc9465b489eb4d0ea466a7a5aad9299c, type: 3}
+  shoulderCharge: {fileID: 4800000, guid: 3251064e735440d1a9317fd501dc47d3, type: 3}
+  spriteSilhouette: {fileID: 4800000, guid: 092bb9fe585b4b06bc2655df4e07c8d3, type: 3}

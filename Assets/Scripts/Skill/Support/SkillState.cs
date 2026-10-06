@@ -22,6 +22,7 @@ namespace Prototype
         private float nextHitTime;
         private bool finished;
         private Vector3 castOrigin;
+        private SkillFx fx;
 
         public SkillState(SkillData data, in SkillContext ctx)
         {
@@ -59,6 +60,8 @@ namespace Prototype
             Physics phys = ctx.CasterPhysics;
             castOrigin = phys != null ? phys.GroundPosition : ctx.Origin;
             EmitCastVfx();
+            fx = SkillFx.Create(data, in ctx);
+            fx?.OnCast();
             ApplyEffects();
 
             // 설치기는 타격을 몸에서 떼어 낸다. 시전자는 EndTime(castTime + recoveryTime)에 풀려나고
@@ -80,6 +83,7 @@ namespace Prototype
             if (finished) return;
 
             timer += dt;
+            fx?.Tick(timer);
 
             while (nextHitIndex < data.hitDataList.Count && timer >= nextHitTime)
                 FireNextHit();
@@ -88,6 +92,7 @@ namespace Prototype
             {
                 ctx.caster?.SkillAttack?.End();
                 finished = true;
+                ReleaseFx();
 
                 BattleLog.Log(LogCategory.Skill,
                     $"{BattleLog.Name(ctx.caster)} 종료: {data.skillName} (후딜 {data.recoveryTime:0.##}s 포함 {EndTime:0.##}s)", ctx.caster);
@@ -98,6 +103,14 @@ namespace Prototype
         {
             ctx.caster?.SkillAttack?.End();
             finished = true;
+            ReleaseFx();
+        }
+
+        /// <summary>전용 연출을 놓아준다. 남은 연출은 끝까지 재생된다.</summary>
+        private void ReleaseFx()
+        {
+            fx?.Release();
+            fx = null;
         }
 
         /// <summary>

@@ -64,6 +64,7 @@ MonoBehaviour:
     scale: 1
     castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
     hitClip: {fileID: 11400000, guid: 6eff12e4b8ae2bc42a1cce9b52b2a042, type: 2}
+  fx: 6
   references:
     version: 2
     RefIds: []
