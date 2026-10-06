@@ -15,7 +15,9 @@
       "Bash(python3)",
       "Bash(xargs -I{} echo {})",
       "Bash(git status *)",
-      "Bash(git --no-pager diff --stat HEAD)"
+      "Bash(git --no-pager diff --stat HEAD)",
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "mcp__unity__Unity_RunCommand"
     ]
   },
   "enabledMcpjsonServers": [

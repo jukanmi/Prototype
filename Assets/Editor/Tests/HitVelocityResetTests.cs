@@ -15,7 +15,7 @@ namespace Prototype.Tests
     /// 단 수직은 <b>낙하 성분만</b> 끊는다. 상승 중까지 0으로 맞추면 띄워 놓은 몸이
     /// 후속타를 맞는 순간 정점에서 뚝 끊겨 떨어진다.
     ///
-    /// 띄우기 힘은 세 층이 겹친다 — 스킬 데이터(<c>launchForce</c> · <c>airLaunchForce</c>),
+    /// 띄우기 높이는 세 층이 겹친다 — 스킬 데이터(<c>airborneHeight</c> · <c>aerialAirborneHeight</c>),
     /// 공중 최소 부양(<c>airHitLift</c>), 캐릭터별 배율(<c>airLaunchScale</c>).
     /// 아래 테스트는 층을 하나씩 <see cref="SetField"/>로 꺼 두고 본다 —
     /// 프리팹 튜닝값이 바뀔 때마다 테스트가 깨지면 안 된다.
@@ -88,7 +88,7 @@ namespace Prototype.Tests
         // ── 띄우기 힘 선택 ───────────────────────────────
 
         [Test]
-        public void Launch_FromGround_UsesRawForce()
+        public void Launch_FromGround_UsesAuthoredHeight()
         {
             Combat attacker = NewCombat("Attacker");
             Combat victim = NewCombat("Victim");
@@ -97,11 +97,11 @@ namespace Prototype.Tests
             attacker.Attack(victim, in DualLauncher);
 
             Assert.That(victim.Physics.VerticalVelocity, Is.EqualTo(12f).Within(0.0001f),
-                        "지상 첫 타는 launchForce 그대로 — 시작 높이가 변하면 안 된다");
+                        "지상 첫 타는 airborneHeight를 그대로 환산한 속도 — 시작 높이가 변하면 안 된다");
         }
 
         [Test]
-        public void AirLaunchForce_ReplacesLaunchForce_WhenTargetIsAerial()
+        public void AerialHeight_ReplacesAirborneHeight_WhenTargetIsAerial()
         {
             Combat attacker = NewCombat("Attacker");
             Combat victim = NewCombat("Victim");
@@ -112,11 +112,11 @@ namespace Prototype.Tests
             attacker.Attack(victim, in DualLauncher);
 
             Assert.That(victim.Physics.VerticalVelocity, Is.EqualTo(22f).Within(0.0001f),
-                        "공중 대상에는 airLaunchForce가 쓰여야 한다");
+                        "공중 대상에는 aerialAirborneHeight가 쓰여야 한다");
         }
 
         [Test]
-        public void AirLaunchForce_Zero_FallsBackToLaunchForce()
+        public void AerialHeight_Zero_FallsBackToAirborneHeight()
         {
             Combat attacker = NewCombat("Attacker");
             Combat victim = NewCombat("Victim");
@@ -124,11 +124,11 @@ namespace Prototype.Tests
 
             Airborne(victim);
 
-            // Launcher는 airLaunchForce가 비어 있다 — 기존 애셋 전부가 이 상태다.
+            // Launcher는 aerialAirborneHeight가 비어 있다 — 공중 전용 값을 안 채운 스킬이다.
             attacker.Attack(victim, in Launcher);
 
             Assert.That(victim.Physics.VerticalVelocity, Is.EqualTo(12f).Within(0.0001f),
-                        "값을 안 채운 스킬은 예전과 똑같이 launchForce로 뜬다");
+                        "값을 안 채운 스킬은 airborneHeight로 뜬다");
         }
 
         [Test]
@@ -195,7 +195,7 @@ namespace Prototype.Tests
             attacker.Attack(victim, in DualLauncher);
 
             Assert.That(victim.Physics.VerticalVelocity, Is.EqualTo(22f).Within(0.0001f),
-                        "부양은 바닥값이다 — airLaunchForce에 더해지면 공중 연계가 천장을 뚫는다");
+                        "부양은 바닥값이다 — aerialAirborneHeight에 더해지면 공중 연계가 천장을 뚫는다");
         }
 
         // ── 캐릭터별 배율(airLaunchScale) ─────────────────
@@ -221,26 +221,26 @@ namespace Prototype.Tests
 
         // ── 헬퍼 ─────────────────────────────────────────
 
-        /// <summary>제대로 띄우는 타격. 공중 전용 값은 비어 있다.</summary>
+        /// <summary>제대로 띄우는 타격. 높이 2.4 → 속도 12(√(2·30·2.4)). 공중 전용 값은 비어 있다.</summary>
         private static readonly HitData Launcher = new HitData
         {
             damageData = new DamageData(1f),
             targetState = CombatState.Neutral,
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,
-            launchForce = 12f,
+            airborneHeight = 2.4f,
             hitStunDuration = 0.5f,
         };
 
-        /// <summary>지상과 공중에 서로 다른 띄우기 힘을 싣는 타격.</summary>
+        /// <summary>지상과 공중에 서로 다른 띄우기 높이를 싣는 타격. 8.0666667 → 속도 22.</summary>
         private static readonly HitData DualLauncher = new HitData
         {
             damageData = new DamageData(1f),
             targetState = CombatState.Neutral,
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,
-            launchForce = 12f,
-            airLaunchForce = 22f,
+            airborneHeight = 2.4f,
+            aerialAirborneHeight = 8.0666667f,
             hitStunDuration = 0.5f,
         };
 

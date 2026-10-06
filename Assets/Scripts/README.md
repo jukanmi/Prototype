@@ -27,8 +27,8 @@ Characters/ Player, Ally, Enemy, EnemyData
 Control/    Control, PlayerControl, EnemyControl, AllyControl
 Skill/      SkillData, SkillState, SkillContext, ISkillEffect, Effects, EffectRunner
 Deck/       ComboCard, Deck / Hand / Discard
-Battle/     BulletTimeController, ComboSlotBoard, ComboExecutor, ComboPredictor, TargetSelector
-yg/         씬 흐름 — Boot / MainMenu / Battle 전환 (namespace Prototype.YG, yg/README.md)
+Battle/     BulletTimeController, ComboSlotBoard, ComboExecutor, EnemyRadiusProbe, TargetSelector
+FlowScene/  씬 흐름 — Boot / MainMenu / Battle 전환 (FlowScene/README.md)
 ```
 
 ## 테스트 씬 — 메뉴 한 번으로 생성
@@ -46,8 +46,8 @@ yg/         씬 흐름 — Boot / MainMenu / Battle 전환 (namespace Prototype.
 | `Wall` 레이어 | ProjectSettings |
 
 씬에는 플레이어 1 + 동료 4(탱/전/궁/마) + 적 4마리, 사방 벽, 비스듬한 직교 카메라,
-`BattleSystem` 오브젝트(BulletTime / Board / Executor / Predictor / TargetSelector /
-DebugComboHUD / BattleLogSettings)가 배치되고 참조까지 전부 연결된다.
+`BattleSystem` 오브젝트(BulletTime / Board / Executor / Predictor / TargetSelector)가
+배치되고 참조까지 전부 연결된다.
 
 ### 테스트 씬의 표현 방식
 
@@ -58,21 +58,11 @@ DebugComboHUD / BattleLogSettings)가 배치되고 참조까지 전부 연결된
 바닥은 **콜라이더가 없는 시각물**이다. 높이(Y)는 `Physics` 가 코드로 계산하므로
 유니티 물리와 싸우면 안 된다. 벽만 진짜 콜라이더 — 넉백 → 벽 바운드 전이를 여기서 확인한다.
 
-### 화면 HUD (`DebugComboHUD`)
+### 화면 HUD (`ComboBoardUI`)
 
-UI 가 붙기 전까지 쓰는 임시 조작기. OnGUI 로만 그려서 캔버스가 필요 없다.
-게이지 · 덱/손패/Discard 장수 · 손패 목록 · 슬롯별 예측 상태와 강화/기본 · 조준 정보 ·
-파티 HP/상태 · 적 HP/상태/높이/공중히트 카운트를 실시간으로 보여준다.
-
-불릿타임 중 조작:
-
-| 입력 | 동작 |
-|---|---|
-| `A S D F G` | 손패 카드 선택 (조준 시작) |
-| 좌클릭 | 조준 확정 + 빈 슬롯에 배치 |
-| 우클릭 | 조준 취소 |
-| `Backspace` | 마지막 슬롯 회수 |
-| `Space` | 실행 |
+게이지 · 덱/손패/Discard 장수 · 손패 목록 · 슬롯별 예측 상태와 강화/기본 · 조준 정보를
+캔버스로 그린다. 불릿타임 중 조작도 여기서 받는다 — 키는 하드코딩이 아니라
+`PlayerInputController` 의 액션이라 `RebindUI` 에서 바꿀 수 있다.
 
 ### 확인해 볼 콤보
 
@@ -112,7 +102,7 @@ Physics Settings 의 Layer Collision Matrix 에서 상대 진영만 부딪히게
 - `BulletTimeController`
 - `ComboSlotBoard` (slotCount 3~4)
 - `ComboExecutor`
-- `ComboPredictor`
+- `EnemyRadiusProbe`
 - `TargetSelector`
 
 `BulletTimeController` 의 `player` 필드에 Player 를, Player 의 `party` 배열에
@@ -159,9 +149,9 @@ Physics Settings 의 Layer Collision Matrix 에서 상대 진영만 부딪히게
 | J         | `Attack`     | 평타                      |
 | K         | `Jump`       | 점프                      |
 | LeftShift | `Dash`       | 대쉬                      |
-| E         | `BulletTime` | 불릿타임 진입 · 실행            |
-| U         | `CardUse`    | 손패 맨 왼쪽 카드 즉시 사용        |
-| F         | `Swap`       | 태그 교대 (다음 생존자)          |
+| E         | `BulletTime`   | 불릿타임 진입 · 실행            |
+| Z         | `UniqueSkill`  | 현재 조작 캐릭터 고유 스킬 즉시 사용  |
+| F         | `Swap`         | 태그 교대 (다음 생존자)          |
 
 진입과 실행이 **한 액션 · 한 키**다. 예전에는 `Execute`(Space)가 따로 있었지만
 Order 페이즈에서 E 와 똑같이 Resolve 로 가는 같은 동작이라, 리바인드 화면에서
@@ -171,10 +161,9 @@ Order 페이즈에서 E 와 똑같이 Resolve 로 가는 같은 동작이라, �
 전술 상태머신의 두 진입점은 남아 있다.
 
 **동료 고유기(ZXCV)는 제거됐다.** 태그 시스템으로 바뀌면서 조작 창구가
-교대(F) · 이동/평타/점프/대시 · 손패 카드(U)로 정리됐다.
+교대(F) · 이동/평타/점프/대시 · 고유 스킬(Z)로 정리됐다.
 
-교대가 F 인 이유는 세 프리셋 어디에서도 안 쓰는 자리이기 때문이다 — Q 는 마우스 프리셋이
-`CardUse` 로 가져가서, 그 프리셋을 얹는 순간 한 키가 두 일을 한다.
+교대가 F 인 이유는 세 프리셋 어디에서도 안 쓰는 자리이기 때문이다.
 
 ### 태그 교대
 
@@ -284,13 +273,12 @@ JSON 뭉치가 아니라 **항목 표**로 적는다 — 바인딩 순서가 바
 | | 기본 | 방향키 프리셋 | 마우스 + 키보드 |
 | --- | --- | --- | --- |
 | 이동 · 카드 커서 · 조준 | WASD | 화살표 | WASD |
-| 동료 고유기 | Z X C V | 1 2 3 4 | Z X C V |
-| 평타 | J | Z | **좌클릭** |
-| 점프 | K | X | Space |
-| 대쉬 | LShift | C | **우클릭** |
+| 캐릭터 고유기 | Z | Z | Z |
+| 평타 | J | X | **좌클릭** |
+| 점프 | K | C | Space |
+| 대쉬 | LShift | V | **우클릭** |
 | 불릿타임 | E | Space | E |
-| 카드 즉시 사용 | U | A | Q |
-| 조준 확정 · 취소 | J K | Z X | **좌 · 우클릭** |
+| 조준 확정 · 취소 | J K | X C | **좌 · 우클릭** |
 
 이동만 옮기고 나머지를 두면 양손이 키보드 양 끝으로 벌어진다. 그래서 행동키까지 왼손으로 당긴다.
 
@@ -396,8 +384,7 @@ bool enhanced = predictor.IsChained(board.Slots, slotIndex);
 | `Combo` | 초록 | 슬롯 배치·회수·순서변경, 실행 큐, 슬롯별 실행, 재타겟, 타임아웃 |
 | `Predict` | 주황 | 슬롯별 예측 상태 + 강화/기본 판정, 조준 확정, 헛침 경고 |
 
-**끄는 법** — 씬 아무 오브젝트에 `BattleLogSettings` 를 붙이고 `mask` 에서 카테고리를 체크 해제한다.
-코드로는 `BattleLog.Mask = LogCategory.Combat | LogCategory.Combo;` 처럼 직접 넣어도 된다.
+**끄는 법** — `BattleLog.Mask = LogCategory.Combat | LogCategory.Combo;` 처럼 직접 대입한다.
 
 로그 호출에는 `[Conditional("UNITY_EDITOR")]` / `[Conditional("DEVELOPMENT_BUILD")]` 가 붙어 있어
 릴리즈 빌드에서는 **호출 자체가 사라진다**. 문자열 보간 비용도 남지 않는다.
@@ -433,5 +420,5 @@ bool enhanced = predictor.IsChained(board.Slots, slotIndex);
 `SettingsManager`. 씬 · UI 의존이라 별도 작업이 필요하다.
 
 `GameManager` · `SceneLoader` · `AudioManager` 와 메인화면 ↔ 배틀 씬 전환은
-`yg/` 에 들어갔다 (`Prototype.YG`). 씬 조립은 **`Prototype ▸ YG ▸ 메인화면 흐름 씬 만들기`**
-메뉴 하나로 끝난다. 자세한 내용은 `yg/README.md`.
+`FlowScene/` 에 들어갔다. 씬 조립은 **`Prototype ▸ 씬 흐름 - 메인화면 흐름 씬 만들기`**
+메뉴 하나로 끝난다. 자세한 내용은 `FlowScene/README.md`.

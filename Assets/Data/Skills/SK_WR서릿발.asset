@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a42b322e3291043b04c328aaa893c5, type: 3}
+  m_Name: "SK_WR\uC11C\uB9BF\uBC1C"
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.SkillData
+  skillName: "\uC11C\uB9BF\uBC1C"
+  icon: {fileID: 0}
+  description: "\uB0C9\uAE30\uC758 \uD798\uC744 \uC9C0\uBA74\uC5D0 \uB0B4\uB9AC\uCC0D\uC5B4
+    \uC804\uBC29\uC5D0 \uC5BC\uC74C\uAC00\uC2DC\uB97C \uB9CC\uB4E4\uC5B4 \uACF5\uACA9\uD55C\uB2E4."
+  role: 1
+  attackType: 2
+  requireState: 0
+  resultState: 1
+  targeting: 0
+  radius: 3
+  targetPick: 0
+  castTime: 0.3
+  hitInterval: 0.2
+  recoveryTime: 0.2
+  maxChargeTime: 2.5
+  maxChargeDamageMul: 2.5
+  maxChargeRadiusMul: 1.6
+  projectile: {fileID: 0}
+  projectileSpeed: 14
+  projectileRange: 12
+  projectilePierce: 0
+  approachDistance: 0
+  hitDataList:
+  - damageData:
+      damage: 10
+    castDelay: 0
+    castRangeScale: {x: 4.5, y: 0.3, z: 1}
+    castConeAngle: 40
+    fixedOrigin: 0
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.3
+    debuff: 2
+    debuffDuration: 1.5
+    guardDamage: 0
+    snapZ: 0
+  - damageData:
+      damage: 20
+    castDelay: 0
+    castRangeScale: {x: 4.5, y: 1.3, z: 1}
+    castConeAngle: 40
+    fixedOrigin: 0
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.5
+    debuff: 2
+    debuffDuration: 3
+    guardDamage: 0
+    snapZ: 0
+  effects: []
+  cooldown: 5
+  manaCost: 20
+  animation: {fileID: 0}
+  vfx:
+    custom: 1
+    impact: {r: 0.561, g: 0.89, b: 0.961, a: 1}
+    shock: {r: 0.561, g: 0.89, b: 0.961, a: 0.75}
+    scale: 1
+    castClip: {fileID: 11400000, guid: e6379fd7344b0ba4ebf4dcccd803808a, type: 2}
+    hitClip: {fileID: 11400000, guid: 60b26e83a57ef3c4fa8045a52be79a93, type: 2}
+  references:
+    version: 2
+    RefIds: []

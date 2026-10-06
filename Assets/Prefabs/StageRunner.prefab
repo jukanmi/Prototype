@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6098449449016784131
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 486638363685016498}
+  - component: {fileID: 3871019044183219862}
+  - component: {fileID: 2776796296354096804}
+  - component: {fileID: 647916044546918162}
+  m_Layer: 0
+  m_Name: StageRunner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &486638363685016498
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6098449449016784131}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3871019044183219862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6098449449016784131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdc26744ffe1ab54db6ea303b25dabdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemySpawnService
+  meleeData: {fileID: 11400000, guid: a1314a978c310524f8f6a1d66b150956, type: 2}
+  chargerData: {fileID: 11400000, guid: c32498db9e38bda40badd5b7c71e4ffa, type: 2}
+  rangedData: {fileID: 11400000, guid: af3e2b6a750bf5c43a05f333088a7ae5, type: 2}
+  bossData: {fileID: 11400000, guid: 08874158a4f90204cb7244441969a9f1, type: 2}
+  eliteHealthScale: 2.5
+  eliteAttackScale: 1.4
+--- !u!114 &2776796296354096804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6098449449016784131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a0782e4ee876b4fa222f0adf141d1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.StageBounds
+  blendSeconds: 0.3
+--- !u!114 &647916044546918162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6098449449016784131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20c51d0881abb3b438f1e8601f8b32dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.StageRunner
+  sections:
+  - kind: 1
+    minX: -6
+    maxX: 6
+  - kind: 0
+    minX: 6
+    maxX: 32.729523
+  - kind: 1
+    minX: 32.729523
+    maxX: 44.729523
+  arenas:
+  - {fileID: 0}
+  - {fileID: 0}
+  bounds: {fileID: 2776796296354096804}

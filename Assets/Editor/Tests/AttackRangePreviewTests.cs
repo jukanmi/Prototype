@@ -250,11 +250,22 @@ namespace Prototype.Tests
             Assert.That(AttackRangePreview.FromCircle(Vector3.zero, 3.2f, -9f).progress, Is.EqualTo(0f));
         }
 
+        /// <summary>둘레 판정 원반. 유니티 기본 Cylinder(반지름 0.5 · 높이 2)를 배율로 편다.</summary>
+        private static Attack AddDisk(GameObject child, float radius, float thickness)
+        {
+            child.transform.localScale = new Vector3(radius * 2f, thickness * 0.5f, radius * 2f);
+
+            var disk = child.AddComponent<MeshCollider>();
+            disk.sharedMesh = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
+
+            return child.AddComponent<Attack>();
+        }
+
         /// <summary>
         /// 보스가 어디를 보든 같은 자리를 덮어야 한다. 정면을 받지 않는 것이 그 보장이다.
         /// </summary>
         [Test]
-        public void TryReadSphere_IgnoresRotation()
+        public void TryReadDisk_IgnoresRotation()
         {
             var root = new GameObject("Boss");
             try
@@ -263,16 +274,13 @@ namespace Prototype.Tests
 
                 var child = new GameObject("RadialHitbox");
                 child.transform.SetParent(root.transform, false);
-                child.transform.localPosition = new Vector3(0f, 1.1f, 0f);
+                child.transform.localPosition = new Vector3(0f, 0.125f, 0f);
 
-                SphereCollider sphere = child.AddComponent<SphereCollider>();
-                sphere.radius = 3.2f;
-
-                var hitbox = child.AddComponent<Attack>();
+                Attack hitbox = AddDisk(child, 3.2f, 1.25f);
 
                 root.transform.rotation = Quaternion.Euler(0f, 137f, 0f);
 
-                bool ok = AttackRangePreview.TryReadSphere(hitbox, out Vector3 center, out float radius);
+                bool ok = AttackRangePreview.TryReadDisk(hitbox, out Vector3 center, out float radius);
 
                 Assert.That(ok, Is.True);
                 Assert.That(radius, Is.EqualTo(3.2f).Within(0.0001f));
@@ -285,26 +293,24 @@ namespace Prototype.Tests
             }
         }
 
-        /// <summary>표시 반경과 판정 반경이 어긋나면 "표시 밖인데 맞았다"가 된다.</summary>
+        /// <summary>
+        /// 두께(Y 배율)는 반경에 안 섞인다 — 그게 원반을 쓰는 이유다.
+        /// 섞이면 표시 반경과 판정 반경이 어긋나 "표시 밖인데 맞았다"가 된다.
+        /// </summary>
         [Test]
-        public void TryReadSphere_FollowsLargestScaleAxis()
+        public void TryReadDisk_RadiusIgnoresThickness()
         {
             var root = new GameObject("Boss");
             try
             {
-                root.transform.localScale = new Vector3(1f, 2f, 1f);
-
                 var child = new GameObject("RadialHitbox");
                 child.transform.SetParent(root.transform, false);
 
-                SphereCollider sphere = child.AddComponent<SphereCollider>();
-                sphere.radius = 3f;
+                Attack hitbox = AddDisk(child, 3f, 10f);
 
-                var hitbox = child.AddComponent<Attack>();
+                AttackRangePreview.TryReadDisk(hitbox, out _, out float radius);
 
-                AttackRangePreview.TryReadSphere(hitbox, out _, out float radius);
-
-                Assert.That(radius, Is.EqualTo(6f).Within(0.0001f));
+                Assert.That(radius, Is.EqualTo(3f).Within(0.0001f));
             }
             finally
             {
@@ -312,9 +318,9 @@ namespace Prototype.Tests
             }
         }
 
-        /// <summary>상자 히트박스는 구 경로로 새면 안 된다 — 앞쪽 판정이 사방 판정이 된다.</summary>
+        /// <summary>상자 히트박스는 원반 경로로 새면 안 된다 — 앞쪽 판정이 사방 판정이 된다.</summary>
         [Test]
-        public void TryReadSphere_BoxHitbox_ReturnsFalse()
+        public void TryReadDisk_BoxHitbox_ReturnsFalse()
         {
             var root = new GameObject("Boss");
             try
@@ -325,12 +331,81 @@ namespace Prototype.Tests
 
                 var hitbox = child.AddComponent<Attack>();
 
-                Assert.That(AttackRangePreview.TryReadSphere(hitbox, out _, out _), Is.False);
+                Assert.That(AttackRangePreview.TryReadDisk(hitbox, out _, out _), Is.False);
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        // ── 부채꼴 (근접 스킬 castConeAngle) ─────────────
+        // IsCircle이 부채꼴에도 true로 뜨는 건 의도다(radius > 0f 하나로 두 모양을 겸한다) —
+        // 그리는 쪽이 IsCone을 먼저 봐야 부채꼴이 원으로 잘못 그려지지 않는다.
+
+        [Test]
+        public void Cone_IsFlaggedAsCone()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 1f);
+
+            Assert.That(r.IsCone, Is.True);
+            Assert.That(r.radius, Is.EqualTo(4f).Within(0.0001f));
+            Assert.That(r.coneAngle, Is.EqualTo(60f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Cone_AlsoReadsAsCircle_SoDrawerMustCheckConeFirst()
+        {
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 1f).IsCircle, Is.True);
+        }
+
+        [Test]
+        public void PlainCircle_IsNotFlaggedAsCone()
+        {
+            Assert.That(AttackRangePreview.FromCircle(Vector3.zero, 3.2f, 1f).IsCone, Is.False);
+        }
+
+        [Test]
+        public void Cone_CenterIsFlattenedToGround()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(new Vector3(2f, 5f, -3f), Vector3.forward, 4f, 60f, 1f);
+
+            Assert.That(r.center.y, Is.EqualTo(0f));
+            Assert.That(r.center.x, Is.EqualTo(2f).Within(0.0001f));
+            Assert.That(r.center.z, Is.EqualTo(-3f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Cone_NegativeRadiusAndAngle_ClampToZero()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, -4f, -60f, 1f);
+
+            Assert.That(r.radius, Is.EqualTo(0f));
+            Assert.That(r.coneAngle, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Cone_ProgressIsClamped()
+        {
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, 9f).progress, Is.EqualTo(1f));
+            Assert.That(AttackRangePreview.FromCone(Vector3.zero, Vector3.forward, 4f, 60f, -9f).progress, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Cone_FacingIsNormalized()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.right * 9f, 4f, 60f, 1f);
+
+            Assert.That(r.facing.magnitude, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        /// <summary>정지 직후 등으로 방향이 0이어도 부채꼴이 사라지면 안 된다.</summary>
+        [Test]
+        public void Cone_ZeroFacing_FallsBackToForward()
+        {
+            AttackRangePreview r = AttackRangePreview.FromCone(Vector3.zero, Vector3.zero, 4f, 60f, 1f);
+
+            Assert.That(Vector3.Distance(r.facing, Vector3.forward), Is.LessThan(0.001f));
         }
     }
 }

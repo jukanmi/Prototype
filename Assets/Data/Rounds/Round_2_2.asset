@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3116ae4eeda8ce468459e10e12acbc6, type: 3}
+  m_Name: Round_2_2
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.WaveAsset
+  label: "2R \uC88C\uC6B0 \uC591\uBC29\uD5A5 \u2014 \uB9C8\uBC95\uC0AC 2 + \uC804\uC0AC
+    3 + \uB3CC\uC9C4\uC804\uC0AC 1"
+  advance: 0
+  attackTokens: 3
+  spawns:
+  - role: 2
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 1
+    alongWall: 0.5
+    appearAt: 0
+    motion: 1
+  - role: 2
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 2
+    alongWall: 0.5
+    appearAt: 0
+    motion: 1
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 1
+    alongWall: 0.33333334
+    appearAt: 1.2
+    motion: 1
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 1
+    alongWall: 0.6666667
+    appearAt: 1.45
+    motion: 1
+  - role: 0
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 2
+    alongWall: 0.5
+    appearAt: 1.2
+    motion: 1
+  - role: 1
+    elite: 0
+    origin: 0
+    pointId: 
+    side: 0
+    wall: 2
+    alongWall: 0.5
+    appearAt: 4
+    motion: 1
+  reinforceInterval: 0
+  reinforceRole: 0
+  reinforceCap: 0

@@ -31,13 +31,12 @@ namespace Prototype.Tests
         public void AwayFromCaster_TravelsForceOverDamping()
         {
             Physics victim = NewPhysics("Victim", new Vector3(3f, 0f, 0f));
-            SkillData data = NewSkill(Push(8f));
+            SkillData data = NewSkill(Push(1f));
 
             Assert.That(KnockbackPreview.TryPredict(data, Vector3.zero, Vector3.right, victim, out var r), Is.True);
 
-            float expected = 8f / victim.ImpulseDamping;
-            Assert.That(r.to.x - r.from.x, Is.EqualTo(expected).Within(0.001f),
-                        "이동 거리는 force / impulseDamping이다 — Physics.AddImpulse의 지수감쇠 총량");
+            Assert.That(r.to.x - r.from.x, Is.EqualTo(1f).Within(0.001f),
+                        "저작값이 곧 이동 거리다 — 충격량 환산은 Combat 한 곳에서만 일어난다");
             Assert.That(r.to.z, Is.EqualTo(r.from.z).Within(0.001f), "밀치기는 깊이를 바꾸지 않는다");
         }
 
@@ -46,7 +45,7 @@ namespace Prototype.Tests
         {
             // 중심에서 1유닛. 힘은 넘치게 준다 — 자르지 않으면 반대편으로 튄다.
             Physics victim = NewPhysics("Victim", new Vector3(1f, 0f, 0f));
-            SkillData data = NewSkill(Pull(32f));
+            SkillData data = NewSkill(Pull(4f));
 
             Assert.That(KnockbackPreview.TryPredict(data, Vector3.zero, Vector3.right, victim, out var r), Is.True);
 
@@ -58,12 +57,12 @@ namespace Prototype.Tests
         public void Up_HasNoHorizontalTravel_ButHasApex()
         {
             Physics victim = NewPhysics("Victim", new Vector3(2f, 0f, 0f));
-            SkillData data = NewSkill(Launch(12f));
+            SkillData data = NewSkill(Launch(2.4f));
 
             Assert.That(KnockbackPreview.TryPredict(data, Vector3.zero, Vector3.right, victim, out var r), Is.True);
 
             Assert.That((r.to - r.from).magnitude, Is.EqualTo(0f).Within(0.001f), "띄우기는 수평으로 밀지 않는다");
-            Assert.That(r.apexHeight, Is.EqualTo(12f * 12f / (2f * victim.Gravity)).Within(0.001f));
+            Assert.That(r.apexHeight, Is.EqualTo(2.4f).Within(0.001f), "저작한 높이가 곧 정점이다");
         }
 
         [Test]
@@ -72,8 +71,8 @@ namespace Prototype.Tests
             Physics single = NewPhysics("Single", new Vector3(3f, 0f, 0f));
             Physics twice = NewPhysics("Twice", new Vector3(3f, 0f, 0f));
 
-            SkillData one = NewSkill(Push(8f));
-            SkillData two = NewSkill(Push(8f), Push(8f));
+            SkillData one = NewSkill(Push(1f));
+            SkillData two = NewSkill(Push(1f), Push(1f));
 
             KnockbackPreview.TryPredict(one, Vector3.zero, Vector3.right, single, out var a);
             KnockbackPreview.TryPredict(two, Vector3.zero, Vector3.right, twice, out var b);
@@ -107,30 +106,30 @@ namespace Prototype.Tests
 
         // ── 헬퍼 ─────────────────────────────────────────
 
-        private static HitData Push(float force) => new HitData
+        private static HitData Push(float distance) => new HitData
         {
             damageData = new DamageData(1f),
             nextState = CombatState.Knockback,
             mode = KnockbackMode.AwayFromCaster,
-            knockbackForce = force,
+            pushDistance = distance,
             hitStunDuration = 0.3f,
         };
 
-        private static HitData Pull(float force) => new HitData
+        private static HitData Pull(float distance) => new HitData
         {
             damageData = new DamageData(1f),
             nextState = CombatState.LightHit,
             mode = KnockbackMode.TowardCaster,
-            knockbackForce = force,
+            pushDistance = distance,
             hitStunDuration = 0.3f,
         };
 
-        private static HitData Launch(float force) => new HitData
+        private static HitData Launch(float height) => new HitData
         {
             damageData = new DamageData(1f),
             nextState = CombatState.AerialHit,
             mode = KnockbackMode.Up,
-            launchForce = force,
+            airborneHeight = height,
             hitStunDuration = 0.3f,
         };
 

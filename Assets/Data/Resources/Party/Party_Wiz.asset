@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38c0b9daac702dc439cff2ccc5d9b287, type: 3}
+  m_Name: Party_Wiz
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyMemberData
+  memberId: Wiz
+  displayName: Wiz
+  role: 3
+  portrait: {fileID: 0}
+  prefab: {fileID: 4491905594061447380, guid: 7fcaa6c618a95274293c7b2c05b24128, type: 3}
+  equipped:
+  - data: {fileID: 11400000, guid: 1d32486380e276c45b77497ac572d2c0, type: 2}
+    drawWeight: 1
+    golden: 0
+  - data: {fileID: 11400000, guid: 615b3b1212d14b0198bb985095ce4a37, type: 2}
+    drawWeight: 2
+    golden: 0
+  - data: {fileID: 11400000, guid: 9ba8c7cc87c6c9040a39584e3323745a, type: 2}
+    drawWeight: 1
+    golden: 0
+  - data: {fileID: 11400000, guid: f4ed30969ee64107829566adf5187747, type: 2}
+    drawWeight: 1
+    golden: 0
+  uniqueSkill: {fileID: 11400000, guid: 66c8f86831d24f4e9ea96ae298997ce0, type: 2}
+  hp: 0
+  atk: 0
+  moveSpeed: 0
+  basicProjectile: {fileID: 1455169963318175294, guid: 7b1a1af27213ad749be9bf2ef24b4d7e, type: 3}
+  projectileSpeed: 15
+  projectileRange: 8
+  projectilePierce: 0
+  animatorController: {fileID: 0}
+  bodyScale: 1
+  spriteTint: {r: 1, g: 1, b: 1, a: 1}

@@ -118,7 +118,7 @@ namespace Prototype.Tests
         }
 
         [TestCase(InputActionNames.Gameplay.BulletTime)]
-        [TestCase(InputActionNames.Gameplay.CardUse)]
+        [TestCase(InputActionNames.Gameplay.UniqueSkill)]
         public void CommanderKeys_ConflictWithCardMap(string commander)
         {
             // 지휘키는 정지 중에도 산다 — 카드 조작과 진짜로 같은 프레임에 발동한다.
@@ -201,7 +201,7 @@ namespace Prototype.Tests
         public void TakingTheCardMapKeyForACommander_IsAConflict()
         {
             // 반면 지휘키를 W 로 옮기면 카드를 집으면서 불릿타임이 함께 걸린다.
-            InputAction commander = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.CardUse);
+            InputAction commander = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.UniqueSkill);
             int index = InputBindingUtility.FindBindingIndex(commander, "");
 
             Assert.That(InputRebindRules.TryFindConflict(actions, commander, index, "<Keyboard>/w", out _, out _),

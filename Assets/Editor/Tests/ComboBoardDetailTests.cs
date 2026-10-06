@@ -27,7 +27,7 @@ namespace Prototype.Tests
         {
             SkillData data = NewSkill();
 
-            string text = ComboBoardUI.DetailLines(data, chained: true, willBeDown: false);
+            string text = ComboBoardUI.DetailLines(data);
 
             Assert.That(text, Does.Contain("올려베기"), "이름이 빠졌다");
             Assert.That(text, Does.Contain("적을 띄운다"), "설명이 빠졌다 — 이게 없어서 상세 패널을 만든 것이다");
@@ -36,38 +36,23 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void DetailRows_ShowsChainState()
-        {
-            SkillData data = NewSkill();
-
-            string[] chained = ComboBoardUI.DetailRows(data, chained: true, willBeDown: false);
-            string[] plain = ComboBoardUI.DetailRows(data, chained: false, willBeDown: false);
-
-            Assert.That(chained[2], Does.Contain("강화"));
-            Assert.That(plain[2], Does.Contain("기본"));
-        }
-
-        [Test]
-        public void DetailRows_WarnsWhenTargetWillBeDown()
-        {
-            SkillData data = NewSkill();
-
-            string[] rows = ComboBoardUI.DetailRows(data, chained: true, willBeDown: true);
-
-            Assert.That(rows[2], Does.Contain("다운"),
-                        "다운 무적에 흘릴 카드라는 걸 연계 줄이 말해야 한다");
-            Assert.That(rows[2], Does.Contain("무효"));
-        }
-
-        [Test]
         public void DetailRows_EmptyDescription_StillReadable()
         {
             SkillData data = NewSkill();
             data.description = string.Empty;
 
-            string[] rows = ComboBoardUI.DetailRows(data, chained: false, willBeDown: false);
+            string[] rows = ComboBoardUI.DetailRows(data);
 
             Assert.That(rows[1], Is.Not.Empty, "설명이 비어도 줄이 사라지면 패널 높이가 흔들린다");
+        }
+
+        [Test]
+        public void DetailRows_NullData_ReturnsEmptyRowsNotNull()
+        {
+            string[] rows = ComboBoardUI.DetailRows(null);
+
+            Assert.That(rows, Has.Length.EqualTo(3), "카드 상세 줄 수(분류 · 설명 · 코스트)와 맞아야 한다");
+            Assert.That(rows, Is.All.Empty);
         }
 
         private SkillData NewSkill()

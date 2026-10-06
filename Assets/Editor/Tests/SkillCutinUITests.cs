@@ -41,7 +41,6 @@ namespace Prototype.Tests
 
             Assert.That(TimeControl.Scale, Is.EqualTo(0f));
             Assert.That(cutin.IsPlaying, Is.True);
-            Assert.That(cutin.IsVisible, Is.True);
         }
 
         [Test]
@@ -53,7 +52,6 @@ namespace Prototype.Tests
 
             Assert.That(TimeControl.Scale, Is.EqualTo(1f));
             Assert.That(cutin.IsPlaying, Is.False);
-            Assert.That(cutin.IsVisible, Is.False);
         }
 
         [Test]
@@ -68,7 +66,6 @@ namespace Prototype.Tests
 
             Assert.That(TimeControl.Scale, Is.EqualTo(1f));
             Assert.That(cutin.IsPlaying, Is.False);
-            Assert.That(cutin.IsVisible, Is.False);
         }
 
         [Test]

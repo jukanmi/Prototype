@@ -9,38 +9,35 @@ namespace Prototype.Tests
     /// </summary>
     public class ControlledCharacterArrowTests
     {
-        private float saved;
-        private float savedShear;
-        private float savedScale;
+        private GameObject camRig;
 
         [SetUp]
         public void SetUp()
         {
-            saved = BeltScroll.DepthToScreen;
-            savedShear = BeltScroll.DepthToScreenX;
-            savedScale = BeltScroll.DepthScalePerUnit;
-            BeltScroll.DepthToScreen = 0.9f;
-            BeltScroll.DepthToScreenX = 0.45f;
+            // 머리 위 오프셋이 화면 위(0, cosθ, sinθ) 방향으로 올라간다. 카메라를 명시적으로
+            // 물려 주지 않으면 Camera.main을 집어 열려 있던 씬에 따라 값이 달라진다.
             BeltScroll.DepthScalePerUnit = 0.06f;
+            camRig = BeltScrollTestCamera.Attach();
         }
 
         [TearDown]
         public void TearDown()
         {
-            BeltScroll.DepthToScreen = saved;
-            BeltScroll.DepthToScreenX = savedShear;
-            BeltScroll.DepthScalePerUnit = savedScale;
+            BeltScrollTestCamera.Detach(camRig);
+            BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
         [Test]
-        public void ArrowFoldsDepthIntoScreenHeight()
+        public void ArrowNeverShiftsSideways()
         {
-            // 깊이 z=2는 화면 세로 1.8로 접히고(0.9 배율) 가로로 0.9 밀린다(0.45 배율).
-            // 머리 오프셋은 몸이 줄어든 만큼(z=2 → 0.88배) 같이 내려온다.
+            // 깊이는 카메라가 보여 준다 — 좌표를 옆으로 밀지 않는다.
+            // 머리 오프셋은 몸이 줄어든 만큼(z=2 → 0.88배) 같이 내려오고, 화면 위로 올라간다.
             Vector3 p = ControlledCharacterArrow.ArrowPosition(new Vector3(4f, 0f, 2f), height: 0f, headOffset: 2.4f);
+            float lift = 2.4f * 0.88f;
 
-            Assert.That(p.x, Is.EqualTo(4f + 0.9f).Within(0.001f), "화살표도 몸과 같이 밀려야 한다");
-            Assert.That(p.y, Is.EqualTo(1.8f + 2.4f * 0.88f).Within(0.001f));
+            Assert.That(p.x, Is.EqualTo(4f).Within(0.001f), "화살표가 옆으로 밀리면 안 된다");
+            Assert.That(p.y, Is.EqualTo(lift * BeltScrollTestCamera.Cos).Within(0.001f));
+            Assert.That(p.z, Is.EqualTo(2f + lift * BeltScrollTestCamera.Sin).Within(0.001f));
         }
 
         [Test]

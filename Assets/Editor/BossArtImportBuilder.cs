@@ -66,7 +66,7 @@ namespace Prototype.EditorTools
 
         /// <summary>
         /// 상태머신이 직접 재생하는 클립. 평타(Attack)는 프리팹의 평타 길이(0.55초)에 맞춘 fps다 —
-        /// <see cref="BossPrefabBuilder"/>가 그 값을 쥐고 있다.
+        /// 그 값은 <c>Enemy_Boss.prefab</c>에 박혀 있다.
         /// </summary>
         private static readonly ClipSpec[] BaseClips =
         {

@@ -14,10 +14,14 @@ namespace Prototype.Tests
     /// </summary>
     public class SkillHitboxPrefabTests
     {
+        /// <summary>옛 <c>SkillHitboxPrefabBuilder.TargetPrefabs</c>. 경로가 아니라 컴포넌트로 찾는다.</summary>
+        private static string[] TargetPrefabs
+            => new[] { PrefabLocator.AllyPath, PrefabLocator.PlayerPath };
+
         [Test]
         public void EveryTargetPrefab_HasDedicatedSkillHitbox()
         {
-            foreach (string path in SkillHitboxPrefabBuilder.TargetPrefabs)
+            foreach (string path in TargetPrefabs)
             {
                 var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 Assert.That(root, Is.Not.Null, $"{path}를 찾지 못했다");
@@ -28,15 +32,14 @@ namespace Prototype.Tests
 
                 Assert.That(entity.SkillAttack, Is.Not.Null, $"{path}: 스킬 히트박스가 비어 있다");
                 Assert.That(entity.SkillAttack, Is.Not.SameAs(entity.BasicAttack),
-                            $"{path}: 스킬이 평타 히트박스로 떨어지면 다단히트 후속타가 씹힌다 — " +
-                            "Prototype ▸ 프리팹 - 스킬 히트박스 붙이기 를 실행할 것");
+                            $"{path}: 스킬이 평타 히트박스로 떨어지면 다단히트 후속타가 씹힌다");
             }
         }
 
         [Test]
         public void SkillHitbox_IsTrigger_AndBiggerThanBasic()
         {
-            foreach (string path in SkillHitboxPrefabBuilder.TargetPrefabs)
+            foreach (string path in TargetPrefabs)
             {
                 var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 var entity = root.GetComponent<Entity>();

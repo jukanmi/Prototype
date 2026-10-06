@@ -13,31 +13,30 @@ namespace Prototype.Tests
         // 1타 기준: 선딜 0.10 · 판정끝 0.20 · 캔슬 0.20 · 전체 0.32
         private static readonly BasicAttackTiming Stage = new BasicAttackTiming(0.10f, 0.20f, 0.20f, 0.32f);
 
-        // ── 타이밍 폴백 ──────────────────────────────────
+        // ── 타이밍 ───────────────────────────────────────
 
         [Test]
-        public void ResolveTiming_ZeroFallsBackToEntityDefaults()
-        {
-            var empty = new BasicAttackStage();
-
-            BasicAttackTiming t = BasicComboRules.ResolveTiming(in empty, 0.12f, 0.24f, 0.45f);
-
-            Assert.That(t.windup, Is.EqualTo(0.12f).Within(0.0001f));
-            Assert.That(t.activeEnd, Is.EqualTo(0.24f).Within(0.0001f));
-            Assert.That(t.total, Is.EqualTo(0.45f).Within(0.0001f));
-            Assert.That(t.cancelStart, Is.EqualTo(0.24f).Within(0.0001f),
-                        "캔슬 시점을 안 적으면 판정이 닫히는 순간이다");
-        }
-
-        [Test]
-        public void ResolveTiming_AuthoredValuesWin()
+        public void ResolveTiming_UsesAuthoredValues()
         {
             var stage = new BasicAttackStage { windup = 0.18f, activeEnd = 0.34f, total = 0.7f, cancelStart = 0.5f };
 
-            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage, 0.12f, 0.24f, 0.45f);
+            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage);
 
             Assert.That(t.windup, Is.EqualTo(0.18f).Within(0.0001f));
+            Assert.That(t.activeEnd, Is.EqualTo(0.34f).Within(0.0001f));
+            Assert.That(t.total, Is.EqualTo(0.7f).Within(0.0001f));
             Assert.That(t.cancelStart, Is.EqualTo(0.5f).Within(0.0001f));
+        }
+
+        [Test]
+        public void ResolveTiming_NoCancelStart_CancelsWhenHitboxCloses()
+        {
+            var stage = new BasicAttackStage { windup = 0.12f, activeEnd = 0.24f, total = 0.45f };
+
+            BasicAttackTiming t = BasicComboRules.ResolveTiming(in stage);
+
+            Assert.That(t.cancelStart, Is.EqualTo(0.24f).Within(0.0001f),
+                        "캔슬 시점을 안 적으면 판정이 닫히는 순간이다");
         }
 
         // ── 전이표 ───────────────────────────────────────
@@ -71,18 +70,19 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void LastStage_DoesNotCancel_ButRestartsAfterRecovery()
+        public void LastStage_DoesNotCancel_AndAlwaysFinishes()
         {
             // 마무리는 캔슬 불가 — 긴 후딜을 지워 버리면 "강타는 무겁다"가 거짓말이 된다.
             Assert.That(Step(0.25f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Continue));
 
-            // 다 기다린 뒤에 선입력이 살아 있으면 1타부터 다시 돈다.
-            Assert.That(Step(0.32f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Restart));
+            // 선입력이 살아 있어도 1타로 되돌아가지 않는다. 되돌아가면 두들기는 동안
+            // 평타가 상태를 못 벗어나 무한히 돈다 — 3연타가 아니라 영구 연타가 된다.
+            Assert.That(Step(0.32f, 2, 3, buffered: true), Is.EqualTo(BasicComboStep.Finish));
             Assert.That(Step(0.32f, 2, 3, buffered: false), Is.EqualTo(BasicComboStep.Finish));
         }
 
         [Test]
-        public void SingleStage_NeverAdvancesOrRestarts()
+        public void SingleStage_NeverAdvances()
         {
             // 콤보를 저작하지 않은 몸(적 · 자율 동료)은 예전과 완전히 같은 경로를 탄다.
             Assert.That(Step(0.25f, 0, 1, buffered: true), Is.EqualTo(BasicComboStep.Continue));
@@ -124,8 +124,8 @@ namespace Prototype.Tests
 
             Assert.That(h.nextState, Is.EqualTo(basic.nextState));
             Assert.That(h.mode, Is.EqualTo(basic.mode));
-            Assert.That(h.knockbackForce, Is.EqualTo(basic.knockbackForce));
-            Assert.That(h.launchForce, Is.Zero);
+            Assert.That(h.pushDistance, Is.EqualTo(basic.pushDistance));
+            Assert.That(h.airborneHeight, Is.Zero);
         }
 
         [Test]
@@ -140,15 +140,15 @@ namespace Prototype.Tests
                 overrideReaction = true,
                 nextState = CombatState.AerialHit,
                 mode = KnockbackMode.AwayFromCaster,
-                knockbackForce = 4.5f,
-                launchForce = 6f,
+                pushDistance = 0.5625f,
+                airborneHeight = 0.6f,
                 hitStunDuration = 0.5f,
             };
 
             HitData h = BasicComboRules.BuildStageHit(in basic, in stage);
 
             Assert.That(h.nextState, Is.EqualTo(CombatState.AerialHit));
-            Assert.That(h.launchForce, Is.EqualTo(6f).Within(0.0001f));
+            Assert.That(h.airborneHeight, Is.EqualTo(0.6f).Within(0.0001f));
             Assert.That(h.hitStunDuration, Is.EqualTo(0.5f).Within(0.0001f));
 
             // 타격의 정체성(OTG · 선행 조건)은 단계가 건드리지 않는다 —
@@ -169,7 +169,7 @@ namespace Prototype.Tests
             nextState = CombatState.LightHit,
             mode = KnockbackMode.Fixed,
             fixedDir = Vector3.forward,
-            knockbackForce = 3f,
+            pushDistance = 0.375f,
             hitStunDuration = 0.3f,
         };
     }

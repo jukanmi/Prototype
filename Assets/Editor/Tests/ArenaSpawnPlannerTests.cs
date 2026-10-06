@@ -19,11 +19,19 @@ namespace Prototype.Tests
             SpawnWall.Front, SpawnWall.Left, SpawnWall.Right, SpawnWall.Back,
         };
 
-        private static ArenaSpawnPlan Plan(SpawnWall wall, int count = 1, int index = 0,
+        /// <summary>
+        /// <paramref name="count"/>기 중 <paramref name="index"/>번째. 예전에는 묶음이 이 셈을
+        /// 런타임에 했고, 지금은 저작이 벽면 위 자리와 시각을 직접 든다 —
+        /// 여기서 그 셈을 한 번 해 주면 아래 검사들이 뜻을 그대로 지킨다.
+        /// </summary>
+        private static SpawnPlacement Plan(SpawnWall wall, int count = 1, int index = 0,
                                            EnemyRole role = EnemyRole.Melee, float delay = 0f)
         {
-            RoundSpawn spawn = RoundSpawn.Of(role, count, wall, delay);
-            return ArenaSpawnPlanner.Plan(in spawn, index, MinX, MaxX);
+            float along = (index + 1f) / (Mathf.Max(1, count) + 1f);
+            float appearAt = Mathf.Max(0f, delay) + ArenaSpawnPlanner.StaggerStep * Mathf.Max(0, index);
+
+            WaveSpawnEntry entry = WaveSpawnEntry.AtWall(role, wall, along, appearAt);
+            return ArenaSpawnPlanner.PlanFromWall(in entry, MinX, MaxX);
         }
 
         // ── 예고 ────────────────────────────────────────
@@ -36,9 +44,9 @@ namespace Prototype.Tests
         {
             foreach (SpawnWall wall in AllWalls)
             {
-                ArenaSpawnPlan plan = Plan(wall, delay: 3f);
+                SpawnPlacement plan = Plan(wall, delay: 3f);
 
-                Assert.That(plan.spawnAt - plan.telegraphAt,
+                Assert.That(plan.appearAt - plan.telegraphAt,
                             Is.EqualTo(ArenaSpawnPlanner.TelegraphLead).Within(Eps), $"{wall}");
             }
         }
@@ -49,7 +57,7 @@ namespace Prototype.Tests
             Assert.That(ArenaSpawnPlanner.TelegraphLead, Is.EqualTo(0.8f).Within(Eps));
         }
 
-        /// <summary>라운드 시작과 동시에 나오는 적은 예고가 음수가 된다. 0으로 물린다.</summary>
+        /// <summary>조우 시작과 동시에 나오는 적은 예고가 음수가 된다. 0으로 물린다.</summary>
         [Test]
         public void ImmediateSpawn_TelegraphsAtZero_NotNegative()
         {
@@ -78,9 +86,9 @@ namespace Prototype.Tests
         {
             Assert.That(ArenaSpawnPlanner.StaggerStep, Is.InRange(0.2f, 0.3f));
 
-            float first = Plan(SpawnWall.Front, count: 3, index: 0).spawnAt;
-            float second = Plan(SpawnWall.Front, count: 3, index: 1).spawnAt;
-            float third = Plan(SpawnWall.Front, count: 3, index: 2).spawnAt;
+            float first = Plan(SpawnWall.Front, count: 3, index: 0).appearAt;
+            float second = Plan(SpawnWall.Front, count: 3, index: 1).appearAt;
+            float third = Plan(SpawnWall.Front, count: 3, index: 2).appearAt;
 
             Assert.That(second - first, Is.EqualTo(ArenaSpawnPlanner.StaggerStep).Within(Eps));
             Assert.That(third - second, Is.EqualTo(ArenaSpawnPlanner.StaggerStep).Within(Eps));
@@ -89,7 +97,7 @@ namespace Prototype.Tests
         [Test]
         public void Delay_ShiftsTheWholeGroup()
         {
-            Assert.That(Plan(SpawnWall.Front, count: 2, index: 1, delay: 4f).spawnAt,
+            Assert.That(Plan(SpawnWall.Front, count: 2, index: 1, delay: 4f).appearAt,
                         Is.EqualTo(4f + ArenaSpawnPlanner.StaggerStep).Within(Eps));
         }
 
@@ -114,7 +122,7 @@ namespace Prototype.Tests
         {
             foreach (SpawnWall wall in AllWalls)
             {
-                ArenaSpawnPlan plan = Plan(wall, count: 3, index: 1);
+                SpawnPlacement plan = Plan(wall, count: 3, index: 1);
 
                 Assert.That(plan.entryPoint.x, Is.InRange(MinX, MaxX), $"{wall}");
                 Assert.That(Mathf.Abs(plan.entryPoint.z),
@@ -128,7 +136,7 @@ namespace Prototype.Tests
         {
             foreach (SpawnWall wall in AllWalls)
             {
-                ArenaSpawnPlan plan = Plan(wall, count: 3, index: 2);
+                SpawnPlacement plan = Plan(wall, count: 3, index: 2);
 
                 if (ArenaSpawnPlanner.IsHorizontal(wall))
                     Assert.That(plan.entryPoint.z, Is.EqualTo(plan.spawnPoint.z).Within(Eps), $"{wall}");
@@ -148,7 +156,7 @@ namespace Prototype.Tests
         {
             foreach (SpawnWall wall in AllWalls)
             {
-                ArenaSpawnPlan plan = Plan(wall);
+                SpawnPlacement plan = Plan(wall);
 
                 float wallCoord = ArenaSpawnPlanner.IsHorizontal(wall)
                     ? plan.telegraphPoint.x : plan.telegraphPoint.z;
@@ -168,7 +176,7 @@ namespace Prototype.Tests
         {
             foreach (SpawnWall wall in AllWalls)
             {
-                ArenaSpawnPlan plan = Plan(wall);
+                SpawnPlacement plan = Plan(wall);
 
                 Assert.That(ArenaSpawnPlanner.HasCrossedEntryLine(wall, plan.spawnPoint, plan.entryLine),
                             Is.False, $"{wall}: 나오기도 전에 벽 앞으로 나왔다");
@@ -186,8 +194,8 @@ namespace Prototype.Tests
             for (int i = 0; i < 3; i++)
                 for (int j = i + 1; j < 3; j++)
                 {
-                    ArenaSpawnPlan a = Plan(SpawnWall.Front, count: 3, index: i);
-                    ArenaSpawnPlan b = Plan(SpawnWall.Front, count: 3, index: j);
+                    SpawnPlacement a = Plan(SpawnWall.Front, count: 3, index: i);
+                    SpawnPlacement b = Plan(SpawnWall.Front, count: 3, index: j);
 
                     Assert.That(a.entryPoint.x, Is.Not.EqualTo(b.entryPoint.x).Within(Eps), $"{i} vs {j}");
                 }
@@ -199,7 +207,7 @@ namespace Prototype.Tests
         {
             for (int i = 0; i < 4; i++)
             {
-                ArenaSpawnPlan plan = Plan(SpawnWall.Front, count: 4, index: i);
+                SpawnPlacement plan = Plan(SpawnWall.Front, count: 4, index: i);
 
                 Assert.That(plan.entryPoint.x,
                             Is.InRange(MinX + ArenaSpawnPlanner.EdgeMargin - Eps,
@@ -211,8 +219,8 @@ namespace Prototype.Tests
         [Test]
         public void OffsetArena_PlansRelativeToItsOwnBounds()
         {
-            RoundSpawn spawn = RoundSpawn.Of(EnemyRole.Melee, 1, SpawnWall.Left);
-            ArenaSpawnPlan plan = ArenaSpawnPlanner.Plan(in spawn, 0, 33f, 45f);
+            WaveSpawnEntry entry = WaveSpawnEntry.AtWall(EnemyRole.Melee, SpawnWall.Left, 0.5f);
+            SpawnPlacement plan = ArenaSpawnPlanner.PlanFromWall(in entry, 33f, 45f);
 
             Assert.That(plan.spawnPoint.x, Is.LessThan(33f));
             Assert.That(plan.entryPoint.x, Is.InRange(33f, 45f));
@@ -245,11 +253,23 @@ namespace Prototype.Tests
             Assert.That(ArenaSpawnPlanner.IsHorizontal(SpawnWall.Back), Is.False);
         }
 
+        /// <summary>
+        /// 벽면 위 자리는 <b>0~1 밖으로 저작될 수 있다.</b> 인스펙터의 슬라이더는 막지만
+        /// 코드로 만든 줄은 안 막힌다 — 물리지 않으면 적이 벽 바깥 모서리에서 나온다.
+        /// </summary>
         [Test]
-        public void ZeroCount_CountsAsOne()
+        public void AlongWall_IsClampedIntoTheWall()
         {
-            var spawn = new RoundSpawn { role = EnemyRole.Melee, count = 0, wall = SpawnWall.Front };
-            Assert.That(spawn.Count, Is.EqualTo(1));
+            WaveSpawnEntry over = WaveSpawnEntry.AtWall(EnemyRole.Melee, SpawnWall.Front, 3f);
+            WaveSpawnEntry under = WaveSpawnEntry.AtWall(EnemyRole.Melee, SpawnWall.Front, -2f);
+
+            Assert.That(over.AlongWall, Is.EqualTo(1f).Within(Eps));
+            Assert.That(under.AlongWall, Is.Zero);
+
+            Assert.That(ArenaSpawnPlanner.PlanFromWall(in over, MinX, MaxX).entryPoint.x,
+                        Is.InRange(MinX, MaxX));
+            Assert.That(ArenaSpawnPlanner.PlanFromWall(in under, MinX, MaxX).entryPoint.x,
+                        Is.InRange(MinX, MaxX));
         }
     }
 }

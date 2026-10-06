@@ -27,14 +27,14 @@ Transform:
   m_GameObject: {fileID: 1082728197986764551}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.125, z: 0}
+  m_LocalScale: {x: 6.4, y: 0.625, z: 6.4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2472837118664560790}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &1151692722329106538
-SphereCollider:
+--- !u!64 &1151692722329106538
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -51,9 +51,10 @@ SphereCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 3.2
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!114 &6619083006190313644
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,13 +71,19 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -316,6 +323,7 @@ GameObject:
   - component: {fileID: 522112806013663547}
   - component: {fileID: 9017842602272889187}
   - component: {fileID: 307429387442154868}
+  - component: {fileID: 3096414514526569947}
   m_Layer: 11
   m_Name: Enemy_Boss
   m_TagString: Untagged
@@ -409,6 +417,9 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 512
+  groundMargin: 0
+  fallOffLedge: 0
+  ledgeDeathY: -12
   acceleration: 60
   deceleration: 80
   impulseDamping: 8
@@ -416,6 +427,8 @@ MonoBehaviour:
   fallGravityScale: 0.22
   apexHangTime: 0.35
   apexVelocityThreshold: 3
+  airLaunchScale: 1.1
+  airHitLift: 4
   rotateToFacing: 1
 --- !u!114 &2437516089896359482
 MonoBehaviour:
@@ -444,7 +457,7 @@ MonoBehaviour:
   parryAngle: 180
   parrySuccessInvuln: 0.3
   parryCounterStun: 0.6
-  parryCounterKnockback: 4
+  parryCounterPush: 0.5
   maxGuard: 60
   defaultGuardDamage: 6
   guardBreakDuration: 4
@@ -466,31 +479,37 @@ MonoBehaviour:
     stats: []
   energies:
     energies: []
-  basicAttack: {fileID: 3345747072517173204}
-  basicAttackWindup: 0.18
-  basicAttackActiveEnd: 0.36
-  basicAttackTotal: 0.55
-  basicHit:
+  despawnDelay: 1
+  despawnFade: 0.5
+  legacyBasicAttack: {fileID: 3345747072517173204}
+  legacySkillAttack: {fileID: 0}
+  legacyWindup: 0.18
+  legacyActiveEnd: 0.36
+  legacyTotal: 0.55
+  legacyBasicHit:
     damageData:
       damage: 10
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 1
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 1}
-    knockbackForce: 3
-    launchForce: 0
+    pushDistance: 0.375
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0.1
     guardDamage: 0
     snapZ: 0
-  basicComboStages: []
-  skillAttack: {fileID: 0}
-  basicProjectile: {fileID: 0}
-  basicProjectileSpeed: 16
-  basicProjectileRange: 9
-  basicProjectilePierce: 0
-  despawnDelay: 1
-  despawnFade: 0.5
+  legacyComboStages: []
+  legacyProjectile: {fileID: 0}
+  legacyProjectileSpeed: 16
+  legacyProjectileRange: 9
+  legacyProjectilePierce: 0
   data: {fileID: 11400000, guid: 08874158a4f90204cb7244441969a9f1, type: 2}
 --- !u!114 &6939753010887085357
 MonoBehaviour:
@@ -528,14 +547,13 @@ MonoBehaviour:
   sprite: {fileID: 8676600000905928649}
   depthRoot: {fileID: 4330967145874189840}
   shadow: {fileID: 1168727317581208050}
-  depthToScreen: 0.9
-  depthToScreenX: 0.45
   depthScalePerUnit: 0.06
   spriteOffsetY: 0
   flipToFacing: 1
   facingRenderer: {fileID: 6226595153981621902}
-  shadowBaseScale: {x: 0.9, y: 0.35, z: 1}
+  shadowBaseScale: {x: 0.9, y: 0.9, z: 1}
   shadowShrinkPerUnit: 0.12
+  shadowLift: 0.01
   sortedRenderers:
   - {fileID: 1960493741385132534}
   - {fileID: 6226595153981621902}
@@ -587,11 +605,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ddfb7addeb7cb6045b0f6338349d2e33, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BossPatternAction
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyPatternAction
   patterns:
   - label: "\uACA9\uB178"
     chargeTime: 0
-    chargeHitDelay: 0
     chargeClip: 
     telegraph: 0.6
     active: 0.4
@@ -603,13 +620,19 @@ MonoBehaviour:
     hit:
       damageData:
         damage: 10
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
       targetState: 0
       nextState: 3
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -623,7 +646,6 @@ MonoBehaviour:
     once: 1
   - label: "\uD6A1\uBCA0\uAE30"
     chargeTime: 2.4
-    chargeHitDelay: 0.35
     chargeClip: Pattern_Sweep_Hold
     telegraph: 0.35
     active: 0.35
@@ -635,13 +657,19 @@ MonoBehaviour:
     hit:
       damageData:
         damage: 10
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
       targetState: 0
       nextState: 3
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -655,7 +683,6 @@ MonoBehaviour:
     once: 0
   - label: "\uB300\uC9C0\uAC00\uB974\uAE30"
     chargeTime: 0
-    chargeHitDelay: 0
     chargeClip: 
     telegraph: 0.75
     active: 0.3
@@ -667,13 +694,19 @@ MonoBehaviour:
     hit:
       damageData:
         damage: 10
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
       targetState: 0
       nextState: 3
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 4
+      pushDistance: 1.25
+      airborneHeight: 0.266667
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -687,7 +720,6 @@ MonoBehaviour:
     once: 0
   - label: "\uB3CC\uC9C4\uBCA0\uAE30"
     chargeTime: 0
-    chargeHitDelay: 0
     chargeClip: 
     telegraph: 0.55
     active: 0.45
@@ -699,13 +731,19 @@ MonoBehaviour:
     hit:
       damageData:
         damage: 10
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
       targetState: 0
       nextState: 3
       canOtg: 0
       mode: 2
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 10
-      launchForce: 0
+      pushDistance: 1.25
+      airborneHeight: 0
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
       hitStunDuration: 0.55
       guardDamage: 0
       snapZ: 0
@@ -719,7 +757,6 @@ MonoBehaviour:
     once: 0
   - label: "\uC0BC\uC5F0\uCC38"
     chargeTime: 0
-    chargeHitDelay: 0
     chargeClip: 
     telegraph: 0.35
     active: 0.6
@@ -731,13 +768,19 @@ MonoBehaviour:
     hit:
       damageData:
         damage: 10
+      aerialDamage: 0
+      castDelay: 0
+      castRangeScale: {x: 0, y: 0, z: 0}
       targetState: 0
       nextState: 1
       canOtg: 0
       mode: 0
       fixedDir: {x: 0, y: 0, z: 1}
-      knockbackForce: 3
-      launchForce: 0
+      pushDistance: 0.375
+      airborneHeight: 0
+      aerialAirborneHeight: 0
+      capAirborne: 0
+      pullAnchorRatio: 0
       hitStunDuration: 0.22
       guardDamage: 0
       snapZ: 0
@@ -749,6 +792,59 @@ MonoBehaviour:
     moveSpeedScale: 0
     attackIntervalScale: 0
     once: 0
+--- !u!114 &3096414514526569947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7152174809819393455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7610cc789ecff0442acb0191b5a22827, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.BasicAttackProfile
+  basicAttack: {fileID: 3345747072517173204}
+  skillAttack: {fileID: 0}
+  basicHit:
+    damageData:
+      damage: 10
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
+    targetState: 0
+    nextState: 1
+    canOtg: 0
+    mode: 0
+    fixedDir: {x: 0, y: 0, z: 1}
+    pushDistance: 0.375
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
+    hitStunDuration: 0.1
+    guardDamage: 0
+    snapZ: 0
+  projectile: {fileID: 0}
+  projectileSpeed: 16
+  projectileRange: 9
+  projectilePierce: 0
+  stages:
+  - label: "1\uD0C0"
+    clip: {fileID: 0}
+    windup: 0.18
+    activeEnd: 0.36
+    total: 0.55
+    cancelStart: 0
+    damageMultiplier: 1
+    overrideReaction: 0
+    nextState: 0
+    mode: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0
 --- !u!1 &8896743679997549617
 GameObject:
   m_ObjectHideFlags: 0
@@ -776,7 +872,7 @@ Transform:
   m_GameObject: {fileID: 8896743679997549617}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 1.5}
+  m_LocalPosition: {x: 0, y: 0.125, z: 1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -798,13 +894,19 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0
@@ -828,7 +930,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.9, y: 1.8, z: 1.8}
+  m_Size: {x: 1.9, y: 1.25, z: 1.8}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9110906291745030581
 GameObject:
@@ -857,7 +959,7 @@ Transform:
   m_GameObject: {fileID: 9110906291745030581}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.025, z: 1.9}
+  m_LocalPosition: {x: 0, y: 0.125, z: 1.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -882,7 +984,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.6, y: 2.4, z: 3.2}
+  m_Size: {x: 3.6, y: 1.25, z: 3.2}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &8781116491409578958
 MonoBehaviour:
@@ -900,13 +1002,19 @@ MonoBehaviour:
   hitData:
     damageData:
       damage: 0
+    aerialDamage: 0
+    castDelay: 0
+    castRangeScale: {x: 0, y: 0, z: 0}
     targetState: 0
     nextState: 0
     canOtg: 0
     mode: 0
     fixedDir: {x: 0, y: 0, z: 0}
-    knockbackForce: 0
-    launchForce: 0
+    pushDistance: 0
+    airborneHeight: 0
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    pullAnchorRatio: 0
     hitStunDuration: 0
     guardDamage: 0
     snapZ: 0

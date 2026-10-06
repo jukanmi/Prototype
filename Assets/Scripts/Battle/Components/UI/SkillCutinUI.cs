@@ -1,0 +1,271 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Prototype
+{
+    /// <summary>
+    /// 스킬 발동 직전에 화면 왼쪽으로 밀려 들어오는 컷인.
+    /// 초상화가 먼저, 스킬명이 <see cref="LabelDelay"/>만큼 뒤따라 들어와 층을 이룬다.
+    /// </summary>
+    public class SkillCutinUI : MonoBehaviour, ISkillCutin
+    {
+        [Header("타이밍 — 재생 중 인스펙터에서 조절한다")]
+        [Tooltip("화면 밖 → 제자리. ease-out.")]
+        [SerializeField] private float slideIn = 0.15f;
+
+        [Tooltip("제자리에 머무는 시간. 스킬명을 읽을 여유 — 감이 안 맞으면 여기부터 만진다.")]
+        [SerializeField] private float hold = 0.6f;
+
+        [Tooltip("제자리 → 화면 밖. ease-in.")]
+        [SerializeField] private float slideOut = 0.15f;
+
+        [Tooltip("스킬명 라벨이 초상화보다 늦게 들어오는 간격. 두 요소가 층을 이뤄 들어온다.")]
+        [SerializeField] private float labelDelay = 0.08f;
+
+        [Tooltip("컷인이 떠 있는 동안의 게임 속도. 0이면 완전 정지(예전 동작), 1이면 평소 속도.\n\n" +
+                 "완전 정지는 화면이 사진처럼 굳어 '무엇을 멈춘 건지'가 안 보였다. " +
+                 "느리게 흘리면 적이 아직 날아가는 중이라는 게 읽히고, 컷인이 그 위에 얹힌다.")]
+        [Range(0f, 1f)][SerializeField] private float timeScale = 0.15f;
+
+        /// <summary>컷인 중 게임 속도. 인스펙터에서 재생 중에도 만질 수 있다.</summary>
+        public float TimeScale
+        {
+            get => timeScale;
+            set => timeScale = Mathf.Clamp01(value);
+        }
+
+        public float SlideIn => slideIn;
+        public float Hold => hold;
+        public float SlideOut => slideOut;
+        public float LabelDelay => labelDelay;
+
+        /// <summary>컷인 전체 길이. 늦게 나가는 라벨까지 기다린다.</summary>
+        public float Duration => slideIn + hold + slideOut + labelDelay;
+
+        /// <summary>
+        /// 경과 시간을 0(화면 밖 대기 위치) ~ 1(등장 위치)로 접는다.
+        /// <paramref name="delay"/>만큼 곡선 전체가 뒤로 밀린다 — 라벨이 초상화를 뒤따르게.
+        ///
+        /// 타이밍을 인자로 받는 static이다. 컴포넌트를 세우지 않고도 곡선 모양을 검증할 수 있고,
+        /// 인스펙터에서 값을 바꿔도 계산 자체는 그대로 쓰인다.
+        /// </summary>
+        public static float SlideAmount(float elapsed, float delay, float slideIn, float hold, float slideOut)
+        {
+            float t = elapsed - delay;
+
+            if (t <= 0f) return 0f;
+
+            // 구간 길이가 0이면 그 구간의 조건이 곧바로 거짓이 되어 건너뛴다 — 0으로 나누지 않는다.
+            if (t < slideIn)
+            {
+                // ease-out: 빠르게 들어와 부드럽게 멈춘다.
+                float x = t / slideIn;
+                return 1f - (1f - x) * (1f - x);
+            }
+
+            if (t < slideIn + hold) return 1f;
+
+            if (t < slideIn + hold + slideOut)
+            {
+                // ease-in: 천천히 떨어졌다 빠르게 빠진다.
+                float x = (t - slideIn - hold) / slideOut;
+                return 1f - x * x;
+            }
+
+            return 0f;
+        }
+
+        /// <summary>이 컴포넌트의 현재 타이밍으로 진행률을 낸다.</summary>
+        public float SlideAmount(float elapsed, float delay)
+            => SlideAmount(elapsed, delay, slideIn, hold, slideOut);
+
+        /// <summary>인스펙터에서 음수를 넣어도 곡선이 뒤집히지 않게 막는다.</summary>
+        private void OnValidate()
+        {
+            slideIn = Mathf.Max(0f, slideIn);
+            hold = Mathf.Max(0f, hold);
+            slideOut = Mathf.Max(0f, slideOut);
+            labelDelay = Mathf.Max(0f, labelDelay);
+            timeScale = Mathf.Clamp01(timeScale);
+        }
+
+        [Tooltip("등장했을 때 초상화 패널의 왼쪽 여백.")]
+        [SerializeField] private float portraitShownX = 48f;
+
+        [Tooltip("등장했을 때 스킬명 라벨의 왼쪽 여백. 초상화 오른쪽에 겹친다.")]
+        [SerializeField] private float labelShownX = 300f;
+
+        /// <summary>에디트모드에서 Time.deltaTime이 0으로 나와 코루틴이 멈추는 걸 막는 하한.</summary>
+        private const float MinStep = 1f / 240f;
+
+        private const float PortraitHiddenX = -400f;
+        private const float LabelHiddenX = -660f;
+
+        // ── 배선 ─────────────────────────────────────────
+        // 화면은 프리팹이 쥔다. 초상화 크기 · 글자 · 외곽선을 바꾸려면 CombatManager 프리팹을 연다.
+        //
+        // <b>배선이 비어도 재생 자체는 돈다</b> — 시간 정지 · 복원이 컷인의 본체이고,
+        // 그게 안 풀리면 게임이 영구 정지한다. 그림만 생략한다.
+
+        [Header("배선")]
+        [Tooltip("켜고 끄는 대상. 컷인 전체를 담은 판.")]
+        [SerializeField] private GameObject panel;
+
+        [Tooltip("왼쪽에서 밀려 들어오는 초상화.")]
+        [SerializeField] private RectTransform portraitRect;
+
+        [Tooltip("초상화 이미지. 그림이 없으면 직업 색으로 칠한다.")]
+        [SerializeField] private Image portraitImage;
+
+        [Tooltip("초상화가 없을 때만 켜는 동료 이름.")]
+        [SerializeField] private Text nameLabel;
+
+        [Tooltip("스킬명. 초상화보다 조금 늦게 들어온다.")]
+        [SerializeField] private RectTransform labelRect;
+
+        [SerializeField] private Text skillLabel;
+
+        private float savedScale;
+
+        /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
+        private bool warned;
+
+        private bool Wired =>
+            panel != null && portraitRect != null && portraitImage != null
+            && nameLabel != null && labelRect != null && skillLabel != null;
+
+        public bool IsPlaying { get; private set; }
+
+        /// <summary>패널이 화면에 켜져 있는지. RecentHitEnemyHUD.IsVisible과 같은 선례.</summary>
+        public bool IsVisible => panel != null && panel.activeSelf;
+
+        /// <summary>초상화가 비었을 때 쓰는 직업 색.</summary>
+        public static Color RoleColor(Role role)
+        {
+            switch (role)
+            {
+                case Role.Tanker:  return new Color32(0x3D, 0x6E, 0xA8, 0xFF);
+                case Role.Warrior: return new Color32(0xB0, 0x48, 0x3C, 0xFF);
+                case Role.Archer:  return new Color32(0x3F, 0x8F, 0x5B, 0xFF);
+                default:           return new Color32(0x7A, 0x4F, 0xA8, 0xFF);   // Wizard
+            }
+        }
+
+        private void Awake()
+        {
+            // 프리팹은 그림이 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
+            SetVisible(false);
+        }
+
+        /// <summary>
+        /// 오브젝트가 비활성화되거나 파괴될 때의 안전판.
+        /// ComboExecutor.Abort()가 유일한 Cancel 호출자였는데 실제 프로덕션 코드에는 그 호출자가
+        /// 없다(테스트에서만 부른다) — 즉 SetActive(false)나 파괴로 재생 도중 패널이 사라지면
+        /// TimeControl.Scale이 0에 묶인 채로 아무도 되돌리지 않아 게임이 영구 정지한다.
+        /// RecentHitEnemyHUD도 같은 자리에서 정리한다.
+        /// </summary>
+        private void OnDisable() => Cancel();
+
+        /// <summary>배선이 비면 그림을 생략하되 한 번은 알린다.</summary>
+        private void Warn()
+        {
+            if (warned) return;
+
+            warned = true;
+            Debug.LogWarning(
+                "[SkillCutinUI] 배선이 비어 있다 — 컷인 그림이 안 뜬다(시간 정지는 그대로 돈다). " +
+                "CombatManager 프리팹의 SkillCutinCanvas 배선을 확인할 것.", this);
+        }
+
+        /// <summary>
+        /// 컷인 재생. <b>호출 즉시</b> 시간을 늦추고 패널을 세운다 —
+        /// 반환된 열거자를 펌프하지 않는 호출자도 상태를 관측할 수 있어야 하기 때문
+        /// (<see cref="ISkillCutin.Play"/> 계약).
+        /// </summary>
+        public IEnumerator Play(Ally caster, SkillData data)
+        {
+            if (!Wired) Warn();
+
+            // 겹쳐 들어오면 앞의 것을 정리하고 시작한다. 저장한 배율이 덮어써지는 걸 막는다.
+            if (IsPlaying) Cancel();
+
+            savedScale = TimeControl.Scale;
+
+            // 멈추지 않고 <b>늦춘다</b>. 컷인 자체는 UnscaledDeltaTime으로 도므로
+            // 이 값이 0이든 0.15든 슬라이드 길이는 변하지 않는다 — 뒤에서 흐르는 전투만 느려진다.
+            TimeControl.Scale = Mathf.Clamp01(timeScale);
+            IsPlaying = true;
+
+            Dress(caster, data);
+            SetVisible(true);
+            Layout(0f);
+
+            return Animate();
+        }
+
+        /// <summary>재생을 즉시 끝낸다. 늦춰 둔 시간을 반드시 되돌린다.</summary>
+        public void Cancel()
+        {
+            if (!IsPlaying) return;
+
+            IsPlaying = false;
+            TimeControl.Scale = savedScale;
+            SetVisible(false);
+        }
+
+        private IEnumerator Animate()
+        {
+            float elapsed = 0f;
+
+            while (IsPlaying && elapsed < Duration)
+            {
+                Layout(elapsed);
+                yield return null;
+
+                elapsed += Mathf.Max(MinStep, TimeControl.UnscaledDeltaTime);
+            }
+
+            Cancel();
+        }
+
+        /// <summary>경과 시간에 맞춰 두 요소의 가로 위치를 다시 그린다. 알파는 건드리지 않는다.</summary>
+        private void Layout(float elapsed)
+        {
+            if (!Wired) return;
+
+            float p = SlideAmount(elapsed, 0f);
+            float l = SlideAmount(elapsed, LabelDelay);
+
+            portraitRect.anchoredPosition = new Vector2(Mathf.Lerp(PortraitHiddenX, portraitShownX, p), 0f);
+            labelRect.anchoredPosition = new Vector2(Mathf.Lerp(LabelHiddenX, labelShownX, l), 90f);
+        }
+
+        /// <summary>이번 컷인에 쓸 얼굴과 글자를 채운다.</summary>
+        private void Dress(Ally caster, SkillData data)
+        {
+            if (!Wired) return;
+
+            Sprite portrait = caster != null ? caster.Portrait : null;
+            Role role = caster != null ? caster.Role : Role.Wizard;
+
+            portraitImage.sprite = portrait;
+            portraitImage.color = portrait != null ? Color.white : RoleColor(role);
+
+            // 그림이 없을 때만 이름을 띄운다 — 누구 차례인지는 알아야 한다.
+            nameLabel.gameObject.SetActive(portrait == null);
+            nameLabel.text = caster != null ? caster.name : string.Empty;
+
+            // skillName이 비어 있으면 에셋 이름으로 대신한다. 빈 컷인이 뜨는 것보다 낫다.
+            skillLabel.text = data == null
+                ? string.Empty
+                : (string.IsNullOrEmpty(data.skillName) ? data.name : data.skillName);
+        }
+
+        private void SetVisible(bool visible)
+        {
+            if (panel != null) panel.SetActive(visible);
+        }
+
+    }
+}

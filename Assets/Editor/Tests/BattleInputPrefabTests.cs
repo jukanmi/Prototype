@@ -2,6 +2,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Prototype.EditorTools;
 
 namespace Prototype.Tests
 {
@@ -15,16 +16,65 @@ namespace Prototype.Tests
     /// </summary>
     public class BattleInputPrefabTests
     {
-        private const string HostPath = "Assets/Prefabs/BattleInput.prefab";
-        private const string PlayerPath = "Assets/Prefabs/Player.prefab";
+        // 경로가 아니라 컴포넌트로 찾는다 — 프리팹을 옮겨도 안 끊긴다.
+        private static string HostPath => PrefabLocator.BattleInputPath;
+        private static string PlayerPath => PrefabLocator.PlayerPath;
         private const string ActionsPath = "Assets/Settings/InputSystem_Actions.inputactions";
 
         private static GameObject Load(string path)
         {
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.That(go, Is.Not.Null,
-                $"{path} 를 못 찾았다. 메뉴 'Prototype > 전투 - 입력 호스트 프리팹 만들기' 를 실행할 것.");
+                $"{path} 를 못 찾았다.");
             return go;
+        }
+
+        // ── 파티 체력 HUD ───────────────────────────────────
+
+        /// <summary>
+        /// 줄은 <c>RowTemplate</c>을 복제해 만들고 조각을 <b>이름으로</b> 찾는다
+        /// (<c>PartyHealthHUD.NewRow</c>). 이름이 어긋나면 복제한 줄에서
+        /// <c>NullReferenceException</c>이 나는데, 그때는 이미 씬을 켠 뒤다.
+        /// </summary>
+        [Test]
+        public void PartyHealthHUD_IsWired()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            Assert.That(hud, Is.Not.Null, "BattleInput 에 PartyHealthHUD 가 없다.");
+
+            var so = new SerializedObject(hud);
+
+            foreach (string field in new[] { "panel", "rowTemplate" })
+                Assert.That(so.FindProperty(field).objectReferenceValue, Is.Not.Null,
+                    $"PartyHealthHUD.{field} 배선이 비었다 — 파티 체력 줄이 안 뜬다.");
+        }
+
+        [TestCase("Band")]
+        [TestCase("Name")]
+        [TestCase("BarBack")]
+        [TestCase("BarBack/Fill")]
+        [TestCase("Numbers")]
+        public void PartyHealthRowTemplate_HasEveryPart(string path)
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var template = (RectTransform)new SerializedObject(hud)
+                .FindProperty("rowTemplate").objectReferenceValue;
+
+            Assert.That(template, Is.Not.Null, "rowTemplate 이 비었다.");
+            Assert.That(template.Find(path), Is.Not.Null,
+                $"RowTemplate/{path} 가 없다 — NewRow 가 이 이름으로 찾는다.");
+        }
+
+        /// <summary>원본은 꺼진 채로 둔다. 켜 두면 아무도 없는 빈 줄이 하나 남는다.</summary>
+        [Test]
+        public void PartyHealthRowTemplate_StartsHidden()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var template = (RectTransform)new SerializedObject(hud)
+                .FindProperty("rowTemplate").objectReferenceValue;
+
+            Assert.That(template.gameObject.activeSelf, Is.False,
+                "RowTemplate 이 켜진 채로 저장됐다 — 빈 줄이 하나 남는다.");
         }
 
         // ── 입력 호스트 ─────────────────────────────────────
@@ -116,30 +166,23 @@ namespace Prototype.Tests
                 "Player 프리팹에 InputMapSwitcher 가 남아 있다.");
         }
 
+        /// <summary>
+        /// 빙의 모델의 잔해가 남아 있으면 안 된다. 몸에 조종사가 붙어 있던 시절에는
+        /// 프리팹과 씬이 조용히 어긋났다 — 어떤 몸에는 붙고 어떤 몸에는 안 붙어도
+        /// 게임이 그냥 돌아가 버렸다.
+        /// </summary>
         [Test]
-        public void PlayerBody_StillHasPlayerControl()
+        public void Bodies_CarryNoDriverExceptEnemyAi()
         {
-            // 입력은 떼어 냈지만 조작 자체는 남는다. 상태머신은 여전히
-            // Control 의 Command / MoveDirection 을 읽는다.
-            Assert.That(Load(PlayerPath).GetComponent<PlayerControl>(), Is.Not.Null,
-                "PlayerControl 이 사라졌다. Entity 상태머신이 명령을 못 받는다.");
-        }
-
-        [Test]
-        public void AllyBody_HasBothControls()
-        {
-            // 동료도 태그로 조작 대상이 된다. PlayerControl 이 없으면 교대해도 안 움직이고,
-            // AllyControl 이 없으면 불릿타임에 불려 나와서 가만히 서 있는다.
             foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (go == null || go.GetComponent<Ally>() == null) continue;
+                if (go == null || go.GetComponent<Entity>() == null) continue;
 
-                Assert.That(go.GetComponent<PlayerControl>(), Is.Not.Null,
-                    $"{path} 에 PlayerControl 이 없다 — 교대해도 조작이 안 넘어간다.");
-                Assert.That(go.GetComponent<AllyControl>(), Is.Not.Null,
-                    $"{path} 에 AllyControl 이 없다.");
+                foreach (Control c in go.GetComponents<Control>())
+                    Assert.That(c, Is.TypeOf<EnemyControl>(),
+                        $"{path} 에 {c.GetType().Name} 이 붙어 있다 — 몸에 붙는 드라이버는 EnemyControl 뿐이다.");
             }
         }
     }

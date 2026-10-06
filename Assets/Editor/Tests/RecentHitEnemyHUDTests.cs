@@ -14,11 +14,33 @@ namespace Prototype.Tests
         private readonly List<GameObject> spawned = new List<GameObject>();
         private RecentHitEnemyHUD hud;
 
+        private const string PrefabPath = "Assets/Prefabs/CombatManager.prefab";
+        private const string CanvasName = "RecentHitEnemyCanvas";
+
+        /// <summary>
+        /// <b>프리팹에서 떠 온다.</b> 화면 조립이 코드에서 프리팹으로 옮겨 간 뒤로는
+        /// 빈 GameObject에 컴포넌트만 붙이면 판도 체력 바도 없어 <c>IsVisible</c>이 늘 false다 —
+        /// 이 클래스의 검사 대부분이 조용히 무의미해진다.
+        ///
+        /// <c>CombatManager</c> 전체가 아니라 <c>RecentHitEnemyCanvas</c> 자식만 떠 온다.
+        /// 통째로 띄우면 BulletTimeController 같은 이웃의 Awake까지 에디트모드에서 돈다.
+        /// </summary>
         [SetUp]
         public void SetUp()
         {
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            Assert.That(prefab, Is.Not.Null, $"{PrefabPath} 를 못 찾았다.");
+
+            Transform canvas = prefab.transform.Find(CanvasName);
+            Assert.That(canvas, Is.Not.Null,
+                $"{PrefabPath} 에 {CanvasName} 자식이 없다 — 프리팹 계층이 바뀌었다.");
+
             // HUD를 먼저 만들어 OnEnable이 static 이벤트를 구독하게 한다.
-            hud = NewObject("RecentHitEnemyHUD").AddComponent<RecentHitEnemyHUD>();
+            GameObject go = Object.Instantiate(canvas.gameObject);
+            spawned.Add(go);
+
+            hud = go.GetComponent<RecentHitEnemyHUD>();
+            Assert.That(hud, Is.Not.Null, $"{CanvasName} 에 RecentHitEnemyHUD 가 없다.");
         }
 
         [TearDown]
