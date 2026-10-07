@@ -13,11 +13,12 @@ namespace Prototype
     /// </summary>
     public abstract class Control : MonoBehaviour
     {
-        protected Entity Owner { get; private set; }
+        private Entity owner;
+        protected Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
 
         protected virtual void Awake()
         {
-            Owner = GetComponent<Entity>();
+            owner = GetComponent<Entity>();
         }
 
         /// <summary>Entity가 스케일된 dt로 호출한다.</summary>

@@ -29,12 +29,74 @@ namespace Prototype.Tests
         // ── 목표 장수 ───────────────────────────────────
 
         [TestCase(0f, true)]
-        [TestCase(0.4999f, true)]
-        [TestCase(0.5f, false)]
+        [TestCase(0.2499f, true)]
+        [TestCase(0.25f, false)]
         [TestCase(1f, false)]
-        public void BasicAttackDraw_HasFiftyPercentThreshold(float roll, bool expected)
+        public void BasicAttackDraw_HasTwentyFivePercentNominalThreshold(float roll, bool expected)
         {
             Assert.That(BasicAttackDrawRules.ShouldDraw(roll), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void BasicAttackProc_FailuresIncreaseChance_SuccessResetsIt()
+        {
+            var roller = new BasicAttackProcRoller();
+            float initial = roller.CurrentChance;
+            Assert.That(initial, Is.InRange(0.084f, 0.085f));
+            Assert.That(roller.TryRoll(0.99f), Is.False);
+            Assert.That(roller.CurrentChance, Is.GreaterThan(initial));
+            Assert.That(roller.ConsecutiveFailures, Is.EqualTo(1));
+            Assert.That(roller.TryRoll(0f), Is.True);
+            Assert.That(roller.CurrentChance, Is.EqualTo(initial));
+            Assert.That(roller.ConsecutiveFailures, Is.Zero);
+        }
+
+        [Test]
+        public void BasicAttackProc_GuaranteesSuccessByTwelfthEligibleHit()
+        {
+            var roller = new BasicAttackProcRoller();
+            for (int i = 0; i < 11; i++) Assert.That(roller.TryRoll(1f), Is.False);
+            Assert.That(roller.CurrentChance, Is.EqualTo(1f));
+            Assert.That(roller.TryRoll(1f), Is.True);
+        }
+
+        [Test]
+        public void BasicAttackProc_CalibratedExpectedRateIsTwentyFivePercent()
+        {
+            var roller = new BasicAttackProcRoller();
+            double survival = 1d, expectedHits = 1d;
+            for (int i = 0; i < 12; i++)
+            {
+                survival *= 1d - roller.CurrentChance;
+                expectedHits += survival;
+                if (roller.CurrentChance >= 1f) break;
+                roller.TryRoll(1f);
+            }
+            Assert.That(1d / expectedHits, Is.EqualTo(0.25d).Within(0.000001d));
+        }
+
+        [Test]
+        public void BasicAttackProc_SeededLongRunMaintainsNominalRate()
+        {
+            var roller = new BasicAttackProcRoller();
+            var random = new System.Random(19482);
+            int successes = 0;
+            for (int i = 0; i < 100000; i++)
+                if (roller.TryRoll((float)random.NextDouble())) successes++;
+            Assert.That(successes / 100000f, Is.InRange(0.245f, 0.255f));
+        }
+
+        [Test]
+        public void BasicAttackProc_ResetAndInvalidRollsDoNotCarryFailureHistory()
+        {
+            var roller = new BasicAttackProcRoller();
+            roller.TryRoll(1f);
+            float before = roller.CurrentChance;
+            foreach (float roll in new[] { -1f, 2f, float.NaN })
+                Assert.That(roller.TryRoll(roll), Is.False);
+            Assert.That(roller.CurrentChance, Is.EqualTo(before));
+            roller.Reset();
+            Assert.That(roller.ConsecutiveFailures, Is.Zero);
         }
 
         private SkillData Skill()

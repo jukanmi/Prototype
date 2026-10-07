@@ -43,6 +43,7 @@ namespace Prototype
         private InputAction jumpAction;
         private InputAction dashAction;
         private InputAction bulletTimeAction;
+        private int consumedJumpFrame = -1;
         private InputAction uniqueSkillAction;
         private InputAction swapAction;
 
@@ -70,11 +71,12 @@ namespace Prototype
         public Vector2 Move => moveAction.ReadValue<Vector2>();
 
         public bool AttackPressed => Pressed(attackAction);
-        public bool JumpPressed => Pressed(jumpAction);
+        public bool JumpPressed => consumedJumpFrame != Time.frameCount && Pressed(jumpAction);
+        public void ConsumeJumpPress() => consumedJumpFrame = Time.frameCount;
         public bool DashPressed => Pressed(dashAction);
 
         /// <summary>
-        /// E · Space — 불릿타임 진입 · 실행 요청. 무엇을 할지는 전술 페이즈가 정한다.
+        /// 기존 불릿타임키 — 진입 · 실행 요청.
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
         /// <summary>Z — 현재 캐릭터 고유 스킬 즉시 사용.</summary>
@@ -282,7 +284,7 @@ namespace Prototype
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
             uniqueSkillAction = gameplayMap.FindAction(InputActionNames.Gameplay.UniqueSkill, throwIfNotFound: false);
-            swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: true);
+            swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: false);
 
             cardNavigate = new NavigateLatch(
                 bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true));

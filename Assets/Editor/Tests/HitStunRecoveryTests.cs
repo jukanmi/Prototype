@@ -38,8 +38,8 @@ namespace Prototype.Tests
             // 경직은 0.5초. 넉넉히 넘긴다.
             victim.Tick(1f);
 
-            Assert.That(victim.CombatState, Is.EqualTo(CombatState.Down),
-                        "착지 이벤트가 오지 않아도 넉백은 다운으로 넘어가야 한다");
+            Assert.That(victim.CombatState, Is.EqualTo(CombatState.Neutral),
+                        "지상 넉백은 현재 OnStunEnd 규칙대로 중립으로 복귀해야 한다");
         }
 
         [Test]
@@ -87,6 +87,8 @@ namespace Prototype.Tests
             Assert.That(CombatStateRules.IsStunned(victim.CombatState), Is.True, "선행 조건: 경직 상태다");
 
             victim.gameObject.SetActive(false);
+            typeof(Ally).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(victim.Owner, null);
 
             Assert.That(victim.CombatState, Is.EqualTo(CombatState.Neutral));
             Assert.That(victim.AirHitCount, Is.Zero, "공중 히트 누적도 함께 지운다");
@@ -181,7 +183,11 @@ namespace Prototype.Tests
         {
             var go = new GameObject(name);
             spawned.Add(go);
-            go.AddComponent<Ally>();
+            Entity body = name == "Attacker" ? (Entity)go.AddComponent<Enemy>() : go.AddComponent<Ally>();
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(Physics).GetMethod("Awake", flags).Invoke(body.Physics, null);
+            typeof(Combat).GetMethod("Awake", flags).Invoke(body.Combat, null);
+            typeof(Entity).GetMethod("Awake", flags).Invoke(body, null);
             return go.GetComponent<Combat>();
         }
     }

@@ -136,7 +136,7 @@ namespace Prototype.Tests
 
         private Projectile NewProjectile()
         {
-            var go = new GameObject("Projectile");
+            var go = new GameObject("Projectile", typeof(BoxCollider));
             spawned.Add(go);
             return go.AddComponent<Projectile>();
         }

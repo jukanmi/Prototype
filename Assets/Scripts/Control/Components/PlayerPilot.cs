@@ -32,6 +32,7 @@ namespace Prototype
         /// </summary>
         public void Take(Entity body)
         {
+            if (body != null && !(body is Player)) return;
             if (ReferenceEquals(Body, body)) return;
 
             Release();
@@ -69,18 +70,21 @@ namespace Prototype
         {
             var bodies = BattleRegistry.Allies;
 
+<<<<<<< Updated upstream:Assets/Scripts/Control/Components/PlayerPilot.cs
             Entity any = null;
 
             for (int i = 0; i < bodies.Count; i++)
+=======
+            for (int i = 0; i < bodies.Length; i++)
+>>>>>>> Stashed changes:Assets/Scripts/Control/PlayerPilot.cs
             {
                 Entity e = bodies[i];
                 if (e == null || e.Combat == null || e.Combat.IsDead) continue;
 
                 if (e is Player) return e;
-                if (any == null) any = e;
             }
 
-            return any;
+            return null;
         }
 
         /// <summary>

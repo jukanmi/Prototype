@@ -439,16 +439,16 @@ namespace Prototype
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
 
                 if (_aimingIndex >= 0)
-                    _hintText.text = "조준: 화살표 또는 마우스 이동 · X/좌클릭 확정 · C/우클릭 취소";
+                    _hintText.text = "조준: 화살표 또는 마우스 이동 · 좌클릭 확정 · 우클릭 조준 취소 · 불릿타임키 시전 · 점프키 불릿타임 취소";
                 else if (_grabbedIndex >= 0)
-                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↑ 조준 · ↓ 놓기";
+                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↑ 조준 · ↓ 놓기 · 불릿타임키 시전 · 점프키 취소";
                 else
-                    _hintText.text = "←/→ 카드 선택 · ↑ 집기 · 드래그도 가능 · Space로 실행";
+                    _hintText.text = "←/→ 카드 선택 · ↑ 집기 · 드래그도 가능 · 불릿타임키 시전 · 점프키 취소";
             }
             else
             {
                 _titleText.text = $"손패  <color=#808080>덱 {_bulletTime.Deck.Count} · 버린 더미 {_bulletTime.Discard.Count}</color>";
-                _hintText.text = "Z — 고유 스킬 / Space — 불릿타임";
+                _hintText.text = "불릿타임키 — 진입";
             }
 
             for (int i = 0; i < Hand.Size; i++)

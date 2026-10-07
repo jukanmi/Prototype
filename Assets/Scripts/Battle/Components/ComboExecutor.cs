@@ -22,6 +22,8 @@ namespace Prototype
         [SerializeField] private float stageEntryTimeout = 2f;
 
         private Coroutine running;
+        private bool executing;
+        public CastDirector Director { get; set; }
 
         /// <summary>
         /// 슬롯 실행 직전에 재생할 인트로. null이면 컷인 없이 곧바로 스킬로 간다.
@@ -44,7 +46,7 @@ namespace Prototype
             if (Cutin == null) Cutin = GetComponentInChildren<ISkillCutin>(true);
         }
 
-        public bool IsRunning => running != null;
+        public bool IsRunning => executing;
 
         /// <summary>
         /// 슬롯 사이 여유. 예측기가 체공 시간을 셀 때 같은 값을 봐야
@@ -62,13 +64,16 @@ namespace Prototype
             if (queue == null || queue.Count == 0) return;
             if (IsRunning) return;
 
+            executing = true;
             running = StartCoroutine(Run(queue));
         }
 
         public void Abort()
         {
+            if (Director != null && Director.IsResolving) Director.Abort();
             if (running != null) StopCoroutine(running);
             running = null;
+            executing = false;
 
             // StopCoroutine으로 잘린 코루틴은 finally가 돌지 않는다.
             // 컷인이 내려놓은 TimeControl.Scale을 여기서 되돌리지 않으면 게임이 영구 정지한다.
@@ -78,6 +83,8 @@ namespace Prototype
             // 실시간 전투에 그대로 남고 조작 캐릭터는 숨은 채로 굳는다.
             Stage?.Clear();
         }
+
+        private void OnDisable() => Abort();
 
         /// <summary>
         /// 이 슬롯을 실제로 발동할 수 있는지. 컷인을 띄울지도 이 판정을 따른다 —
@@ -109,6 +116,24 @@ namespace Prototype
         /// </summary>
         public IEnumerator Run(Queue<ComboSlot> queue)
         {
+            if (Director != null)
+            {
+                OnExecuteStarted?.Invoke();
+                var cards = new List<ComboCard>();
+                var requests = new List<CastRequest>();
+                while (queue.Count > 0)
+                {
+                    ComboSlot slot = queue.Dequeue();
+                    cards.Add(slot.card);
+                    requests.Add(new CastRequest(slot.caster, slot.Data, slot.target,
+                        slot.card != null ? slot.card.DamageScale : 1f, true));
+                }
+                yield return Director.Resolve(requests, i => OnSlotConsumed?.Invoke(cards[i]));
+                running = null;
+                executing = false;
+                OnExecuteFinished?.Invoke();
+                yield break;
+            }
             BattleLog.Log(LogCategory.Combo, $"<b>콤보 실행 시작</b> — {queue.Count}슬롯", this);
             OnExecuteStarted?.Invoke();
 
@@ -171,6 +196,7 @@ namespace Prototype
             Stage?.Clear();
 
             running = null;
+            executing = false;
             OnExecuteFinished?.Invoke();
         }
 

@@ -266,6 +266,22 @@ namespace Prototype
         /// 유저가 모는 몸은 null이다 — 조종사(<see cref="PlayerPilot"/>)가 밖에서 몬다.
         /// </summary>
         public Control Control { get; private set; }
+        public TimeDomain TimeDomain { get; set; } = TimeDomain.Battle;
+        private int assistReactionVersion = -1;
+        public bool IsAssistReacting => TimeDomain == TimeDomain.Battle && TimeControl.IsFrozen &&
+            TimeControl.AssistResolutionActive && assistReactionVersion == TimeControl.AssistResolutionVersion;
+        public float LocalDeltaTime => Time.deltaTime * LocalTimeScale;
+        public float LocalTimeScale => IsAssistReacting ? 1f : TimeControl.ScaleFor(TimeDomain);
+
+        public void BeginAssistReaction()
+        {
+            if (Faction != Faction.Enemy || !TimeControl.IsFrozen || !TimeControl.AssistResolutionActive) return;
+            if (!IsAssistReacting) Physics.ResetInertia();
+            Physics.Move(Vector3.zero, 0f);
+            assistReactionVersion = TimeControl.AssistResolutionVersion;
+        }
+
+        public void SetControl(Control control) => Control = control;
 
         /// <summary>
         /// true면 <b>어떤 Control도 명령을 내지 않는다</b>. <see cref="ComboExecutor"/>가
@@ -466,7 +482,12 @@ namespace Prototype
                 $"스킬 히트박스 {(SkillAttack != null ? "O" : "X")}",
                 this);
 
+<<<<<<< Updated upstream:Assets/Scripts/Entities/Components/Entity.cs
             ForceIdle();
+=======
+            // A pooled body may receive an assist order before its first Start callback.
+            if (StateMachine.CurState == null) StateMachine.ForceChangeState(IdleState);
+>>>>>>> Stashed changes:Assets/Scripts/Entities/Entity.cs
 
             if (AttackProfile != null)
             {
@@ -491,7 +512,20 @@ namespace Prototype
 
         protected virtual void Update()
         {
-            float dt = TimeControl.DeltaTime;
+            float dt = LocalDeltaTime;
+
+            // A struck enemy may react during the card sequence; its AI/attacks stay frozen.
+            if (IsAssistReacting)
+            {
+                ClearCommand();
+                IState state = StateMachine.CurState;
+                if (state == HitState || state == AerialHitState || state == DownState ||
+                    state == GetupState || state == DeadState || state == StunState ||
+                    state == FrozenState || state == AirBoundState)
+                    StateMachine.Tick(dt);
+                Combat.Tick(dt);
+                return;
+            }
 
             // 등장 연출이 도는 동안에는 AI가 몸을 몰지 않는다. 안 막으면 화면 밖에서
             // 날아 들어오는 도중에 제 판단으로 걸어 나가 궤적이 어긋난다.

@@ -208,7 +208,15 @@ namespace Prototype.Tests
             return data;
         }
 
-        private Ally NewAlly(string name) => NewObject(name).AddComponent<Ally>();
+        private Ally NewAlly(string name)
+        {
+            Ally ally = NewObject(name).AddComponent<Ally>();
+            // Edit Mode does not run ordinary MonoBehaviour Awake callbacks.
+            if (ally.StateMachine == null)
+                typeof(Entity).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(ally, null);
+            return ally;
+        }
 
         private GameObject NewObject(string name)
         {

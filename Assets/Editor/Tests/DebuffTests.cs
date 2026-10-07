@@ -335,7 +335,11 @@ namespace Prototype.Tests
         {
             var go = new GameObject(name);
             spawned.Add(go);
-            go.AddComponent<Ally>();
+            Entity body = name == "Attacker" ? (Entity)go.AddComponent<Enemy>() : go.AddComponent<Ally>();
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(Physics).GetMethod("Awake", flags).Invoke(body.Physics, null);
+            typeof(Combat).GetMethod("Awake", flags).Invoke(body.Combat, null);
+            typeof(Entity).GetMethod("Awake", flags).Invoke(body, null);
             return go.GetComponent<Combat>();
         }
 

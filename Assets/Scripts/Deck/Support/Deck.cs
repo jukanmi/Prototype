@@ -371,7 +371,7 @@ namespace Prototype
     /// <summary>평타 적중 추첨. 기존 시동기 DrawWeight와 무관하게 등급만 반영한다.</summary>
     public static class BasicAttackDrawRules
     {
-        public const float DrawChance = 0.5f;
+        public const float DrawChance = 0.25f;
 
         public static bool ShouldDraw(float roll) => roll >= 0f && roll < DrawChance;
 
@@ -415,6 +415,51 @@ namespace Prototype
             if (picked < 0) return null;
             int source = indices[picked];
             return source < handCount ? hand.RemoveAt(source).card : deck.TakeAt(source - handCount);
+        }
+    }
+
+    /// <summary>Stateful automatic-card pseudo-random roll, calibrated to the nominal average.</summary>
+    public sealed class BasicAttackProcRoller
+    {
+        // P(success on attempt n since last proc) = min(1, increment * n).
+        // Calibrate 1 / E(attempts until success) to DrawChance, rather than adding
+        // 25 percentage points per failure (which would inflate the average rate).
+        private static readonly float increment = Calibrate(BasicAttackDrawRules.DrawChance);
+        private int failures;
+
+        public int ConsecutiveFailures => failures;
+        public float CurrentChance => Mathf.Min(1f, increment * (failures + 1));
+
+        public bool TryRoll(float roll)
+        {
+            if (float.IsNaN(roll) || roll < 0f || roll > 1f) return false;
+            if (CurrentChance >= 1f || roll < CurrentChance)
+            {
+                Reset();
+                return true;
+            }
+            failures++;
+            return false;
+        }
+
+        public void Reset() => failures = 0;
+
+        private static float Calibrate(float target)
+        {
+            double low = 0d, high = target;
+            for (int iteration = 0; iteration < 40; iteration++)
+            {
+                double step = (low + high) * 0.5d;
+                double survival = 1d, expectedAttempts = 1d;
+                for (int attempt = 1; survival > 1e-12; attempt++)
+                {
+                    survival *= 1d - Math.Min(1d, step * attempt);
+                    expectedAttempts += survival;
+                }
+                if (1d / expectedAttempts > target) high = step;
+                else low = step;
+            }
+            return (float)((low + high) * 0.5d);
         }
     }
 

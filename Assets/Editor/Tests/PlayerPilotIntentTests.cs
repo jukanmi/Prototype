@@ -16,7 +16,7 @@ namespace Prototype.Tests
         private readonly List<GameObject> spawned = new List<GameObject>();
 
         private PlayerPilot pilot;
-        private Ally body;
+        private Player body;
 
         [SetUp]
         public void SetUp()
@@ -26,7 +26,7 @@ namespace Prototype.Tests
             // 입력 호스트 없이 세운다. Tick이 그걸 견디는지가 검사 대상 중 하나다 —
             // 조종사는 같은 오브젝트가 아니라 PlayerInputController.Instance를 본다.
             pilot = NewObject("PlayerPilot").AddComponent<PlayerPilot>();
-            body = NewObject("Body").AddComponent<Ally>();
+            body = NewObject("Body").AddComponent<Player>();
 
             TimeControl.Reset();
         }
@@ -167,7 +167,7 @@ namespace Prototype.Tests
         [Test]
         public void Take_ReleasesThePreviousBody()
         {
-            Ally other = NewObject("Other").AddComponent<Ally>();
+            Player other = NewObject("Other").AddComponent<Player>();
 
             pilot.Take(body);
             pilot.Take(other);

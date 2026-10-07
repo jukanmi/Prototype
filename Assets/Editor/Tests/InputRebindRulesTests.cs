@@ -118,7 +118,7 @@ namespace Prototype.Tests
         }
 
         [TestCase(InputActionNames.Gameplay.BulletTime)]
-        [TestCase(InputActionNames.Gameplay.UniqueSkill)]
+        [TestCase(InputActionNames.Gameplay.Jump)]
         public void CommanderKeys_ConflictWithCardMap(string commander)
         {
             // 지휘키는 정지 중에도 산다 — 카드 조작과 진짜로 같은 프레임에 발동한다.
@@ -126,6 +126,15 @@ namespace Prototype.Tests
             InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
 
             Assert.That(InputRebindRules.CanFireTogether(action, navigate), Is.True);
+        }
+
+        [Test]
+        public void JumpCancel_TakesPriorityOverAimCancelWithoutDoubleHandling()
+        {
+            var jump = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Jump);
+            var cancel = Action(InputActionNames.BulletTimeSkillShot.Map, InputActionNames.BulletTimeSkillShot.Cancel);
+            Assert.That(InputRebindRules.CanFireTogether(jump, cancel), Is.False);
+            Assert.That(InputRebindRules.CanFireTogether(cancel, jump), Is.False);
         }
 
         // ── 기본 바인딩은 깨끗한가 ──────────────────────────
@@ -188,6 +197,9 @@ namespace Prototype.Tests
         [Test]
         public void TakingTheCardMapKeyForMovement_IsNotAConflict()
         {
+            // Isolate the cross-map rule from the independent Gameplay/Move conflict on W.
+            InputAction move = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Move);
+            move.ApplyBindingOverride(InputBindingUtility.FindBindingIndex(move, "up"), "<Keyboard>/upArrow");
             // Gameplay/Attack 을 W 로 옮겨도 카드 조작(W = 집기)과는 안 부딪힌다 —
             // 정지 중 평타는 막혀 있다.
             InputAction attack = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Attack);
@@ -201,7 +213,7 @@ namespace Prototype.Tests
         public void TakingTheCardMapKeyForACommander_IsAConflict()
         {
             // 반면 지휘키를 W 로 옮기면 카드를 집으면서 불릿타임이 함께 걸린다.
-            InputAction commander = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.UniqueSkill);
+            InputAction commander = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
             int index = InputBindingUtility.FindBindingIndex(commander, "");
 
             Assert.That(InputRebindRules.TryFindConflict(actions, commander, index, "<Keyboard>/w", out _, out _),

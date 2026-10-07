@@ -63,14 +63,6 @@ MonoBehaviour:
     part: right
     path: <Keyboard>/rightArrow
   - map: Gameplay
-    action: Swap
-    part:
-    path: <Keyboard>/s
-  - map: Gameplay
-    action: UniqueSkill
-    part: 
-    path: <Keyboard>/z
-  - map: Gameplay
     action: Attack
     part: 
     path: <Keyboard>/x

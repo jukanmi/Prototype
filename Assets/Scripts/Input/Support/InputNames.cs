@@ -28,10 +28,7 @@ namespace Prototype
             public const string Dash = "Dash";
 
             /// <summary>
-            /// 불릿타임 진입 · 실행. 기본 E.
-            ///
-            /// 예전엔 Execute(Space)를 따로 뒀는데, Order 페이즈에서 둘 다 Resolve로 가는
-            /// 같은 동작이라 리바인드 화면에서 서로 다른 기능처럼 보였다. 하나로 합쳤다.
+            /// 불릿타임 진입 · 실행. 기본 E, 프리셋/리바인딩에 따라 변경.
             /// </summary>
             public const string BulletTime = "BulletTime";
 
@@ -129,11 +126,9 @@ namespace Prototype
         {
             { InputActionNames.Gameplay.Move, "이동" },
             { InputActionNames.Gameplay.Attack, "평타" },
-            { InputActionNames.Gameplay.Jump, "점프" },
+            { InputActionNames.Gameplay.Jump, "점프 · 불릿타임 취소" },
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "불릿타임 진입 · 실행" },
-            { InputActionNames.Gameplay.UniqueSkill, "고유 스킬" },
-            { InputActionNames.Gameplay.Swap, "동료 교대" },
             { InputActionNames.BulletTime.Navigate, "카드 선택 · 순서" },
             { InputActionNames.BulletTimeSkillShot.Aim, "조준점 이동" },
             { InputActionNames.BulletTimeSkillShot.Confirm, "확정" },

@@ -547,6 +547,7 @@ namespace Prototype
 
         private void CompleteWave()
         {
+            CastDirector.RecallScene();
             Debug.Log($"[StageDirector] 웨이브 {CurrentWaveNumber} 소탕");
 
             // 입구는 열지 않는다. 되돌아갈 수 있으면 자리를 나눈 의미가 없다.

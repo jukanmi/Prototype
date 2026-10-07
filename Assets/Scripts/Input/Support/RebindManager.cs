@@ -218,7 +218,7 @@ namespace Prototype
         private static readonly HashSet<string> CommanderActions = new HashSet<string>
         {
             InputActionNames.Gameplay.BulletTime,
-            InputActionNames.Gameplay.UniqueSkill,
+            InputActionNames.Gameplay.Jump,
         };
 
         /// <summary>키로 바꿀 수 있는 값이 아닌 액션. 포인터 위치 · 이동량.</summary>
@@ -296,8 +296,13 @@ namespace Prototype
             if (bulletA && bulletB) return false;
 
             // 남은 조합은 Gameplay ↔ 불릿타임 맵. 정지 중에도 사는 건 지휘키뿐이다.
-            if (mapA == InputActionNames.Gameplay.Map && bulletB) return CommanderActions.Contains(a.name);
-            if (mapB == InputActionNames.Gameplay.Map && bulletA) return CommanderActions.Contains(b.name);
+            // Jump wins over aim-cancel: the commander closes selection before TargetSelector runs.
+            if (mapA == InputActionNames.Gameplay.Map && bulletB)
+                return !(a.name == InputActionNames.Gameplay.Jump && b.name == InputActionNames.BulletTimeSkillShot.Cancel)
+                    && CommanderActions.Contains(a.name);
+            if (mapB == InputActionNames.Gameplay.Map && bulletA)
+                return !(b.name == InputActionNames.Gameplay.Jump && a.name == InputActionNames.BulletTimeSkillShot.Cancel)
+                    && CommanderActions.Contains(b.name);
 
             // 모르는 조합은 겹친다고 본다 — 놓치는 것보다 한 번 더 묻는 편이 낫다.
             return true;

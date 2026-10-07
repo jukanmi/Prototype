@@ -56,8 +56,17 @@ namespace Prototype.Tests
 
             LogAssert.ignoreFailingMessages = true;
             inputRig.SetActive(true);
+            // Explicitly initialize Edit Mode fixtures; runtime Awake is not guaranteed here.
+            Awake(bulletTime);
+            Awake(targetSelector);
+            Awake(controller);
+            Awake(switcher);
             LogAssert.ignoreFailingMessages = false;
         }
+
+        private static void Awake(object component)
+            => component.GetType().GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(component, null);
 
         [TearDown]
         public void TearDown()
@@ -200,6 +209,20 @@ namespace Prototype.Tests
 
             Assert.That(CardMapEnabled, Is.False);
             Assert.That(AimMapEnabled, Is.False);
+        }
+
+        [Test]
+        public void JumpCancellation_ClosesTargetingAndBothCardMaps()
+        {
+            EnterOrderPhase();
+            targetSelector.Begin(skill);
+            switcher.Apply();
+            Assert.That(AimMapEnabled, Is.True);
+            Assert.That(bulletTime.Tactic.OnCancelKey(), Is.True);
+            switcher.Apply();
+            Assert.That(targetSelector.IsSelecting, Is.False);
+            Assert.That(CardMapEnabled || AimMapEnabled, Is.False);
+            Assert.That(TimeControl.Scale, Is.EqualTo(1f));
         }
     }
 }

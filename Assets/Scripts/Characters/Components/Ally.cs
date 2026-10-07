@@ -183,7 +183,7 @@ namespace Prototype
 
             if (uniqueSkillCooldownTimer > 0f)
             {
-                float dt = TimeControl.DeltaTime;
+                float dt = LocalDeltaTime;
                 if (dt > 0f) uniqueSkillCooldownTimer -= dt;
             }
         }
@@ -238,7 +238,7 @@ namespace Prototype
 
                 // 정지 중에는 스킬도 함께 멈춘다(Entity.Update가 dt<=0이면 Tick을 건너뛴다).
                 // 같은 시계를 써야 불릿타임 동안 타임아웃이 헛돌지 않는다.
-                elapsed += TimeControl.DeltaTime;
+                elapsed += LocalDeltaTime;
                 yield return null;
             }
 

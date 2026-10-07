@@ -12,6 +12,19 @@ namespace Prototype
     [RequireComponent(typeof(Attack))]
     public class Projectile : MonoBehaviour
     {
+        private static readonly System.Collections.Generic.HashSet<Projectile> active = new System.Collections.Generic.HashSet<Projectile>();
+        private TimeDomain domain;
+        public static bool HasCastEffects
+        {
+            get { foreach (var p in active) if (p != null && p.live && p.domain == TimeDomain.Cast) return true; return false; }
+        }
+        public static void CancelCastEffects()
+        {
+            foreach (var p in new System.Collections.Generic.List<Projectile>(active))
+                if (p != null && p.domain == TimeDomain.Cast) p.Despawn();
+        }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => active.Clear();
         [Tooltip("화면에 그릴 자식. 논리 좌표를 접어서 여기에 얹는다.")]
         [SerializeField] private Transform sprite;
         [Tooltip("바닥 그림자. 비워도 된다.")]
@@ -83,6 +96,12 @@ namespace Prototype
                            in SkillVfx vfx = default, float blast = 0f,
                            bool detonateOnArrival = false)
         {
+<<<<<<< Updated upstream:Assets/Scripts/Entities/Components/Projectile.cs
+=======
+            domain = attacker != null && attacker.Owner != null ? attacker.Owner.TimeDomain : TimeDomain.Battle;
+            active.Add(this);
+            dir.y = 0f;
+>>>>>>> Stashed changes:Assets/Scripts/Entities/Projectile.cs
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
             direction = dir.normalized;
 
@@ -130,7 +149,7 @@ namespace Prototype
             if (!live) return;
 
             // 불릿타임에는 그대로 멈춰 있어야 한다. Time.deltaTime을 쓰면 안 된다.
-            float dt = TimeControl.DeltaTime;
+            float dt = TimeControl.DeltaFor(domain);
             if (dt <= 0f) return;
 
             // 남은 거리보다 더 가지 않는다. 안 자르면 한 프레임 이동량(20 × 0.016 ≈ 0.33)만큼
@@ -233,6 +252,7 @@ namespace Prototype
 
         private void Despawn()
         {
+            active.Remove(this);
             live = false;
 
             if (hitbox != null)
@@ -246,6 +266,7 @@ namespace Prototype
 
         private void OnDestroy()
         {
+            active.Remove(this);
             if (hitbox != null) hitbox.OnHit -= HandleHit;
         }
     }

@@ -248,6 +248,7 @@ namespace Prototype
 
         private void HandleDefeat()
         {
+            CastDirector.RecallScene();
             TimeControl.Reset();
             StopAllEnemies();
 
@@ -383,6 +384,7 @@ namespace Prototype
         /// </summary>
         private static void ClearStatics()
         {
+            CastDirector.RecallScene();
             TimeControl.Reset();
             BattleRegistry.Clear();
 
@@ -429,6 +431,7 @@ namespace Prototype
         /// </summary>
         private void CleanupStage()
         {
+            CastDirector.RecallScene();
             StopAllCoroutines();
 
             // TODO: DOTween 등을 도입했다면 여기서 전역 트윈 Kill

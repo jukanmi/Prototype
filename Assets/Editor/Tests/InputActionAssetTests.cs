@@ -65,8 +65,6 @@ namespace Prototype.Tests
                 InputActionNames.Gameplay.Jump,
                 InputActionNames.Gameplay.Dash,
                 InputActionNames.Gameplay.BulletTime,
-                InputActionNames.Gameplay.UniqueSkill,
-                InputActionNames.Gameplay.Swap,
             };
 
             Assert.That(Map(InputActionNames.Gameplay.Map).actions.Select(a => a.name),
@@ -147,8 +145,7 @@ namespace Prototype.Tests
         [Test]
         public void BulletTime_HasASingleKey()
         {
-            // 진입과 실행이 한 액션 · 한 키다. 자리가 둘이면 리바인드 화면에
-            // 같은 이름이 두 줄로 떠서 서로 다른 기능처럼 보인다.
+            // The original bullet-time action handles both entry and execution.
             InputAction action = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
 
             Assert.That(action.bindings.Select(b => b.path),
@@ -156,16 +153,18 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void Swap_DoesNotCollideWithOtherGameplayKeys()
+        public void ExecuteAction_IsAbsent_BulletTimeRetainsItsOriginalBinding()
         {
-            // 교대는 정지 중에 막히는 Gameplay 액션이라 불릿타임 맵과는 안 겹친다.
-            // 같은 Gameplay 맵 안에서만 부딪히면 실시간에 한 키가 두 일을 한다.
-            InputAction swap = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Swap);
+            Assert.That(Map(InputActionNames.Gameplay.Map).FindAction("Execute", false), Is.Null);
+            Assert.That(Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime)
+                .bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/e" }));
+        }
 
-            Assert.That(
-                InputRebindRules.TryFindConflict(asset, swap, 0, swap.bindings[0].effectivePath, out InputAction blocker, out _),
-                Is.False,
-                $"교대 키가 {(blocker != null ? blocker.name : "?")} 와 겹친다");
+        [Test]
+        public void CompanionSummonActions_AreAbsent()
+        {
+            Assert.That(Map(InputActionNames.Gameplay.Map).FindAction("Swap", false), Is.Null);
+            Assert.That(Map(InputActionNames.Gameplay.Map).FindAction("UniqueSkill", false), Is.Null);
         }
 
         // ── 컴포지트 모양 ───────────────────────────────────
@@ -199,8 +198,6 @@ namespace Prototype.Tests
         [TestCase(InputActionNames.Gameplay.Jump, "<Keyboard>/k")]
         [TestCase(InputActionNames.Gameplay.Dash, "<Keyboard>/leftShift")]
         [TestCase(InputActionNames.Gameplay.BulletTime, "<Keyboard>/e")]
-        [TestCase(InputActionNames.Gameplay.UniqueSkill, "<Keyboard>/z")]
-        [TestCase(InputActionNames.Gameplay.Swap, "<Keyboard>/f")]
         public void GameplayDefaultBinding_MatchesDocumentedKey(string actionName, string path)
         {
             InputAction action = Action(InputActionNames.Gameplay.Map, actionName);

@@ -25,6 +25,18 @@ namespace Prototype
         private SkillContext ctx;
         private Vector3 center;
         private float timer;
+        private TimeDomain domain;
+        public static bool HasCastEffects
+        {
+            get { foreach (var inst in live) if (inst != null && !inst.IsDone && inst.domain == TimeDomain.Cast) return true; return false; }
+        }
+        public static void CancelCastEffects()
+        {
+            foreach (var inst in live.ToArray())
+                if (inst != null && inst.domain == TimeDomain.Cast) { live.Remove(inst); Destroy(inst.gameObject); }
+        }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => live.Clear();
 
         /// <summary>지금까지 낸 타 수. 로그 · 테스트용.</summary>
         public int Fired { get; private set; }
@@ -39,6 +51,7 @@ namespace Prototype
             var inst = go.AddComponent<Installation>();
             inst.data = data;
             inst.ctx = ctx;
+            inst.domain = ctx.caster != null ? ctx.caster.TimeDomain : TimeDomain.Battle;
             inst.center = center;
             live.Add(inst);
 
@@ -48,7 +61,7 @@ namespace Prototype
             return inst;
         }
 
-        private void Update() => Tick(TimeControl.DeltaTime);
+        private void Update() => Tick(TimeControl.DeltaFor(domain));
 
         private void OnDestroy() => live.Remove(this);
 

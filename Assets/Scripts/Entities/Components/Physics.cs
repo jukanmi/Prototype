@@ -88,6 +88,16 @@ namespace Prototype
         public Transform Transform => cachedTransform != null ? cachedTransform : (cachedTransform = base.transform);
 
         public Rigidbody Rigidbody { get; private set; }
+        private Entity timeOwner;
+        private float? pendingSnapZ;
+        private float LocalTimeScale
+        {
+            get
+            {
+                if (timeOwner == null) timeOwner = GetComponent<Entity>();
+                return timeOwner != null ? timeOwner.LocalTimeScale : TimeControl.Scale;
+            }
+        }
         public PhysicsState PhysicsState { get; private set; } = PhysicsState.Ground;
 
         /// <summary>
@@ -212,6 +222,7 @@ namespace Prototype
 
         private void Awake()
         {
+            timeOwner = GetComponent<Entity>();
             cachedTransform = base.transform;
             Rigidbody = GetComponent<Rigidbody>();
             Rigidbody.useGravity = false;
@@ -231,7 +242,7 @@ namespace Prototype
         private void FixedUpdate()
         {
             // 불릿타임 배율을 고정 스텝에 곱해 넣는다. Time.timeScale 미사용(결정 로그 ⑥).
-            float dt = Time.fixedDeltaTime * TimeControl.Scale;
+            float dt = Time.fixedDeltaTime * LocalTimeScale;
             if (dt <= 0f || Suspended)
             {
                 if (Suspended)
@@ -245,6 +256,12 @@ namespace Prototype
                 return;
             }
 
+            if (pendingSnapZ.HasValue)
+            {
+                float z = pendingSnapZ.Value;
+                pendingSnapZ = null;
+                SnapZ(z);
+            }
             HandleMovement(dt);
             HandleGravity(dt);
             Apply(dt);
@@ -506,7 +523,7 @@ namespace Prototype
             float vy = PhysicsState == PhysicsState.Aerial ? verticalVelocity : 0f;
 
             // 불릿타임에는 배율만큼 실제 이동량이 줄어야 한다.
-            Rigidbody.linearVelocity = (horizontal + Vector3.up * vy) * TimeControl.Scale;
+            Rigidbody.linearVelocity = (horizontal + Vector3.up * vy) * LocalTimeScale;
 
             // 히트박스는 자식 오브젝트라 루트가 돌아야 방향이 맞는다.
             if (rotateToFacing && Facing.sqrMagnitude > 0.0001f)
@@ -572,10 +589,12 @@ namespace Prototype
         /// </summary>
         public void SnapZ(float z)
         {
+            if (LocalTimeScale <= 0f) { pendingSnapZ = z; return; }
             Vector3 p = Transform.position;
             BattleLog.Log(LogCategory.Physics, $"{name} Z 정렬 {p.z:0.##} → {z:0.##} (모으기 보정)", this);
             p.z = z;
             Transform.position = p;
+            if (Rigidbody != null) Rigidbody.position = p;
         }
 
         /// <summary>
@@ -605,6 +624,7 @@ namespace Prototype
         /// </summary>
         public void Teleport(Vector3 groundPoint, float height)
         {
+            pendingSnapZ = null;
             // 목적지의 발판 높이에 세운다. 발판이 없으면 예전대로 groundY다.
             float ground = GroundRegistry.HeightAt(groundPoint, groundY, groundMargin);
             float lift = Mathf.Max(0f, height);

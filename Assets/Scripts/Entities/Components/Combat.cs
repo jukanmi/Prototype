@@ -128,6 +128,7 @@ namespace Prototype
         public Energy Health => health != null ? health : health = new Energy(EnergyType.Health, maxHealth);
         public Physics Physics => physics;
         public Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();
+        public bool AssistInvulnerable { get; set; }
         public int AirHitCount => airHitCount;
         public bool IsDead => CombatState == CombatState.Dead;
 
@@ -377,7 +378,14 @@ namespace Prototype
                 // 경직이 끝나면 Entity가 HitState를 Idle로 옮기고, 그 다음 프레임에 여기가 붙잡는다.
                 // 슈퍼아머도 같은 이유로 TryChangeState다 — 거부당하면 다음 프레임에 다시 묻는다.
                 if (!CombatStateRules.IsStunned(CombatState))
-                    body.StateMachine.TryChangeState(want);
+                {
+                    IState current = body.StateMachine.CurState;
+                    if (current == body.StunState || current == body.FrozenState || current == body.AirBoundState)
+                    {
+                        if (current != want) body.StateMachine.ForceChangeState(want);
+                    }
+                    else body.StateMachine.TryChangeState(want);
+                }
 
                 return;
             }
@@ -418,6 +426,8 @@ namespace Prototype
         {
             if (target == null || IsDead) return false;
             if (ReferenceEquals(target, this)) return false;
+            if (target is Combat friendly && friendly.Owner != null && Owner != null &&
+                friendly.Owner.Faction == Owner.Faction) return false;
 
             if (!target.Hit(in hit, this)) return false;
 
@@ -445,7 +455,7 @@ namespace Prototype
 
         public bool Hit(in HitData hit, Combat attacker)
         {
-            if (IsDead) return false;
+            if (IsDead || AssistInvulnerable) return false;
 
             // 무적 판정 — 다운/기상은 OTG를 제외하면 통과하지 않는다.
             if (CombatStateRules.IsInvincible(CombatState, hit.canOtg))
@@ -484,6 +494,9 @@ namespace Prototype
 
             // 대시 패링 — 데미지가 들어가기 전에 본다. 막았으면 맞지 않은 것으로 친다.
             if (TryParry(in hit, attacker)) return false;
+
+            if (attacker != null && attacker.Owner != null && attacker.Owner.TimeDomain == TimeDomain.Cast)
+                owner?.BeginAssistReaction();
 
             // 방어력 · 보호막 · 피해감소가 다 적용된 <b>실제로 들어간 양</b>을 재려면
             // TakeDamage 앞뒤를 재는 수밖에 없다 — 그 안에서 값이 여러 번 깎인다.

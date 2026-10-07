@@ -113,7 +113,7 @@ namespace Prototype
             float frozen = entity != null && entity.HasDebuff(Debuff.Freeze | Debuff.AirBind) ? 0f : 1f;
 
             // 불릿타임에 같이 멈춘다. Time.timeScale은 건드리지 않는다.
-            animator.speed = TimeControl.Scale * stateSpeed * frozen;
+            animator.speed = (entity != null ? entity.LocalTimeScale : TimeControl.Scale) * stateSpeed * frozen;
         }
 
         /// <summary>
@@ -170,6 +170,19 @@ namespace Prototype
         private void Apply(IState state)
         {
             if (animator == null || state == null) return;
+            if (state is AssistMoveState) { stateSpeed = 1f; Play("Move"); return; }
+            if (state is AssistReadyState ready)
+            {
+                if (ready.PreparedSkill != null && ready.PreparedSkill.animation != null)
+                {
+                    SwapSkillClip(ready.PreparedSkill);
+                    stateSpeed = 0f;
+                    animator.Play("Skill", 0, 0.1f);
+                    animator.Update(0f);
+                }
+                else { stateSpeed = 1f; Play("Idle"); }
+                return;
+            }
 
             // 평타는 단계마다 클립이 다르다. 상태에 들어오는 건 언제나 1타(Enter가 0으로 리셋한다) —
             // 2·3타는 상태 전이 없이 AttackState가 직접 PlayBasicAttackStage를 부른다.
