@@ -84,6 +84,7 @@ namespace Prototype
 
         /// <summary>평타 카드 추첨에 당첨돼 다음 LateUpdate에 발동을 기다리는 중.</summary>
         private bool pendingBasicSkill;
+        private readonly BasicAttackProcRoller basicProcRoller = new BasicAttackProcRoller();
 
         /// <summary>
         /// 동료 사망 구독. <see cref="Combat.OnDead"/>가 인자를 주지 않아 동료마다 클로저를 하나씩 만든다 —
@@ -137,6 +138,39 @@ namespace Prototype
         public Hand Hand => Cards.Hand;
         public Discard Discard => Cards.Discard;
         public ComboExecutor Executor => executor;
+        public CastDirector Director { get; private set; }
+
+        /// <summary>전술 키 입력 창구. 상태머신 자체는 private이라 키 입력만 연다.</summary>
+        public TacticKeys Tactic => new TacticKeys(this);
+
+        public readonly struct TacticKeys
+        {
+            private readonly BulletTimeController ctx;
+            public TacticKeys(BulletTimeController ctx) { this.ctx = ctx; }
+
+            public void Begin() => ctx.tactic.Begin();
+            public void Tick(float unscaledDt) => ctx.tactic.Tick(unscaledDt);
+            public bool OnBulletTimeKey() => ctx.tactic.OnBulletTimeKey();
+
+            /// <summary>Order에서만 먹는다. 진입과 같은 키가 곧 실행이라 같은 경로를 탄다.</summary>
+            public bool OnExecuteKey() => ctx.Phase == TacticPhase.Order && ctx.tactic.OnBulletTimeKey();
+
+            public bool OnCancelKey() => ctx.CancelSelection();
+        }
+
+        public void SetCastDirector(CastDirector director)
+        {
+            Director = director;
+            if (executor != null) executor.Director = director;
+        }
+
+        public void CancelAssistSequence()
+        {
+            pendingBasicSkill = false;
+            executor?.Abort();
+            targetSelector?.Cancel();
+            tactic?.ChangeTo(tactic.RealTime);
+        }
 
         /// <summary>
         /// 파티 명단의 주인을 꽂는다. <see cref="PartyAssembler"/>가 <c>Awake</c>(-200)에서
@@ -191,6 +225,7 @@ namespace Prototype
 
         private void OnEnable()
         {
+            basicProcRoller.Reset();
             if (executor != null)
             {
                 executor.OnSlotConsumed += HandleSlotConsumed;
@@ -204,6 +239,7 @@ namespace Prototype
 
         private void OnDisable()
         {
+            Director?.Abort();
             pendingBasicSkill = false;
             if (executor != null)
             {
@@ -219,10 +255,8 @@ namespace Prototype
         private void Update()
         {
             // 게이지와 쿨타임은 실제 시간으로 흐른다. 정지 중 자가 충전을 막는다.
-            float dt = TimeControl.UnscaledDeltaTime;
-
-            budget.Tick(dt, frozen: IsActive);
-            tactic.Tick(dt);
+            budget.Tick(TimeControl.DeltaTime, frozen: IsActive);
+            tactic.Tick(TimeControl.UnscaledDeltaTime);
         }
 
         private void HandleParried(Combat defender, Combat attacker) => budget?.RewardParry(defender);
@@ -234,12 +268,22 @@ namespace Prototype
         {
             if (budget == null || !budget.RewardBasicHit(attacker, victim, swing)) return;
 
-            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
-                executor.IsRunning || pendingBasicSkill) return;
-            if (!BasicAttackDrawRules.ShouldDraw(UnityEngine.Random.value)) return;
+            if (Phase != TacticPhase.RealTime || Director == null || pendingBasicSkill || TimeControl.Scale <= 0f) return;
+            if (!HasAutomaticCardCandidate()) return;
+            if (!basicProcRoller.TryRoll(UnityEngine.Random.value)) return;
 
             // 적중 콜백 안에서 상태를 바꾸면 진행 중인 평타의 히트박스 처리가 깨질 수 있다.
             pendingBasicSkill = true;
+        }
+
+        private bool HasAutomaticCardCandidate()
+        {
+            bool CanCast(ComboCard card) => card != null && card.Data != null && ResolveCaster(card.Data.role) != null;
+            for (int i = 0; i < Cards.Hand.Count; i++)
+                if (CanCast(Cards.Hand.GetCard(i))) return true;
+            for (int i = 0; i < Cards.Deck.Count; i++)
+                if (CanCast(Cards.Deck.Cards[i])) return true;
+            return false;
         }
 
         private void LateUpdate()
@@ -252,8 +296,7 @@ namespace Prototype
         /// <summary>현재 손패와 덱에서 한 장을 소비하고, 기존 시전자 등장 · 스킬 실행 경로로 보낸다.</summary>
         public bool TryExecuteBasicAttackSkill(float roll)
         {
-            if (Phase != TacticPhase.RealTime || executor == null || !executor.isActiveAndEnabled ||
-                executor.IsRunning) return false;
+            if (Phase != TacticPhase.RealTime || Director == null || player == null || player.Combat.IsDead) return false;
 
             bool CanCast(ComboCard c) => ResolveCaster(c.Data.role) != null;
             ComboCard card = BasicAttackDrawRules.TakeCard(Cards.Hand, Cards.Deck, roll, CanCast);
@@ -266,9 +309,17 @@ namespace Prototype
                 caster = caster,
                 target = caster.AutoTarget(card.Data),
             };
-            var queue = new Queue<ComboSlot>();
-            queue.Enqueue(slot);
-            executor.Execute(queue);
+            CastTicket ticket = Director.Cast(new CastRequest(caster, card.Data, slot.target, card.DamageScale), _ =>
+            {
+                HandleSlotConsumed(card);
+                if (Phase == TacticPhase.RealTime && isActiveAndEnabled) RefillHand();
+            });
+            if (ticket == null)
+            {
+                HandleSlotConsumed(card);
+                RefillHand();
+                return false;
+            }
             BattleLog.Log(LogCategory.Combo,
                 $"평타 적중 스킬 발동 — {card.Data.skillName}{(card.Golden ? " (황금)" : "")}", this);
             return true;
@@ -281,6 +332,7 @@ namespace Prototype
 
         public bool CanEnter
             => !IsActive && executor != null && !executor.IsRunning
+               && (player == null || !player.Combat.IsDead)
                && budget != null && budget.Shortfall(player) == null;
 
         /// <summary>진입이 막힌 이유. 로그 전용.</summary>
@@ -292,6 +344,16 @@ namespace Prototype
             return budget?.Shortfall(player) ?? "알 수 없음";
         }
 
+        /// <summary>점프 키. 카드 · 게이지 · 마나를 쓰지 않고 선택을 취소한다.</summary>
+        public bool CancelSelection()
+        {
+            if (!IsActive) return false;
+            targetSelector?.Cancel();
+            tactic.ChangeTo(tactic.RealTime);
+            OnExit?.Invoke();
+            return true;
+        }
+
         /// <summary>
         /// 페이즈를 곧바로 옮긴다. <b>테스트 전용</b> — 게임 경로는 반드시 <see cref="Enter"/>를 탄다.
         /// 코스트 · 게이지 검사를 건너뛰므로 게임 코드에서 부르면 규칙이 깨진다.
@@ -301,6 +363,7 @@ namespace Prototype
         /// <summary>Freeze 진입. 시간은 <see cref="TimeControl"/>로만 멈춘다(결정 로그 ⑥).</summary>
         private void FreezeTime()
         {
+            Director?.BeginSelection();
             TimeControl.Scale = 0f;
 
             BattleLog.Log(LogCategory.Bullet,

@@ -107,9 +107,7 @@ namespace Prototype
             if (Phase == AssistPhase.Casting)
             {
                 castElapsed += dt;
-                if (skill is ChargeSkillState charge && charge.IsFullyCharged) charge.Release();
-                float timeout = Mathf.Max(5f, current.Request.Skill.TotalDuration + 1f) +
-                                (current.Request.Skill.IsCharge ? current.Request.Skill.maxChargeTime : 0f);
+                float timeout = Mathf.Max(5f, current.Request.Skill.TotalDuration + 1f);
                 bool interrupted = Owner.StateMachine.CurState != skill;
                 if (!skill.IsFinished && !interrupted && castElapsed < timeout) return;
                 bool cancelled = interrupted || !skill.IsFinished;

@@ -135,6 +135,8 @@ namespace Prototype
             public override void Enter()
             {
                 TimeControl.Scale = 1f;
+                // 빈 손패는 실행기를 안 돌리지만 붙잡힌 자동 시전은 풀어야 한다.
+                Ctx.Director?.EndSelection();
 
                 // 실행이 끝난 직후일 수 있다. 손패가 비어 있으면 여기서 마저 채운다.
                 Ctx.RefillHand();
@@ -166,7 +168,6 @@ namespace Prototype
             {
                 timer = 0f;
 
-                Ctx.Budget.PayEntry(Ctx.player);
                 Ctx.FreezeTime();
                 Ctx.OnEnter?.Invoke();
             }
@@ -206,6 +207,7 @@ namespace Prototype
             {
                 Ctx.targetSelector?.Cancel();
                 TimeControl.Scale = 1f;
+                Ctx.Budget.PayEntry(Ctx.player);
                 Ctx.Budget.Spend();
 
                 BattleLog.Log(LogCategory.Bullet, "<b>불릿타임 해제</b> — TimeControl.Scale = 1", Ctx);

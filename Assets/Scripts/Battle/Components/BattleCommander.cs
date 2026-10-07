@@ -37,7 +37,7 @@ namespace Prototype
                 if (input.JumpPressed && bulletTime.IsActive)
                 {
                     input.ConsumeJumpPress();
-                    bulletTime.Tactic.OnCancelKey();
+                    bulletTime.CancelSelection();
                     return;
                 }
                 if (input.BulletTimePressed)

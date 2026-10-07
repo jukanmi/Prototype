@@ -169,7 +169,7 @@ namespace Prototype
         /// 런타임 인스턴스를 매번 새로 만드는 팩토리.
         /// 에셋이 IState를 필드로 들고 있으면 동시 사용 시 상태가 꼬인다.
         /// </summary>
-        public IState CreateState(in SkillContext ctx) => new SkillState(this, in ctx);
+        public virtual IState CreateState(in SkillContext ctx) => new SkillState(this, in ctx);
 
         /// <summary>이 스킬이 시동기(띄우기) 인지. 드로우 확률 보정에 쓴다.</summary>
         public bool IsStarterType => attackType == AttackType.Launcher;

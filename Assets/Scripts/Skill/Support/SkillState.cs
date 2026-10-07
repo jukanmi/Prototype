@@ -30,6 +30,9 @@ namespace Prototype
             this.ctx = ctx;
         }
 
+        /// <summary>시전 문맥. 서브클래스(어시스트 · 테스트 스킬)가 읽는다.</summary>
+        protected SkillContext Context => ctx;
+
         /// <summary>슈퍼아머. TryChangeState는 전부 거부된다.</summary>
         public virtual bool CanBeInterrupted => false;
 

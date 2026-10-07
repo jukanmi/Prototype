@@ -482,12 +482,8 @@ namespace Prototype
                 $"스킬 히트박스 {(SkillAttack != null ? "O" : "X")}",
                 this);
 
-<<<<<<< Updated upstream:Assets/Scripts/Entities/Components/Entity.cs
-            ForceIdle();
-=======
             // A pooled body may receive an assist order before its first Start callback.
             if (StateMachine.CurState == null) StateMachine.ForceChangeState(IdleState);
->>>>>>> Stashed changes:Assets/Scripts/Entities/Entity.cs
 
             if (AttackProfile != null)
             {

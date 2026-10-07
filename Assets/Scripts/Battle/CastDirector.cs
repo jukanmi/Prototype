@@ -161,10 +161,10 @@ namespace Prototype
                 slotVictims.Add(victim.Owner);
         }
 
-        private void OnEnable() => Combat.OnAnyHitLanded += HandleHitLanded;
+        private void OnEnable() => CombatEvents.OnAnyHitLanded += HandleHitLanded;
         private void OnDisable()
         {
-            Combat.OnAnyHitLanded -= HandleHitLanded;
+            CombatEvents.OnAnyHitLanded -= HandleHitLanded;
             Abort();
         }
     }

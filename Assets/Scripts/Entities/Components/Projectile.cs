@@ -96,12 +96,9 @@ namespace Prototype
                            in SkillVfx vfx = default, float blast = 0f,
                            bool detonateOnArrival = false)
         {
-<<<<<<< Updated upstream:Assets/Scripts/Entities/Components/Projectile.cs
-=======
             domain = attacker != null && attacker.Owner != null ? attacker.Owner.TimeDomain : TimeDomain.Battle;
             active.Add(this);
             dir.y = 0f;
->>>>>>> Stashed changes:Assets/Scripts/Entities/Projectile.cs
             if (dir.sqrMagnitude <= 0.0001f) dir = Vector3.forward;
             direction = dir.normalized;
 
