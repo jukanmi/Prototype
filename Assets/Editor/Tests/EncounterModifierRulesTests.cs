@@ -11,7 +11,7 @@ namespace Prototype.Tests
         private static MapNode Node(MapNodeKind kind, int roomPercent = 100)
             => new MapNode(0, 0, 0, kind, "Stage_X", null, roomPercent);
 
-        private static readonly EncounterModifier Elite = EncounterModifierRules.For(Node(MapNodeKind.Elite));
+        private static readonly EncounterModifier Elite = RunMapRules.EncounterOf(Node(MapNodeKind.Elite));
 
         [Test]
         public void None_KeepsAuthoredValues()
@@ -56,7 +56,7 @@ namespace Prototype.Tests
             foreach (MapNodeKind kind in new[] { MapNodeKind.Battle, MapNodeKind.Rest, MapNodeKind.Shop,
                                                  MapNodeKind.Event, MapNodeKind.Boss })
             {
-                EncounterModifier m = EncounterModifierRules.For(Node(kind));
+                EncounterModifier m = RunMapRules.EncounterOf(Node(kind));
                 Assert.That(m.HasElite, Is.False, kind.ToString());
                 Assert.That(m.IsNone, Is.True, $"{kind}: 100% 방이면 보정이 없다");
             }
@@ -84,20 +84,20 @@ namespace Prototype.Tests
         [Test]
         public void NoNode_IsNone()
         {
-            Assert.That(EncounterModifierRules.For(null).IsNone, Is.True);
+            Assert.That(RunMapRules.EncounterOf(null).IsNone, Is.True);
         }
 
         /// <summary>칸이 굴린 방 크기가 그대로 건너온다. 전투 칸은 방만, 정예 칸은 둘 다.</summary>
         [Test]
         public void For_CarriesTheNodesRoomPercent()
         {
-            EncounterModifier battle = EncounterModifierRules.For(Node(MapNodeKind.Battle, 90));
+            EncounterModifier battle = RunMapRules.EncounterOf(Node(MapNodeKind.Battle, 90));
             Assert.That(battle.RoomPercent, Is.EqualTo(90));
             Assert.That(battle.HasRoom, Is.True);
             Assert.That(battle.HasElite, Is.False);
             Assert.That(battle.IsNone, Is.False);
 
-            EncounterModifier elite = EncounterModifierRules.For(Node(MapNodeKind.Elite, 110));
+            EncounterModifier elite = RunMapRules.EncounterOf(Node(MapNodeKind.Elite, 110));
             Assert.That(elite.RoomPercent, Is.EqualTo(110));
             Assert.That(elite.EliteEvery, Is.EqualTo(EncounterModifierRules.EliteNodeEvery));
         }
@@ -109,7 +109,7 @@ namespace Prototype.Tests
         [Test]
         public void RoomOnlyModifier_NeverPromotes_AndDoesNotDivideByZero()
         {
-            EncounterModifier roomOnly = EncounterModifierRules.For(Node(MapNodeKind.Battle, 85));
+            EncounterModifier roomOnly = RunMapRules.EncounterOf(Node(MapNodeKind.Battle, 85));
 
             for (int i = 0; i < 6; i++)
             {
@@ -125,7 +125,7 @@ namespace Prototype.Tests
         [TestCase(MapNodeKind.Event)]
         public void NonBattleNodes_NeverCarryRoomPercent(MapNodeKind kind)
         {
-            Assert.That(EncounterModifierRules.For(Node(kind, 90)).RoomPercent, Is.EqualTo(100));
+            Assert.That(RunMapRules.EncounterOf(Node(kind, 90)).RoomPercent, Is.EqualTo(100));
         }
 
         /// <summary>전투 시작 로그(<c>BattleSceneController</c> · <c>StageDirector</c>)가 이 글을 그대로 찍는다.</summary>
@@ -133,9 +133,9 @@ namespace Prototype.Tests
         public void ToString_NamesWhatIsModified()
         {
             Assert.That(EncounterModifier.None.ToString(), Is.EqualTo("보정 없음"));
-            Assert.That(EncounterModifierRules.For(Node(MapNodeKind.Elite)).ToString(), Is.EqualTo("3기마다 강화"));
-            Assert.That(EncounterModifierRules.For(Node(MapNodeKind.Battle, 90)).ToString(), Is.EqualTo("방 90%"));
-            Assert.That(EncounterModifierRules.For(Node(MapNodeKind.Elite, 110)).ToString(), Is.EqualTo("3기마다 강화 · 방 110%"));
+            Assert.That(RunMapRules.EncounterOf(Node(MapNodeKind.Elite)).ToString(), Is.EqualTo("3기마다 강화"));
+            Assert.That(RunMapRules.EncounterOf(Node(MapNodeKind.Battle, 90)).ToString(), Is.EqualTo("방 90%"));
+            Assert.That(RunMapRules.EncounterOf(Node(MapNodeKind.Elite, 110)).ToString(), Is.EqualTo("3기마다 강화 · 방 110%"));
         }
     }
 }

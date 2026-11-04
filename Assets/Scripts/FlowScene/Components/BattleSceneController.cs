@@ -14,7 +14,7 @@ namespace Prototype
     /// 그래서 <b>GameManager 없이 스테이지 씬만 단독으로 Play 하면 승패 기능이 아예 돌지 않는다.</b>
     /// 배치와 전투 감각만 확인하는 용도다.
     /// </summary>
-    public class BattleSceneController : MonoBehaviour
+    public class BattleSceneController : MonoBehaviour, IStageRestarter
     {
         [Tooltip("StageRoom 이 없는 씬에서 쓸 출구선 X. 방이 있으면 실제 방의 오른쪽 벽에서 푼 값이 이긴다 " +
                  "— 방 크기 보정이 벽을 옮기므로 여기 적은 고정값은 그 방에서 맞지 않는다.")]

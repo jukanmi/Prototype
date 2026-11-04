@@ -58,6 +58,15 @@ namespace Prototype
 
         public static bool IsOpen => Instance != null && Instance.isOpen;
 
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterModal() => GameplayModal.Register(IsOpenNow);
+
+        private static bool IsOpenNow() => IsOpen;
+
         /// <summary>
         /// 시작 덱을 짜러 들어간다. 다 짜면 <paramref name="owner"/>의 덱을 다시 짓는다.
         /// 씬에 컴포넌트가 없으면 여기서 만든다 — 디버그 모드를 켜자고 씬을 다시 굽게 할 수는 없다.

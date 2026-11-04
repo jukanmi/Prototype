@@ -301,6 +301,25 @@ namespace Prototype
     [RequireComponent(typeof(Combat))]
     public class EnemyStateTint : MonoBehaviour
     {
+        // ── 모든 적 몸에 스스로 붙는다 (Enemy.Created) ──
+
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Install()
+        {
+            Enemy.Created -= Attach;
+            Enemy.Created += Attach;
+        }
+
+        private static void Attach(Enemy enemy)
+        {
+            if (enemy.GetComponent<EnemyStateTint>() == null)
+                enemy.gameObject.AddComponent<EnemyStateTint>();
+        }
+
         [Tooltip("물들일 몸 렌더러. 비우면 스스로 찾는다. 그림자를 넣으면 안 된다.")]
         [SerializeField] private SpriteRenderer body;
 

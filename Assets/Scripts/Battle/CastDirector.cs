@@ -8,6 +8,19 @@ namespace Prototype
     [RequireComponent(typeof(AssistManager))]
     public sealed class CastDirector : MonoBehaviour
     {
+        // ── 웨이브가 끝나면 남은 시전을 회수한다 (StageDirector.AnyWaveCleared) ──
+
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void InstallStageHooks()
+        {
+            StageDirector.AnyWaveCleared -= RecallScene;
+            StageDirector.AnyWaveCleared += RecallScene;
+        }
+
         [SerializeField, Min(0f)] private float preparationSeconds = 0.25f;
         [SerializeField, Min(0f)] private float impactGapSeconds = 0.3f;
         [SerializeField, Min(0f)] private float maxReactionWaitSeconds = 1f;

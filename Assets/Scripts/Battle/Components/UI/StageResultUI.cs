@@ -45,7 +45,7 @@ namespace Prototype
         private Action onMenu;
 
         /// <summary>배틀 씬에 결과 UI를 붙인다. 씬과 함께 언로드되도록 컨트롤러의 자식으로 둔다.</summary>
-        public static StageResultUI Create(BattleSceneController owner)
+        public static StageResultUI Create(Component owner)
         {
             if (owner == null) return null;
 

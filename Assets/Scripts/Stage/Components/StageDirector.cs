@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,6 +21,19 @@ namespace Prototype
     /// </summary>
     public class StageDirector : StageProgressSource
     {
+        /// <summary>웨이브 하나를 소탕했다. 전술층(CastDirector)이 남은 시전을 회수한다.</summary>
+        public static event Action AnyWaveCleared;
+
+        /// <summary>방의 웨이브를 전부 소탕했다. 진행층(ExpRewards)이 정산하고 레벨업을 연다.</summary>
+        public static event Action AllWavesCleared;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticEvents()
+        {
+            AnyWaveCleared = null;
+            AllWavesCleared = null;
+        }
+
         [Tooltip("1~5. 로그와 주제 문구에만 쓴다. 어떤 웨이브가 도는지는 씬의 보드가 정한다.")]
         [SerializeField] private int stageNumber = 1;
 
@@ -149,9 +163,9 @@ namespace Prototype
             if (board == null) board = StageWaveBoard.Find();
             stageRoom = StageRoom.Find();
 
-            // 씬 단독 실행(GameManager 없음)은 저작 그대로다. 다른 표로 도는 폴백이 아니라 "보정 없음"이다.
-            GameManager gm = GameManager.Instance;
-            modifier = gm != null ? gm.CurrentNodeModifier : EncounterModifier.None;
+            // 씬 단독 실행(스테이지 문맥 없음)은 저작 그대로다. 다른 표로 도는 폴백이 아니라 "보정 없음"이다.
+            IStageContext ctx = StageContext.Current;
+            modifier = ctx != null ? ctx.NodeModifier : EncounterModifier.None;
 
             encounters = FromBoard();
 
@@ -547,7 +561,7 @@ namespace Prototype
 
         private void CompleteWave()
         {
-            CastDirector.RecallScene();
+            AnyWaveCleared?.Invoke();
             Debug.Log($"[StageDirector] 웨이브 {CurrentWaveNumber} 소탕");
 
             // 입구는 열지 않는다. 되돌아갈 수 있으면 자리를 나눈 의미가 없다.
@@ -562,8 +576,7 @@ namespace Prototype
                 // 웨이브 중간에 필드가 비었다고 정산하면 다음 웨이브가 남았는데 창이 뜬다.
                 // 세션이 "쓸 수 있는 경험치"를 보고 열리므로 정산이 먼저다.
                 // 승리 판정은 세션이 닫힐 때까지 기다린다.
-                ExpRewards.Settle();
-                LevelUpSession.RequestOpen();
+                AllWavesCleared?.Invoke();
 
                 finished = true;
                 Debug.Log("[StageDirector] 모든 웨이브 소탕 완료");

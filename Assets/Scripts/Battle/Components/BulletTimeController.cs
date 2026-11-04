@@ -495,8 +495,8 @@ namespace Prototype
         /// 인스펙터 값은 <c>GameManager</c>가 없을 때 — 스테이지 씬 단독 실행에서만 쓰인다.
         /// </summary>
         private DeckStartupMode StartupMode
-            => GameManager.Instance != null
-                ? GameManager.Instance.DeckStartupMode
+            => RunHost.Current != null
+                ? RunHost.Current.DeckStartupMode
                 : standaloneStartupMode;
 
         /// <summary>

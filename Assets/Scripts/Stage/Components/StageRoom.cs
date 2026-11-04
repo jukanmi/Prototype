@@ -91,12 +91,12 @@ namespace Prototype
 
             Instance = this;
 
-            GameManager gm = GameManager.Instance;
-            int requested = ResolveRequest(gm, debugRoomPercent, out RoomRequestSource source);
+            IStageContext ctx = StageContext.Current;
+            int requested = ResolveRequest(ctx, debugRoomPercent, out RoomRequestSource source);
 
             if (source == RoomRequestSource.RunNodeOverDebug)
                 BattleLog.Warn(LogCategory.State,
-                    $"{name}: 디버그 비율 {debugRoomPercent}%는 무시한다 — 지도 칸({gm.CurrentNode})의 {requested}%가 이긴다. " +
+                    $"{name}: 디버그 비율 {debugRoomPercent}%는 무시한다 — 지도 칸의 {requested}%가 이긴다. " +
                     "씬 단독 재생용 값이 런에 남아 있으니 0으로 되돌릴 것.", this);
 
             Apply(requested);
@@ -133,16 +133,14 @@ namespace Prototype
         /// 칸이 있는데 디버그 값을 쓰면, 누가 디버그 값을 저장한 채로 커밋한 순간 그 스테이지가 모든 런에서 그 크기로 돈다.
         /// 반대로 GameManager 가 있다는 것만으로 디버그를 끄면, Boot를 겹쳐 연 채 씬을 재생하는 흔한 작업에서 디버그 값이 안 먹는다.
         ///
-        /// 순수 판단이라 테스트가 GameManager 를 직접 넘긴다.
+        /// 순수 판단이라 테스트가 문맥(GameManager)을 직접 넘긴다.
         /// </summary>
-        public static int ResolveRequest(GameManager gm, int debugPercent, out RoomRequestSource source)
+        public static int ResolveRequest(IStageContext ctx, int debugPercent, out RoomRequestSource source)
         {
-            MapNode node = gm != null ? gm.CurrentNode : null;
-
-            if (node != null)
+            if (ctx != null && ctx.HasNode)
             {
                 source = debugPercent != 0 ? RoomRequestSource.RunNodeOverDebug : RoomRequestSource.RunNode;
-                return gm.CurrentNodeModifier.RoomPercent;
+                return ctx.NodeModifier.RoomPercent;
             }
 
             if (debugPercent != 0)

@@ -346,6 +346,24 @@ namespace Prototype
     /// </summary>
     public static class RunMapRules
     {
+        /// <summary>
+        /// 칸이 거는 보정. 정예면 강화, 방 크기 보정을 받는 칸(<see cref="GetsRoomModifier"/>)이면 그 칸의 방 크기.
+        /// 칸이 없으면(씬 단독 실행 · 런 밖) <see cref="EncounterModifier.None"/>.
+        ///
+        /// <b>칸 종류만 받는 서명은 지웠다.</b> 남겨 두면 그걸 부르는 자리가 방 크기를 빠뜨린 채 조용히 100%로 돈다.
+        /// 보스 칸에 방 크기가 박혀 있어도(손으로 만든 지도) 여기서 한 번 더 막는다 — 보스 패턴은 방 크기를 전제로 저작한다.
+        /// (Stage 층의 EncounterModifierRules에 있다가, MapNode를 읽으므로 Run 층으로 옮겼다.)
+        /// </summary>
+        public static EncounterModifier EncounterOf(MapNode node)
+        {
+            if (node == null) return EncounterModifier.None;
+
+            int elite = node.Kind == MapNodeKind.Elite ? EncounterModifierRules.EliteNodeEvery : 0;
+            int room = GetsRoomModifier(node.Kind) ? node.RoomPercent : 0;
+
+            return new EncounterModifier(elite, room);
+        }
+
         /// <summary>싸우는 칸인가. 보정값 · 연속 금지가 이 갈래로 나뉜다.</summary>
         public static bool IsBattle(MapNodeKind kind)
             => kind == MapNodeKind.Battle || kind == MapNodeKind.Elite || kind == MapNodeKind.Boss;

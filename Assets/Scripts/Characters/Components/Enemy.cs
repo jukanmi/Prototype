@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Prototype
@@ -8,6 +9,19 @@ namespace Prototype
     /// </summary>
     public class Enemy : Entity
     {
+        /// <summary>적 몸이 생겼다(Awake). 표현층(EnemyStateTint)이 몸 색 컴포넌트를 붙인다.</summary>
+        public static event Action<Enemy> Created;
+
+        /// <summary>적이 쓰러졌다. 진행층(ExpRewards)이 경험치를 적립한다.</summary>
+        public static event Action<Enemy> Defeated;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            Created = null;
+            Defeated = null;
+        }
+
         [SerializeField] private EnemyData data;
 
         private EnemyControl enemyControl;
@@ -26,9 +40,8 @@ namespace Prototype
             ApplyData(data);
 
             // 상태 색은 모든 적에게 붙어야 한다. 프리팹이 두 형태로 갈려 있어
-            // 배선으로 보장하면 한쪽이 조용히 빠진다 — 코드로 붙인다.
-            if (GetComponent<EnemyStateTint>() == null)
-                gameObject.AddComponent<EnemyStateTint>();
+            // 배선으로 보장하면 한쪽이 조용히 빠진다 — 표현층이 이 신호를 받아 코드로 붙인다.
+            Created?.Invoke(this);
         }
 
         protected override void Start()
@@ -42,8 +55,8 @@ namespace Prototype
             Combat.OnDead += AwardExp;
         }
 
-        /// <summary>보상 계산은 <see cref="ExpRewards"/>가 한다. 여기는 신호만 넘긴다.</summary>
-        private void AwardExp() => ExpRewards.Award(this);
+        /// <summary>보상 계산은 진행층(ExpRewards)이 한다. 여기는 신호만 넘긴다.</summary>
+        private void AwardExp() => Defeated?.Invoke(this);
 
         /// <summary>
         /// 수치 테이블을 실제 컴포넌트에 밀어 넣는다. Awake가 부르고,

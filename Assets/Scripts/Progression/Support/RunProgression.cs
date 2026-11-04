@@ -38,8 +38,8 @@ namespace Prototype
         {
             get
             {
-                GameManager game = GameManager.Instance;
-                if (game != null) return game.Run;
+                IRunHost host = RunHost.Current;
+                if (host != null) return host.Run;
 
                 return standalone ?? (standalone = new RunProgression());
             }
@@ -279,7 +279,7 @@ namespace Prototype
         public const double LevelGrowth = 1.1;
 
         /// <summary>황금 카드의 데미지 배율.</summary>
-        public const float GoldenDamageMul = 1.5f;
+        public const float GoldenDamageMul = ComboCard.GoldenDamageMul;
 
         /// <summary>레벨은 1부터 센다.</summary>
         public const int FirstLevel = 1;
@@ -334,6 +334,19 @@ namespace Prototype
     /// </summary>
     public static class ExpRewards
     {
+        // ── 적이 쓰러질 때마다 (Enemy.Defeated) ──
+
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Install()
+        {
+            Enemy.Defeated -= Award;
+            Enemy.Defeated += Award;
+        }
+
         /// <summary>
         /// 적 한 기의 사망 보상. <see cref="EnemyData.exp"/>가 0인 개체(훈련장 더미)는 그냥 넘어간다.
         /// </summary>

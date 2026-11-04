@@ -18,7 +18,7 @@ namespace Prototype
     /// <see cref="BattleSceneController"/> 가 맡고, 결론이 나면 여기 있는 전환을 부른다.
     /// 그래서 GameManager 가 없는 상태(스테이지 씬 단독 실행)에서는 승패 기능이 아예 돌지 않는다.
     /// </summary>
-    public class GameManager : MonoBehaviour
+    public class GameManager : MonoBehaviour, IStageContext, IRunHost
     {
         public static GameManager Instance { get; private set; }
 
@@ -109,11 +109,15 @@ namespace Prototype
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+            StageContext.Current = this;
+            RunHost.Current = this;
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            if (ReferenceEquals(StageContext.Current, this)) StageContext.Current = null;
+            if (ReferenceEquals(RunHost.Current, this)) RunHost.Current = null;
         }
 
         // ── 지도 위 위치 ─────────────────────────────────
@@ -136,7 +140,12 @@ namespace Prototype
         /// 지금 칸이 조우에 거는 보정 — 정예 강화와 방 크기. 칸이 없으면(씬 단독 실행 포함) 저작 그대로.
         /// 디렉터와 (7단계부터) 씬의 <see cref="StageRoom"/>이 Awake에서 읽는다.
         /// </summary>
-        public EncounterModifier CurrentNodeModifier => EncounterModifierRules.For(CurrentNode);
+        public EncounterModifier CurrentNodeModifier => RunMapRules.EncounterOf(CurrentNode);
+
+        // ── IStageContext — Stage 층은 GameManager 대신 이것만 본다 ──
+
+        bool IStageContext.HasNode => CurrentNode != null;
+        EncounterModifier IStageContext.NodeModifier => CurrentNodeModifier;
 
         // ── 런 수명 ──────────────────────────────────────
 

@@ -27,7 +27,7 @@ namespace Prototype
         private static readonly Color DimColor     = new Color(0f, 0f, 0f, 0.65f);
         private static readonly Color NoteColor    = new Color(0.75f, 0.75f, 0.78f);
 
-        private BattleSceneController controller;
+        private IStageRestarter controller;
 
         private GameObject confirmRoot;
         private Button restartButton;
@@ -40,7 +40,7 @@ namespace Prototype
         /// <summary>
         /// 배틀 씬에 UI 를 띄운다. 씬과 함께 언로드되도록 컨트롤러의 자식으로 붙인다.
         /// </summary>
-        public static BattleRestartUI Create(BattleSceneController owner)
+        public static BattleRestartUI Create<T>(T owner) where T : Component, IStageRestarter
         {
             if (owner == null) return null;
 

@@ -139,23 +139,6 @@ namespace Prototype
         public const int EliteNodeEvery = 3;
 
         /// <summary>
-        /// 칸이 거는 보정. 정예면 강화, 방 크기 보정을 받는 칸(<see cref="RunMapRules.GetsRoomModifier"/>)이면 그 칸의 방 크기.
-        /// 칸이 없으면(씬 단독 실행 · 런 밖) <see cref="EncounterModifier.None"/>.
-        ///
-        /// <b>칸 종류만 받는 서명은 지웠다.</b> 남겨 두면 그걸 부르는 자리가 방 크기를 빠뜨린 채 조용히 100%로 돈다.
-        /// 보스 칸에 방 크기가 박혀 있어도(손으로 만든 지도) 여기서 한 번 더 막는다 — 보스 패턴은 방 크기를 전제로 저작한다.
-        /// </summary>
-        public static EncounterModifier For(MapNode node)
-        {
-            if (node == null) return EncounterModifier.None;
-
-            int elite = node.Kind == MapNodeKind.Elite ? EliteNodeEvery : 0;
-            int room = RunMapRules.GetsRoomModifier(node.Kind) ? node.RoomPercent : 0;
-
-            return new EncounterModifier(elite, room);
-        }
-
-        /// <summary>
         /// 이 한 기가 강화로 나오는가.
         ///
         /// <b>보스는 보정으로 강화하지 않는다.</b> 강화 배율은 역할을 가리지 않아서, 규칙이 안 막으면

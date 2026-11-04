@@ -76,7 +76,7 @@ namespace Prototype
             EnforceContainerTransform();
 
             Loadout = PartyAssembleRules.Pick(
-                GameManager.Instance != null ? GameManager.Instance.Loadout : null,
+                RunHost.Current != null ? RunHost.Current.Loadout : null,
                 standaloneLoadout);
 
             if (Loadout == null)

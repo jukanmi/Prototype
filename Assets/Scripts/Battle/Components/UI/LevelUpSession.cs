@@ -57,6 +57,29 @@ namespace Prototype
         /// <summary>화면이 떠 있는가. 아레나 · 웨이브 · 승패 판정이 이 값 하나를 본다.</summary>
         public static bool IsOpen => Instance != null && Instance.isOpen;
 
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterModal()
+        {
+            GameplayModal.Register(IsOpenNow);
+            StageDirector.AllWavesCleared -= OnAllWavesCleared;
+            StageDirector.AllWavesCleared += OnAllWavesCleared;
+        }
+
+        /// <summary>
+        /// 정산 · 레벨업은 방의 스폰이 전부 끝난 뒤 한 번만. 세션이 "쓸 수 있는 경험치"를 보고 열리므로 정산이 먼저다.
+        /// </summary>
+        private static void OnAllWavesCleared()
+        {
+            ExpRewards.Settle();
+            RequestOpen();
+        }
+
+        private static bool IsOpenNow() => IsOpen;
+
         /// <summary>
         /// 라운드가 끝났다. <b>쓸 수 있는 경험치가 있을 때만</b> 연다 —
         /// 버튼이 전부 잠긴 판을 띄우고 [나가기]만 누르게 하는 것은 방해일 뿐이다.
