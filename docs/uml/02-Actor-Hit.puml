@@ -1,0 +1,29 @@
+@startuml 02-Actor-Hit
+' 1층 Actor — 타격 한 번의 흐름. 연출은 IBattleVfx 를 거쳐 Vfx(10층)로 간다.
+title 1층 Actor — 시퀀스: 타격 한 번
+
+skinparam shadowing false
+autonumber
+
+participant "Attack\n(hitbox)" as A
+participant "Combat\n(attacker)" as C
+participant "Combat (victim)\n: IHittable" as V
+participant "Physics\n(victim)" as P
+participant "BattleVfxSink.Current\n: IBattleVfx" as S
+participant "BattleVfx\n(10 Vfx)" as X
+
+A -> C : Attack(victim, hitData)
+C -> V : Hit(hitData, attacker)
+V -> V : CombatStateRules.Next → 상태 전이
+V -> P : AddImpulse(dir, force)\nAddLaunch(height)
+V --> C : landed
+C --> A : true
+A -> S : Impact(ground, height, away, radius, style)
+S -> X : BattleVfx.Impact(…)
+note over S, X : Current가 비어 있으면 아무 일 없음
+
+== 넉백 중 벽 접촉 ==
+P -> V : 벽 접촉
+V -> S : WallBounce(ground, height, normal, radius)
+S -> X : BattleVfx.WallBounce(…)
+@enduml

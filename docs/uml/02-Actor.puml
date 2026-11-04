@@ -1,0 +1,148 @@
+@startuml 02-Actor
+' 1층 Actor — Entities
+' Kernel(0층)만 참조한다. 위층이 끼어드는 자리는 전부 이 층의 인터페이스 6개다.
+' 점선 삼각형 = 위층 클래스가 이 층 인터페이스를 구현 (역방향 의존을 뒤집은 지점)
+title 1층 Actor — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "1 Actor (Entities)" {
+  class Entity <<MonoBehaviour>> {
+    + Physics : Physics
+    + Combat : Combat
+    + StateMachine : StateMachine
+    + Control : IControl
+    + Faction : Faction
+    + SetControl(control : IControl)
+    + Drive(command : Command, dir : Vector3)
+    + ForceIdle()
+    + ForceDead()
+  }
+  class Physics <<MonoBehaviour>> {
+    + GroundPosition : Vector3
+    + Height : float
+    + Facing : Vector3
+    + SupportY : float
+    + Move(dir, speed)
+    + AddImpulse(dir, force)
+    + AddLaunch(force)
+    + Teleport(groundPoint)
+  }
+  class Combat <<MonoBehaviour>> {
+    + Owner : Entity
+    + IsDead : bool
+    + Attack(target : IHittable, hit : HitData) : bool
+    + Hit(hit : HitData, attacker : Combat) : bool
+    + TakeDamage(damage : DamageData)
+  }
+  class Attack <<MonoBehaviour>> {
+    + Begin(data : HitData, vfx : SkillVfx)
+  }
+  class Projectile <<MonoBehaviour>>
+  class EntityAnimator <<MonoBehaviour>> {
+    + PlayState(stateName : string, duration : float)
+    + SetSkillClip(clip : AnimationClip)
+    + HoldSkillPose()
+  }
+  abstract class EntityState {
+    # Entity : Entity
+    # Physics : Physics
+  }
+  class "Idle · Move · Jump · Attack · Hit · Stun\nFrozen · AirBound · AerialHit · Down · Getup · Dead" as States
+  class StatusEffects
+  class CombatEvents <<static>> {
+    + OnAnyHitLanded : event
+    + OnParried : event
+    + OnAnyDamageDealt : event
+  }
+  class BattleRegistry <<static>> {
+    + Allies : IReadOnlyList<Entity>
+    + Enemies : IReadOnlyList<Entity>
+    + NearestEnemy(pos) : Entity
+    + PickEnemy(pos, pick) : Entity
+  }
+  class EffectUtil <<static>> {
+    + AreaStrike(center, radius, attacker, hit, style) : int
+    + BoxStrike(…) : int
+    + ConeStrike(…) : int
+    + EnemiesInRadius(center, radius) : int
+  }
+  class GroundRegistry <<static>> {
+    + Register(plate : IGroundPlate)
+    + HeightAt(point, fallback) : float
+    + Supports(point) : bool
+  }
+  class AttackRangePreview <<struct>> {
+    + center : Vector3
+    + {static} FromCircle / FromCone / FromBox
+    .. 곧 때릴 자리의 바닥 발자국 ..
+  }
+  class BattleVfxSink <<static>> {
+    + Current : IBattleVfx
+  }
+
+  interface IHittable {
+    + Hit(hit : HitData, attacker : Combat) : bool
+  }
+  interface IDamageable {
+    + TakeDamage(damage : DamageData)
+  }
+  interface IControl {
+    + enabled : bool
+    + Tick(dt : float)
+  }
+  interface IAnimatedState {
+    + Animate(animator : EntityAnimator)
+  }
+  interface IGroundPlate {
+    + Rect : GroundRect
+  }
+  interface IBattleVfx {
+    + Cast(ground, radius, style : SkillVfx)
+    + Impact(ground, height, facing, radius, style : SkillVfx)
+    + WallBounce(ground, height, normal, radius)
+  }
+}
+
+Entity *--> Physics
+Entity *--> Combat
+Entity o--> IControl : Control
+Entity ..> EntityState
+EntityState <|-- States
+Combat ..|> IHittable
+Combat ..|> IDamageable
+Attack ..> IHittable : 적중
+Attack ..> BattleVfxSink : 파편
+Combat ..> BattleVfxSink : 벽 바운드
+EffectUtil ..> BattleVfxSink
+Projectile ..> EffectUtil : 폭발
+EffectUtil ..> AttackRangePreview : 같은 모양
+Physics ..> GroundRegistry : 바닥 높이
+GroundRegistry o--> "*" IGroundPlate
+BattleVfxSink o--> IBattleVfx
+EntityAnimator ..> IAnimatedState : 있으면 맡김
+
+package "위층 구현체" #F5F5F5 {
+  class "Control" as Control_Agent <<3 Agent>>
+  class "AssistReadyState\nAssistMoveState" as AssistStates <<3 Agent>>
+  class "SkillState" as SkillState_Skill <<2 Skill>>
+  class "GroundPlate" as GroundPlate_Stage <<4 Stage>>
+  class "BattleVfx.Sink" as Sink_Vfx <<10 Vfx>>
+}
+
+Control_Agent ..|> IControl
+AssistStates ..|> IAnimatedState
+SkillState_Skill ..|> IAnimatedState
+GroundPlate_Stage ..|> IGroundPlate
+Sink_Vfx ..|> IBattleVfx
+
+note right of BattleVfxSink
+  Vfx가 BeforeSceneLoad에 구현을 꽂는다
+  (BattleVfx.InstallSink).
+  에디터 로드 때도 꽂는다(InitializeOnLoadMethod).
+  비어 있으면 연출 없음.
+end note
+@enduml

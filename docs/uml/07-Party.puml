@@ -1,0 +1,64 @@
+@startuml 07-Party
+' 4.5층 Party — 파티 조합 데이터와 그 규칙. 순수 데이터 층이다.
+' 몸을 실제로 세우는 PartyAssembler는 전투 씬 일이라 6 Tactic(Battle)에 있다.
+title 4.5층 Party — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "4.5 Party" {
+  class PartyLoadout <<ScriptableObject>> {
+    + {static} MaxMembers
+    + loadoutName : string
+    + hero : PlayerData
+    + members : PartyMemberData[]
+    + FilledCount : int
+    + {static} CreateRuntime(picked, label) : PartyLoadout
+  }
+  class PartyCatalog <<static>> {
+    + AllMembers() : IReadOnlyList<PartyMemberData>
+    + AllHeroes() : IReadOnlyList<PlayerData>
+    + All() : IReadOnlyList<PartyLoadout>
+    + Default() : PartyLoadout
+    .. Resources.LoadAll ..
+  }
+  class PartyAssembleRules <<static>> {
+    + Resolve(loadout, slotCount) : PartyMemberData[]
+    + IsValid(member, out reason) : bool
+    + RolesOf(…) : List<Role>
+    + CardCount(…) : int
+    + Toggle(party, member, max) : bool
+    + DuplicateRoles(party) : List<Role>
+  }
+  class PartySpawnPoint <<MonoBehaviour>> {
+    + Ground : Vector3
+    + Facing : Vector3
+    + {static} Resolve(out ground, out facing)
+  }
+}
+
+package "3 Agent (Characters/Data)" #F5F5F5 {
+  class PlayerData <<ScriptableObject>>
+  class PartyMemberData <<ScriptableObject>>
+}
+
+PartyLoadout --> PlayerData : hero
+PartyLoadout o--> "0..4" PartyMemberData : members
+PartyCatalog ..> PartyLoadout
+PartyCatalog ..> PartyMemberData
+PartyCatalog ..> PlayerData
+PartyAssembleRules ..> PartyLoadout
+PartyAssembleRules ..> PartyMemberData
+
+package "쓰는 쪽 (위층)" #FFF8E1 {
+  class "RunProgression · NodeRules" as Run <<5 Run>>
+  class "PartyAssembler" as Assembler <<6 Tactic>>
+  class "PartySelectUI · GameManager" as App <<9 App>>
+}
+Run ..> PartyLoadout
+Assembler ..> PartyAssembleRules
+Assembler ..> PartySpawnPoint
+App ..> PartyCatalog
+@enduml

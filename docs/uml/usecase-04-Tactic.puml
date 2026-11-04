@@ -1,0 +1,61 @@
+@startuml usecase-04-Tactic
+' ④ 불릿타임 콤보 — 시간 정지 · 카드 배치 · 조준 · 실행 · 어시스트
+title ④ 불릿타임 콤보 — 유스케이스
+
+left to right direction
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+actor "동료\n(어시스트)" as Ally <<시스템>>
+actor "게임 시스템" as GameSys <<시스템>>
+
+rectangle "불릿타임 콤보 (Battle · Deck · Skill)" {
+  usecase "불릿타임 진입 (E)\n(BulletTimeController · TacticGauge)" as UC_Enter
+  usecase "손패 드로우\n(Deck · CardSupply)" as UC_Draw
+  usecase "카드 골라 슬롯 순서 정하기\n(ComboBoardUI · HandFanLayout)" as UC_Order
+  usecase "시전 위치 조준\n(TargetSelector · SkillState.Aim)" as UC_Aim
+  usecase "넉백 결과 미리보기\n(KnockbackPreview · Indicators)" as UC_Preview
+  usecase "헛침 경고\n(EffectUtil.EnemiesInRadius)" as UC_Whiff
+  usecase "콤보 실행 (E)\n(ComboExecutor · CastDirector)" as UC_Exec
+  usecase "동료 등장 · 시전 · 퇴장\n(AssistManager · AssistControlModule)" as UC_Assist
+  usecase "스킬 시전 — 효과 적용\n(SkillState.Fire · ISkillEffect)" as UC_Cast
+  usecase "스킬 컷인 연출\n(SkillCutinUI)" as UC_Cutin
+  usecase "콤보 강화 판정\n(CombatStateRules.CanChain)" as UC_Chain
+  usecase "불릿타임 해제\n(TimeControl.Scale)" as UC_Exit
+  usecase "자동 카드 발동\n(BasicAttackProcRoller)" as UC_Proc
+  usecase "게이지 충전\n(TacticGauge 보상 규칙)" as UC_Gauge
+}
+
+Player --> UC_Enter
+Player --> UC_Order
+Player --> UC_Aim
+Player --> UC_Exec
+
+UC_Enter .> UC_Draw : <<include>>
+UC_Aim .> UC_Preview : <<include>>
+UC_Whiff .> UC_Aim : <<extend>>
+UC_Exec .> UC_Cast : <<include>>
+UC_Exec .> UC_Exit : <<include>>
+UC_Cast .> UC_Chain : <<include>>
+UC_Cutin .> UC_Cast : <<extend>>
+
+UC_Assist <-- Ally
+UC_Cast .> UC_Assist : <<include>>
+
+UC_Proc <-- GameSys
+UC_Gauge <-- GameSys
+UC_Proc .> UC_Cast : <<include>>
+
+note bottom of UC_Proc
+  평타 적중마다 굴린다. 장기 평균 25%,
+  실패할수록 다음 확률이 오르고 성공하면 초기화.
+  불릿타임 없이 동료가 바로 시전한다.
+end note
+
+note bottom of UC_Enter
+  진입과 실행이 같은 키(E).
+  시간은 TimeControl.Scale = 0 —
+  Time.timeScale은 쓰지 않는다.
+end note
+@enduml

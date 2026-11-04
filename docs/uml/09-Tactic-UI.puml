@@ -1,0 +1,90 @@
+@startuml 09-Tactic-UI
+' 6층 Tactic — 전투 씬 UI. 대부분 코드로 캔버스를 짓는다(씬 배선 없음).
+title 6층 Tactic — 클래스 다이어그램 (전투 UI)
+
+set separator none
+left to right direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "6 Tactic — UI" {
+  class ComboBoardUI <<MonoBehaviour>> {
+    .. 손패 · 슬롯 · 게이지 · 조준 HUD ..
+    .. partial: ComboBoardUI.Input (카드 집기 · 놓기 · 조준) ..
+  }
+  class HandFanLayout <<static>> {
+    + CardWidth · CardHeight · StepAngle
+  }
+  class HandBoardLayout <<static>>
+  class CardPoseAnimator <<static>> {
+    + Step(cur, target, dt) : CardPose
+  }
+  class CardPose <<struct>>
+  class BulletTimeGaugeWidget {
+    + ShownRatio : float
+  }
+  class SkillCutinUI <<MonoBehaviour>> {
+    + Duration : float
+    + SlideIn · Hold · SlideOut
+  }
+  class LevelUpSession <<MonoBehaviour>> {
+    + {static} IsOpen : bool
+    + {static} RequestOpen()
+    .. AllWavesCleared → 정산 후 열기 ..
+    .. GameplayModal에 등록 ..
+  }
+  class DeckBuilderUI <<MonoBehaviour>> {
+    + {static} IsOpen : bool
+    + {static} RequestOpen(owner, pool)
+    .. 개발용 — 합성 · 황금 시험 ..
+  }
+  class DeckInspectorUI <<MonoBehaviour>>
+  class PartyHealthHUD <<MonoBehaviour>>
+  class RecentHitEnemyHUD <<MonoBehaviour>> {
+    + CurrentTarget : Combat
+    + Track(attacker, target)
+  }
+  class ComboDamageHUD <<MonoBehaviour>> {
+    + Meter : ComboMeter
+  }
+  class ComboMeter {
+    + Hits : int
+    + Damage : float
+  }
+  class RebindUI <<MonoBehaviour>> {
+    + Open() / Close()
+  }
+  class StageResultUI <<MonoBehaviour>> {
+    + {static} Create(owner : Component)
+    + ShowExitArrow(label)
+    + ShowAllClear(menu)
+    + ShowDefeat(retry, menu)
+  }
+  class BattleRestartUI <<MonoBehaviour>> {
+    + {static} Create<T : Component, IStageRestarter>(owner)
+    + SetVisible(value)
+  }
+  class TrainingDummy <<MonoBehaviour>> {
+    .. 훈련장 DPS 측정 ..
+  }
+}
+
+ComboBoardUI ..> "BulletTimeController" : 페이즈 · 손패
+ComboBoardUI ..> "TargetSelector" : 조준
+ComboBoardUI ..> "PlayerInputController (1.5)" : Navigate · Aim
+ComboBoardUI ..> HandFanLayout
+ComboBoardUI ..> HandBoardLayout
+ComboBoardUI ..> CardPoseAnimator
+ComboBoardUI *--> BulletTimeGaugeWidget
+CardPoseAnimator ..> CardPose
+SkillCutinUI ..|> "ISkillCutin"
+LevelUpSession ..> "BulletTimeController" : GrantCard
+LevelUpSession ..> "CardOfferRules · CardOfferView (5)"
+LevelUpSession ..> "ExpRewards (5)" : Settle
+DeckBuilderUI ..> "BulletTimeController"
+ComboDamageHUD *--> ComboMeter
+RecentHitEnemyHUD ..> "EliteMarkRules (4)"
+RebindUI ..> "RebindManager (1.5)"
+BattleRestartUI o--> "IStageRestarter"
+@enduml

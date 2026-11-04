@@ -1,0 +1,141 @@
+@startuml 11-Vfx
+' 10층 Presentation — Vfx. 맨 위 표현층. 아무도 이 폴더를 직접 부르지 않는다.
+' 아래층이 내놓은 인터페이스(IBattleVfx · ISkillFx)를 구현하고 이벤트(Enemy.Created)를 구독해 붙는다.
+' 본게임에서 연출을 갈아 끼울 때 바꾸는 곳이 이 폴더 하나다.
+title 10층 Vfx — 클래스 다이어그램
+
+set separator none
+left to right direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "아래층이 내놓은 자리" #F5F5F5 {
+  interface "IBattleVfx (1)" as IBattleVfx
+  class "BattleVfxSink (1)" as BattleVfxSink <<static>>
+  interface "ISkillFx (2)" as ISkillFx
+  interface "ISkillFxFactory (2)" as ISkillFxFactory
+  class "SkillFxSink (2)" as SkillFxSink <<static>>
+  class "Enemy.Created (3)" as EnemyCreated <<event>>
+}
+
+package "10 Vfx" {
+  package "전투 스프라이트" as PSprite {
+    class BattleVfx <<static>> {
+      + Enabled : bool
+      + Cast(ground, radius, style)
+      + Impact(ground, height, facing, radius, style)
+      + WallBounce(ground, height, normal, radius)
+    }
+    class "BattleVfx.Sink" as BattleSink
+    class VfxRunner <<MonoBehaviour>> {
+      + {static} Instance
+      + SpawnSprite(clip, ground, height, facing, size, tint)
+    }
+    class VfxSprite <<MonoBehaviour>> {
+      + Play(clip, …)
+    }
+    class VfxLibrary <<ScriptableObject>> {
+      + impact · shock · cast · wall : VfxClip
+      + {static} Get()
+    }
+  }
+
+  package "스킬 전용 연출" as PSkillFx {
+    abstract class SkillFx {
+      + {static} SizeScale : float
+      + {static} Create(data, ctx) : SkillFx
+      + {static} HideRenderers(go)
+      + OnCast() / Tick(t) / OnHit(i) / Release()
+      + HidesProjectile : bool
+    }
+    class "SkillFx.Factory" as FxFactory
+    class "SlashVFX · SpinSlashVFX · FrostFieldVFX\nFlashSlashVFX · ComboSlashVFX · HookChainVFX\nChainBindVFX · MagicMissileVFX · ManaRiftVFX\nShoulderChargeVFX · ManaSpearVFX" as FxComponents <<MonoBehaviour>>
+  }
+
+  package "적 · 상태 표시" as PEnemy {
+    class EnemyStateTint <<MonoBehaviour>> {
+      + BaseColor : Color
+      + Body : SpriteRenderer
+      + Apply(state : CombatState)
+      .. Enemy.Created 구독 → 스스로 부착 ..
+    }
+    class EnemyStateLabel <<MonoBehaviour>>
+    class EliteAura <<MonoBehaviour>>
+    class ChargeGauge <<MonoBehaviour>>
+    class StatusEffectBar <<MonoBehaviour>>
+    class StatusEffectVisuals <<static>> {
+      + Label(kind) : string
+      + StatusColor(kind) : Color
+      + Collect(combat, into) : int
+    }
+    class CombatStateVisuals <<static>>
+  }
+
+  package "조준 · 범위 표시" as PAim {
+    abstract class GroundShapeIndicator <<MonoBehaviour>>
+    class AttackRangeIndicator
+    class SkillRangeIndicator
+    class RangeIndicator <<MonoBehaviour>>
+    class KnockbackIndicator <<MonoBehaviour>>
+  }
+
+  package "화면 가장자리 마커" as PMarker {
+    interface IMarkerSource {
+      + Collect(into : List<MarkerRequest>)
+    }
+    class MarkerRequest <<struct>> {
+      + ground · height · glyph · color
+    }
+    class MarkerLayer <<MonoBehaviour>>
+    class WorldMarker <<MonoBehaviour>> {
+      + Draw(req, drawX)
+    }
+    class MarkerRules <<static>> {
+      + ClampToEdge(…) : float
+    }
+    class ControlledCharacterArrow <<MonoBehaviour>>
+  }
+}
+
+BattleSink ..|> IBattleVfx
+BattleSink ..> BattleVfx
+BattleVfx ..> BattleVfxSink : InstallSink (BeforeSceneLoad · 에디터 로드)
+BattleVfx ..> VfxRunner
+BattleVfx ..> VfxLibrary
+VfxRunner *--> "*" VfxSprite : 풀
+VfxRunner ..> RangeIndicator : 함께 생성
+VfxRunner ..> KnockbackIndicator : 함께 생성
+
+SkillFx ..|> ISkillFx
+FxFactory ..|> ISkillFxFactory
+FxFactory ..> SkillFx : Create
+SkillFx ..> SkillFxSink : InstallFactory
+SkillFx ..> FxComponents : 종류별 하위 연출이 구동
+
+EnemyStateTint ..> EnemyCreated : 구독
+StatusEffectBar ..> StatusEffectVisuals
+EnemyStateLabel ..> CombatStateVisuals
+EliteAura ..> "EliteMarkRules (4)"
+
+GroundShapeIndicator <|-- AttackRangeIndicator
+GroundShapeIndicator <|-- SkillRangeIndicator
+GroundShapeIndicator ..> "AttackRangePreview (1)" : 그릴 모양
+AttackRangeIndicator ..> "IEnemySpecialAction (3)" : 적 특수기 예고
+SkillRangeIndicator ..> "SkillState · Installation (2)" : 스킬 · 장판 범위
+RangeIndicator ..> "TargetSelector (6)" : 조준 커서
+KnockbackIndicator ..> "TargetSelector (6)"
+KnockbackIndicator ..> "KnockbackPreview (2)"
+
+MarkerLayer ..> IMarkerSource : 매 프레임 수집
+MarkerLayer *--> "*" WorldMarker
+ControlledCharacterArrow ..|> IMarkerSource
+IMarkerSource ..> MarkerRequest
+WorldMarker ..> MarkerRules
+
+' 하위 패키지 순서 (넓은 그림이 PNG 폭 4096 한도에 걸리지 않게)
+PSprite -[hidden]down- PSkillFx
+PSkillFx -[hidden]down- PEnemy
+PEnemy -[hidden]down- PAim
+PAim -[hidden]down- PMarker
+@enduml

@@ -1,0 +1,186 @@
+@startuml 06-Stage
+' 4층 Stage — 방 · 구간 · 웨이브 · 스폰 · 클리어 판정 · 카메라 경계.
+' 위층(Run · Tactic · App)은 IStageContext로 조건을 넘겨주고, 이벤트 두 개로 결과를 받는다.
+title 4층 Stage — 클래스 다이어그램
+
+set separator none
+left to right direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "4 Stage" {
+  package "흐름" as PFlow {
+    abstract class StageProgressSource <<MonoBehaviour>> {
+      + ThreatsRemaining : bool
+      + HasSpawnedAny : bool
+    }
+    class StageDirector {
+      + {static} AnyWaveCleared : event Action
+      + {static} AllWavesCleared : event Action
+      .. 웨이브 진행 · 증원 · 소탕 판정 ..
+    }
+    class StageWaveBoard <<MonoBehaviour>> {
+      + Encounters : IReadOnlyList<StageEncounter>
+      + WaveCount : int
+      + WaveAt(index) : WaveAsset
+      + SpawnPoints : IReadOnlyList<SpawnPointBinding>
+    }
+    class StageEncounter <<struct>> {
+      + content : WaveAsset
+      + trigger : EncounterTrigger
+      + site : EncounterSite
+      + GapSeconds : float
+    }
+    class WaveAsset <<ScriptableObject>> {
+      + spawns : WaveSpawnEntry[]
+      + advance : WaveAdvance
+      + reinforceRole : EnemyRole
+      + AttackTokens : int
+    }
+    class WaveSpawnEntry <<struct>> {
+      + role : EnemyRole
+      + elite : bool
+      + origin · motion · side · wall
+      + AppearAt : float
+    }
+    class EncounterModifier <<struct>> {
+      + EliteEvery : int
+      + RoomPercent : int
+      + {static} None
+    }
+    class EncounterModifierRules <<static>> {
+      + EliteNodeEvery = 3
+      + IsElite(authored, role, ordinal, modifier) : bool
+    }
+    class EncounterClearRules <<static>> {
+      + Threats(census) : int
+      + IsCleared(census, advance) : bool
+    }
+    class StageOutcomeRules <<static>> {
+      + Evaluate(aliveEnemies, allAlliesDead, …) : StageOutcome
+      + PartyWiped(…) : bool
+    }
+    interface IStageContext {
+      + HasNode : bool
+      + NodeModifier : EncounterModifier
+    }
+    class StageContext <<static>> {
+      + Current : IStageContext
+    }
+  }
+
+  package "스폰" as PSpawn {
+    class EnemySpawnService <<MonoBehaviour>> {
+      + Configure(melee, charger, ranged, boss)
+      + Spawn(role, elite, motion, place) : Enemy
+      + SpawnFromWall / SpawnFromGround / SpawnAtEdge
+    }
+    class WaveSpawnPlanner <<static>>
+    class ArenaSpawnPlanner <<static>>
+    class SpawnPlacement <<struct>> {
+      + spawnPoint · entryPoint : Vector3
+      + appearAt · telegraphAt : float
+      + wall : SpawnWall
+    }
+    class "EnemySpawnGuard · SpawnBurrow · SpawnTelegraph" as SpawnFx <<MonoBehaviour>>
+    class EntranceDirector <<static>> {
+      + PlanEntry / PlanBurrow / PlanExit : EntranceSpec
+      + Play(body, spec) : EntrancePlayer
+    }
+    class EliteMarkRules <<static>> {
+      + ObjectName(id, elite) : string
+      + HudName(name, elite) : string
+      + AuraColor : Color
+    }
+  }
+
+  package "공간" as PSpace {
+    class StageRoom <<MonoBehaviour>> {
+      + Room : RoomRect
+      + Percent : int
+      + {static} ResolveRequest(ctx : IStageContext, debug, out source) : int
+      + Apply(requested)
+    }
+    class RoomRect <<struct>>
+    class RoomRules <<static>> {
+      + FullPercent = 100
+      + Normalize(percent) : int
+    }
+    class StageRunner <<MonoBehaviour>> {
+      + Sections : IReadOnlyList<StageSection>
+      + CurrentSection : int
+    }
+    class StageSection <<struct>> {
+      + kind : SectionKind
+      + minX · maxX : float
+    }
+    class EncounterSite <<MonoBehaviour>> {
+      + CloseGates()
+      + OpenExit()
+    }
+    class ArenaGate <<MonoBehaviour>> {
+      + Close() / Open()
+      + IsOpen : bool
+    }
+    class StageBounds <<MonoBehaviour>> {
+      + {static} Instance
+      + CameraMin · CameraMax : float
+      + SwitchTo(min, max)
+    }
+    class CameraFollow <<MonoBehaviour>> {
+      + SetTarget(t)
+    }
+    class CameraAnchor <<MonoBehaviour>>
+    class CameraFrameRules <<static>> {
+      + ClampToSection(…) : float
+      + ApplyDeadZone(…) : float
+    }
+    class GroundPlate <<MonoBehaviour>> {
+      + Rect : GroundRect
+    }
+  }
+}
+
+StageDirector --|> StageProgressSource
+StageDirector --> StageWaveBoard
+StageDirector --> EnemySpawnService
+StageDirector ..> StageContext : 보정 읽기
+StageDirector ..> EncounterClearRules
+StageDirector ..> EncounterModifierRules
+StageWaveBoard *--> "*" StageEncounter
+StageEncounter --> WaveAsset
+StageEncounter --> EncounterSite
+WaveAsset *--> "*" WaveSpawnEntry
+StageContext o--> IStageContext
+IStageContext ..> EncounterModifier
+EnemySpawnService ..> SpawnPlacement
+EnemySpawnService ..> SpawnFx
+EnemySpawnService ..> EliteMarkRules
+EnemySpawnService ..> "Enemy (3)" : 생성
+WaveSpawnPlanner ..> SpawnPlacement
+ArenaSpawnPlanner ..> SpawnPlacement
+StageRoom ..> StageContext : 방 크기
+StageRoom *--> RoomRect
+StageRoom ..> RoomRules
+StageRunner *--> "*" StageSection
+StageRunner --> StageBounds
+EncounterSite --> "2" ArenaGate
+CameraFollow ..> StageBounds
+CameraFollow ..> CameraFrameRules
+CameraAnchor ..> CameraFrameRules
+GroundPlate ..|> "IGroundPlate (1)"
+
+note right of StageDirector
+  AnyWaveCleared → CastDirector(6)가 남은 시전 회수
+  AllWavesCleared → LevelUpSession(6)이 정산 후 레벨업 창
+end note
+note bottom of IStageContext
+  구현: GameManager (9 App).
+  비어 있으면 씬 단독 재생 — 보정 없음.
+end note
+
+' 하위 패키지 순서 (넓은 그림이 PNG 폭 4096 한도에 걸리지 않게)
+PFlow -[hidden]down- PSpawn
+PSpawn -[hidden]down- PSpace
+@enduml

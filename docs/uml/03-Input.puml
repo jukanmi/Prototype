@@ -1,0 +1,78 @@
+@startuml 03-Input
+' 1.5층 Input — 장치 입력. 게임 규칙을 모른다 (Kernel · Actor만 참조).
+' 디바이스(Keyboard.current 등)를 만지는 곳은 이 폴더뿐이다 — InputSourceTests가 막는다.
+title 1.5층 Input — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "1.5 Input" {
+  class PlayerInputController <<MonoBehaviour>> {
+    + {static} Instance : PlayerInputController
+    + Actions : InputActionAsset
+    + Move : Vector2
+    + AttackPressed / JumpPressed / DashPressed : bool
+    + BulletTimePressed / UniqueSkillPressed : bool
+    + NavigateStep : Vector2Int
+    + Aim : Vector2
+    + ConsumeJumpPress()
+  }
+  class RebindManager {
+    + IsListening : bool
+    + LastConflictLabel : string
+    + Begin(action, bindingIndex, onFinish)
+    + Abort()
+    + ApplyPreset(preset : KeyBindingPreset) : int
+    + ResetAll()
+    + Save()
+    + {static} Load(actions)
+  }
+  enum "RebindManager.Result" as RebindResult
+  class InputRebindRules <<static>> {
+    + IsRebindableAction(action) : bool
+    + CanFireTogether(a, b) : bool
+    + TryFindConflict(actions, …) : bool
+  }
+  class KeyBindingPreset <<ScriptableObject>> {
+    + DisplayName : string
+    + Entries : Entry[]
+    + ApplyTo(actions) : int
+  }
+  class "KeyBindingPreset.Entry" as PresetEntry <<struct>> {
+    + map / action / part / path : string
+  }
+  class InputActionNames <<static>> {
+    Gameplay · BulletTime
+    BulletTimeSkillShot · UI
+  }
+  class InputDisplayNames <<static>> {
+    + Map(name) / Action(name) : string
+    + Binding(action, index) : string
+  }
+  class InputBindingUtility <<static>> {
+    + RebindableIndices(action)
+    + FindAction(actions, map, action)
+  }
+}
+
+PlayerInputController ..> InputActionNames : 액션 이름
+PlayerInputController ..> RebindManager : Load (PlayerPrefs)
+RebindManager ..> InputRebindRules : 충돌 검사
+RebindManager ..> KeyBindingPreset : ApplyPreset
+RebindManager +-- RebindResult
+KeyBindingPreset *--> PresetEntry
+InputDisplayNames ..> InputBindingUtility
+
+package "읽는 쪽 (위층)" #F5F5F5 {
+  class "PlayerPilot" as Pilot <<3 Agent>>
+  class "InputMapSwitcher" as Switcher <<6 Tactic>>
+  class "ComboBoardUI · TargetSelector" as TacticUI <<6 Tactic>>
+  class "RebindUI" as RebindUI <<6 Tactic>>
+}
+Pilot ..> PlayerInputController : Instance
+Switcher ..> PlayerInputController : 맵 여닫기
+TacticUI ..> PlayerInputController : Instance
+RebindUI ..> RebindManager
+@enduml

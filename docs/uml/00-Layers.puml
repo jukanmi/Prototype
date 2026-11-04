@@ -1,0 +1,87 @@
+@startuml 00-Layers
+' 층 구조 — 위층이 아래층만 참조한다. 역방향 의존 0 (2026-10-16).
+' 아래층이 위층에 일을 맡기는 자리는 전부 인터페이스(<<interface>>)나 이벤트다 — 오른쪽 목록.
+title Prototype 모듈 층 (0 = 맨 아래) — 역방향 0
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam package {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+
+package "10 Presentation" as L10 {
+  [Vfx]
+}
+package "9 App" as L9 {
+  [FlowScene]
+}
+package "6 Tactic" as L6 {
+  [Battle]
+  [Deck]
+}
+package "5 Run (데이터)" as L5 {
+  [Progression]
+}
+package "4.5 Party (데이터)" as L45 {
+  [Party]
+}
+package "4 Stage" as L4 {
+  [Stage]
+}
+package "3 Agent" as L3 {
+  [Characters]
+  [Control]
+  [AI]
+}
+package "2 Skill" as L2 {
+  [Skill]
+}
+package "1.5 Input (장치)" as L15 {
+  [Input]
+}
+package "1 Actor" as L1 {
+  [Entities]
+}
+package "0 Kernel" as L0 {
+  [Core]
+  [Stats]
+  [StateMachine]
+}
+
+L10 -down-> L9
+L9 -down-> L6
+L6 -down-> L5
+L5 -down-> L45
+L45 -down-> L4
+L4 -down-> L3
+L3 -down-> L2
+L2 -down-> L15
+L15 -down-> L1
+L1 -down-> L0
+
+legend right
+  <b>아래층이 위층을 부르는 자리 — 전부 뒤집었다</b>
+  ..
+  <b>인터페이스 (아래층에 두고 위층이 구현)</b>
+  1 IHittable · IDamageable ← Combat
+  1 IControl ← Control
+  1 IAnimatedState ← SkillState · AssistReady/MoveState
+  1 IGroundPlate ← GroundPlate
+  1 IBattleVfx (+BattleVfxSink) ← BattleVfx
+  2 ISkillFx · ISkillFxFactory (+SkillFxSink) ← SkillFx
+  2 ITauntable ← EnemyControl
+  4 IStageContext (+StageContext) ← GameManager
+  5 IRunHost (+RunHost) ← GameManager
+  6 IStageRestarter ← BattleSceneController
+  ..
+  <b>이벤트 (아래층이 쏘고 위층이 구독)</b>
+  3 Enemy.Created → EnemyStateTint 부착
+  3 Enemy.Defeated → ExpRewards 적립
+  4 StageDirector.AnyWaveCleared → CastDirector 회수
+  4 StageDirector.AllWavesCleared → LevelUpSession 정산 · 열기
+  ..
+  <b>등록</b>
+  0 GameplayModal.Register ← LevelUpSession · DeckBuilderUI
+endlegend
+@enduml

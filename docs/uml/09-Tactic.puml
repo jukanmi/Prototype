@@ -1,0 +1,198 @@
+@startuml 09-Tactic
+' 6층 Tactic — Battle · Deck 로직: 불릿타임 상태머신 · 카드 공급 · 콤보 실행 · 시전 감독 · 어시스트.
+' UI는 09-Tactic-UI.puml. 위층(App)은 IStageRestarter로만 연결된다.
+title 6층 Tactic — 클래스 다이어그램 (로직)
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "6 Tactic" {
+  package "불릿타임" {
+    class BulletTimeController <<MonoBehaviour>> {
+      + Phase : TacticPhase
+      + IsActive : bool
+      + Gauge : Energy
+      + Executor : ComboExecutor
+      + Director : CastDirector
+      + OnPhaseChanged / OnEnter / OnExit : event
+      + GrantCard(card, fusedFrom, fuseCount)
+      + SetCastDirector(director)
+    }
+    abstract class TacticState <<private nested>> {
+      + Phase : TacticPhase
+      + Enter() / Tick(dt) / Exit()
+      + OnBulletTimeKey() / OnExecuteKey() : bool
+    }
+    class "RealTimeState · FreezeState\nOrderState · ResolveState" as TacticStates
+    enum TacticPhase {
+      RealTime · Freeze · Order · Resolve
+    }
+    class TacticGauge {
+      .. 게이지 · 쿨타임 · 마나 코스트 ..
+      + Config : Max · Regen · ParryReward
+      BasicHitReward · ManaCost · Cooldown
+    }
+    class TargetSelector <<MonoBehaviour>> {
+      + IsSelecting : bool
+      + Current : SkillData
+      + CursorPoint : Vector3
+      + EnemiesInRange : int
+      + Begin(data) / Confirm() : TargetInfo
+    }
+    class InputMapSwitcher <<MonoBehaviour>> {
+      + Apply()
+      .. 페이즈 · 조준 여부로 입력 맵 여닫기 ..
+    }
+  }
+
+  package "카드 (Deck)" {
+    class CardSupply {
+      + Deck : Deck
+      + Hand : Hand
+      + Discard : Discard
+      + Build(player, mode)
+      + Refill()
+      + Grant(card, fusedFrom, fuseCount)
+    }
+    class CardPile {
+      + Cards : IReadOnlyList<ComboCard>
+      + Add(card) / Clear()
+      + OnChanged : event
+    }
+    class Deck {
+      + Shuffle()
+      + Draw(n, discard) : List<ComboCard>
+    }
+    class Discard
+    class Hand {
+      + Slots : IReadOnlyList<ComboSlot>
+      + IsFull : bool
+      + GetCard(idx) : ComboCard
+    }
+    class ComboSlot <<struct>> {
+      + card : ComboCard
+      + target : TargetInfo
+      + caster : Ally
+    }
+    class BasicAttackProcRoller {
+      + CurrentChance : float
+      + TryRoll(roll) : bool
+    }
+    class BasicAttackDrawRules <<static>> {
+      + DrawChance = 0.25
+    }
+    class DeckRules <<static>> {
+      + TargetSize(party) : int
+    }
+  }
+
+  package "실행 · 어시스트" {
+    class ComboExecutor <<MonoBehaviour>> {
+      + Director : CastDirector
+      + Cutin : ISkillCutin
+      + Stage : ICasterStage
+      + IsRunning : bool
+      + OnExecuteStarted / OnExecuteFinished : event
+    }
+    interface ISkillCutin {
+      + Play(…) : IEnumerator
+    }
+    interface ICasterStage {
+      + Enter(caster) / Exit(caster)
+    }
+    class CastDirector <<MonoBehaviour>> {
+      + IsResolving : bool
+      + Assists : AssistManager
+      + Cast(request, completed) : CastTicket
+      + Resolve(requests, consumed) : IEnumerator
+      + {static} RecallScene()
+      .. StageDirector.AnyWaveCleared 구독 ..
+    }
+    class CastRequest <<struct>> {
+      + Caster : Ally
+      + Skill : SkillData
+      + Target : TargetInfo
+      + DamageScale : float
+      + BulletTime : bool
+    }
+    class CastTicket {
+      + Request : CastRequest
+      + IsDone · WasCancelled : bool
+      + Complete(cancelled)
+    }
+    class AssistManager <<MonoBehaviour>> {
+      + Hero : Player
+      + FormationReady : bool
+      + Initialize(hero)
+      + Recycle(module)
+    }
+    class AssistControlModule {
+      + Phase : AssistPhase
+      + Configure(owner)
+      + Enqueue(ticket)
+    }
+    class "AssistReadyState · AssistMoveState" as AssistStates
+    class PartyAssembler <<MonoBehaviour>> {
+      + Loadout : PartyLoadout
+      + Hero : Player
+      + Members : Ally[]
+    }
+    class TagSwapController <<MonoBehaviour>> {
+      .. 호환 어댑터 — 교대 기능은 삭제됨 ..
+      + Roster · Current
+    }
+    interface IStageRestarter {
+      + RestartStage()
+    }
+  }
+}
+
+BulletTimeController *--> TacticState : 현재 상태
+TacticState <|-- TacticStates
+TacticState --> TacticPhase
+BulletTimeController *--> TacticGauge
+BulletTimeController *--> CardSupply
+BulletTimeController --> ComboExecutor
+BulletTimeController --> TargetSelector
+BulletTimeController --> CastDirector
+BulletTimeController ..> "RunHost (5)" : 덱 시작 방식
+InputMapSwitcher ..> BulletTimeController : Phase
+InputMapSwitcher ..> TargetSelector : IsSelecting
+
+CardSupply *--> Deck
+CardSupply *--> Hand
+CardSupply *--> Discard
+Deck --|> CardPile
+Discard --|> CardPile
+Hand *--> "*" ComboSlot
+CardSupply *--> BasicAttackProcRoller : 자동 카드
+CardSupply ..> "RunProgression (5)" : SeedDeck
+
+ComboExecutor --> CastDirector
+ComboExecutor o--> ISkillCutin
+ComboExecutor o--> ICasterStage
+ComboExecutor ..> ComboSlot : 순서대로 실행
+CastDirector --> AssistManager
+CastDirector ..> CastRequest
+CastDirector ..> CastTicket
+CastTicket --> CastRequest
+AssistManager *--> "*" AssistControlModule : 동료 풀
+AssistControlModule --|> "Control (3)"
+AssistControlModule ..> AssistStates
+AssistControlModule o--> "*" CastTicket : 대기열
+AssistStates ..|> "IAnimatedState (1)"
+AssistControlModule ..> "SkillState (2)" : 시전
+
+PartyAssembler ..> "RunHost (5)" : Loadout
+PartyAssembler ..> "PartyAssembleRules (4.5)"
+
+note bottom of ICasterStage
+  지금 구현체가 없다 (태그 교대 삭제 후 Stage가 비어 있음).
+  이식 전에 지울지 정할 것.
+end note
+note bottom of IStageRestarter
+  구현: BattleSceneController (9 App)
+end note
+@enduml

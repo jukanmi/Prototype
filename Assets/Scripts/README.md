@@ -19,10 +19,10 @@
 ## 폴더
 
 ```
-Core/       Enums, HitData, Interfaces, CombatStateRules, TimeControl, BattleRegistry
+Core/       Enums, HitData, CombatStateRules, TimeControl, WallFinder, SkillVfx, VfxClip
 Stats/      Stat, Energy, Stats, Energies
-StateMachine/  IState, StateMachine, States/EntityStates
-Entities/   Entity, Physics, Combat, Attack, BeltScrollView
+StateMachine/  IState, StateMachine
+Entities/   Entity, Physics, Combat, Attack, BeltScrollView, EntityStates, IHittable, BattleRegistry
 Characters/ Player, Ally, Enemy, EnemyData
 Control/    Control, PlayerControl, EnemyControl, AllyControl
 Skill/      SkillData, SkillState, SkillContext, ISkillEffect, Effects, EffectRunner

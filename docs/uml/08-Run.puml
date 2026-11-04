@@ -1,0 +1,166 @@
+@startuml 08-Run
+' 5층 Run — 런 데이터: 경험치 · 골드 · 덱 · 파티 상태 · 지도 · 카드 제안 규칙.
+' 런의 주인(GameManager · 9 App)은 IRunHost로만 보인다.
+title 5층 Run (Progression) — 클래스 다이어그램
+
+set separator none
+left to right direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "5 Run (Progression)" {
+  package "런 상태" as PState {
+    class RunProgression {
+      + {static} Current : RunProgression
+      + Exp · Level · Gold : int
+      + Cards : IReadOnlyList<ComboCard>
+      + Party : PartyState
+      + Seeded : bool
+      + OnChanged : event Action
+      + BankExp(amount) / SettleExp() : int
+      + SeedDeck(cards)
+      + PurgeRole(role) : int
+    }
+    class PartyState {
+      + HeroHpRatio : float
+      + IsDead(member) : bool
+      + HpRatioOf(member) : float
+      + DeadCount : int
+    }
+    interface IRunHost {
+      + Run : RunProgression
+      + DeckStartupMode : DeckStartupMode
+      + Loadout : PartyLoadout
+    }
+    class RunHost <<static>> {
+      + Current : IRunHost
+    }
+    enum DeckStartupMode {
+      Party · Pick · Empty
+    }
+  }
+
+  package "규칙" as PRules {
+    class ExpRules <<static>> {
+      + TierCount · BaseCost · LevelGrowth
+      + GoldenDamageMul = ComboCard.GoldenDamageMul
+      + CostOf(level, tier) : int
+    }
+    class ExpRewards <<static>> {
+      + Award(enemy)
+      + Settle()
+      .. Enemy.Defeated 구독 ..
+    }
+    class GoldRules <<static>> {
+      + CardPrice · GoldenCardPrice
+      + StageClearReward(floor, kind) : int
+      + PriceOf(offer) : int
+    }
+    class NodeRules <<static>> {
+      + RestHealRatio
+      + AvailableRoles(roster, state) : List<Role>
+    }
+    class CardOffer <<struct>> {
+      + data : SkillData
+      + golden : bool
+      + fuses : bool
+    }
+    class CardOfferRules <<static>> {
+      + OfferCount · FuseCopies = 3
+      + Build(pool, …) : List<CardOffer>
+    }
+    class CardGrantRules <<static>> {
+      + Apply(deck, pick) : ComboCard
+      + RemoveNormalCopies(deck, data, count) : int
+    }
+    class CardOfferView {
+      + OnPicked : event Action<int>
+      + Build(parent, slot) / Show(offer)
+      .. 카드 그림 (레벨업 · 상점 공용) ..
+    }
+    class SkillCatalog <<ScriptableObject>> {
+      + Skills : IReadOnlyList<SkillData>
+      + {static} Get() : SkillCatalog
+      + {static} Pool(roles, fallback) : List<SkillData>
+    }
+    class RunEventAsset <<ScriptableObject>> {
+      + title : string
+      + choices : RunEventChoice[]
+    }
+    class RunEventRules <<static>> {
+      + CanChoose(choice, gold) : bool
+      + Apply(choice, run, …) : bool
+    }
+  }
+
+  package "지도" as PMap {
+    class RunMap {
+      + Seed : int
+      + FloorCount : int
+      + NodesOn(floor) : IReadOnlyList<MapNode>
+      + Get(id) : MapNode
+    }
+    class MapNode {
+      + Id · Floor · Column : int
+      + Kind : MapNodeKind
+      + Scene : string
+      + Next : IReadOnlyList<int>
+      + RoomPercent : int
+    }
+    enum MapNodeKind {
+      Battle · Elite · Rest
+      Shop · Event · Boss
+    }
+    class RunMapProgress {
+      + Map : RunMap
+      + Current · Pending : int
+      + CurrentNode : MapNode
+    }
+    class RunMapRecipe <<ScriptableObject>> {
+      + floors : FloorRule[]
+      + TryGenerate(seed, out map, out issues) : bool
+    }
+    class RunMapGenerator <<static>> {
+      + TryGenerate(floors, seed, …) : bool
+    }
+    class RunMapRules <<static>> {
+      + EncounterOf(node) : EncounterModifier
+      + IsBattle(kind) · CanSkipScene(kind)
+      + GetsRoomModifier(kind) : bool
+    }
+  }
+}
+
+RunProgression *--> PartyState
+RunProgression o--> "*" "ComboCard (2)" : Cards
+RunProgression ..> RunHost : Current
+RunHost o--> IRunHost
+IRunHost ..> DeckStartupMode
+IRunHost ..> "PartyLoadout (4.5)"
+ExpRewards ..> RunProgression : BankExp · SettleExp
+ExpRewards ..> "Enemy (3)" : Defeated 구독
+CardOfferRules ..> CardOffer
+CardGrantRules ..> CardOffer
+CardOfferView ..> CardOffer
+GoldRules ..> CardOffer
+SkillCatalog ..> "SkillData (2)"
+RunEventRules ..> RunEventAsset
+RunEventRules ..> RunProgression
+RunMap *--> "*" MapNode
+MapNode --> MapNodeKind
+RunMapProgress --> RunMap
+RunMapRecipe ..> RunMapGenerator
+RunMapGenerator ..> RunMap
+RunMapRules ..> MapNode
+RunMapRules ..> "EncounterModifier (4)"
+
+note bottom of IRunHost
+  구현: GameManager (9 App).
+  비어 있으면 RunProgression.Current는 단독 런을 만든다.
+end note
+
+' 하위 패키지 순서 (넓은 그림이 PNG 폭 4096 한도에 걸리지 않게)
+PState -[hidden]down- PRules
+PRules -[hidden]down- PMap
+@enduml

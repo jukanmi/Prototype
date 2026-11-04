@@ -1,0 +1,52 @@
+@startuml usecase-05-Stage
+' ⑤ 스테이지 · 적 — 웨이브 · 적 행동 · 클리어 · 경험치
+title ⑤ 스테이지 · 적 — 유스케이스
+
+left to right direction
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+actor "적 AI" as EnemyAI <<시스템>>
+actor "보스" as Boss <<시스템>>
+actor "게임 시스템" as GameSys <<시스템>>
+Boss -|> EnemyAI
+
+rectangle "스테이지 · 적 (Stage · AI · Control)" {
+  usecase "방 진입 — 문 잠김\n(StageRoom · ArenaGate)" as UC_Enter
+  usecase "웨이브 스폰\n(StageDirector · EnemySpawnService · WaveAsset)" as UC_Spawn
+  usecase "적 등장 연출\n(EntranceDirector · EnemySpawnGuard)" as UC_Entrance
+  usecase "엘리트 표시\n(EliteMarkRules)" as UC_Elite
+  usecase "적 행동 결정\n(EnemyBrain)" as UC_Brain
+  usecase "공격 순번 받기\n(EnemyAttackTokens · AttackTokenPool)" as UC_Token
+  usecase "근접 · 원거리 · 돌진 공격\n(EnemyControl · Projectile)" as UC_Attack
+  usecase "공격 예고\n(AttackRangePreview · 텔레그래프)" as UC_Telegraph
+  usecase "보스 패턴 실행\n(EnemyPatternAction · BossBrainAsset)" as UC_Pattern
+  usecase "인카운터 클리어 판정\n(EncounterClearRules)" as UC_Clear
+  usecase "문 열림 · 다음 방\n(ArenaGate · StageRunner)" as UC_Open
+  usecase "경험치 획득\n(ExpRewards · ExpRules)" as UC_Exp
+}
+
+Player --> UC_Enter
+
+UC_Enter .> UC_Spawn : <<include>>
+UC_Spawn .> UC_Entrance : <<include>>
+UC_Elite .> UC_Spawn : <<extend>>
+
+UC_Brain <-- EnemyAI
+UC_Brain .> UC_Token : <<include>>
+UC_Attack .> UC_Brain : <<extend>>
+UC_Attack .> UC_Telegraph : <<include>>
+UC_Pattern <-- Boss
+
+UC_Spawn <-- GameSys
+UC_Clear <-- GameSys
+UC_Exp <-- GameSys
+UC_Clear .> UC_Open : <<include>>
+UC_Clear .> UC_Exp : <<include>>
+
+note bottom of UC_Exp
+  경험치가 차면 ② "레벨업 보상 카드 선택"이 열리고,
+  닫혀야 문이 열린다(LevelUpSession).
+end note
+@enduml

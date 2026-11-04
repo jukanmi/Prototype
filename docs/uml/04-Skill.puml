@@ -1,0 +1,134 @@
+@startuml 04-Skill
+' 2층 Skill — 스킬 에셋 · 시전 상태 · 효과 · 카드.
+' Kernel · Actor · Input만 참조. 위층(Agent · Vfx)에 맡길 일은 ITauntable · ISkillFx로 뒤집었다.
+title 2층 Skill — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "2 Skill" {
+  class SkillData <<ScriptableObject>> {
+    + skillName : string
+    + role : Role
+    + requireState / resultState : CombatState
+    + targeting : TargetingType
+    + radius : float
+    + hitDataList : List<HitData>
+    + effects : List<ISkillEffect> <<SerializeReference>>
+    + vfx : SkillVfx
+    + fx : SkillFxKind
+    + animation : AnimationClip
+    + TotalDuration : float
+  }
+  class ComboCard <<Serializable>> {
+    + Data : SkillData
+    + Golden : bool
+    + DamageScale : float
+    + {static} GoldenDamageMul = 1.5
+    + Clone() / AsGolden() : ComboCard
+  }
+  class SkillContext <<struct>> {
+    + data : SkillData
+    + caster / target : Entity
+    + targetInfo : TargetInfo
+    + isBulletTime : bool
+    + damageScale : float
+    + Origin : Vector3
+  }
+  class TargetInfo <<struct>> {
+    + type : TargetingType
+    + point / direction : Vector3
+    + {static} Ground(p) / Dir(d)
+  }
+  class SkillState {
+    + Data : SkillData
+    + IsFinished : bool
+    + Enter() / Tick(dt) / Exit()
+    + Animate(animator)
+    + TryGetRangePreview(out range) : bool
+    .. partial: SkillState.Aim · SkillState.Fire ..
+  }
+  interface ISkillEffect {
+    + Apply(ctx : SkillContext)
+  }
+  interface ILastHitEffect
+  class "PullEffect · AirborneEffect · ShieldEffect\nDamageCutEffect · TauntEffect · LifestealEffect" as Effects
+  class ChargeEffect
+  class Installation <<MonoBehaviour>> {
+    + {static} Place(data, ctx, center) : Installation
+    + {static} Live : IReadOnlyList
+    + Tick(dt)
+    + TryGetRangePreview(out range) : bool
+  }
+  class EffectRunner <<MonoBehaviour>> {
+    + Schedule(duration, revert)
+  }
+  class KnockbackPreview <<static>> {
+    + TryPredict(data, origin, facing, …, out Result) : bool
+    + MovesTarget(data) : bool
+  }
+
+  interface ITauntable {
+    + SetTarget(forced : Entity)
+  }
+  interface ISkillFx {
+    + HidesProjectile : bool
+    + OnCast() / Tick(time)
+    + OnHit(index) / Release()
+  }
+  interface ISkillFxFactory {
+    + Create(data, ctx) : ISkillFx
+    + HideRenderers(go)
+  }
+  class SkillFxSink <<static>> {
+    + Current : ISkillFxFactory
+  }
+  enum SkillFxKind {
+    None · UpwardSlash · SpinSlash · …
+  }
+}
+
+package "아래층 (0 Kernel · 1 Actor)" #F5F5F5 {
+  interface IAnimatedState
+  interface "IState (0)" as IState
+  class BattleVfxSink <<static>>
+  class EffectUtil <<static>>
+  class AttackRangePreview <<struct>>
+}
+
+ComboCard --> SkillData
+SkillData *--> "*" ISkillEffect
+SkillData --> SkillFxKind
+SkillContext --> SkillData
+SkillContext *--> TargetInfo
+SkillState ..|> IState
+SkillState ..|> IAnimatedState
+SkillState --> SkillData
+SkillState *--> SkillContext
+SkillState ..> ISkillEffect : 효과 적용
+SkillState o--> ISkillFx : 시전 연출
+SkillState ..> SkillFxSink : Create
+SkillState ..> BattleVfxSink : Cast
+SkillState ..> EffectUtil : 광역 판정
+SkillState ..> AttackRangePreview : 조준 표시
+SkillState ..> Installation : 장판 설치
+ISkillEffect <|.. Effects
+ILastHitEffect --|> ISkillEffect
+ChargeEffect ..|> ILastHitEffect
+Effects ..> ITauntable : TauntEffect
+Effects ..> EffectRunner : 지속 효과 되돌리기
+SkillFxSink o--> ISkillFxFactory
+ISkillFxFactory ..> ISkillFx
+KnockbackPreview ..> SkillData
+
+package "위층 구현체" #FFF8E1 {
+  class "EnemyControl" as EC <<3 Agent>>
+  class "SkillFx (+ 11종)" as SF <<10 Vfx>>
+  class "SkillFx.Factory" as SFF <<10 Vfx>>
+}
+EC ..|> ITauntable
+SF ..|> ISkillFx
+SFF ..|> ISkillFxFactory
+@enduml

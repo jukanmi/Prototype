@@ -1,0 +1,100 @@
+@startuml 10-App
+' 9층 App — FlowScene: 부트 · 메인메뉴 · 파티 선택 · 런 맵 · 노드 씬 · 전투 씬 흐름.
+' GameManager가 IStageContext(4) · IRunHost(5)를, BattleSceneController가 IStageRestarter(6)를 구현한다.
+' 본게임에서는 이 층을 본게임 흐름으로 갈아 끼우는 자리다.
+title 9층 App — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "9 App (FlowScene)" {
+  class GameManager <<MonoBehaviour>> {
+    + {static} Instance : GameManager
+    + Run : RunProgression
+    + Map : RunMap
+    + Progress : RunMapProgress
+    + Loadout : PartyLoadout
+    + DeckStartupMode : DeckStartupMode
+    + CurrentNode : MapNode
+    + CurrentNodeModifier : EncounterModifier
+    + SelectLoadout(loadout)
+    + IsRunActive : bool
+    .. Awake: StageContext.Current · RunHost.Current = this ..
+  }
+  class SceneLoader <<MonoBehaviour>> {
+    + {static} Instance
+    + IsBusy : bool
+    + SwapTo(load, unload, onComplete)
+    + LoadOnly(scene, onComplete)
+  }
+  class SceneNames <<static>> {
+    Boot · MainMenu · Battle
+    StageMini · StageBoss · Stage01 …
+  }
+  class AudioManager <<MonoBehaviour>> {
+    + {static} Instance
+    + Master · Bgm · SfxVolume
+    .. CombatEvents.OnAnyHitLanded → 타격음 ..
+  }
+  class BootStrapper <<MonoBehaviour>>
+  class MainMenuController <<MonoBehaviour>>
+  class PartySelectUI <<MonoBehaviour>> {
+    + {static} Create(owner)
+    + Picked : IReadOnlyList<PartyMemberData>
+  }
+  class SettingsPanel <<MonoBehaviour>> {
+    + Open() / Close() / Toggle()
+  }
+  class RunMapScreen <<MonoBehaviour>> {
+    + Show(progress, pick : Action<MapNode>)
+  }
+  class RunMapViewRules <<static>> {
+    + Reachable(progress) : HashSet<int>
+    + StateOf(progress, node, reachable)
+  }
+  class RunMapLayout <<static>>
+  class NodeSceneController <<MonoBehaviour>> {
+    + Kind : NodeSceneKind
+    + Events : IReadOnlyList<RunEventAsset>
+  }
+  class NodeWindows <<static>> {
+    + Rest(root, healRatio, onContinue)
+  }
+  class ShopWindow
+  class EventWindow
+  class BattleSceneController <<MonoBehaviour>> {
+    + RestartStage()
+    .. 결과 판정 · 다음 스테이지 · 재시작 · 메인메뉴 ..
+  }
+}
+
+BootStrapper ..> GameManager
+BootStrapper ..> SceneLoader
+MainMenuController ..> PartySelectUI
+MainMenuController ..> SettingsPanel
+MainMenuController ..> SceneLoader
+PartySelectUI ..> "PartyCatalog (4.5)"
+PartySelectUI ..> GameManager : SelectLoadout
+GameManager *--> "RunProgression (5)" : Run
+GameManager *--> "RunMapProgress (5)"
+GameManager --> "PartyLoadout (4.5)"
+GameManager ..|> "IStageContext (4)"
+GameManager ..|> "IRunHost (5)"
+RunMapScreen ..> RunMapViewRules
+RunMapScreen ..> RunMapLayout
+RunMapScreen ..> GameManager
+NodeSceneController ..> NodeWindows
+NodeSceneController ..> ShopWindow
+NodeSceneController ..> EventWindow
+ShopWindow ..> "CardOfferView · GoldRules (5)"
+EventWindow ..> "RunEventRules (5)"
+BattleSceneController ..|> "IStageRestarter (6)"
+BattleSceneController ..> "StageResultUI · BattleRestartUI (6)"
+BattleSceneController ..> "StageOutcomeRules (4)"
+BattleSceneController ..> SceneLoader
+BattleSceneController ..> GameManager
+SceneLoader ..> SceneNames
+AudioManager ..> "CombatEvents (1)"
+@enduml

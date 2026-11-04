@@ -1,0 +1,143 @@
+@startuml 01-Kernel
+' 0층 Kernel — Core · Stats · StateMachine
+' 프로젝트의 다른 폴더를 하나도 참조하지 않는다. (Core → StateMachine은 같은 층 안)
+title 0층 Kernel — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "StateMachine/" as pkgStateMachine {
+  interface IState {
+    + CanBeInterrupted : bool
+    + Enter()
+    + Tick(dt : float)
+    + Exit()
+  }
+  class StateMachine {
+    + CurState : IState
+    + OwnerName : string
+    + OnStateChanged : event Action<IState, IState>
+    + TryChangeState(next : IState) : bool
+    + ForceChangeState(next : IState)
+    + Tick(dt : float)
+  }
+}
+
+package "Stats/" as pkgStats {
+  class Stats {
+    + GetStat(type : StatType) : Stat
+    + GetValue(type : StatType) : float
+    + Set(type : StatType, value : float)
+  }
+  class Stat {
+    + Type : StatType
+  }
+  class Energies {
+    + GetEnergy(type : EnergyType) : Energy
+    + Ensure(type : EnergyType, max : float) : Energy
+  }
+  class Energy {
+    + CurValue : float
+    + MaxValue : float
+    + Ratio : float
+    + OnChanged : event Action<Energy>
+    + TrySpend(cost : float) : bool
+    + Lose(loss : float)
+    + Recover(recovery : float)
+  }
+}
+
+package "Core/" as pkgCore {
+  class HitData <<struct>> {
+    + damage, mode, pushDistance, airborneHeight …
+    + ResolveDirection(casterPos, casterForward, targetPos, wallMask) : Vector3
+    + WithOrigin(origin : Vector3) : HitData
+  }
+  class DamageData <<struct>>
+  class SkillVfx <<struct>> {
+    + custom : bool
+    + impact, shock : Color
+    + scale : float
+    + castClip, hitClip : VfxClip
+    + AsSkill() : SkillVfx
+  }
+  class VfxClip <<ScriptableObject>> {
+    + frames : Sprite[]
+    + fps : float
+    + loops : int
+    + IsValid : bool
+    + FrameAt(t : float) : Sprite
+  }
+  class WallFinder <<static>> {
+    + TryFindDirection(from, wallMask, out dir) : bool
+    + DistanceToWall(from, dir, wallMask) : float
+    + PushDirection(from, wallMask, fallback) : Vector3
+  }
+  class CombatStateRules <<static>> {
+    + Next(cur, hit, airHitCount) : CombatState
+    + CanChain(prev, require) : bool
+    + OnWallContact(cur) : CombatState
+    + OnGroundContact(cur) : CombatState
+    + OnStunEnd(cur) : CombatState
+  }
+  class StatusRules <<static>> {
+    + DebuffOf(kind : StatusKind) : Debuff
+    + BlocksAction(mask : Debuff) : bool
+  }
+  class BasicAttackStage <<struct>>
+  class BasicComboRules <<static>> {
+    + ResolveTiming(stage) : BasicAttackTiming
+    + BuildStageHit(basic, stage) : HitData
+  }
+  class AttackInputBuffer <<struct>> {
+    + Press(window : float)
+    + Tick(dt : float)
+    + TryConsume() : bool
+  }
+  class TimeControl <<static>> {
+    + Scale : float
+    + DeltaTime : float
+    + UnscaledDeltaTime : float
+    + IsFrozen : bool
+    + DeltaFor(domain : TimeDomain) : float
+  }
+  class BattleLog <<static>> {
+    + Mask : LogCategory
+    + Log(category, message, context)
+    + Warn(category, message, context)
+    + StateName(s : IState) : string
+  }
+  class GameplayModal <<static>> {
+    + Register(isOpen : Func<bool>)
+    + IsOpen : bool
+    + ConsumeCancel()
+    .. 여는 쪽(LevelUpSession · DeckBuilderUI)이 등록 ..
+  }
+  enum "Enums.cs" as Enums {
+    CombatState
+    PhysicsState
+    Faction
+    KnockbackMode
+    TargetingType / TargetPick
+    StatType / EnergyType
+    StatusKind / Debuff
+    …
+  }
+}
+
+StateMachine o--> IState : CurState
+Stats *--> Stat
+Energies *--> Energy
+SkillVfx --> VfxClip
+HitData ..> WallFinder : TowardWall
+CombatStateRules ..> HitData
+BasicComboRules ..> BasicAttackStage
+BasicComboRules ..> HitData
+BattleLog ..> IState
+
+note bottom of pkgCore
+  생략: UiKit · MenuCursor (UI 헬퍼), RoleNames (문자열 표)
+end note
+@enduml

@@ -1,0 +1,58 @@
+@startuml usecase-03-Combat
+' ③ 실시간 전투 — 조작 · 피격 · 상태이상
+title ③ 실시간 전투 — 유스케이스
+
+left to right direction
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+actor "적 AI" as EnemyAI <<시스템>>
+actor "보스" as Boss <<시스템>>
+actor "게임 시스템" as GameSys <<시스템>>
+Boss -|> EnemyAI
+
+rectangle "실시간 전투 (Entities · Control · Characters)" {
+  usecase "이동\n(Physics · PlayerPilot)" as UC_Move
+  usecase "점프\n(JumpState)" as UC_Jump
+  usecase "평타 콤보\n(BasicAttackCombo · AttackState)" as UC_Basic
+  usecase "공중 공격\n(AerialAttackState)" as UC_Aerial
+  usecase "대시\n(Physics)" as UC_Dash
+  usecase "대시 패리\n(DefenseWindows · Combat.TryParry)" as UC_Parry
+  usecase "고유 스킬 사용 (Z)\n(Ally.UniqueSkill)" as UC_Unique
+  usecase "타격 판정\n(Attack · Combat.Attack)" as UC_HitCheck
+  usecase "피격 처리 — 상태 전이\n(Combat.Hit · CombatStateRules)" as UC_Hit
+  usecase "넉백 · 띄우기 · 벽 바운드\n(Combat.Impact · Physics · WallFinder)" as UC_Knock
+  usecase "상태이상 — 스턴 · 빙결 · 속박\n(StatusEffects · StatusRules)" as UC_Status
+  usecase "보스 가드 브레이크\n(GuardMeter)" as UC_Guard
+  usecase "사망\n(Combat.Die · DeadState)" as UC_Die
+}
+
+Player --> UC_Move
+Player --> UC_Jump
+Player --> UC_Basic
+Player --> UC_Dash
+Player --> UC_Unique
+
+UC_Aerial .> UC_Basic : <<extend>>
+UC_Parry .> UC_Dash : <<extend>>
+UC_Basic .> UC_HitCheck : <<include>>
+UC_Unique .> UC_HitCheck : <<include>>
+
+UC_HitCheck <-- EnemyAI
+UC_Hit <-- GameSys
+UC_Knock <-- GameSys
+UC_Status <-- GameSys
+UC_Die <-- GameSys
+UC_Guard <-- Boss
+
+UC_HitCheck .> UC_Hit : <<include>>
+UC_Hit .> UC_Knock : <<include>>
+UC_Status .> UC_Hit : <<extend>>
+UC_Guard .> UC_Hit : <<extend>>
+UC_Die .> UC_Hit : <<extend>>
+
+note bottom of UC_Basic
+  평타 적중은 ④ "자동 카드 발동"의 계기가 된다.
+end note
+@enduml

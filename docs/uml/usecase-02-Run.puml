@@ -1,0 +1,47 @@
+@startuml usecase-02-Run
+' ② 런 진행 — 맵 · 노드 · 보상 · 성장
+title ② 런 진행 — 유스케이스
+
+left to right direction
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+actor "게임 시스템" as GameSys <<시스템>>
+
+rectangle "런 진행 (Progression · FlowScene)" {
+  usecase "맵에서 노드 선택\n(RunMapScreen · RunMap)" as UC_Pick
+  usecase "전투 노드 진입\n일반 · 엘리트 · 보스\n(NodeSceneController · MapNodeKind)" as UC_Battle
+  usecase "상점에서 카드 구매\n(ShopWindow)" as UC_Shop
+  usecase "이벤트 선택지 고르기\n(EventWindow · RunEventAsset)" as UC_Event
+  usecase "휴식 — 체력 회복\n(NodeWindows.Rest · RestHealRatio)" as UC_Rest
+  usecase "레벨업 보상 카드 선택\n(LevelUpSession · CardOfferRules)" as UC_LevelUp
+  usecase "같은 카드 3장 합성\n(황금 카드 · CardSupply.Grant)" as UC_Fuse
+  usecase "덱 확인\n(DeckInspectorUI)" as UC_Deck
+  usecase "결과 확인 — 클리어 · 패배\n(StageResultUI · StageOutcomeRules)" as UC_Result
+  usecase "런 상태 저장 · 다음 층 진행\n(RunProgression)" as UC_Progress
+}
+
+Player --> UC_Pick
+Player --> UC_Shop
+Player --> UC_Event
+Player --> UC_LevelUp
+Player --> UC_Deck
+Player --> UC_Result
+
+UC_Pick <|-- UC_Battle
+UC_Pick <|-- UC_Shop
+UC_Pick <|-- UC_Event
+UC_Pick <|-- UC_Rest
+
+UC_Fuse .> UC_LevelUp : <<extend>>
+UC_Battle .> UC_Result : <<include>>
+
+UC_Progress <-- GameSys
+UC_LevelUp <-- GameSys
+
+note bottom of UC_Battle
+  전투 안쪽은 ③ 실시간 전투 · ④ 불릿타임 · ⑤ 스테이지.
+  레벨업은 경험치가 차면 시스템이 연다(⑤ 경험치 획득).
+end note
+@enduml

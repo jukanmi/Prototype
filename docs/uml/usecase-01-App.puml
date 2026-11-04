@@ -1,0 +1,40 @@
+@startuml usecase-01-App
+' ① 게임 흐름 — 씬 전환 · 파티 구성 · 설정
+' 괄호 안은 근거 클래스 (클래스 다이어그램으로 넘어갈 때의 연결점)
+title ① 게임 흐름 — 유스케이스
+
+left to right direction
+skinparam shadowing false
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+
+rectangle "게임 흐름 (FlowScene · Input · Party)" {
+  usecase "게임 시작\n(MainMenuController · BootStrapper)" as UC_Start
+  usecase "파티 선택\n(PartySelectUI · PartyLoadout)" as UC_Party
+  usecase "설정 변경\n(SettingsPanel · AudioManager)" as UC_Settings
+  usecase "키 바인딩 변경\n(RebindUI · RebindManager)" as UC_Rebind
+  usecase "키 프리셋 적용\n(KeyBindingPreset)" as UC_Preset
+  usecase "키 충돌 검사\n(InputRebindRules)" as UC_Conflict
+  usecase "처음부터 다시 시작\n(BattleRestartUI)" as UC_Restart
+  usecase "메인메뉴로 돌아가기\n(SceneLoader)" as UC_Menu
+}
+
+Player --> UC_Start
+Player --> UC_Party
+Player --> UC_Settings
+Player --> UC_Rebind
+Player --> UC_Restart
+Player --> UC_Menu
+
+UC_Start .> UC_Party : <<include>>
+UC_Preset .> UC_Rebind : <<extend>>
+UC_Rebind .> UC_Conflict : <<include>>
+UC_Rebind .> UC_Settings : <<extend>>
+
+note right of UC_Preset
+  프리셋은 충돌 검사를 거치지 않는다 —
+  항목을 직접 얹기 때문.
+  (KeyBindingPresetTests가 대신 막는다)
+end note
+@enduml

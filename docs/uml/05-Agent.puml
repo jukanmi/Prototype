@@ -1,0 +1,166 @@
+@startuml 05-Agent
+' 3층 Agent — Characters · Control · AI. 몸의 종류 · 조작 · 적 AI · 공격 순번.
+' 위층(Vfx · Run)에 알릴 일은 Enemy.Created / Enemy.Defeated 이벤트로 뒤집었다.
+title 3층 Agent — 클래스 다이어그램
+
+set separator none
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "1 Actor" #F5F5F5 {
+  class Entity <<MonoBehaviour>>
+  interface IControl
+}
+package "2 Skill" #F5F5F5 {
+  interface ITauntable
+  class ComboCard
+  class SkillData
+}
+
+package "Characters/" {
+  class Player {
+    + Party : Ally[]
+    + Data : PlayerData
+    + SetParty(members)
+    + ApplyData(source)
+  }
+  class Ally {
+    + {static} EquipSlots = 4
+    + Role : Role
+    + Equipped : IReadOnlyList<ComboCard>
+    + Data : PartyMemberData
+    + EquipSkill(card) / RemoveSkill(card) : bool
+    + CanCastCard : bool
+  }
+  class Enemy {
+    + {static} Created : event Action<Enemy>
+    + {static} Defeated : event Action<Enemy>
+    + Data : EnemyData
+    + IsElite : bool
+    + Faction = Enemy
+    + ApplyEliteScale(hp, atk)
+    + StopAI()
+  }
+  class PlayerData <<ScriptableObject>> {
+    + heroId · displayName · portrait
+    + hp · atk · moveSpeed
+    + basicComboStages : BasicAttackStage[]
+  }
+  class PartyMemberData <<ScriptableObject>> {
+    + memberId · role · portrait · prefab
+    + equipped : List<ComboCard>
+    + uniqueSkill : SkillData
+  }
+  class EnemyData <<ScriptableObject>> {
+    + enemyId · hp · atk · exp
+    + brain : EnemyBrainAsset
+    + attackRange · attackInterval
+  }
+}
+
+package "Control/" {
+  abstract class Control <<MonoBehaviour>> {
+    + Tick(dt)
+    # Drive(command, dir)
+  }
+  class EnemyControl {
+    + Target : Entity
+    + Brain : EnemyBrainAsset
+    + Special : IEnemySpecialAction
+    + SetTarget(forced)
+    + BeginSpawnEntry(point, hold)
+    + ApplyData(data)
+  }
+  class PlayerPilot <<MonoBehaviour>> {
+    + Body : Entity
+    + Take(body) / Release()
+    + Tick(dt)
+  }
+}
+
+package "AI/" {
+  interface IEnemyBrain {
+    + Decide(ctx) : EnemyIntent
+  }
+  abstract class EnemyBrainAsset <<ScriptableObject>>
+  class StandardBrainAsset
+  class BossBrainAsset {
+    + patterns : PatternRule[]
+  }
+  class DummyBrainAsset
+  class EnemyBrainContext <<struct>> {
+    + self / target : Entity
+    + distance : float
+    + attackReady / specialReady : bool
+    + p : EnemyBrainParams
+  }
+  class EnemyIntent <<struct>> {
+    + kind : EnemyActionKind
+    + command : Command
+    + moveDirection : Vector3
+    + specialIndex : int
+  }
+  interface IEnemySpecialAction
+  class EnemyPatternAction <<MonoBehaviour>> {
+    + Patterns : EnemyPattern[]
+    + Phase : EnemySpecialPhase
+    + TryStart(index, target) : bool
+    + Tick(dt)
+  }
+  class EnemySpecialSequence {
+    + Phase : EnemySpecialPhase
+    + ShouldShowTelegraph : bool
+    + ChargeProgress : float
+  }
+  class AttackTokenPool {
+    + Capacity : int
+    + TryAcquire(holder, now, lease) : bool
+    + Release(holder)
+  }
+  class EnemyAttackTokens <<static>> {
+    + Pool : AttackTokenPool
+  }
+  class SpawnEntry {
+    + Current : Phase
+    + Tick(position, dt) : Vector3
+  }
+}
+
+Player --|> Entity
+Ally --|> Entity
+Enemy --|> Entity
+Player o--> "*" Ally : Party
+Player --> PlayerData
+Ally --> PartyMemberData
+Ally o--> "4" ComboCard : Equipped
+PartyMemberData o--> ComboCard
+PartyMemberData --> SkillData : uniqueSkill
+Enemy --> EnemyData
+EnemyData --> EnemyBrainAsset
+
+Control ..|> IControl
+EnemyControl --|> Control
+EnemyControl ..|> ITauntable
+EnemyControl --> EnemyBrainAsset
+EnemyControl o--> IEnemySpecialAction
+EnemyControl ..> EnemyAttackTokens : 공격 순번
+EnemyControl *--> SpawnEntry : 걸어 들어오기
+PlayerPilot ..> Entity : 조작 대상
+PlayerPilot ..> "PlayerInputController (1.5)" : 입력
+
+EnemyBrainAsset ..|> IEnemyBrain
+StandardBrainAsset --|> EnemyBrainAsset
+BossBrainAsset --|> EnemyBrainAsset
+DummyBrainAsset --|> EnemyBrainAsset
+IEnemyBrain ..> EnemyBrainContext
+IEnemyBrain ..> EnemyIntent
+EnemyPatternAction ..|> IEnemySpecialAction
+EnemyPatternAction *--> EnemySpecialSequence
+EnemyAttackTokens *--> AttackTokenPool
+
+note bottom of Enemy
+  Created → EnemyStateTint (10 Vfx)가 몸 색 컴포넌트를 붙인다.
+  Defeated → ExpRewards (5 Run)가 경험치를 적립한다.
+end note
+@enduml

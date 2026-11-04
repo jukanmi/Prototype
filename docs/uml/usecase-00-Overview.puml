@@ -1,0 +1,53 @@
+@startuml usecase-00-Overview
+' 유스케이스 개요 — 액터와 하위 시스템(패키지)만. 상세는 usecase-01 ~ 05.
+title 유스케이스 개요 — 프로토타입 전체
+
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "플레이어" as Player
+actor "적 AI" as EnemyAI <<시스템>>
+actor "보스" as Boss <<시스템>>
+actor "동료\n(어시스트)" as Ally <<시스템>>
+actor "게임 시스템\n(시간 · 규칙)" as GameSys <<시스템>>
+
+Boss -|> EnemyAI
+
+rectangle "Prototype" {
+  package "① 게임 흐름\n(usecase-01-App)" as App {
+    usecase "게임 시작 · 파티 선택\n설정 · 재시작" as UC_App
+  }
+  package "② 런 진행\n(usecase-02-Run)" as Run {
+    usecase "맵 노드 선택\n상점 · 이벤트 · 휴식 · 보상" as UC_Run
+  }
+  package "③ 실시간 전투\n(usecase-03-Combat)" as Combat {
+    usecase "이동 · 평타 · 대시 · 패리\n피격 · 상태이상" as UC_Combat
+  }
+  package "④ 불릿타임 콤보\n(usecase-04-Tactic)" as Tactic {
+    usecase "불릿타임 진입 · 카드 배치\n조준 · 콤보 실행" as UC_Tactic
+  }
+  package "⑤ 스테이지 · 적\n(usecase-05-Stage)" as Stage {
+    usecase "웨이브 스폰 · 적 공격\n클리어 판정 · 경험치" as UC_Stage
+  }
+}
+
+Player --> UC_App
+Player --> UC_Run
+Player --> UC_Combat
+Player --> UC_Tactic
+
+UC_Combat <-- EnemyAI
+UC_Stage <-- EnemyAI
+UC_Tactic <-- Ally
+UC_Combat <-- GameSys
+UC_Tactic <-- GameSys
+UC_Stage <-- GameSys
+
+note bottom of Tactic
+  동료는 조작 대상이 아니다.
+  카드가 발동되면 등장해 시전하고 퇴장한다
+  (태그 교대는 삭제됨 — 커밋 6915e2fe).
+end note
+@enduml
