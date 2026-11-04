@@ -11,23 +11,6 @@ using UnityEngine;
 
 namespace Prototype
 {
-    /// <summary>스킬이 쓰는 전용 연출. <see cref="SkillData.fx"/>에서 고른다.</summary>
-    public enum SkillFxKind
-    {
-        None,
-        UpwardSlash,   // 올려베기
-        SpinSlash,     // 회전베기
-        FrostField,    // 서릿발
-        FlashSlash,    // 일섬
-        ComboSlash,    // 연격
-        HookChain,     // 갈고리 사슬
-        ChainBind,     // 사슬 속박
-        MagicMissile,  // 마력 화살
-        ManaRift,      // 마력 균열
-        ShoulderCharge,// 숄더 차지
-        ManaSpear,     // 마나 스피어
-    }
-
     /// <summary>
     /// 스킬 시전 한 번의 연출 감독. <see cref="SkillState"/>가 시전마다 하나 만든다.
     ///
@@ -37,8 +20,23 @@ namespace Prototype
     /// 바닥에 눕는 연출(장판 · 회전 범위)은 깊이 1이 화면에서 sinθ로 눌려 보이므로
     /// groundTilt에 <see cref="BeltScroll.ScreenUp"/>.z를 넣는다.
     /// </summary>
-    public abstract class SkillFx
+    public abstract class SkillFx : ISkillFx
     {
+        // ── ISkillFxFactory 구현 — SkillState는 SkillFxSink로 여기를 부른다 ──
+
+#if UNITY_EDITOR
+        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void InstallFactory() => SkillFxSink.Current = new Factory();
+
+        private sealed class Factory : ISkillFxFactory
+        {
+            public ISkillFx Create(SkillData data, in SkillContext ctx) => SkillFx.Create(data, in ctx);
+            public void HideRenderers(GameObject go) => SkillFx.HideRenderers(go);
+        }
+
         /// <summary>연출 전체 크기 배율. 원본은 키 약 1.9 유닛 캐릭터 기준이다.</summary>
         public static float SizeScale = 1f;
 

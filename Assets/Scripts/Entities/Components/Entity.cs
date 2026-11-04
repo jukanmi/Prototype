@@ -78,7 +78,7 @@ namespace Prototype
         /// </summary>
         public void ConfigureBasicCombo(BasicAttackStage[] stages)
         {
-            if (this is Enemy) return;
+            if (Faction == Faction.Enemy) return;
             AttackProfile?.ConfigureCombo(stages);
         }
 
@@ -265,7 +265,7 @@ namespace Prototype
         /// 이 몸에 붙은 AI 드라이버. 이제 <see cref="EnemyControl"/>뿐이다.
         /// 유저가 모는 몸은 null이다 — 조종사(<see cref="PlayerPilot"/>)가 밖에서 몬다.
         /// </summary>
-        public Control Control { get; private set; }
+        public IControl Control { get; private set; }
         public TimeDomain TimeDomain { get; set; } = TimeDomain.Battle;
         private int assistReactionVersion = -1;
         public bool IsAssistReacting => TimeDomain == TimeDomain.Battle && TimeControl.IsFrozen &&
@@ -281,7 +281,7 @@ namespace Prototype
             assistReactionVersion = TimeControl.AssistResolutionVersion;
         }
 
-        public void SetControl(Control control) => Control = control;
+        public void SetControl(IControl control) => Control = control;
 
         /// <summary>
         /// true면 <b>어떤 Control도 명령을 내지 않는다</b>. <see cref="ComboExecutor"/>가
@@ -721,9 +721,9 @@ namespace Prototype
         /// <c>enabled</c>를 보는 이유는 인스펙터에서 꺼 둔 AI를 존중하기 위해서다 —
         /// 훈련용 허수아비처럼 서 있기만 해야 하는 몸이 있다.
         /// </summary>
-        private Control FirstEnabledControl()
+        private IControl FirstEnabledControl()
         {
-            foreach (Control c in GetComponents<Control>())
+            foreach (IControl c in GetComponents<IControl>())
                 if (c != null && c.enabled) return c;
 
             return null;

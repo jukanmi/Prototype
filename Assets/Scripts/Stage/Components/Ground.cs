@@ -20,7 +20,7 @@ namespace Prototype
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public class GroundPlate : MonoBehaviour
+    public class GroundPlate : MonoBehaviour, IGroundPlate
     {
         [Tooltip("발판 반폭(X)과 반깊이(Z). 둘 다 0이면 이 오브젝트의 Renderer 범위에서 잰다.")]
         [SerializeField] private Vector2 halfExtents = Vector2.zero;

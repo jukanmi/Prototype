@@ -12,7 +12,7 @@ namespace Prototype
     /// 피격당해도 중단되지 않는다 — 슈퍼아머(결정 로그 ③).
     /// 사망만 <see cref="StateMachine.ForceChangeState"/>로 관통한다.
     /// </summary>
-    public partial class SkillState : IState
+    public partial class SkillState : IState, IAnimatedState
     {
         private readonly SkillData data;
         private SkillContext ctx;
@@ -22,7 +22,7 @@ namespace Prototype
         private float nextHitTime;
         private bool finished;
         private Vector3 castOrigin;
-        private SkillFx fx;
+        private ISkillFx fx;
 
         public SkillState(SkillData data, in SkillContext ctx)
         {
@@ -36,8 +36,15 @@ namespace Prototype
         /// <summary>슈퍼아머. TryChangeState는 전부 거부된다.</summary>
         public virtual bool CanBeInterrupted => false;
 
-        /// <summary>시전 중인 스킬. EntityAnimator가 클립을 갈아끼울 때 읽는다.</summary>
+        /// <summary>시전 중인 스킬.</summary>
         public SkillData Data => data;
+
+        /// <summary>Skill 슬롯에 이 스킬의 클립을 꽂고, 스킬 총 길이에 맞춰 재생한다.</summary>
+        public void Animate(EntityAnimator animator)
+        {
+            if (data != null) animator.SetSkillClip(data.animation);
+            animator.PlayState("Skill", data != null ? data.TotalDuration : 0f);
+        }
 
         /// <summary>후딜까지 끝났는지. ComboExecutor가 다음 슬롯으로 넘어갈 시점 판단에 쓴다.</summary>
         public virtual bool IsFinished => finished;
@@ -63,7 +70,7 @@ namespace Prototype
             Physics phys = ctx.CasterPhysics;
             castOrigin = phys != null ? phys.GroundPosition : ctx.Origin;
             EmitCastVfx();
-            fx = SkillFx.Create(data, in ctx);
+            fx = SkillFxSink.Current?.Create(data, in ctx);
             fx?.OnCast();
             ApplyEffects();
 
@@ -129,7 +136,7 @@ namespace Prototype
         private void EmitCastVfx()
         {
             SkillVfx style = data.vfx.AsSkill();
-            BattleVfx.Cast(ctx.Origin, data.radius, in style);
+            BattleVfxSink.Current?.Cast(ctx.Origin, data.radius, in style);
         }
 
         /// <summary>

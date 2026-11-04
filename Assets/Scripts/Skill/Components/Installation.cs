@@ -119,7 +119,7 @@ namespace Prototype
             SkillVfx style = data.vfx.AsSkill();
 
             // 실체가 없으니 타격마다 한 번 번쩍여 "여기서 나갔다"를 보여 준다.
-            BattleVfx.Cast(center, radius, in style);
+            BattleVfxSink.Current?.Cast(center, radius, in style);
 
             int hits;
             if (hit.HasCastRange && ctx.caster != null)

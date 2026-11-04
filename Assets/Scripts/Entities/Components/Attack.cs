@@ -234,7 +234,7 @@ namespace Prototype
             // 파편이 때린 쪽 반대로 튀도록 방향을 준다.
             Vector3 away = ground - new Vector3(transform.position.x, 0f, transform.position.z);
 
-            BattleVfx.Impact(ground, victim.Physics.Height + ImpactHeight, away, ImpactRadius, in style);
+            BattleVfxSink.Current?.Impact(ground, victim.Physics.Height + ImpactHeight, away, ImpactRadius, in style);
         }
     }
 }

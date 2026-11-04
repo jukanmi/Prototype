@@ -222,7 +222,7 @@ namespace Prototype
             Projectile shot = UnityEngine.Object.Instantiate(data.projectile);
 
             // 전용 연출(마력 화살)이 탄을 대신 그리면 투사체 그림만 끈다. 판정 · 착탄 이펙트는 그대로.
-            if (fx != null && fx.HidesProjectile) SkillFx.HideRenderers(shot.gameObject);
+            if (fx != null && fx.HidesProjectile) SkillFxSink.Current?.HideRenderers(shot.gameObject);
 
             // 히트박스 레이어를 그대로 물려받아야 충돌 매트릭스가 맞는다.
             int layer = ctx.caster.BasicAttack != null

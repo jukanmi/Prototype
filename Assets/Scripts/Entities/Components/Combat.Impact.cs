@@ -202,7 +202,7 @@ namespace Prototype
             ground.y = 0f;
 
             // 방향은 벽 바깥쪽 — 파편이 벽에서 튀어나오는 것처럼 읽힌다.
-            BattleVfx.WallBounce(ground, height, wall.normal, Mathf.Lerp(0.5f, 1.3f, force));
+            BattleVfxSink.Current?.WallBounce(ground, height, wall.normal, Mathf.Lerp(0.5f, 1.3f, force));
         }
     }
 }

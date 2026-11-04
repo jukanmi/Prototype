@@ -197,16 +197,28 @@ namespace Prototype
         }
     }
 
-    public sealed class AssistReadyState : EntityState
+    public sealed class AssistReadyState : EntityState, IAnimatedState
     {
         public SkillData PreparedSkill { get; }
         public AssistReadyState(Entity entity, SkillData preparedSkill = null) : base(entity) { PreparedSkill = preparedSkill; }
         public override bool CanBeInterrupted => false;
         public override void Enter() { Physics.Move(Vector3.zero, 0f); Physics.ResetInertia(); }
+
+        public void Animate(EntityAnimator animator)
+        {
+            if (PreparedSkill != null && PreparedSkill.animation != null)
+            {
+                animator.SetSkillClip(PreparedSkill.animation);
+                animator.HoldSkillPose();
+            }
+            else animator.PlayState("Idle");
+        }
     }
 
-    public sealed class AssistMoveState : EntityState
+    public sealed class AssistMoveState : EntityState, IAnimatedState
     {
+        public void Animate(EntityAnimator animator) => animator.PlayState("Move");
+
         private readonly Vector3 target;
         private readonly float speed;
         private float elapsed;

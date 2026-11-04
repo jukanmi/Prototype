@@ -103,7 +103,7 @@ namespace Prototype
     /// </summary>
     public static class GroundRegistry
     {
-        private static readonly List<GroundPlate> plates = new List<GroundPlate>();
+        private static readonly List<IGroundPlate> plates = new List<IGroundPlate>();
 
         /// <summary>질의마다 새로 만들지 않도록 재사용한다. 매 프레임 유닛 수만큼 불린다.</summary>
         private static readonly List<GroundRect> scratch = new List<GroundRect>();
@@ -120,12 +120,12 @@ namespace Prototype
         /// <summary>발판이 하나도 없으면 판정을 하지 않는다 — 예전 무한 평면으로 답한다.</summary>
         public static bool HasPlates => plates.Count > 0;
 
-        public static void Register(GroundPlate plate)
+        public static void Register(IGroundPlate plate)
         {
             if (plate != null && !plates.Contains(plate)) plates.Add(plate);
         }
 
-        public static void Unregister(GroundPlate plate) => plates.Remove(plate);
+        public static void Unregister(IGroundPlate plate) => plates.Remove(plate);
 
         public static void Clear()
         {
@@ -167,8 +167,9 @@ namespace Prototype
 
             for (int i = 0; i < plates.Count; i++)
             {
-                GroundPlate p = plates[i];
-                if (p == null) continue;          // 파괴된 판. 다음 Unregister에서 빠진다.
+                IGroundPlate p = plates[i];
+                // 파괴된 판. 다음 Unregister에서 빠진다. 인터페이스 참조는 유니티의 == null을 안 타므로 따로 본다.
+                if (p == null || (p is UnityEngine.Object o && o == null)) continue;
                 scratch.Add(p.Rect);
             }
         }

@@ -11,7 +11,7 @@ namespace Prototype
     /// 의도 자체는 <see cref="Entity"/>가 들고 있다 — 여기는 거기에 써 넣기만 하는 얇은 층이다.
     /// 몸이 바뀌어도 의도가 사라지지 않아야 하기 때문이다(<see cref="Entity.Command"/> 주석 참고).
     /// </summary>
-    public abstract class Control : MonoBehaviour
+    public abstract class Control : MonoBehaviour, IControl
     {
         private Entity owner;
         protected Entity Owner => owner != null ? owner : owner = GetComponent<Entity>();

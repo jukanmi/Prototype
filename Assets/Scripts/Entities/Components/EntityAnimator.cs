@@ -25,7 +25,7 @@ namespace Prototype
 
         private Entity entity;
         private AnimatorOverrideController overrides;
-        private SkillData currentSkill;
+        private AnimationClip currentSkillClip;
 
         /// <summary>
         /// <see cref="AttackState"/>에 원래 물려 있던 클립. 연타가 이 자리를 갈아끼우므로
@@ -65,7 +65,7 @@ namespace Prototype
         /// <b>Awake 보다 먼저 부르는 것이 정상 경로다.</b> Awake 가 컨트롤러를
         /// <see cref="AnimatorOverrideController"/>로 감싸고 그 위에서 평타 · 스킬 클립을
         /// 갈아끼우기 때문이다. 늦게 들어온 경우에도 동작하도록 여기서 래핑을 다시 짓는다 —
-        /// 안 그러면 새 컨트롤러가 감싸이지 않은 채로 들어가 <see cref="SwapSkillClip"/>이
+        /// 안 그러면 새 컨트롤러가 감싸이지 않은 채로 들어가 <see cref="SetSkillClip"/>이
         /// 통째로 무효가 되고, <b>모든 스킬이 플레이스홀더 모션으로 나온다</b>.
         /// </summary>
         public void SetController(RuntimeAnimatorController controller)
@@ -85,7 +85,7 @@ namespace Prototype
             animator.runtimeAnimatorController = overrides;
 
             currentAttackClip = null;
-            currentSkill = null;
+            currentSkillClip = null;
         }
 
         private void Start()
@@ -170,19 +170,8 @@ namespace Prototype
         private void Apply(IState state)
         {
             if (animator == null || state == null) return;
-            if (state is AssistMoveState) { stateSpeed = 1f; Play("Move"); return; }
-            if (state is AssistReadyState ready)
-            {
-                if (ready.PreparedSkill != null && ready.PreparedSkill.animation != null)
-                {
-                    SwapSkillClip(ready.PreparedSkill);
-                    stateSpeed = 0f;
-                    animator.Play("Skill", 0, 0.1f);
-                    animator.Update(0f);
-                }
-                else { stateSpeed = 1f; Play("Idle"); }
-                return;
-            }
+            // 위층 상태(스킬 · 어시스트)는 스스로 고른다.
+            if (state is IAnimatedState animated) { animated.Animate(this); return; }
 
             // 평타는 단계마다 클립이 다르다. 상태에 들어오는 건 언제나 1타(Enter가 0으로 리셋한다) —
             // 2·3타는 상태 전이 없이 AttackState가 직접 PlayBasicAttackStage를 부른다.
@@ -192,17 +181,25 @@ namespace Prototype
                 return;
             }
 
-            if (state is SkillState skill)
-            {
-                SwapSkillClip(skill.Data);
-                stateSpeed = SpeedFor("Skill", skill.Data != null ? skill.Data.TotalDuration : 0f);
-                Play("Skill");
-                return;
-            }
-
             string clip = StateToClip(state);
-            stateSpeed = SpeedFor(clip, DurationOf(state));
-            Play(clip);
+            PlayState(clip, DurationOf(state));
+        }
+
+        // ── IAnimatedState가 쓰는 재생 API ──
+
+        /// <summary>Animator 상태 하나를 재생한다. <paramref name="duration"/>(초)에 길이를 맞춘다 — 0이면 원래 속도.</summary>
+        public void PlayState(string stateName, float duration = 0f)
+        {
+            stateSpeed = SpeedFor(stateName, duration);
+            Play(stateName);
+        }
+
+        /// <summary>Skill 슬롯의 첫 동작(10%)에서 멈춰 선다 — 어시스트 대기 자세.</summary>
+        public void HoldSkillPose()
+        {
+            stateSpeed = 0f;
+            animator.Play("Skill", 0, 0.1f);
+            animator.Update(0f);
         }
 
         /// <summary>
@@ -285,13 +282,13 @@ namespace Prototype
         /// 오버라이드를 무조건 null로 덮어써 슬롯을 원래 클립(<see cref="SkillSlotClip"/>, 즉
         /// 기본 플레이스홀더)로 되돌린다 — 이전 스킬의 클립이 남아있으면 안 된다.
         /// </summary>
-        private void SwapSkillClip(SkillData data)
+        public void SetSkillClip(AnimationClip clip)
         {
-            if (overrides == null || data == null) return;
-            if (currentSkill == data) return;
+            if (overrides == null) return;
+            if (currentSkillClip == clip) return;
 
-            currentSkill = data;
-            overrides[SkillSlotClip] = data.animation;
+            currentSkillClip = clip;
+            overrides[SkillSlotClip] = clip;
         }
     }
 }

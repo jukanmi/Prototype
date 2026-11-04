@@ -174,7 +174,7 @@ namespace Prototype
             }
 
             // 적은 선입력을 못 채워 1타에서 멈춘다. 게임은 도니까 여기서 말해 두지 않으면 모른다.
-            if (HasCombo && context is Enemy)
+            if (HasCombo && context is Entity body && body.Faction == Faction.Enemy)
                 BattleLog.Warn(LogCategory.Combat,
                     $"{name}: 적에게 연타 단계 {StageCount}개가 들어갔다 — AI는 이어치기를 못 해 1타에서 멈춘다. " +
                     "칸을 하나만 둘 것.", context);

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// EntityAnimator.SwapSkillClip은 스킬의 <c>animation</c>이 비면(null) 오버라이드도
+    /// EntityAnimator.SetSkillClip은 스킬의 <c>animation</c>이 비면(null) 오버라이드도
     /// 무조건 null로 덮어써 Skill 슬롯을 원래(플레이스홀더) 클립으로 되돌린다.
     /// 이 테스트는 그 전제 — AnimatorOverrideController 인덱서에 null을 대입하면
     /// 원본 클립으로 리셋되는지 — 를 직접 확인한다. 이게 깨지면 이전 스킬의 클립이
@@ -44,7 +44,7 @@ namespace Prototype.Tests
             Assert.That(overrideController[EntityAnimator.SkillSlotClip], Is.SameAs(other),
                 "오버라이드 대입이 반영되지 않았다");
 
-            // null을 대입하면 원본으로 되돌아간다 — EntityAnimator.SwapSkillClip이 기대는 동작.
+            // null을 대입하면 원본으로 되돌아간다 — EntityAnimator.SetSkillClip이 기대는 동작.
             overrideController[EntityAnimator.SkillSlotClip] = null;
             Assert.That(overrideController[EntityAnimator.SkillSlotClip], Is.SameAs(original),
                 "null 대입이 원본 클립으로 리셋하지 않았다");
