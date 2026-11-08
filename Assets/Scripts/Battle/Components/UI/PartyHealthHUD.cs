@@ -138,6 +138,9 @@ namespace Prototype
                 // "없는 동료"를 회색 줄로 남겨 두면 부활할 수 있다는 인상을 준다.
                 if (roster[i] == null) continue;
 
+                // 플레이어(주인공) 줄만 띄운다. 동료 체력바는 숨긴다.
+                if (!(roster[i] is Player)) continue;
+
                 rows.Add(NewRow(roster[i], y));
                 y += rowHeight + RowGap;
             }

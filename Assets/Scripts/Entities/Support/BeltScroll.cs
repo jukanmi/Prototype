@@ -83,7 +83,7 @@ namespace Prototype
         /// 카메라가 직교라 <b>진짜 원근은 없다</b>. 뒤쪽이 작아 보이는 건 전부 이 흉내다.
         /// 끄고 싶으면 0으로 두면 된다.
         /// </summary>
-        public static float DepthScalePerUnit { get; set; } = 0.06f;
+        public static float DepthScalePerUnit { get; set; } = 0f;
 
         /// <summary>
         /// 배율 하한. 방 밖으로 밀려나거나 계수를 크게 잡으면 1 - z·k가 0 아래로 내려가

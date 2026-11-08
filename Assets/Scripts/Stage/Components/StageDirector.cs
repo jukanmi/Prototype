@@ -609,7 +609,14 @@ namespace Prototype
 
             waitingIndex = index;
 
-            switch (encounters[index].Trigger)
+            EncounterTrigger trigger = encounters[index].Trigger;
+
+            // 앞 조우와 같은 방(같은 자리)이면 진입선을 기다리지 않고 시간만 센다.
+            if (trigger == EncounterTrigger.CrossLine && index > 0
+                && encounters[index].site == encounters[index - 1].site)
+                trigger = EncounterTrigger.AfterPrevious;
+
+            switch (trigger)
             {
                 case EncounterTrigger.Immediate:
                     BeginWave(index);

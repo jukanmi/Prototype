@@ -307,6 +307,9 @@ namespace Prototype
             // TimeControl.Scale이 0이므로 배율 시간으로 돌리면 화면이 얼어붙는다.
             float dt = TimeControl.UnscaledDeltaTime;
 
+            // 스킬카드는 불릿타임 중에만 보인다.
+            if (_rowRect != null) _rowRect.gameObject.SetActive(_bulletTime.IsActive);
+
             AnimateCards(dt);
             AnimateArrow(dt);
             _gauge.Refresh(_bulletTime, dt);
