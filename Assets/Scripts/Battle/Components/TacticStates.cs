@@ -5,7 +5,7 @@ namespace Prototype
 {
     /// <summary>
     /// 전술 층의 페이즈. 기획서 "전술" 박스 = 실시간 전투 ↔ 불릿타임.
-    /// 엔티티 상태머신(<see cref="IState"/>)과는 다른 층이므로 인터페이스를 공유하지 않는다.
+    /// 기계는 엔티티와 같은 <see cref="StateMachine"/>이다 — 인스턴스만 따로 쓴다.
     ///
     /// <code>
     /// RealTime ─E(진입 가능)→ Freeze ─freezeDuration→ Order ─E→ Resolve ─콤보 끝→ RealTime
@@ -31,18 +31,16 @@ namespace Prototype
     public partial class BulletTimeController
     {
         /// <summary>전술 페이즈 하나. 키 입력은 각 페이즈가 직접 해석한다.</summary>
-        private abstract class TacticState
+        private abstract class TacticState : IState
         {
             protected readonly BulletTimeController Ctx;
-            protected readonly TacticStateMachine SM;
 
-            protected TacticState(BulletTimeController ctx, TacticStateMachine sm)
-            {
-                Ctx = ctx;
-                SM = sm;
-            }
+            protected TacticState(BulletTimeController ctx) { Ctx = ctx; }
 
             public abstract TacticPhase Phase { get; }
+
+            /// <summary>전술 페이즈는 언제든 넘어갈 수 있다.</summary>
+            public bool CanBeInterrupted => true;
 
             public virtual void Enter() { }
             /// <summary>dt는 항상 <see cref="TimeControl.UnscaledDeltaTime"/>. 정지 중에도 흘러야 한다.</summary>
@@ -56,79 +54,10 @@ namespace Prototype
             public virtual bool AllowsCardEdit => false;
         }
 
-        /// <summary>
-        /// 전술 층 상태머신. 컨트롤러가 내부에 하나만 들고 있다.
-        /// MonoBehaviour가 아니므로 씬 연결이 필요 없다.
-        /// </summary>
-        private sealed class TacticStateMachine
-        {
-            private readonly BulletTimeController ctx;
-            private TacticState cur;
-
-            public RealTimeState RealTime { get; }
-            public FreezeState Freeze { get; }
-            public OrderState Order { get; }
-            public ResolveState Resolve { get; }
-
-            public TacticPhase Phase => cur != null ? cur.Phase : TacticPhase.RealTime;
-
-            public bool AllowsCardEdit => cur != null && cur.AllowsCardEdit;
-
-            public TacticStateMachine(BulletTimeController ctx)
-            {
-                this.ctx = ctx;
-
-                RealTime = new RealTimeState(ctx, this);
-                Freeze = new FreezeState(ctx, this);
-                Order = new OrderState(ctx, this);
-                Resolve = new ResolveState(ctx, this);
-            }
-
-            public TacticState StateOf(TacticPhase phase)
-            {
-                switch (phase)
-                {
-                    case TacticPhase.Freeze: return Freeze;
-                    case TacticPhase.Order: return Order;
-                    case TacticPhase.Resolve: return Resolve;
-                    default: return RealTime;
-                }
-            }
-
-            /// <summary>BulletTimeController.Start에서 한 번 호출한다.</summary>
-            public void Begin()
-            {
-                cur = RealTime;
-                cur.Enter();
-            }
-
-            public void Tick(float unscaledDt)
-            {
-                cur?.Tick(unscaledDt);
-            }
-
-            public void ChangeTo(TacticState next)
-            {
-                if (next == null || next == cur) return;
-
-                TacticPhase prev = Phase;
-
-                cur?.Exit();
-                cur = next;
-                next.Enter();
-
-                BattleLog.Log(LogCategory.Bullet, $"전술 페이즈: {prev} → <b>{next.Phase}</b>", ctx);
-                ctx.OnPhaseChanged?.Invoke(prev, next.Phase);
-            }
-
-            /// <summary>입력 진입점. 현재 페이즈만 해석한다.</summary>
-            public bool OnBulletTimeKey() => cur != null && cur.OnBulletTimeKey();
-        }
-
         /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · U키 단발 사용 구간.</summary>
         private sealed class RealTimeState : TacticState
         {
-            public RealTimeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+            public RealTimeState(BulletTimeController ctx) : base(ctx) { }
 
             public override TacticPhase Phase => TacticPhase.RealTime;
 
@@ -150,7 +79,7 @@ namespace Prototype
                     return false;
                 }
 
-                SM.ChangeTo(SM.Freeze);
+                Ctx.ChangePhase(Ctx.freezeState);
                 return true;
             }
         }
@@ -160,7 +89,7 @@ namespace Prototype
         {
             private float timer;
 
-            public FreezeState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+            public FreezeState(BulletTimeController ctx) : base(ctx) { }
 
             public override TacticPhase Phase => TacticPhase.Freeze;
 
@@ -176,14 +105,14 @@ namespace Prototype
             {
                 timer += dt;
                 if (timer >= Ctx.freezeDuration)
-                    SM.ChangeTo(SM.Order);
+                    Ctx.ChangePhase(Ctx.orderState);
             }
         }
 
         /// <summary>손패 편집 구간. E가 곧 실행이다.</summary>
         private sealed class OrderState : TacticState
         {
-            public OrderState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+            public OrderState(BulletTimeController ctx) : base(ctx) { }
 
             public override TacticPhase Phase => TacticPhase.Order;
 
@@ -191,7 +120,7 @@ namespace Prototype
 
             public override bool OnBulletTimeKey()
             {
-                SM.ChangeTo(SM.Resolve);
+                Ctx.ChangePhase(Ctx.resolveState);
                 return true;
             }
         }
@@ -199,7 +128,7 @@ namespace Prototype
         /// <summary>손패를 큐로 굳혀 실행한다. 실행기가 멈추면 실시간으로 돌아간다.</summary>
         private sealed class ResolveState : TacticState
         {
-            public ResolveState(BulletTimeController ctx, TacticStateMachine sm) : base(ctx, sm) { }
+            public ResolveState(BulletTimeController ctx) : base(ctx) { }
 
             public override TacticPhase Phase => TacticPhase.Resolve;
 
@@ -223,7 +152,7 @@ namespace Prototype
             {
                 // 큐가 비어 있었으면 Executor가 시작조차 안 하므로 곧바로 복귀한다.
                 if (Ctx.executor == null || !Ctx.executor.IsRunning)
-                    SM.ChangeTo(SM.RealTime);
+                    Ctx.ChangePhase(Ctx.realTimeState);
             }
 
             public override bool OnBulletTimeKey()

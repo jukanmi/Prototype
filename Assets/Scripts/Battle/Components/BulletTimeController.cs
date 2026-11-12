@@ -77,7 +77,14 @@ namespace Prototype
         [Tooltip("Freeze 체류 시간(비배율 초). 0이면 다음 프레임에 곧바로 Order로 넘어간다. UI 확대 연출을 넣을 자리.")]
         [SerializeField] private float freezeDuration = 0f;
 
-        private TacticStateMachine tactic;
+        /// <summary>전술 페이즈 기계. 엔티티와 같은 <see cref="StateMachine"/>, 인스턴스만 따로.</summary>
+        private StateMachine tactic;
+        private RealTimeState realTimeState;
+        private FreezeState freezeState;
+        private OrderState orderState;
+        private ResolveState resolveState;
+
+        private TacticState CurTactic => tactic?.CurState as TacticState;
         private TacticGauge budget;
         private CardSupply cards;
 
@@ -101,16 +108,13 @@ namespace Prototype
 
         // ── 페이즈 ───────────────────────────────────────
 
-        public TacticPhase Phase => tactic != null ? tactic.Phase : TacticPhase.RealTime;
+        public TacticPhase Phase => CurTactic?.Phase ?? TacticPhase.RealTime;
 
         /// <summary>시간이 멈춰 있는 구간(Freeze · Order).</summary>
         public bool IsActive => Phase == TacticPhase.Freeze || Phase == TacticPhase.Order;
 
         /// <summary>손패 순서 변경 · 조준이 열려 있는지. UI가 이 값으로 조작을 켜고 끈다.</summary>
-        public bool AllowsCardEdit => tactic != null && tactic.AllowsCardEdit;
-
-        /// <summary>페이즈가 바뀌었다. 인자는 (prev, next).</summary>
-        public event Action<TacticPhase, TacticPhase> OnPhaseChanged;
+        public bool AllowsCardEdit => CurTactic != null && CurTactic.AllowsCardEdit;
 
         /// <summary>불릿타임에 들어갔다(Freeze 진입).</summary>
         public event Action OnEnter;
@@ -147,12 +151,12 @@ namespace Prototype
             private readonly BulletTimeController ctx;
             public TacticKeys(BulletTimeController ctx) { this.ctx = ctx; }
 
-            public void Begin() => ctx.tactic.Begin();
+            public void Begin() => ctx.BeginTactic();
             public void Tick(float unscaledDt) => ctx.tactic.Tick(unscaledDt);
-            public bool OnBulletTimeKey() => ctx.tactic.OnBulletTimeKey();
+            public bool OnBulletTimeKey() => ctx.Enter();
 
             /// <summary>Order에서만 먹는다. 진입과 같은 키가 곧 실행이라 같은 경로를 탄다.</summary>
-            public bool OnExecuteKey() => ctx.Phase == TacticPhase.Order && ctx.tactic.OnBulletTimeKey();
+            public bool OnExecuteKey() => ctx.Phase == TacticPhase.Order && ctx.Enter();
 
             public bool OnCancelKey() => ctx.CancelSelection();
         }
@@ -167,7 +171,7 @@ namespace Prototype
         {
             pendingBasicSkill = false;
             executor?.Abort();
-            tactic?.ChangeTo(tactic.RealTime);
+            if (tactic != null) ChangePhase(realTimeState);
         }
 
         /// <summary>
@@ -193,7 +197,11 @@ namespace Prototype
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
             if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
 
-            tactic = new TacticStateMachine(this);
+            tactic = new StateMachine { OwnerName = "전술" };
+            realTimeState = new RealTimeState(this);
+            freezeState = new FreezeState(this);
+            orderState = new OrderState(this);
+            resolveState = new ResolveState(this);
         }
 
         private void Start()
@@ -207,7 +215,7 @@ namespace Prototype
                     // 화면에서 다 짜면 그쪽이 RebuildDeckAndHand를 부른다.
                     // 그때까지는 덱도 손패도 비어 있다 — 어차피 조작이 잠겨 있다.
                     DeckBuilderUI.RequestOpen(this, AvailableSkillPool());
-                    tactic.Begin();
+                    BeginTactic();
                     return;
                 }
 
@@ -217,7 +225,7 @@ namespace Prototype
             // 덱이 0장인 채로 시작하므로 첫 Refill이 Discard 회수 → 셔플을 자동으로 부른다.
             RefillHand();
 
-            tactic.Begin();
+            BeginTactic();
         }
 
         private void OnEnable()
@@ -325,7 +333,7 @@ namespace Prototype
         // ── 진입 ─────────────────────────────────────────
 
         /// <summary>E키. 실제 판정은 현재 전술 페이즈가 내린다 — Order에서는 이 키가 곧 실행이다.</summary>
-        public bool Enter() => tactic != null && tactic.OnBulletTimeKey();
+        public bool Enter() => CurTactic != null && CurTactic.OnBulletTimeKey();
 
         public bool CanEnter
             => !IsActive && executor != null && !executor.IsRunning
@@ -345,7 +353,7 @@ namespace Prototype
         public bool CancelSelection()
         {
             if (!IsActive) return false;
-            tactic.ChangeTo(tactic.RealTime);
+            ChangePhase(realTimeState);
             OnExit?.Invoke();
             return true;
         }
@@ -354,7 +362,23 @@ namespace Prototype
         /// 페이즈를 곧바로 옮긴다. <b>테스트 전용</b> — 게임 경로는 반드시 <see cref="Enter"/>를 탄다.
         /// 코스트 · 게이지 검사를 건너뛰므로 게임 코드에서 부르면 규칙이 깨진다.
         /// </summary>
-        internal void ForcePhase(TacticPhase phase) => tactic?.ChangeTo(tactic.StateOf(phase));
+        internal void ForcePhase(TacticPhase phase)
+        {
+            if (tactic == null) return;
+            switch (phase)
+            {
+                case TacticPhase.Freeze: ChangePhase(freezeState); break;
+                case TacticPhase.Order: ChangePhase(orderState); break;
+                case TacticPhase.Resolve: ChangePhase(resolveState); break;
+                default: ChangePhase(realTimeState); break;
+            }
+        }
+
+        /// <summary>전술 페이즈 전이. 막는 페이즈가 없으므로 무조건 전이다.</summary>
+        private void ChangePhase(TacticState next) => tactic.ForceChangeState(next);
+
+        /// <summary>Start에서 한 번. 실시간 전투로 시작한다.</summary>
+        private void BeginTactic() => ChangePhase(realTimeState);
 
         /// <summary>Freeze 진입. 시간은 <see cref="TimeControl"/>로만 멈춘다(결정 로그 ⑥).</summary>
         private void FreezeTime()
