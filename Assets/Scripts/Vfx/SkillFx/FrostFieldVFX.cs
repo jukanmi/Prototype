@@ -21,7 +21,7 @@ using UnityEngine.Events;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class FrostFieldVFX : MonoBehaviour
+public class FrostFieldVFX : VfxBehaviour
 {
     public enum FinishAction
     {
@@ -153,9 +153,7 @@ public class FrostFieldVFX : MonoBehaviour
     MeshFilter floorFilter;
     MeshRenderer floorRenderer;
     Mesh mesh, floorMesh;
-    Material mat;
     bool initialized;
-    System.Random rng;
 
     readonly List<Puff> puffs = new List<Puff>();
     readonly List<Sparkle> sparkles = new List<Sparkle>();
@@ -439,43 +437,6 @@ public class FrostFieldVFX : MonoBehaviour
         SetupRenderer(floorRenderer, floorSortingLayerName, floorSortingOrder);
     }
 
-    static Mesh NewMesh(string meshName)
-    {
-        Mesh m = new Mesh();
-        m.name = meshName;
-        m.hideFlags = HideFlags.DontSave;
-        m.MarkDynamic();
-        return m;
-    }
-
-    void SetupRenderer(MeshRenderer r, string layerName, int order)
-    {
-        r.sharedMaterial = mat;
-        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        r.receiveShadows = false;
-        r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-        r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-        r.sortingLayerName = layerName;
-        r.sortingOrder = order;
-        r.enabled = false;
-    }
-
-    float Rand(float min, float max)
-    {
-        return min + (float)rng.NextDouble() * (max - min);
-    }
-
-    static float SStep(float a, float b, float x)
-    {
-        float t = Mathf.Clamp01((x - a) / (b - a));
-        return t * t * (3f - 2f * t);
-    }
-
-    static Vector3 Polar(float angle, float length)
-    {
-        return new Vector3(Mathf.Cos(angle) * length, Mathf.Sin(angle) * length, 0f);
-    }
-
     /// <summary>바닥 좌표(앞으로 gx, 옆으로 gz) -> 로컬 평면 위치. 바닥은 화면에서 세로로 눌려 보임.</summary>
     Vector3 Ground(float gx, float gz)
     {
@@ -706,14 +667,6 @@ public class FrostFieldVFX : MonoBehaviour
     {
         p.z = 0f;
         return p;
-    }
-
-    /// <summary>월드 위치 -> 이 오브젝트의 로컬 XY 평면 (로컬 Z 를 따라 눌러 붙임)</summary>
-    Vector3 ToPlane(Vector3 world)
-    {
-        Vector3 local = transform.InverseTransformPoint(world);
-        local.z = 0f;
-        return local;
     }
 
 #if UNITY_EDITOR

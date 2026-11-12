@@ -11,7 +11,7 @@ using UnityEngine;
 /// 인스펙터에서 줄기별로 크기·각도·색을 따로 조절할 수 있습니다.
 /// </summary>
 [DisallowMultipleComponent]
-public class ComboSlashVFX : MonoBehaviour
+public class ComboSlashVFX : VfxBehaviour
 {
     [Header("Shaders (컴포넌트를 붙이면 자동으로 채워짐)")]
     public Shader slashShader;
@@ -98,14 +98,6 @@ public class ComboSlashVFX : MonoBehaviour
     {
         nextIndex = 0;
         CurrentHit = 0;
-    }
-
-    /// <summary>캐릭터가 보는 방향에 맞춰 좌우 반전합니다. (캐릭터를 scale.x 로 뒤집는다면 필요 없음)</summary>
-    public void SetFacing(bool facingRight)
-    {
-        Vector3 s = transform.localScale;
-        s.x = Mathf.Abs(s.x) * (facingRight ? 1f : -1f);
-        transform.localScale = s;
     }
 
     // ------------------------------------------------------------------ lifecycle

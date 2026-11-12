@@ -25,7 +25,7 @@ using UnityEngine.Events;
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(1000)]      // 카메라를 옮기는 다른 스크립트들보다 나중에 돌아서, 배경 캡처가 한 프레임 밀리지 않게
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class FlashSlashVFX : MonoBehaviour
+public class FlashSlashVFX : VfxBehaviour
 {
     public enum FinishAction
     {
@@ -201,9 +201,7 @@ public class FlashSlashVFX : MonoBehaviour
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
     Mesh mesh;
-    Material mat;
     bool initialized;
-    System.Random rng;
 
     readonly List<Streak> streaks = new List<Streak>();
     readonly List<Shard> shards = new List<Shard>();
@@ -622,22 +620,6 @@ public class FlashSlashVFX : MonoBehaviour
         mesh.Clear();
         meshRenderer.enabled = true;
         ApplyMaterial();
-    }
-
-    float Rand(float min, float max)
-    {
-        return min + (float)rng.NextDouble() * (max - min);
-    }
-
-    static float SStep(float a, float b, float x)
-    {
-        float t = Mathf.Clamp01((x - a) / (b - a));
-        return t * t * (3f - 2f * t);
-    }
-
-    static Vector3 Polar(float angle, float radius)
-    {
-        return new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
     }
 
     void AddStreak(Vector3 a, Vector3 b, float halfWidth, float start, float life,
@@ -1208,14 +1190,6 @@ public class FlashSlashVFX : MonoBehaviour
     void AddVertex(Vector3 local, Vector2 uv, Vector4 mode, Vector4 prm)
     {
         AddVertex(local, uv, mode, prm, local, Vector2.zero);
-    }
-
-    /// <summary>월드 위치 -> 이 오브젝트의 로컬 XY 평면 (로컬 Z 를 따라 눌러 붙임)</summary>
-    Vector3 ToPlane(Vector3 world)
-    {
-        Vector3 local = transform.InverseTransformPoint(world);
-        local.z = 0f;
-        return local;
     }
 
     // 메시를 짜는 좌표가 이미 로컬 평면이므로 그대로 씀

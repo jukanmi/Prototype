@@ -19,7 +19,7 @@ using UnityEngine.Events;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class MagicMissileVFX : MonoBehaviour
+public class MagicMissileVFX : VfxBehaviour
 {
     [Header("Shader (컴포넌트를 붙이면 자동으로 채워짐)")]
     public Shader missileShader;
@@ -167,9 +167,7 @@ public class MagicMissileVFX : MonoBehaviour
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
     Mesh mesh;
-    Material mat;
     bool initialized;
-    System.Random rng;
 
     readonly List<Volley> volleys = new List<Volley>();
     readonly List<Sparkle> sparkles = new List<Sparkle>();
@@ -409,17 +407,6 @@ public class MagicMissileVFX : MonoBehaviour
         }
         ApplyMaterial();
         return v;
-    }
-
-    float Rand(float min, float max)
-    {
-        return min + (float)rng.NextDouble() * (max - min);
-    }
-
-    static float SStep(float a, float b, float x)
-    {
-        float t = Mathf.Clamp01((x - a) / (b - a));
-        return t * t * (3f - 2f * t);
     }
 
     void ApplyMaterial()
@@ -708,14 +695,6 @@ public class MagicMissileVFX : MonoBehaviour
         verts.Add(local);
         uv0.Add(uv);
         uv1.Add(mode);
-    }
-
-    /// <summary>월드 위치 -> 이 오브젝트의 로컬 XY 평면 (로컬 Z 를 따라 눌러 붙임)</summary>
-    Vector3 ToPlane(Vector3 world)
-    {
-        Vector3 local = transform.InverseTransformPoint(world);
-        local.z = 0f;
-        return local;
     }
 
     /// <summary>월드 히트박스 -> 로컬 평면 (중심만 옮기고 크기는 그대로)</summary>

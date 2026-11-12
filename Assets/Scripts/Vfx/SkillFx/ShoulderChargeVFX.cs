@@ -24,7 +24,7 @@ using UnityEngine.Events;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class ShoulderChargeVFX : MonoBehaviour
+public class ShoulderChargeVFX : VfxBehaviour
 {
     public enum FinishAction
     {
@@ -187,41 +187,14 @@ public class ShoulderChargeVFX : MonoBehaviour
         public bool live;
     }
 
-    // 메시 하나를 채우는 버퍼 묶음 (앞쪽용 / 바닥용)
-    class Buffers
-    {
-        public readonly List<Vector3> verts = new List<Vector3>();
-        public readonly List<Vector2> uv0 = new List<Vector2>();
-        public readonly List<Vector4> uv1 = new List<Vector4>();
-        public readonly List<Vector4> uv2 = new List<Vector4>();
-        public readonly List<int> tris = new List<int>();
-
-        public void Clear()
-        {
-            verts.Clear(); uv0.Clear(); uv1.Clear(); uv2.Clear(); tris.Clear();
-        }
-
-        public void Apply(Mesh m)
-        {
-            m.Clear();
-            m.SetVertices(verts);
-            m.SetUVs(0, uv0);
-            m.SetUVs(1, uv1);
-            m.SetUVs(2, uv2);
-            m.SetTriangles(tris, 0);
-            m.RecalculateBounds();
-        }
-    }
-
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
     MeshFilter floorFilter;
     MeshRenderer floorRenderer;
     Mesh mesh, floorMesh;
-    Material mat, ghostMat;
+    Material ghostMat;
     MaterialPropertyBlock ghostBlock;
     bool initialized;
-    System.Random rng;
 
     readonly List<Spike> spikes = new List<Spike>();
     readonly List<Needle> needles = new List<Needle>();
@@ -494,27 +467,6 @@ public class ShoulderChargeVFX : MonoBehaviour
         SetupRenderer(floorRenderer, floorSortingLayerName, floorSortingOrder);
     }
 
-    static Mesh NewMesh(string meshName)
-    {
-        Mesh m = new Mesh();
-        m.name = meshName;
-        m.hideFlags = HideFlags.DontSave;
-        m.MarkDynamic();
-        return m;
-    }
-
-    void SetupRenderer(MeshRenderer r, string layerName, int order)
-    {
-        r.sharedMaterial = mat;
-        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        r.receiveShadows = false;
-        r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-        r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-        r.sortingLayerName = layerName;
-        r.sortingOrder = order;
-        r.enabled = false;
-    }
-
     Vector3 FollowPosition()
     {
         Vector3 p = ToPlane(followT.position);
@@ -543,17 +495,6 @@ public class ShoulderChargeVFX : MonoBehaviour
         SpawnStart(0f);
         BuildMeshes(0f);
         ApplyMaterial();
-    }
-
-    float Rand(float min, float max)
-    {
-        return min + (float)rng.NextDouble() * (max - min);
-    }
-
-    static float SStep(float a, float b, float x)
-    {
-        float t = Mathf.Clamp01((x - a) / (b - a));
-        return t * t * (3f - 2f * t);
     }
 
     void ApplyMaterial()
@@ -957,36 +898,6 @@ public class ShoulderChargeVFX : MonoBehaviour
         AddVertex(b, c + new Vector3(hx, hy, 0f), new Vector2(extent, extent), mode, none);
         b.tris.Add(q); b.tris.Add(q + 1); b.tris.Add(q + 2);
         b.tris.Add(q + 2); b.tris.Add(q + 1); b.tris.Add(q + 3);
-    }
-
-    // 중심과 두 반축으로 사각형 하나. uv.x 는 ax 방향, uv.y 는 ay 방향
-    void AddQuad(Buffers b, Vector3 p, Vector3 ax, Vector3 ay, Vector4 mode, Vector4 prm)
-    {
-        int q = b.verts.Count;
-        AddVertex(b, p - ax - ay, new Vector2(0f, 0f), mode, prm);
-        AddVertex(b, p - ax + ay, new Vector2(0f, 1f), mode, prm);
-        AddVertex(b, p + ax - ay, new Vector2(1f, 0f), mode, prm);
-        AddVertex(b, p + ax + ay, new Vector2(1f, 1f), mode, prm);
-        b.tris.Add(q); b.tris.Add(q + 1); b.tris.Add(q + 2);
-        b.tris.Add(q + 2); b.tris.Add(q + 1); b.tris.Add(q + 3);
-    }
-
-    // 메시를 짜는 좌표가 이미 로컬 평면이므로 그대로 씀
-    void AddVertex(Buffers b, Vector3 local, Vector2 uv, Vector4 mode, Vector4 prm)
-    {
-        local.z = 0f;
-        b.verts.Add(local);
-        b.uv0.Add(uv);
-        b.uv1.Add(mode);
-        b.uv2.Add(prm);
-    }
-
-    /// <summary>월드 위치 -> 이 오브젝트의 로컬 XY 평면 (로컬 Z 를 따라 눌러 붙임)</summary>
-    Vector3 ToPlane(Vector3 world)
-    {
-        Vector3 local = transform.InverseTransformPoint(world);
-        local.z = 0f;
-        return local;
     }
 
 #if UNITY_EDITOR

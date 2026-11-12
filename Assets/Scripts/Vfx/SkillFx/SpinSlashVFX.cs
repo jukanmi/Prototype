@@ -20,7 +20,7 @@ using UnityEngine.Events;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class SpinSlashVFX : MonoBehaviour
+public class SpinSlashVFX : VfxBehaviour
 {
     [Header("Shader (컴포넌트를 붙이면 자동으로 채워짐)")]
     public Shader spinShader;
@@ -154,9 +154,7 @@ public class SpinSlashVFX : MonoBehaviour
     MeshFilter backFilter;
     MeshRenderer backRenderer;
     Mesh mesh, backMesh;
-    Material mat;
     bool initialized;
-    System.Random rng;
 
     readonly List<Layer> layers = new List<Layer>();
     readonly List<Puff> puffs = new List<Puff>();
@@ -164,34 +162,6 @@ public class SpinSlashVFX : MonoBehaviour
     readonly List<Needle> needles = new List<Needle>();
     readonly List<Shock> shocks = new List<Shock>();
     readonly List<Cue> cues = new List<Cue>();
-
-    // 메시 하나를 채우는 버퍼 묶음 (앞쪽용 / 뒤쪽용)
-    class Buffers
-    {
-        public readonly List<Vector3> verts = new List<Vector3>();
-        public readonly List<Vector2> uv0 = new List<Vector2>();
-        public readonly List<Vector4> uv1 = new List<Vector4>();
-        public readonly List<Vector4> uv2 = new List<Vector4>();
-        public readonly List<Vector4> uv3 = new List<Vector4>();
-        public readonly List<int> tris = new List<int>();
-
-        public void Clear()
-        {
-            verts.Clear(); uv0.Clear(); uv1.Clear(); uv2.Clear(); uv3.Clear(); tris.Clear();
-        }
-
-        public void Apply(Mesh m)
-        {
-            m.Clear();
-            m.SetVertices(verts);
-            m.SetUVs(0, uv0);
-            m.SetUVs(1, uv1);
-            m.SetUVs(2, uv2);
-            m.SetUVs(3, uv3);
-            m.SetTriangles(tris, 0);
-            m.RecalculateBounds();
-        }
-    }
 
     readonly Buffers front = new Buffers();
     readonly Buffers back = new Buffers();
@@ -259,14 +229,6 @@ public class SpinSlashVFX : MonoBehaviour
     {
         nextIndex = 0;
         CurrentHit = 0;
-    }
-
-    /// <summary>캐릭터가 보는 방향에 맞춰 좌우 반전합니다. (캐릭터를 scale.x 로 뒤집는다면 필요 없음)</summary>
-    public void SetFacing(bool facingRight)
-    {
-        Vector3 s = transform.localScale;
-        s.x = Mathf.Abs(s.x) * (facingRight ? 1f : -1f);
-        transform.localScale = s;
     }
 
     /// <summary>worldPosition(바닥 위의 점, 보통 적의 발밑)이 베는 범위 안에 있는지.</summary>
@@ -404,38 +366,6 @@ public class SpinSlashVFX : MonoBehaviour
         backMesh = NewMesh("SpinSlashBack");
         backFilter.sharedMesh = backMesh;
         SetupRenderer(backRenderer, backSortingLayerName, backSortingOrder);
-    }
-
-    static Mesh NewMesh(string meshName)
-    {
-        Mesh m = new Mesh();
-        m.name = meshName;
-        m.hideFlags = HideFlags.DontSave;
-        m.MarkDynamic();
-        return m;
-    }
-
-    void SetupRenderer(MeshRenderer r, string layerName, int order)
-    {
-        r.sharedMaterial = mat;
-        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        r.receiveShadows = false;
-        r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-        r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-        r.sortingLayerName = layerName;
-        r.sortingOrder = order;
-        r.enabled = false;
-    }
-
-    float Rand(float min, float max)
-    {
-        return min + (float)rng.NextDouble() * (max - min);
-    }
-
-    static float SStep(float a, float b, float x)
-    {
-        float t = Mathf.Clamp01((x - a) / (b - a));
-        return t * t * (3f - 2f * t);
     }
 
     /// <summary>

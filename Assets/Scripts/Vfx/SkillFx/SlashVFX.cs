@@ -12,7 +12,7 @@ using UnityEngine;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class SlashVFX : MonoBehaviour
+public class SlashVFX : VfxBehaviour
 {
     public enum FinishAction
     {
@@ -131,14 +131,6 @@ public class SlashVFX : MonoBehaviour
         SlashVFX fx = Instantiate(prefab, position, Quaternion.identity);
         fx.SetFacing(facingRight);
         return fx;
-    }
-
-    /// <summary>캐릭터가 보는 방향에 맞춰 좌우 반전합니다.</summary>
-    public void SetFacing(bool facingRight)
-    {
-        Vector3 s = transform.localScale;
-        s.x = Mathf.Abs(s.x) * (facingRight ? 1f : -1f);
-        transform.localScale = s;
     }
 
     /// <summary>처음부터 다시 재생합니다.</summary>

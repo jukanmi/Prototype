@@ -17,7 +17,7 @@ using UnityEngine.Events;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class HookChainVFX : MonoBehaviour
+public class HookChainVFX : VfxBehaviour
 {
     public enum EndMode
     {
@@ -126,7 +126,6 @@ public class HookChainVFX : MonoBehaviour
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
     Mesh mesh;
-    Material mat;
     bool initialized;
 
     readonly List<Vector3> verts = new List<Vector3>();
@@ -156,13 +155,6 @@ public class HookChainVFX : MonoBehaviour
     // 메시를 짜는 좌표 = 이 오브젝트의 로컬 XY 평면
     Vector3 OriginPos { get { return ToPlane(OriginWorld); } }
     Vector3 TargetPos { get { return ToPlane(TargetWorld); } }
-
-    Vector3 ToPlane(Vector3 world)
-    {
-        Vector3 local = transform.InverseTransformPoint(world);
-        local.z = 0f;
-        return local;
-    }
 
     // ------------------------------------------------------------------ public API
 
