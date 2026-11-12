@@ -173,7 +173,7 @@ namespace Prototype
             if (Instance != this) return;
 
             // 화면이 사라지는데 잠금이 남아 있으면 조작이 영영 안 돌아온다.
-            if (isOpen) SetSuspended(false);
+            if (isOpen) PlayerInputController.SetSuspended(false);
 
             Instance = null;
         }
@@ -193,7 +193,7 @@ namespace Prototype
 
             isOpen = true;
             root.SetActive(true);
-            SetSuspended(true);
+            PlayerInputController.SetSuspended(true);
 
             // 창을 띄운 그 손이 방향키를 쥐고 있어도 커서가 공짜로 한 칸 밀리지 않게 기준을 새로 잡는다.
             PlayerInputController input = PlayerInputController.Instance;
@@ -211,13 +211,7 @@ namespace Prototype
             pendingTier = -1;
 
             root.SetActive(false);
-            SetSuspended(false);
-        }
-
-        private static void SetSuspended(bool value)
-        {
-            PlayerInputController input = PlayerInputController.Instance;
-            if (input != null) input.GameplaySuspended = value;
+            PlayerInputController.SetSuspended(false);
         }
 
         // ── 키보드 ───────────────────────────────────────

@@ -424,18 +424,11 @@ namespace Prototype
         public static int TargetSize(IReadOnlyList<Ally> party)
             => TargetSize(CountFilled(party));
 
-        public static int CountFilled(IReadOnlyList<PartyMemberData> party)
-        {
-            if (party == null) return 0;
-
-            int n = 0;
-            for (int i = 0; i < party.Count; i++)
-                if (party[i] != null) n++;
-
-            return n;
-        }
-
-        public static int CountFilled(IReadOnlyList<Ally> party)
+        /// <summary>
+        /// 빈 칸을 뺀 인원. 제약이 <see cref="UnityEngine.Object"/>라서 <c>!= null</c>은
+        /// 유니티 판정(파괴된 오브젝트도 null)을 그대로 쓴다.
+        /// </summary>
+        public static int CountFilled<T>(IReadOnlyList<T> party) where T : UnityEngine.Object
         {
             if (party == null) return 0;
 

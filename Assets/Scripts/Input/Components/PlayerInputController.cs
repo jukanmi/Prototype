@@ -154,6 +154,12 @@ namespace Prototype
 
         private bool gameplaySuspended;
 
+        /// <summary>인스턴스가 있으면 <see cref="GameplaySuspended"/>를 맞춘다. 모달 UI들이 여닫을 때 부른다.</summary>
+        public static void SetSuspended(bool value)
+        {
+            if (Instance != null) Instance.GameplaySuspended = value;
+        }
+
         // ── 수명 ────────────────────────────────────────────
 
         private void Awake()

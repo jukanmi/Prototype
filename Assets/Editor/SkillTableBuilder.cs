@@ -291,37 +291,22 @@ namespace Prototype.EditorTools
 
         /// <summary>어느 한 타라도 적을 밀어내는지. 시동기가 벽바운드로 콤보를 여는 경우.</summary>
         private static bool PushesByHit(SkillData s)
-        {
-            if (s.hitDataList == null) return false;
-
-            for (int i = 0; i < s.hitDataList.Count; i++)
-                if (s.hitDataList[i].mode != KnockbackMode.TowardCaster && s.hitDataList[i].pushDistance > 0f)
-                    return true;
-
-            return false;
-        }
+            => AnyHit(s, h => h.mode != KnockbackMode.TowardCaster && h.pushDistance > 0f);
 
         /// <summary>어느 한 타라도 적을 끌어오는지. 시동기가 모으기로 콤보를 여는 경우.</summary>
         private static bool GathersByHit(SkillData s)
-        {
-            if (s.hitDataList == null) return false;
-
-            for (int i = 0; i < s.hitDataList.Count; i++)
-                if (s.hitDataList[i].mode == KnockbackMode.TowardCaster && s.hitDataList[i].pushDistance > 0f)
-                    return true;
-
-            return false;
-        }
+            => AnyHit(s, h => h.mode == KnockbackMode.TowardCaster && h.pushDistance > 0f);
 
         /// <summary>어느 한 타라도 실제로 띄우는지.</summary>
         private static bool LaunchesByHit(SkillData s)
+            => AnyHit(s, h => h.mode == KnockbackMode.Up && (h.airborneHeight > 0f || h.aerialAirborneHeight > 0f));
+
+        private static bool AnyHit(SkillData s, System.Predicate<HitData> match)
         {
             if (s.hitDataList == null) return false;
 
             for (int i = 0; i < s.hitDataList.Count; i++)
-                if (s.hitDataList[i].mode == KnockbackMode.Up &&
-                    (s.hitDataList[i].airborneHeight > 0f || s.hitDataList[i].aerialAirborneHeight > 0f))
-                    return true;
+                if (match(s.hitDataList[i])) return true;
 
             return false;
         }

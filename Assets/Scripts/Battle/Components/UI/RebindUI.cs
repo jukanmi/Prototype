@@ -160,7 +160,7 @@ namespace Prototype
         {
             // 화면이 사라지는데 대기가 남아 있으면 조작이 잠긴 채로 굳는다.
             if (_manager != null && _manager.IsListening) _manager.Abort();
-            SetSuspended(false);
+            PlayerInputController.SetSuspended(false);
         }
 
         private void Update()
@@ -183,7 +183,7 @@ namespace Prototype
             _cancelAction.actionMap.Enable();
 
             _panelRoot.SetActive(true);
-            SetSuspended(true);
+            PlayerInputController.SetSuspended(true);
 
             RebuildRows();
             SetStatus("바꿀 키의 [변경]을 누른 뒤 새 키를 누른다.", SubColor);
@@ -194,13 +194,7 @@ namespace Prototype
             if (_manager != null && _manager.IsListening) _manager.Abort();
 
             _panelRoot.SetActive(false);
-            SetSuspended(false);
-        }
-
-        private static void SetSuspended(bool value)
-        {
-            PlayerInputController input = PlayerInputController.Instance;
-            if (input != null) input.GameplaySuspended = value;
+            PlayerInputController.SetSuspended(false);
         }
 
         /// <summary>
@@ -334,7 +328,7 @@ namespace Prototype
 
         private void BuildHeader(string label, ref float y)
         {
-            var go = CreatePanel(_content, $"Header_{label}", HeaderColor);
+            var go = UiKit.CreateImage(_content, $"Header_{label}", HeaderColor);
             var rect = go.GetComponent<RectTransform>();
             Anchor(rect, RowWidth, RowHeight, y);
 
@@ -348,7 +342,7 @@ namespace Prototype
 
         private void BuildRow(InputAction action, int bindingIndex, ref float y)
         {
-            var go = CreatePanel(_content, $"Row_{action.name}_{bindingIndex}", RowColor);
+            var go = UiKit.CreateImage(_content, $"Row_{action.name}_{bindingIndex}", RowColor);
             var rect = go.GetComponent<RectTransform>();
             Anchor(rect, RowWidth, RowHeight, y);
 
@@ -384,14 +378,6 @@ namespace Prototype
         }
 
         // ── 조각 ─────────────────────────────────────────
-
-        private static GameObject CreatePanel(Transform parent, string name, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
-            return go;
-        }
 
         private static Button BuildButton(Transform parent, string name, string label,
             float width, float height, Color color)

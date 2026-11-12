@@ -58,7 +58,7 @@ namespace Prototype
             Vector3 ownerGround, Vector3 facing, Vector3 localOffset, Vector3 boxSize,
             float advanceDistance, float progress)
         {
-            Vector3 f = Flatten(facing);
+            Vector3 f = GroundRules.FlatDirection(facing);
 
             // LookRotation(f)의 오른쪽 축과 같다. 쿼터니언을 만들지 않고 직접 돌린다 —
             // 매 프레임 적 수만큼 도는 자리다.
@@ -112,7 +112,7 @@ namespace Prototype
             return new AttackRangePreview
             {
                 center = center,
-                facing = Flatten(facing),
+                facing = GroundRules.FlatDirection(facing),
                 radius = Mathf.Max(0f, radius),
                 coneAngle = Mathf.Max(0f, angleDegrees),
                 progress = Mathf.Clamp01(progress),
@@ -168,10 +168,5 @@ namespace Prototype
             return true;
         }
 
-        private static Vector3 Flatten(Vector3 dir)
-        {
-            dir.y = 0f;
-            return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.forward;
-        }
     }
 }

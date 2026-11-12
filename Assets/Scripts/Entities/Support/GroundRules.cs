@@ -91,6 +91,13 @@ namespace Prototype
         /// <summary>높이는 필요 없고 "발판 위인가"만 묻는 쪽.</summary>
         public static bool Supports(IReadOnlyList<GroundRect> plates, Vector3 point, float margin)
             => TryHeightAt(plates, point, margin, out _);
+
+        /// <summary>방향을 지면(XZ)에 눌러 단위 벡터로. 거의 0이면 <see cref="Vector3.forward"/>.</summary>
+        public static Vector3 FlatDirection(Vector3 dir)
+        {
+            dir.y = 0f;
+            return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.forward;
+        }
     }
 
     // ══ GroundRegistry ═══════════════════════════════════════════

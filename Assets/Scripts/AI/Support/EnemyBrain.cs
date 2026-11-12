@@ -323,7 +323,7 @@ namespace Prototype
                 case EnemySpecialPhase.Telegraph:
                     if (timer < telegraphDuration) return;
 
-                    LockedDirection = Normalize(liveDirection);
+                    LockedDirection = GroundRules.FlatDirection(liveDirection);
                     Enter(EnemySpecialPhase.Active);
                     return;
 
@@ -385,12 +385,6 @@ namespace Prototype
         {
             Phase = next;
             timer = 0f;
-        }
-
-        private static Vector3 Normalize(Vector3 dir)
-        {
-            dir.y = 0f;
-            return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.forward;
         }
     }
 }

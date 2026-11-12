@@ -44,37 +44,29 @@ namespace Prototype
 
         /// <summary>한 스테이지의 라운드를 아레나 번호순으로 읽는다. 빠진 번호에서 멈춘다.</summary>
         public static List<WaveAsset> LoadRounds(int stage)
-        {
-            var rounds = new List<WaveAsset>();
-
-            for (int arena = 1; ; arena++)
-            {
-                var asset = AssetDatabase.LoadAssetAtPath<WaveAsset>(RoundPathFor(stage, arena));
-                if (asset == null) break;
-
-                rounds.Add(asset);
-            }
-
-            return rounds;
-        }
+            => LoadSequence(first: 1, n => RoundPathFor(stage, n));
 
         /// <summary>
         /// 한 스테이지의 웨이브를 번호순으로 읽는다. 빠진 번호에서 멈춘다 —
         /// 중간이 비면 그 뒤는 씬 보드에도 안 꽂혀 있을 것이므로 조용히 이어 세지 않는다.
         /// </summary>
         public static List<WaveAsset> Load(int stage)
-        {
-            var waves = new List<WaveAsset>();
+            => LoadSequence(first: 0, n => PathFor(stage, n));
 
-            for (int i = 0; ; i++)
+        /// <summary><paramref name="first"/>번부터 애셋을 읽다가 처음 빠진 번호에서 멈춘다.</summary>
+        private static List<WaveAsset> LoadSequence(int first, System.Func<int, string> pathFor)
+        {
+            var list = new List<WaveAsset>();
+
+            for (int n = first; ; n++)
             {
-                var asset = AssetDatabase.LoadAssetAtPath<WaveAsset>(PathFor(stage, i));
+                var asset = AssetDatabase.LoadAssetAtPath<WaveAsset>(pathFor(n));
                 if (asset == null) break;
 
-                waves.Add(asset);
+                list.Add(asset);
             }
 
-            return waves;
+            return list;
         }
     }
 }

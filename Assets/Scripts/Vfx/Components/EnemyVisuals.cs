@@ -368,17 +368,17 @@ namespace Prototype
         /// 아머는 <b>기본 상태</b>라 이벤트가 뜨지 않는다 — 보스는 첫 프레임부터 금색이어야 한다.
         /// 상태 변경만 기다리면 가드가 한 번 깨질 때까지 색이 안 붙는다.
         /// </summary>
-        private void Start() => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
+        private void Start() => ApplyCurrent();
 
         private void HandleStateChanged(CombatState prev, CombatState next) => Apply(next);
 
         /// <summary>예고 · 가드브레이크는 둘 다 겹침 표시라 같은 계산을 다시 돌리면 된다.</summary>
-        private void HandleOverlayChanged(bool on)
-            => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
+        private void HandleOverlayChanged(bool on) => ApplyCurrent();
 
         /// <summary>디버프도 겹침 표시다. 시그니처만 달라 어댑터를 하나 더 둔다.</summary>
-        private void HandleDebuffsChanged(Debuff mask)
-            => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
+        private void HandleDebuffsChanged(Debuff mask) => ApplyCurrent();
+
+        private void ApplyCurrent() => Apply(combat != null ? combat.CombatState : CombatState.Neutral);
 
         /// <summary>
         /// 상태와 예고를 색에 반영한다.
@@ -500,8 +500,7 @@ namespace Prototype
         /// 어느 깊이에서나 같은 크기로 읽혀야 한다.
         /// </summary>
         public static Vector3 GaugePosition(Vector3 ground, float height, float headOffset)
-            => BeltScroll.ToView(ground, height)
-             + BeltScroll.ScreenUp * (headOffset * BeltScroll.ScaleAt(ground.z));
+            => EnemyStateLabel.LabelPosition(ground, height, headOffset);
 
         private void Draw(SpriteRenderer sr, Entity e, VfxClip clip, float ratio)
         {

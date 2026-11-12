@@ -82,11 +82,13 @@ namespace Prototype
         /// <summary>조작 캐릭터를 꽂는다. <see cref="TagSwapController"/>만 부른다. null이면 폴백으로 간다.</summary>
         public static void SetControlled(Entity body) => controlled = body;
 
-        public static int AliveEnemyCount()
+        public static int AliveEnemyCount() => CountAlive(enemies);
+
+        private static int CountAlive(List<Entity> list)
         {
             int n = 0;
-            for (int i = 0; i < enemies.Count; i++)
-                if (enemies[i] != null && !enemies[i].Combat.IsDead) n++;
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] != null && !list[i].Combat.IsDead) n++;
             return n;
         }
 
@@ -101,13 +103,7 @@ namespace Prototype
         /// 예전에 있던 <c>AllAlliesDead()</c>를 지운 이유가 이것이다. 그쪽은 빈 목록에 true 를
         /// 돌려줘서, 파티 체력바가 멀쩡한데 결과 화면이 뜨는 버그의 원인이 됐다.
         /// </summary>
-        public static int AliveAllyCount()
-        {
-            int n = 0;
-            for (int i = 0; i < allies.Count; i++)
-                if (allies[i] != null && !allies[i].Combat.IsDead) n++;
-            return n;
-        }
+        public static int AliveAllyCount() => CountAlive(allies);
 
         // 아래 조준 함수들은 전부 IsTargetable 을 본다. 벽에서 걸어 나오는 중인 적은
         // 판정이 꺼져 있어 때릴 수 없으므로, 후보로 남겨 두면 스킬이 그쪽으로 나가 헛돈다.

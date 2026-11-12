@@ -207,6 +207,16 @@ namespace Prototype
             rect.offsetMax = new Vector2(-inset, -inset);
         }
 
+        /// <summary>앵커 구간(<paramref name="min"/>..<paramref name="max"/>)을 채우고 좌우만 <paramref name="padX"/> 들인다.</summary>
+        public static void Band(Component target, Vector2 min, Vector2 max, float padX)
+        {
+            var rect = (RectTransform)target.transform;
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = new Vector2(padX, 0f);
+            rect.offsetMax = new Vector2(-padX, 0f);
+        }
+
         /// <summary>앵커·피벗을 한 점으로 모으고 그 자리에 놓는다.</summary>
         public static RectTransform Place(Component target, Vector2 anchor, Vector2 position, Vector2 size)
         {

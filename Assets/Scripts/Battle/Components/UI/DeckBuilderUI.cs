@@ -144,7 +144,7 @@ namespace Prototype
             if (Instance != this) return;
 
             // 화면이 사라지는데 잠금이 남아 있으면 조작이 영영 안 돌아온다.
-            if (isOpen) SetSuspended(false);
+            if (isOpen) PlayerInputController.SetSuspended(false);
 
             Instance = null;
         }
@@ -173,7 +173,7 @@ namespace Prototype
 
             isOpen = true;
             root.SetActive(true);
-            SetSuspended(true);
+            PlayerInputController.SetSuspended(true);
 
             Refresh();
         }
@@ -197,16 +197,10 @@ namespace Prototype
 
             isOpen = false;
             if (root != null) root.SetActive(false);
-            SetSuspended(false);
+            PlayerInputController.SetSuspended(false);
 
             // 덱을 다시 짓고 손패를 채운다. 여기까지 와야 유저가 카드를 쥔다.
             if (owner != null) owner.RebuildDeckAndHand();
-        }
-
-        private static void SetSuspended(bool value)
-        {
-            PlayerInputController input = PlayerInputController.Instance;
-            if (input != null) input.GameplaySuspended = value;
         }
 
         // ── 고르기 ───────────────────────────────────────
@@ -418,29 +412,20 @@ namespace Prototype
 
             Text name = UiKit.CreateText(body, "Name",
                 entry.data != null ? entry.data.skillName : "?", 16, Color.white);
-            Anchor(name, new Vector2(0f, 0.24f), new Vector2(1f, 0.40f));
+            UiKit.Band(name, new Vector2(0f, 0.24f), new Vector2(1f, 0.40f), 4f);
             name.horizontalOverflow = HorizontalWrapMode.Wrap;
 
             Text grade = UiKit.CreateText(body, "Grade", entry.golden ? "황금" : "일반", 14,
                 entry.golden ? GoldColor : SubColor);
-            Anchor(grade, new Vector2(0f, 0.12f), new Vector2(1f, 0.24f));
+            UiKit.Band(grade, new Vector2(0f, 0.12f), new Vector2(1f, 0.24f), 4f);
 
             // 장수는 칸 <b>아래</b>에 둔다. 아이콘 위에 겹치면 어느 카드인지가 안 읽힌다.
             entry.countLabel = UiKit.CreateText(body, "Count", "0", 20, SubColor);
-            Anchor(entry.countLabel, new Vector2(0f, 0f), new Vector2(1f, 0.13f));
+            UiKit.Band(entry.countLabel, new Vector2(0f, 0f), new Vector2(1f, 0.13f), 4f);
 
             var handler = frameGo.AddComponent<CellHandler>();
             handler.Index = index;
             handler.Owner = this;
-        }
-
-        private static void Anchor(Component target, Vector2 min, Vector2 max)
-        {
-            var rect = (RectTransform)target.transform;
-            rect.anchorMin = min;
-            rect.anchorMax = max;
-            rect.offsetMin = new Vector2(4f, 0f);
-            rect.offsetMax = new Vector2(-4f, 0f);
         }
     }
 }

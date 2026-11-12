@@ -288,13 +288,13 @@ namespace Prototype
         private void BuildLabels(RectTransform body)
         {
             nameLabel = UiKit.CreateText(body, "Name", "", 24, NameColor);
-            Anchor(nameLabel, new Vector2(0f, 0.26f), new Vector2(1f, 0.38f));
+            UiKit.Band(nameLabel, new Vector2(0f, 0.26f), new Vector2(1f, 0.38f), 8f);
 
             subLabel = UiKit.CreateText(body, "Sub", "", 16, SubColor);
-            Anchor(subLabel, new Vector2(0f, 0.16f), new Vector2(1f, 0.26f));
+            UiKit.Band(subLabel, new Vector2(0f, 0.16f), new Vector2(1f, 0.26f), 8f);
 
             gradeLabel = UiKit.CreateText(body, "Grade", "", 17, GoldTextColor);
-            Anchor(gradeLabel, new Vector2(0f, 0.04f), new Vector2(1f, 0.15f));
+            UiKit.Band(gradeLabel, new Vector2(0f, 0.04f), new Vector2(1f, 0.15f), 8f);
         }
 
         /// <summary>
@@ -312,15 +312,6 @@ namespace Prototype
             UiKit.Stretch((RectTransform)star.transform);
 
             starBadge.SetActive(false);
-        }
-
-        private static void Anchor(Component target, Vector2 min, Vector2 max)
-        {
-            var rect = (RectTransform)target.transform;
-            rect.anchorMin = min;
-            rect.anchorMax = max;
-            rect.offsetMin = new Vector2(8f, 0f);
-            rect.offsetMax = new Vector2(-8f, 0f);
         }
 
         public void Show(in CardOffer offer)

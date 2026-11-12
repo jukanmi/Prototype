@@ -268,37 +268,29 @@ namespace Prototype
         /// 모든 타격(투사체 도착 폭발 · 대상 기준 히트스캔 · 장판)의 공통 착탄/타격 위치.
         /// 대상 정중앙 + 타별 impactOffset(대상 크기 배수). 대상이 없으면 ctx.Origin.
         /// </summary>
-        private Vector3 GetImpactPoint(in HitData hit)
-        {
-            if (ctx.target != null && ctx.target.Physics != null)
-            {
-                Vector3 size = ctx.target.HurtboxSize;
-                Vector3 center = ctx.target.Physics.GroundPosition
-                    + Vector3.up * (ctx.target.Physics.Height + size.y * 0.5f);
-
-                return center + Vector3.Scale(hit.impactOffset, size);
-            }
-
-            return ctx.Origin;
-        }
+        private Vector3 GetImpactPoint(in HitData hit) => TargetPoint(in hit, hurtboxCenter: true);
 
         /// <summary>
         /// 대상 위치 기준 타격(BoxStrike)의 판정 중심.
         /// 대상 위치 + 타별 impactOffset(대상 크기 배수).
         /// BoxStrike의 높이 판정(GroundPosition.y + Height * 0.5f)에 맞춘다.
         /// </summary>
-        private Vector3 GetTargetImpactCenter(in HitData hit)
+        private Vector3 GetTargetImpactCenter(in HitData hit) => TargetPoint(in hit, hurtboxCenter: false);
+
+        /// <summary>
+        /// 대상 기준점 + impactOffset(대상 크기 배수). 기준 높이만 갈린다 —
+        /// <paramref name="hurtboxCenter"/>면 Height 위에 얹은 허트박스 정중앙, 아니면 Height 절반.
+        /// 대상이 없으면 ctx.Origin.
+        /// </summary>
+        private Vector3 TargetPoint(in HitData hit, bool hurtboxCenter)
         {
-            if (ctx.target != null && ctx.target.Physics != null)
-            {
-                Vector3 size = ctx.target.HurtboxSize;
-                Vector3 center = ctx.target.Physics.GroundPosition
-                    + Vector3.up * (ctx.target.Physics.Height * 0.5f);
+            if (ctx.target == null || ctx.target.Physics == null) return ctx.Origin;
 
-                return center + Vector3.Scale(hit.impactOffset, size);
-            }
+            Vector3 size = ctx.target.HurtboxSize;
+            float height = ctx.target.Physics.Height;
+            float up = hurtboxCenter ? height + size.y * 0.5f : height * 0.5f;
 
-            return ctx.Origin;
+            return ctx.target.Physics.GroundPosition + Vector3.up * up + Vector3.Scale(hit.impactOffset, size);
         }
 
         /// <summary>
