@@ -46,22 +46,6 @@ MonoBehaviour:
     action: Navigate
     part: right
     path: <Keyboard>/d
-  - map: BulletTimeSkillShot
-    action: Aim
-    part: up
-    path: <Keyboard>/w
-  - map: BulletTimeSkillShot
-    action: Aim
-    part: down
-    path: <Keyboard>/s
-  - map: BulletTimeSkillShot
-    action: Aim
-    part: left
-    path: <Keyboard>/a
-  - map: BulletTimeSkillShot
-    action: Aim
-    part: right
-    path: <Keyboard>/d
   - map: Gameplay
     action: Attack
     part: 
@@ -78,11 +62,3 @@ MonoBehaviour:
     action: BulletTime
     part: 
     path: <Keyboard>/e
-  - map: BulletTimeSkillShot
-    action: Confirm
-    part: 
-    path: <Mouse>/leftButton
-  - map: BulletTimeSkillShot
-    action: Cancel
-    part: 
-    path: <Mouse>/rightButton

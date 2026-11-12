@@ -11,7 +11,6 @@ namespace Prototype
         [SerializeField] private BulletTimeController bulletTime;
         [SerializeField] private CameraFollow cameraFollow;
         [SerializeField] private CameraAnchor cameraAnchor;
-        [SerializeField] private TargetSelector targetSelector;
         [SerializeField] private PlayerPilot pilot;
         private readonly List<Entity> roster = new List<Entity>();
         private Vector3 seedGround;
@@ -42,7 +41,6 @@ namespace Prototype
             if (pilot == null) pilot = FindAnyObjectByType<PlayerPilot>();
             if (cameraFollow == null) cameraFollow = FindAnyObjectByType<CameraFollow>();
             if (cameraAnchor == null) cameraAnchor = GetComponentInChildren<CameraAnchor>(true);
-            if (targetSelector == null) targetSelector = FindAnyObjectByType<TargetSelector>();
         }
         private void Start()
         {
@@ -55,7 +53,6 @@ namespace Prototype
             pilot?.Take(player);
             if (cameraAnchor != null) cameraAnchor.SetFocus(player.transform);
             else cameraFollow?.SetTarget(player.transform);
-            targetSelector?.SetCursorOrigin(player.transform);
             CastDirector director = GetComponent<CastDirector>();
             director.Configure(player, bulletTime);
             if (bulletTime != null) bulletTime.SetCastDirector(director);

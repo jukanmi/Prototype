@@ -154,14 +154,7 @@ namespace Prototype
         public float ImpulseToTravel(float distance) => distance * impulseDamping;
 
         /// <summary>
-        /// <see cref="ImpulseToTravel"/>의 역함수. 충격량 <paramref name="force"/>가 만들어 낼 이동 거리.
-        /// 프리뷰가 "어디까지 밀려나는가"를 그릴 때 쓴다 — 실전과 같은 상수를 봐야 거짓말을 안 한다.
-        /// </summary>
-        public float TravelForImpulse(float force) => impulseDamping > 0.0001f ? force / impulseDamping : 0f;
-
-        /// <summary>
         /// 높이 <paramref name="height"/>까지 띄우는 데 필요한 초기 속도 — <c>√(2gh)</c>.
-        /// <see cref="KnockbackPreview.ApexHeight"/>의 역함수다.
         ///
         /// 밀치기의 <see cref="ImpulseToTravel"/>와 같은 자리에 둔다 — 저작은 전부 거리 · 높이로 하고
         /// 힘으로의 환산은 여기 한 곳에서만 일어난다.

@@ -1,5 +1,5 @@
 // "여기서 가장 가까운 벽은 어느 쪽인가" — 레이캐스트만 쓰는 순수 질의.
-// HitData(Kernel) · Combat(Actor) · KnockbackPreview(Skill)가 같이 쓰므로 맨 아래층에 둔다.
+// HitData(Kernel) · Combat(Actor)가 같이 쓰므로 맨 아래층에 둔다.
 
 using UnityEngine;
 
@@ -13,9 +13,6 @@ namespace Prototype
     /// 밀치기는 벽바운드로 이어져야 값어치가 있는데, 방향을 시전자 기준으로 잡으면
     /// 시전자가 어디 섰느냐에 따라 적이 방 한복판으로 날아가 아무 일도 안 일어난다.
     /// 방향을 <b>벽</b>이 정하면 밀치기는 언제 걸어도 벽으로 간다.
-    ///
-    /// 계산은 실전(<see cref="Combat"/>)과 프리뷰(<see cref="KnockbackPreview"/>)가 같은 함수를 쓴다 —
-    /// 두 벌로 갈리면 화살표가 곧 거짓말이 된다.
     /// </summary>
     public static class WallFinder
     {

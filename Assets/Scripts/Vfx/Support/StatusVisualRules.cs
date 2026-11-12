@@ -44,8 +44,6 @@ namespace Prototype
 
         private static readonly Color InvulnerableColor = new Color(0.298f, 0.788f, 0.941f); // #4CC9F0
         private static readonly Color ShieldColor = new Color(0.361f, 0.855f, 0.804f);       // #5CDACD
-        private static readonly Color DamageCutColor = new Color(0.678f, 0.780f, 1f);        // #ADC7FF
-        private static readonly Color LifestealColor = new Color(0.804f, 0.294f, 0.427f);    // #CD4B6D
         private static readonly Color StunColor = new Color(1f, 0.878f, 0.400f);             // #FFE066
         private static readonly Color FreezeColor = new Color(0.561f, 0.890f, 0.961f);       // #8FE3F5
         private static readonly Color AirBindColor = new Color(0.776f, 0.600f, 1f);          // #C699FF
@@ -55,8 +53,6 @@ namespace Prototype
             switch (kind)
             {
                 case StatusKind.Shield: return "보호막";
-                case StatusKind.DamageCut: return "피해감소";
-                case StatusKind.Lifesteal: return "흡혈";
                 case StatusKind.Stun: return "스턴";
                 case StatusKind.Freeze: return "빙결";
                 case StatusKind.AirBind: return "바인드";
@@ -69,8 +65,6 @@ namespace Prototype
             switch (kind)
             {
                 case StatusKind.Shield: return ShieldColor;
-                case StatusKind.DamageCut: return DamageCutColor;
-                case StatusKind.Lifesteal: return LifestealColor;
                 case StatusKind.Stun: return StunColor;
                 case StatusKind.Freeze: return FreezeColor;
                 case StatusKind.AirBind: return AirBindColor;

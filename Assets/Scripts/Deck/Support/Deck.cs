@@ -282,32 +282,6 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>유저가 확정한 조준값을 해당 칸에 박제한다.</summary>
-        public bool SetTarget(int idx, in TargetInfo target)
-        {
-            if (idx < 0 || idx >= slots.Count) return false;
-
-            ComboSlot s = slots[idx];
-            s.target = target;
-            s.aimed = true;
-            slots[idx] = s;
-
-            OnChanged?.Invoke();
-            return true;
-        }
-
-        public void ClearTarget(int idx)
-        {
-            if (idx < 0 || idx >= slots.Count) return;
-
-            ComboSlot s = slots[idx];
-            s.target = TargetInfo.None;
-            s.aimed = false;
-            slots[idx] = s;
-
-            OnChanged?.Invoke();
-        }
-
         public List<ComboSlot> TakeAll()
         {
             var all = new List<ComboSlot>(slots);

@@ -160,8 +160,6 @@ namespace Prototype.Tests
                 "BattleInput 안에 BulletTimeController 가 없다 — 덱이 씬 소유로 남아 있다.");
             Assert.That(host.GetComponentInChildren<ComboExecutor>(true), Is.Not.Null,
                 "BattleInput 안에 ComboExecutor 가 없다.");
-            Assert.That(host.GetComponentInChildren<TargetSelector>(true), Is.Not.Null,
-                "BattleInput 안에 TargetSelector 가 없다.");
         }
 
         /// <summary>

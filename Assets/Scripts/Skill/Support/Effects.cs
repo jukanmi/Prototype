@@ -136,44 +136,6 @@ namespace Prototype
         }
     }
 
-    /// <summary>피해감소. 지속시간 동안 받는 데미지를 깎는다.</summary>
-    [Serializable]
-    public class DamageCutEffect : ISkillEffect
-    {
-        [Range(0f, 1f)][SerializeField] private float ratio = 0.5f;
-        [SerializeField] private float duration = 4f;
-
-        public void Apply(in SkillContext ctx)
-        {
-            Combat caster = ctx.CasterCombat;
-            if (caster == null) return;
-
-            caster.SetDamageCut(ratio);
-            caster.Statuses.Apply(StatusKind.DamageCut, duration, () => caster.SetDamageCut(0f));
-        }
-    }
-
-    /// <summary>도발. 반경 내 적의 타겟을 시전자로 고정한다.</summary>
-    [Serializable]
-    public class TauntEffect : ISkillEffect
-    {
-        [SerializeField] private float radius = 6f;
-
-        public void Apply(in SkillContext ctx)
-        {
-            Combat caster = ctx.CasterCombat;
-            // in 파라미터는 람다에 캡처할 수 없으므로 미리 꺼내 둔다.
-            Entity casterEntity = ctx.caster;
-            if (caster == null || casterEntity == null) return;
-
-            EffectUtil.OverlapCombats(ctx.Origin, radius, caster, c =>
-            {
-                var taunted = c.GetComponent<ITauntable>();
-                if (taunted != null) taunted.SetTarget(casterEntity);
-            });
-        }
-    }
-
     /// <summary>
     /// 차징 · 돌진. 시전자를 지정 방향으로 밀어낸다.
     ///
@@ -201,20 +163,4 @@ namespace Prototype
         }
     }
 
-    /// <summary>흡혈. 지속시간 동안 준 피해의 일부를 회복한다.</summary>
-    [Serializable]
-    public class LifestealEffect : ISkillEffect
-    {
-        [Range(0f, 1f)][SerializeField] private float ratio = 0.3f;
-        [SerializeField] private float duration = 5f;
-
-        public void Apply(in SkillContext ctx)
-        {
-            Combat caster = ctx.CasterCombat;
-            if (caster == null) return;
-
-            caster.SetLifesteal(ratio);
-            caster.Statuses.Apply(StatusKind.Lifesteal, duration, () => caster.SetLifesteal(0f));
-        }
-    }
 }

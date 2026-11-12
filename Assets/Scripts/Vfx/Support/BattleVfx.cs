@@ -36,8 +36,7 @@ namespace Prototype
         /// <summary>
         /// 시전 표시. 스킬이 실제로 터지는 순간, 터지는 자리에 한 번 그린다.
         ///
-        /// 불릿타임에서 유저가 찍은 좌표가 곧 여기다 — 조준할 때 본
-        /// <see cref="RangeIndicator"/> 타원과 같은 자리·같은 반경으로 나온다.
+        /// 불릿타임에서 유저가 찍은 좌표가 곧 여기다 — 찍은 자리·반경 그대로 나온다.
         /// 시전자 본체 모션과 타격은 순간적이라 "내가 찍은 데서 터졌다"가 안 읽혔다.
         /// </summary>
         public static void Cast(Vector3 ground, float radius, in SkillVfx style = default)
@@ -109,7 +108,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 조준 표시(<see cref="RangeIndicator"/>)가 쓰는 공유 머티리얼.
+        /// 바닥 표시가 쓰는 공유 머티리얼.
         /// 선이 정점 색을 따르도록 스프라이트 셰이더를 쓴다.
         /// 빌드에서 셰이더가 스트립되지 않도록 Always Included Shaders 확인이 필요하다.
         /// </summary>

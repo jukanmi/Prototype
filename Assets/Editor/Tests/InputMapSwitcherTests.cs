@@ -21,12 +21,10 @@ namespace Prototype.Tests
         private GameObject inputRig;
         private GameObject battleRig;
         private InputActionAsset actions;
-        private SkillData skill;
 
         private PlayerInputController controller;
         private InputMapSwitcher switcher;
         private BulletTimeController bulletTime;
-        private TargetSelector targetSelector;
 
         [SetUp]
         public void SetUp()
@@ -39,10 +37,7 @@ namespace Prototype.Tests
 
             battleRig = new GameObject("BattleRig");
             bulletTime = battleRig.AddComponent<BulletTimeController>();
-            targetSelector = battleRig.AddComponent<TargetSelector>();
 
-            // 조준 대상이 될 스킬. Begin에 null을 넣으면 IsSelecting이 서지 않는다.
-            skill = ScriptableObject.CreateInstance<SkillData>();
 
             inputRig = new GameObject("InputRig");
             inputRig.SetActive(false);
@@ -58,7 +53,6 @@ namespace Prototype.Tests
             inputRig.SetActive(true);
             // Explicitly initialize Edit Mode fixtures; runtime Awake is not guaranteed here.
             Awake(bulletTime);
-            Awake(targetSelector);
             Awake(controller);
             Awake(switcher);
             LogAssert.ignoreFailingMessages = false;
@@ -74,16 +68,12 @@ namespace Prototype.Tests
             if (inputRig != null) Object.DestroyImmediate(inputRig);
             if (battleRig != null) Object.DestroyImmediate(battleRig);
             if (actions != null) Object.DestroyImmediate(actions);
-            if (skill != null) Object.DestroyImmediate(skill);
 
             LogAssert.ignoreFailingMessages = false;
         }
 
         private bool CardMapEnabled
             => controller.Actions.FindActionMap(InputActionNames.BulletTime.Map).enabled;
-
-        private bool AimMapEnabled
-            => controller.Actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map).enabled;
 
         private void EnterOrderPhase() => bulletTime.ForcePhase(TacticPhase.Order);
 
@@ -98,7 +88,6 @@ namespace Prototype.Tests
 
             // 실시간 전투 중 카드 맵이 열려 있으면 J가 평타이면서 카드 집기도 된다.
             Assert.That(CardMapEnabled, Is.False);
-            Assert.That(AimMapEnabled, Is.False);
         }
 
         [Test]
@@ -107,7 +96,6 @@ namespace Prototype.Tests
             // 스위처를 거치지 않고도 닫혀 있어야 한다 — PlayerInputController가
             // OnEnable에서 세 맵을 다 켜던 시절의 회귀를 막는다.
             Assert.That(CardMapEnabled, Is.False);
-            Assert.That(AimMapEnabled, Is.False);
         }
 
         // ── Order 페이즈 ────────────────────────────────────
@@ -119,56 +107,6 @@ namespace Prototype.Tests
             switcher.Apply();
 
             Assert.That(CardMapEnabled, Is.True, "Order 페이즈인데 카드 조작이 안 먹는다.");
-            Assert.That(AimMapEnabled, Is.False, "조준 중이 아닌데 조준 맵이 열렸다.");
-        }
-
-        [Test]
-        public void WhileAiming_AimMapOpensAndCardMapCloses()
-        {
-            EnterOrderPhase();
-            targetSelector.Begin(skill);
-            Assert.That(targetSelector.IsSelecting, Is.True, "전제가 깨졌다.");
-
-            switcher.Apply();
-
-            Assert.That(AimMapEnabled, Is.True);
-            Assert.That(CardMapEnabled, Is.False,
-                "조준 중에 카드 맵이 함께 열려 있다. J 한 번이 조준 확정과 카드 놓기를 둘 다 한다.");
-        }
-
-        [Test]
-        public void AfterAiming_ReturnsToCardMap()
-        {
-            EnterOrderPhase();
-            targetSelector.Begin(skill);
-            switcher.Apply();
-
-            targetSelector.Cancel();
-            switcher.Apply();
-
-            Assert.That(CardMapEnabled, Is.True, "조준을 접었는데 카드 조작으로 안 돌아왔다.");
-            Assert.That(AimMapEnabled, Is.False);
-        }
-
-        [Test]
-        public void TwoMaps_AreNeverBothOpen()
-        {
-            // 페이즈 · 조준 조합을 전부 훑는다.
-            foreach (bool order in new[] { false, true })
-            {
-                bulletTime.ForcePhase(order ? TacticPhase.Order : TacticPhase.Freeze);
-
-                foreach (bool aiming in new[] { false, true })
-                {
-                    if (aiming) targetSelector.Begin(skill);
-                    else targetSelector.Cancel();
-
-                    switcher.Apply();
-
-                    Assert.That(CardMapEnabled && AimMapEnabled, Is.False,
-                        $"두 맵이 함께 열렸다 (order={order}, aiming={aiming}).");
-                }
-            }
         }
 
         // ── 페이즈 이탈 ─────────────────────────────────────
@@ -185,18 +123,6 @@ namespace Prototype.Tests
             switcher.Apply();
 
             Assert.That(CardMapEnabled, Is.False);
-            Assert.That(AimMapEnabled, Is.False);
-        }
-
-        [Test]
-        public void AimingOutsideOrderPhase_DoesNotOpenAimMap()
-        {
-            // 조준 상태가 남은 채 페이즈가 넘어갔을 때 조준 맵이 살아 있으면
-            // 실시간 전투 중 WASD가 이동과 조준을 동시에 먹는다.
-            targetSelector.Begin(skill);
-            switcher.Apply();
-
-            Assert.That(AimMapEnabled, Is.False);
         }
 
         [Test]
@@ -208,20 +134,16 @@ namespace Prototype.Tests
             switcher.Apply();
 
             Assert.That(CardMapEnabled, Is.False);
-            Assert.That(AimMapEnabled, Is.False);
         }
 
         [Test]
-        public void JumpCancellation_ClosesTargetingAndBothCardMaps()
+        public void JumpCancellation_ClosesCardMap()
         {
             EnterOrderPhase();
-            targetSelector.Begin(skill);
             switcher.Apply();
-            Assert.That(AimMapEnabled, Is.True);
             Assert.That(bulletTime.Tactic.OnCancelKey(), Is.True);
             switcher.Apply();
-            Assert.That(targetSelector.IsSelecting, Is.False);
-            Assert.That(CardMapEnabled || AimMapEnabled, Is.False);
+            Assert.That(CardMapEnabled, Is.False);
             Assert.That(TimeControl.Scale, Is.EqualTo(1f));
         }
     }

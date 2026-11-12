@@ -22,7 +22,7 @@ namespace Prototype
     /// <b>실행 순서 -200을 유지한다.</b> 프리팹화로 없어진 것이 아니다:
     /// <list type="bullet">
     /// <item><see cref="Awake"/>가 만든 몸이 <c>TagSwapController</c> · <c>BulletTimeController</c> ·
-    /// <c>CameraFollow</c> · <c>TargetSelector</c>(전부 0)의 <c>Awake</c>보다
+    /// <c>CameraFollow</c>(0)의 <c>Awake</c>보다
     /// <b>먼저</b> 존재해야 한다. 그 넷의 <c>FindAnyObjectByType&lt;Player&gt;</c> 폴백이
     /// 살아 있는 이유이자, 그것이 안전한 이유다.</item>
     /// <item><see cref="Start"/>의 체력 복원이 <c>TagSwapController.Start</c>(0)의

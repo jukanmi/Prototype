@@ -199,8 +199,8 @@ namespace Prototype.Tests
             Combat attacker = NewCombat("Attacker", InFront);
 
             victim.Statuses.Apply(StatusKind.Shield, 5f);
-            victim.Statuses.Apply(StatusKind.DamageCut, 5f);
-            victim.Statuses.Apply(StatusKind.Lifesteal, 5f);
+            victim.Statuses.Apply(StatusKind.Stun, 5f);
+            victim.Statuses.Apply(StatusKind.Freeze, 5f);
             victim.Hit(in Poke, attacker);
 
             Assert.That(StatusEffectVisuals.Collect(victim, rows),

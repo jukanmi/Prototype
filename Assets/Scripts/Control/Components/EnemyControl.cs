@@ -7,7 +7,7 @@ namespace Prototype
     /// 종류별 행동 차이는 브레인 애셋을 갈아끼워 만든다.
     /// 스테이지 종료 시 <see cref="SetActive"/>(false)로 정지시킨다.
     /// </summary>
-    public class EnemyControl : Control, ITauntable
+    public class EnemyControl : Control
     {
         [Tooltip("EnemyData.brain이 비었을 때 쓰는 폴백.")]
         [SerializeField] private EnemyBrainAsset brain;

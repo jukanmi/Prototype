@@ -151,8 +151,6 @@ namespace Prototype
     public enum StatusKind
     {
         Shield,
-        DamageCut,
-        Lifesteal,
 
         /// <summary>행동 불능. 시간은 여기가 재고, 몸은 <see cref="StunState"/>가 붙잡는다.</summary>
         Stun,

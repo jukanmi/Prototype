@@ -39,11 +39,11 @@ namespace Prototype.Tests
         public void Tick_DrainsRemainingTime()
         {
             var s = new StatusEffects();
-            s.Apply(StatusKind.DamageCut, 4f);
+            s.Apply(StatusKind.Stun, 4f);
 
             s.Tick(1f);
 
-            Assert.That(s.Remaining(StatusKind.DamageCut), Is.EqualTo(3f).Within(0.0001f));
+            Assert.That(s.Remaining(StatusKind.Stun), Is.EqualTo(3f).Within(0.0001f));
             Assert.That(s.Active[0].Ratio, Is.EqualTo(0.75f).Within(0.0001f),
                         "게이지는 걸릴 때의 전체 길이를 분모로 그린다");
         }
@@ -53,13 +53,13 @@ namespace Prototype.Tests
         {
             int reverted = 0;
             var s = new StatusEffects();
-            s.Apply(StatusKind.Lifesteal, 1f, () => reverted++);
+            s.Apply(StatusKind.Stun, 1f, () => reverted++);
 
             s.Tick(1.5f);
             s.Tick(1.5f);
 
             Assert.That(reverted, Is.EqualTo(1), "원복은 딱 한 번이어야 한다");
-            Assert.That(s.Has(StatusKind.Lifesteal), Is.False);
+            Assert.That(s.Has(StatusKind.Stun), Is.False);
             Assert.That(s.Count, Is.Zero);
         }
 
@@ -98,7 +98,7 @@ namespace Prototype.Tests
             int reverted = 0;
             var s = new StatusEffects();
 
-            s.Apply(StatusKind.DamageCut, 0f, () => reverted++);
+            s.Apply(StatusKind.Stun, 0f, () => reverted++);
 
             Assert.That(reverted, Is.EqualTo(1));
             Assert.That(s.Count, Is.Zero);
@@ -123,7 +123,7 @@ namespace Prototype.Tests
             int reverted = 0;
             var s = new StatusEffects();
             s.Apply(StatusKind.Shield, 10f, () => reverted++);
-            s.Apply(StatusKind.DamageCut, 10f, () => reverted++);
+            s.Apply(StatusKind.Stun, 10f, () => reverted++);
 
             s.CancelAll();
 
@@ -136,12 +136,12 @@ namespace Prototype.Tests
         public void RevertMayApplyAnotherStatus_WithoutCorruptingTheList()
         {
             var s = new StatusEffects();
-            s.Apply(StatusKind.Shield, 1f, () => s.Apply(StatusKind.DamageCut, 3f));
+            s.Apply(StatusKind.Shield, 1f, () => s.Apply(StatusKind.Stun, 3f));
 
             s.Tick(1f);
 
             Assert.That(s.Has(StatusKind.Shield), Is.False);
-            Assert.That(s.Remaining(StatusKind.DamageCut), Is.EqualTo(3f).Within(0.0001f));
+            Assert.That(s.Remaining(StatusKind.Stun), Is.EqualTo(3f).Within(0.0001f));
         }
 
         // ── Combat 연결 ─────────────────────────────────
@@ -151,7 +151,7 @@ namespace Prototype.Tests
         {
             Combat c = NewAlly();
             bool reverted = false;
-            c.Statuses.Apply(StatusKind.DamageCut, 0.5f, () => reverted = true);
+            c.Statuses.Apply(StatusKind.Shield, 0.5f, () => reverted = true);
 
             c.Tick(0.2f);
             Assert.That(reverted, Is.False, "선행 조건: 아직 남아 있어야 한다");
@@ -209,7 +209,7 @@ namespace Prototype.Tests
         public void OnDeath_EveryStatusIsCleared()
         {
             Combat c = NewAlly();
-            c.Statuses.Apply(StatusKind.Lifesteal, 30f, () => c.SetLifesteal(0f));
+            c.Statuses.Apply(StatusKind.Shield, 30f, () => c.ClearShield());
 
             c.TakeDamage(new DamageData(9999f));
 

@@ -2532,7 +2532,6 @@ GameObject:
   - component: {fileID: 9153631484317662589}
   - component: {fileID: 1532985249278245213}
   - component: {fileID: 8307145854047394853}
-  - component: {fileID: 4049905781375668179}
   - component: {fileID: 3955337989427356649}
   - component: {fileID: 3084730224834376912}
   - component: {fileID: 8344551230881292893}
@@ -2608,23 +2607,6 @@ MonoBehaviour:
   slotGap: 0.05
   slotTimeout: 5
   stageEntryTimeout: 2
---- !u!114 &4049905781375668179
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2994877569284229203}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4501d80c93a6d1b469213ab2e412a094, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.TargetSelector
-  cam: {fileID: 0}
-  groundY: 0
-  radiusProbe: {fileID: 0}
-  cursorSpeed: 9
-  cursorOrigin: {fileID: 0}
 --- !u!114 &3955337989427356649
 MonoBehaviour:
   m_ObjectHideFlags: 0

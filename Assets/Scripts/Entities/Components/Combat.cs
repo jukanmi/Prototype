@@ -22,8 +22,6 @@ namespace Prototype
     public partial class Combat : MonoBehaviour, IHittable, IDamageable
     {
         [SerializeField] private float maxHealth = 100f;
-        [SerializeField] private float lifestealRatio = 0f;
-        [SerializeField] private float damageCutRatio = 0f;
         [SerializeField] private float downDuration = 1.2f;
         [SerializeField] private float getupDuration = 0.4f;
 
@@ -431,13 +429,6 @@ namespace Prototype
 
             if (!target.Hit(in hit, this)) return false;
 
-            if (lifestealRatio > 0f)
-            {
-                float heal = hit.damageData.damage * lifestealRatio;
-                Health.Recover(heal);
-                BattleLog.Log(LogCategory.Combat, $"{name} 흡혈 +{heal:0.#} (HP {Health.CurValue:0.#})", this);
-            }
-
             BattleLog.Log(LogCategory.Combat,
                 $"{name} → {BattleLog.Name((target as Combat))} 적중 | dmg {hit.damageData.damage:0.#} | {hit.mode} | 결과요청 {hit.nextState}", this);
 
@@ -593,7 +584,7 @@ namespace Prototype
         {
             if (IsDead) return;
 
-            float dmg = damageData.damage * (1f - Mathf.Clamp01(damageCutRatio));
+            float dmg = damageData.damage;
 
             // 보호막이 먼저 닳는다.
             if (shield > 0f)
@@ -851,8 +842,6 @@ namespace Prototype
 
         // ── 외부 조작 (ISkillEffect 용) ───────────────────
 
-        public void SetDamageCut(float ratio) => damageCutRatio = Mathf.Clamp01(ratio);
-        public void SetLifesteal(float ratio) => lifestealRatio = Mathf.Max(0f, ratio);
 
         /// <summary>EnemyData 등 외부 테이블로 최대 체력을 덮어쓴다.</summary>
         public void SetMaxHealth(float value, bool refill = true) => Health.SetMax(value, refill);

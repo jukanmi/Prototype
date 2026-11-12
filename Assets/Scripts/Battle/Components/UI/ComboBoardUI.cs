@@ -22,15 +22,12 @@ namespace Prototype
     /// 손패 바로 아래에 <see cref="BulletTimeGaugeWidget"/>이 붙는다. 카드를 쏟아내는 값이
     /// 카드와 같은 눈길 안에 있어야 E를 눌러도 되는 때를 안다.
     ///
-    /// 기존 전투 로직(BulletTimeController/ComboExecutor/TargetSelector)은 건드리지 않고
+    /// 기존 전투 로직(BulletTimeController/ComboExecutor)은 건드리지 않고
     /// 그 공개 API 위에서만 동작한다.
     /// </summary>
     [RequireComponent(typeof(BulletTimeController))]
     public partial class ComboBoardUI : MonoBehaviour
     {
-        [Tooltip("비워두면 같은 GameObject 또는 자식에서 자동으로 찾는다.")]
-        [SerializeField] private TargetSelector targetSelector;
-
         // 카드 크기 · 부채꼴 기하 · 판의 세로 쌓기는 HandFanLayout · HandBoardLayout이 정한다.
         // 카드 내부 치수와 색은 프리팹으로 옮겼다 — 여기 남은 건 <b>상태에 따라 코드가 갈아 끼우는</b> 값뿐이다.
 
@@ -38,14 +35,12 @@ namespace Prototype
         private const float ArtInset = 3f;
 
         /// <summary>조준 시작점을 카드 위쪽 모서리에서 얼마나 더 띄울지. 카드 높이 대비 비율.</summary>
-        private const float AimStartGap = 0.5f;
 
         /// <summary>쿨타임 중인 카드의 투명도. 지금 못 쓴다는 걸 글자 없이도 알아보게 한다.</summary>
 
         // 카드 배경색 — 상태마다 갈아 끼운다. 기본값은 프리팹에 박혀 있고 여기서 덮어쓴다.
         private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.3f);
         private static readonly Color NextCardColor = new Color(0.28f, 0.38f, 0.34f);
-        private static readonly Color AimingCardColor = new Color(0.45f, 0.35f, 0.15f);
         private static readonly Color CursorCardColor = new Color(0.30f, 0.44f, 0.58f);
         private static readonly Color GrabbedCardColor = new Color(0.52f, 0.44f, 0.20f);
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
@@ -110,17 +105,11 @@ namespace Prototype
             && _detailRows != null && _detailRows.Length == 3
             && _cards != null && _cards.Length == Hand.Size;
 
-        // 조준이 필요한 카드를 손패 밖으로 꺼낸 뒤, 월드 클릭으로 확정하기를 기다리는 동안의 대기 상태.
-        private int _aimingIndex = -1;
-
         /// <summary>키보드 커서가 짚고 있는 카드. 빈 손패면 -1.</summary>
         private int _cursorIndex = -1;
 
         /// <summary>키보드로 집은 카드. -1이면 안 집은 상태.</summary>
         private int _grabbedIndex = -1;
-
-        /// <summary>RectTransform.GetWorldCorners용 재사용 버퍼.</summary>
-        private readonly Vector3[] _corners = new Vector3[4];
 
         /// <summary>
         /// 카드 한 장의 조각들. 앞쪽 참조는 프리팹이 채우고, 뒤쪽 상태는 런타임 전용이다 —
@@ -221,11 +210,6 @@ namespace Prototype
                 // 제자리로 순간이동시키지 않는다. 애니메이터가 놓인 자리에서부터
                 // 부채꼴로 미끄러져 돌아간다 — 집기를 놓을 때와 같은 감이어야 한다.
                 Owner.SetDragging(Index, false);
-
-                // 손패 밖에서 놓았으면 조준으로 넘어간다.
-                // 안에서 놓았으면 이미 OnDrop이 순서 교환을 처리했다.
-                if (!Owner.IsInsideHandPanel(eventData))
-                    Owner.HandleCardPulledOut(Index);
             }
 
             public void OnDrop(PointerEventData eventData)
@@ -239,17 +223,14 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 마우스 드래그를 받아도 되는 때. 조준 중이거나 키보드로 카드를 집고 있으면 막는다 —
+        /// 마우스 드래그를 받아도 되는 때. 키보드로 카드를 집고 있으면 막는다 —
         /// 두 입력 경로가 같은 손패를 동시에 밀면 어느 쪽이 이겼는지 화면으로 알 수 없다.
         /// </summary>
-        private bool CanEditNow => _bulletTime.AllowsCardEdit && _aimingIndex < 0 && _grabbedIndex < 0;
+        private bool CanEditNow => _bulletTime.AllowsCardEdit && _grabbedIndex < 0;
 
         private void Awake()
         {
             _bulletTime = GetComponent<BulletTimeController>();
-
-            if (targetSelector == null) targetSelector = GetComponent<TargetSelector>();
-            if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
         }
 
         private void Start()
@@ -367,10 +348,9 @@ namespace Prototype
 
         // ── 갱신 ─────────────────────────────────────────
 
-        /// <summary>지금 초점이 가 있는 카드. 조준 &gt; 집힘 &gt; 커서 순. 없으면 -1.</summary>
+        /// <summary>지금 초점이 가 있는 카드. 집힘 &gt; 커서 순. 없으면 -1.</summary>
         private int FocusedIndex(bool editable)
         {
-            if (_aimingIndex >= 0) return _aimingIndex;
             if (!editable) return -1;
             if (_grabbedIndex >= 0) return _grabbedIndex;
             return _cursorIndex;
@@ -441,10 +421,8 @@ namespace Prototype
             {
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
 
-                if (_aimingIndex >= 0)
-                    _hintText.text = "조준: 화살표 또는 마우스 이동 · 좌클릭 확정 · 우클릭 조준 취소 · 불릿타임키 시전 · 점프키 불릿타임 취소";
-                else if (_grabbedIndex >= 0)
-                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↑ 조준 · ↓ 놓기 · 불릿타임키 시전 · 점프키 취소";
+                if (_grabbedIndex >= 0)
+                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↓ 놓기 · 불릿타임키 시전 · 점프키 취소";
                 else
                     _hintText.text = "←/→ 카드 선택 · ↑ 집기 · 드래그도 가능 · 불릿타임키 시전 · 점프키 취소";
             }
@@ -504,14 +482,12 @@ namespace Prototype
                     w.subLabel.text = $"{data.role} · {data.attackType}";
                 }
 
-                bool aiming = i == _aimingIndex;
                 bool grabbed = editable && i == _grabbedIndex;
-                bool cursor = editable && _grabbedIndex < 0 && _aimingIndex < 0 && i == _cursorIndex;
+                bool cursor = editable && _grabbedIndex < 0 && i == _cursorIndex;
 
-                w.statusLabel.text = BuildStatus(i, in slot, data, aiming, grabbed, cursor, editable);
+                w.statusLabel.text = BuildStatus(i, data, grabbed, cursor, editable);
 
-                Color face = aiming ? AimingCardColor
-                           : grabbed ? GrabbedCardColor
+                Color face = grabbed ? GrabbedCardColor
                            : cursor ? CursorCardColor
                            : i == 0 ? NextCardColor
                            : CardColor;
@@ -519,10 +495,8 @@ namespace Prototype
                 // 등급은 테두리로, 상태는 면으로. 두 정보를 같은 채널에 실으면 둘 다 안 읽힌다.
                 SetCardColor(w, face, slot.card != null && slot.card.Golden);
 
-                // 조준 대기 중에는 다른 카드를 흐리게 해서 초점을 남긴다.
-                bool dim = _aimingIndex >= 0 && !aiming;
-                w.group.alpha = dim ? 0.45f : 1f;
-                w.group.blocksRaycasts = !dim;
+                w.group.alpha = 1f;
+                w.group.blocksRaycasts = true;
             }
 
             RefreshDetail(hand, FocusedIndex(editable));
@@ -563,11 +537,9 @@ namespace Prototype
             if (!editable)
                 return index == 0 ? CardVisualState.Next : CardVisualState.Idle;
 
-            // 조준 중인 카드는 집은 자세를 유지한다 — 집기에서 곧장 넘어온 상태라
-            // 여기서 자세가 내려앉으면 조준 시작점(카드 위)까지 같이 튄다.
-            if (index == _aimingIndex || index == _grabbedIndex) return CardVisualState.Grabbed;
+            if (index == _grabbedIndex) return CardVisualState.Grabbed;
 
-            if (_grabbedIndex < 0 && _aimingIndex < 0 && index == _cursorIndex)
+            if (_grabbedIndex < 0 && index == _cursorIndex)
                 return CardVisualState.Cursor;
 
             return CardVisualState.Idle;
@@ -581,15 +553,14 @@ namespace Prototype
             for (int i = 0; i < _cards.Length; i++)
                 if (_cards[i] != null && _cards[i].dragging) return i;
 
-            if (_aimingIndex >= 0) return _aimingIndex;
             if (!_bulletTime.AllowsCardEdit) return -1;
             return _grabbedIndex >= 0 ? _grabbedIndex : _cursorIndex;
         }
 
-        /// <summary>화살표가 가리킬 카드. 조준 중에는 화면의 조준선이 대신하므로 접는다.</summary>
+        /// <summary>화살표가 가리킬 카드.</summary>
         private int ArrowIndex()
         {
-            if (!_bulletTime.AllowsCardEdit || _aimingIndex >= 0) return -1;
+            if (!_bulletTime.AllowsCardEdit) return -1;
             return _grabbedIndex >= 0 ? _grabbedIndex : _cursorIndex;
         }
 
@@ -715,16 +686,14 @@ namespace Prototype
             UpdateTargets();
         }
 
-        /// <summary>하단 상태 띠 한 줄. 순번 · 조준 여부 · 조준 방식을 합친다.</summary>
-        private static string BuildStatus(int index, in ComboSlot slot, SkillData data,
-            bool aiming, bool grabbed, bool cursor, bool editable)
+        /// <summary>하단 상태 띠 한 줄. 순번 · 조준 방식을 합친다.</summary>
+        private static string BuildStatus(int index, SkillData data,
+            bool grabbed, bool cursor, bool editable)
         {
-            if (aiming) return "조준 중";
             if (grabbed) return "집음 — A/D 이동 · S 놓기";
 
             string head = index == 0 && !editable ? "U" : $"{index + 1}";
             if (cursor) head = $"▸{head}";
-            if (slot.aimed) head += " ◉";
 
             return data.targeting == TargetingType.None ? head : $"{head}  {data.targeting}";
         }

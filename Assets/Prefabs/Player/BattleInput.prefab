@@ -315,7 +315,7 @@ MonoBehaviour:
   bulletTime: {fileID: 1490962342387795252}
   cameraFollow: {fileID: 0}
   cameraAnchor: {fileID: 331118652805039931}
-  targetSelector: {fileID: 4162047843367154618}
+  targetSelector: {fileID: 0}
   pilot: {fileID: 1992139283966176409}
 --- !u!114 &3934412128785038699
 MonoBehaviour:
@@ -861,7 +861,7 @@ PrefabInstance:
     - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: targetSelector
       value: 
-      objectReference: {fileID: 4162047843367154618}
+      objectReference: {fileID: 0}
     - target: {fileID: 2994877569284229203, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: m_Name
       value: CombatManager
@@ -922,17 +922,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d373a6533055e94db52bbf1c73ead6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BulletTimeController
---- !u!114 &4162047843367154618 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4049905781375668179, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
-  m_PrefabInstance: {fileID: 141502403150543977}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4501d80c93a6d1b469213ab2e412a094, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.TargetSelector
 --- !u!114 &8268149919231795276 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8307145854047394853, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}

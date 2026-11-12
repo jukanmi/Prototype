@@ -24,11 +24,8 @@ namespace Prototype
     [RequireComponent(typeof(PlayerInput))]
     public class PlayerInputController : MonoBehaviour
     {
-        /// <summary>마우스가 "실제로 움직였다"고 볼 픽셀 이동량의 제곱.</summary>
-        private const float AimPointMoveThresholdSqr = 0.01f;
-
         /// <summary>
-        /// 플레이어 밖 스크립트(<see cref="TargetSelector"/>, 전투 UI)가 입력을 읽는 통로.
+        /// 플레이어 밖 스크립트(전투 UI 등)가 입력을 읽는 통로.
         /// </summary>
         public static PlayerInputController Instance { get; private set; }
 
@@ -44,18 +41,10 @@ namespace Prototype
         private InputAction dashAction;
         private InputAction bulletTimeAction;
         private int consumedJumpFrame = -1;
-        private InputAction uniqueSkillAction;
-        private InputAction swapAction;
 
-        private InputActionMap skillShotMap;
 
         private NavigateLatch cardNavigate;
 
-        private InputAction aimAction;
-        private InputAction aimPointAction;
-        private InputAction aimDeltaAction;
-        private InputAction aimConfirmAction;
-        private InputAction aimCancelAction;
 
         private InputAction cancelAction;
         private InputAction submitAction;
@@ -79,11 +68,8 @@ namespace Prototype
         /// 기존 불릿타임키 — 진입 · 실행 요청.
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
-        /// <summary>Z — 현재 캐릭터 고유 스킬 즉시 사용.</summary>
-        public bool UniqueSkillPressed => Pressed(uniqueSkillAction);
 
-        /// <summary>F — 동료 교대. 실제로 바꿀지는 <see cref="TagSwapController"/>가 정한다.</summary>
-        public bool SwapPressed => Pressed(swapAction);
+
 
         // ── BulletTime — 손패 카드 조작 ──────────────────────
 
@@ -96,37 +82,8 @@ namespace Prototype
         /// </summary>
         public Vector2Int NavigateStep => cardNavigate.Step;
 
-        // ── BulletTimeSkillShot — 시전 위치 지정 ────────────
-
-        /// <summary>키보드 조준 입력. x는 좌우, y는 깊이(월드 Z).</summary>
-        public Vector2 Aim => aimAction.ReadValue<Vector2>();
-
-        /// <summary>마우스 커서의 화면 좌표.</summary>
-        public Vector2 AimPoint => aimPointAction.ReadValue<Vector2>();
-
         /// <summary>
-        /// 이번 프레임에 마우스가 실제로 움직였는가. 키보드 조준보다 마우스를 우선할지 가른다.
-        /// 안 움직였는데 마우스가 이기면 커서가 화면 한 점에 못 박힌다.
-        ///
-        /// <see cref="AimPoint"/>의 프레임 차분이 아니라 delta를 직접 읽는다 —
-        /// 맵을 켠 첫 프레임에 position이 0을 뱉어서, 실제 좌표가 들어오는 다음 프레임이
-        /// 화면 절반만큼의 이동으로 읽힌다. 그러면 카드 위에서 시작한 조준점이
-        /// 손도 안 댄 마우스로 끌려간다.
-        /// </summary>
-        public bool AimPointMovedThisFrame
-            => aimDeltaAction.ReadValue<Vector2>().sqrMagnitude > AimPointMoveThresholdSqr;
-
-        /// <summary>조준 확정. UI 위 클릭은 세지 않는다 — 게임 화면을 찍었을 때만 확정이다.</summary>
-        public bool AimConfirmPressed => Pressed(aimConfirmAction);
-
-        /// <summary>
-        /// 조준 취소. 확정과 달리 UI 위에서도 받는다 —
-        /// 빠져나오는 길은 커서가 어디 있든 열려 있어야 한다.
-        /// </summary>
-        public bool AimCancelPressed => aimCancelAction.WasPressedThisFrame();
-
-        /// <summary>
-        /// 카드 조작 맵이 살아 있는가. Order 페이즈이면서 조준 중이 아닐 때만 켠다.
+        /// 카드 조작 맵이 살아 있는가. Order 페이즈에만 켠다.
         /// <c>InputMapSwitcher</c>가 여닫는다.
         /// </summary>
         public bool BulletTimeMapEnabled
@@ -141,25 +98,6 @@ namespace Prototype
 
                 // 다시 켠 첫 프레임은 기준값을 새로 잡고 넘어간다. 자세한 건 NavigateLatch 참고.
                 cardNavigate?.Resync();
-            }
-        }
-
-        /// <summary>
-        /// 시전 위치 지정 맵이 살아 있는가. <see cref="BulletTimeMapEnabled"/> 와
-        /// <b>동시에 켜지면 안 된다</b> — J가 조준 확정과 카드 놓기를 한 프레임에 둘 다 한다.
-        /// </summary>
-        public bool SkillShotMapEnabled
-        {
-            get => skillShotMap != null && skillShotMap.enabled;
-            set
-            {
-                if (skillShotMap == null || skillShotMap.enabled == value) return;
-
-                if (value) skillShotMap.Enable();
-                else skillShotMap.Disable();
-
-                // 여기서 되돌릴 상태가 없다. AimPointMovedThisFrame이 delta를 그대로 읽으므로
-                // 맵이 꺼져 있던 동안의 값이 다음 판단에 끼어들지 않는다.
             }
         }
 
@@ -255,7 +193,6 @@ namespace Prototype
             // 여기서 끄면 플레이어가 죽는 순간 화면의 버튼이 전부 먹통이 된다.
             gameplayMap?.Disable();
             bulletTimeMap?.Disable();
-            skillShotMap?.Disable();
 
             cardNavigate?.Resync();
         }
@@ -275,7 +212,6 @@ namespace Prototype
 
             gameplayMap = actions.FindActionMap(InputActionNames.Gameplay.Map, throwIfNotFound: true);
             bulletTimeMap = actions.FindActionMap(InputActionNames.BulletTime.Map, throwIfNotFound: true);
-            skillShotMap = actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map, throwIfNotFound: true);
             uiMap = actions.FindActionMap(InputActionNames.UI.Map, throwIfNotFound: true);
 
             moveAction = gameplayMap.FindAction(InputActionNames.Gameplay.Move, throwIfNotFound: true);
@@ -283,17 +219,10 @@ namespace Prototype
             jumpAction = gameplayMap.FindAction(InputActionNames.Gameplay.Jump, throwIfNotFound: true);
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
-            uniqueSkillAction = gameplayMap.FindAction(InputActionNames.Gameplay.UniqueSkill, throwIfNotFound: false);
-            swapAction = gameplayMap.FindAction(InputActionNames.Gameplay.Swap, throwIfNotFound: false);
 
             cardNavigate = new NavigateLatch(
                 bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true));
 
-            aimAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.Aim, throwIfNotFound: true);
-            aimPointAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.AimPoint, throwIfNotFound: true);
-            aimDeltaAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.AimDelta, throwIfNotFound: true);
-            aimConfirmAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.Confirm, throwIfNotFound: true);
-            aimCancelAction = skillShotMap.FindAction(InputActionNames.BulletTimeSkillShot.Cancel, throwIfNotFound: true);
 
             cancelAction = uiMap.FindAction(InputActionNames.UI.Cancel, throwIfNotFound: true);
             submitAction = uiMap.FindAction(InputActionNames.UI.Submit, throwIfNotFound: true);

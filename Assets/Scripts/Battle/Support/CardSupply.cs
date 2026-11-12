@@ -138,8 +138,7 @@ namespace Prototype
                 }
 
                 s.caster = caster;
-                if (!s.aimed || !s.target.IsValid)
-                    s.target = caster.AutoTarget(data);
+                s.target = caster.AutoTarget(data);
 
                 q.Enqueue(s);
             }

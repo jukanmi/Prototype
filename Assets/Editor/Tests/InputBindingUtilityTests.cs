@@ -37,10 +37,9 @@ namespace Prototype.Tests
         [Test]
         public void FindAction_NeedsTheRightMap()
         {
-            // Move · Navigate · Aim이 셋 다 같은 WASD를 쓴다. 맵을 안 따지면 엉뚱한 쪽을 고친다.
+            // Move · Navigate가 둘 다 같은 WASD를 쓴다. 맵을 안 따지면 엉뚱한 쪽을 고친다.
             Assert.That(InputBindingUtility.FindAction(actions, "Gameplay", "Aim"), Is.Null);
             Assert.That(InputBindingUtility.FindAction(actions, "BulletTime", "Aim"), Is.Null);
-            Assert.That(InputBindingUtility.FindAction(actions, "BulletTimeSkillShot", "Aim"), Is.Not.Null);
             Assert.That(InputBindingUtility.FindAction(actions, "BulletTime", "Navigate"), Is.Not.Null);
         }
 

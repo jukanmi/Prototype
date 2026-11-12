@@ -439,7 +439,7 @@ namespace Prototype
     /// 모으는 중인 캐릭터(<see cref="Entity.ChargeState"/>) 머리 위에 차징 게이지를 띄운다.
     /// 지금은 보스 패턴의 모으기 구간이 그 대상이다.
     ///
-    /// <see cref="RangeIndicator"/>와 같은 자리에 붙는다 — 씬 배선 0.
+    /// <see cref="VfxRunner"/>에 붙는다 — 씬 배선 0.
     /// </summary>
     public class ChargeGauge : MonoBehaviour
     {

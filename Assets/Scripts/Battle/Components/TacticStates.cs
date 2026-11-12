@@ -205,7 +205,6 @@ namespace Prototype
 
             public override void Enter()
             {
-                Ctx.targetSelector?.Cancel();
                 TimeControl.Scale = 1f;
                 Ctx.Budget.PayEntry(Ctx.player);
                 Ctx.Budget.Spend();

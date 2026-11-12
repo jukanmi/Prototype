@@ -56,7 +56,7 @@ namespace Prototype
             finished = false;
             nextHitTime = data.HitTime(0);
 
-            // 조준은 좌표만 준다. 실제로 때릴 상대는 여기서 확정한다.
+            // 실제로 때릴 상대를 여기서 확정한다.
             ResolveTarget();
 
             BattleLog.Log(LogCategory.Skill,

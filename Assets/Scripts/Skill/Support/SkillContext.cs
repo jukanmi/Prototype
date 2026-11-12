@@ -7,7 +7,7 @@ namespace Prototype
 {
     /// <summary>
     /// 조준으로 확정한 값. <b>좌표와 방향만 담는다</b> —
-    /// 실제로 때릴 상대는 시전 순간에 <see cref="SkillState.ResolveTarget"/>이 좌표에서 다시 뽑는다.
+    /// 실제로 때릴 상대는 시전 순간에 <see cref="SkillState.ResolveTarget"/>이 고른다.
     /// 조준과 시전 사이에 대상이 죽거나 움직여도 알아서 맞는다.
     /// </summary>
     [Serializable]

@@ -48,16 +48,6 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void Enumerate_SkipsPointerActions()
-        {
-            var names = InputRebindRules.Enumerate(actions).Select(e => e.action.name).ToList();
-
-            // 마우스 위치·이동량은 키로 바꿀 수 있는 값이 아니다.
-            Assert.That(names, Has.None.EqualTo(InputActionNames.BulletTimeSkillShot.AimPoint));
-            Assert.That(names, Has.None.EqualTo(InputActionNames.BulletTimeSkillShot.AimDelta));
-        }
-
-        [Test]
         public void Enumerate_SkipsMouseBindings()
         {
             // 조준 확정의 좌클릭까지 바꾸게 하면 키보드 자리를 잘못 잡았을 때 빠져나올 길이 없다.
@@ -98,16 +88,6 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void CardAndAimMaps_NeverConflict()
-        {
-            // InputMapSwitcher가 배타로 잡는다. 둘 다 WASD인 게 정상이다.
-            InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
-            InputAction aim = Action(InputActionNames.BulletTimeSkillShot.Map, InputActionNames.BulletTimeSkillShot.Aim);
-
-            Assert.That(InputRebindRules.CanFireTogether(navigate, aim), Is.False);
-        }
-
-        [Test]
         public void GameplayMovement_DoesNotConflictWithCardMap()
         {
             // 정지 중에는 PlayerControl이 이동을 막는다. 이게 충돌이면 기본 WASD가 곧바로 빨개진다.
@@ -126,15 +106,6 @@ namespace Prototype.Tests
             InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
 
             Assert.That(InputRebindRules.CanFireTogether(action, navigate), Is.True);
-        }
-
-        [Test]
-        public void JumpCancel_TakesPriorityOverAimCancelWithoutDoubleHandling()
-        {
-            var jump = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Jump);
-            var cancel = Action(InputActionNames.BulletTimeSkillShot.Map, InputActionNames.BulletTimeSkillShot.Cancel);
-            Assert.That(InputRebindRules.CanFireTogether(jump, cancel), Is.False);
-            Assert.That(InputRebindRules.CanFireTogether(cancel, jump), Is.False);
         }
 
         // ── 기본 바인딩은 깨끗한가 ──────────────────────────

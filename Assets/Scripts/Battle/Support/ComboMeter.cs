@@ -126,11 +126,8 @@ namespace Prototype
     {
         public ComboCard card;
 
-        /// <summary>유저가 찍었거나 자동으로 채워진 조준값.</summary>
+        /// <summary>발동 직전에 자동 조준으로 채워진 값.</summary>
         public TargetInfo target;
-
-        /// <summary>유저가 직접 조준했는지. false면 발동 직전에 자동 조준으로 채운다.</summary>
-        public bool aimed;
 
         /// <summary>이 카드를 실행할 동료. 발동 직전에 카드의 직업으로 결정된다.</summary>
         public Ally caster;

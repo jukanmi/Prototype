@@ -203,11 +203,10 @@ namespace Prototype
     /// 무엇을 바꿀 수 있고, 무엇끼리 충돌인지.
     ///
     /// 충돌 판정이 이 파일의 핵심이다. "같이 켜져 있는 맵끼리 겹치면 충돌"로 잡으면
-    /// <b>기본 바인딩부터 충돌로 뜬다</b> — Gameplay/Move · BulletTime/Navigate ·
-    /// SkillShot/Aim이 셋 다 WASD다. 실제로는 이렇게 갈린다:
+    /// <b>기본 바인딩부터 충돌로 뜬다</b> — Gameplay/Move · BulletTime/Navigate가
+    /// 둘 다 WASD다. 실제로는 이렇게 갈린다:
     ///
     /// <list type="bullet">
-    /// <item>BulletTime과 SkillShot은 <see cref="InputMapSwitcher"/>가 배타로 잡는다 — 절대 안 겹친다.</item>
     /// <item>Gameplay의 이동 · 평타는 정지 중 <c>IsFrozen</c> 게이트에 막힌다 — 카드 조작과 안 겹친다.</item>
     /// <item>단 <b>지휘키(E · Space · U)는 정지 중에도 산다</b> — 이것만 불릿타임 맵과 진짜로 겹친다.</item>
     /// </list>
@@ -221,13 +220,6 @@ namespace Prototype
             InputActionNames.Gameplay.Jump,
         };
 
-        /// <summary>키로 바꿀 수 있는 값이 아닌 액션. 포인터 위치 · 이동량.</summary>
-        private static readonly HashSet<string> PointerActions = new HashSet<string>
-        {
-            InputActionNames.BulletTimeSkillShot.AimPoint,
-            InputActionNames.BulletTimeSkillShot.AimDelta,
-        };
-
         /// <summary>
         /// UI 맵은 목록에서 뺀다. <c>InputSystemUIInputModule</c>이 이름으로 찾아 쓰는 규약이고,
         /// <c>Cancel</c>은 <c>*/{Cancel}</c> 용도 바인딩이라 특정 키로 바꿀 자리가 아니다.
@@ -236,8 +228,7 @@ namespace Prototype
 
         public static bool IsRebindableAction(InputAction action)
             => action != null
-               && IsRebindableMap(action.actionMap.name)
-               && !PointerActions.Contains(action.name);
+               && IsRebindableMap(action.actionMap.name);
 
         /// <summary>
         /// 마우스 바인딩은 고정한다. 조준 확정의 좌클릭까지 바꾸게 하면
@@ -289,28 +280,16 @@ namespace Prototype
 
             if (mapA == mapB) return true;
 
-            bool bulletA = IsBulletTimeSide(mapA);
-            bool bulletB = IsBulletTimeSide(mapB);
-
-            // 카드 조작과 시전 위치 지정은 InputMapSwitcher가 배타로 잡는다.
-            if (bulletA && bulletB) return false;
+            bool bulletA = mapA == InputActionNames.BulletTime.Map;
+            bool bulletB = mapB == InputActionNames.BulletTime.Map;
 
             // 남은 조합은 Gameplay ↔ 불릿타임 맵. 정지 중에도 사는 건 지휘키뿐이다.
-            // Jump wins over aim-cancel: the commander closes selection before TargetSelector runs.
-            if (mapA == InputActionNames.Gameplay.Map && bulletB)
-                return !(a.name == InputActionNames.Gameplay.Jump && b.name == InputActionNames.BulletTimeSkillShot.Cancel)
-                    && CommanderActions.Contains(a.name);
-            if (mapB == InputActionNames.Gameplay.Map && bulletA)
-                return !(b.name == InputActionNames.Gameplay.Jump && a.name == InputActionNames.BulletTimeSkillShot.Cancel)
-                    && CommanderActions.Contains(b.name);
+            if (mapA == InputActionNames.Gameplay.Map && bulletB) return CommanderActions.Contains(a.name);
+            if (mapB == InputActionNames.Gameplay.Map && bulletA) return CommanderActions.Contains(b.name);
 
             // 모르는 조합은 겹친다고 본다 — 놓치는 것보다 한 번 더 묻는 편이 낫다.
             return true;
         }
-
-        private static bool IsBulletTimeSide(string mapName)
-            => mapName == InputActionNames.BulletTime.Map
-               || mapName == InputActionNames.BulletTimeSkillShot.Map;
 
         /// <summary>
         /// <paramref name="path"/>를 그 자리에 넣으면 이미 그 키를 쓰는 자리와 부딪히는가.

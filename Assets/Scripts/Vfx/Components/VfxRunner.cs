@@ -19,7 +19,7 @@ namespace Prototype
         /// 첫 타격 전에 미리 띄운다.
         ///
         /// 이 게터는 <see cref="BattleVfx.Impact"/> 계열에서만 닿는다. 그런데
-        /// <see cref="RangeIndicator"/>·<see cref="ChargeGauge"/>도 여기 붙으므로,
+        /// <see cref="ChargeGauge"/>도 여기 붙으므로,
         /// 아무도 때리지 않은 동안에는 조준 표시가 아예 존재하지 않았다 —
         /// 전투 시작 직후 첫 불릿타임에서 안 보이던 원인.
         /// </summary>
@@ -43,9 +43,6 @@ namespace Prototype
                 var go = new GameObject("[BattleVfx]");
                 DontDestroyOnLoad(go);
                 instance = go.AddComponent<VfxRunner>();
-                go.AddComponent<RangeIndicator>();
-                // 사거리 원 옆에 "어디로 밀려나는가"를 같이 그린다. 둘 다 조준 중에만 켜진다.
-                go.AddComponent<KnockbackIndicator>();
                 go.AddComponent<ChargeGauge>();
                 go.AddComponent<AttackRangeIndicator>();
                 // 내 스킬이 선딜~후딜 동안 어디를 때리는지. 적 예고와 같은 자리, 다른 색.

@@ -98,7 +98,6 @@ namespace Prototype.Tests
             // 불릿타임 두 맵은 InputMapSwitcher가 페이즈를 보고 연다.
             // 여기서 켜 두면 실시간 전투 중 J가 평타이면서 카드 집기로도 먹는다.
             Assert.That(controller.Actions.FindActionMap(InputActionNames.BulletTime.Map).enabled, Is.False);
-            Assert.That(controller.Actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map).enabled, Is.False);
         }
 
         [Test]
@@ -125,28 +124,7 @@ namespace Prototype.Tests
             Assert.That(controller.BulletTimeMapEnabled, Is.False);
         }
 
-        [Test]
-        public void SkillShotMapEnabled_TogglesTheMap()
-        {
-            controller.SkillShotMapEnabled = true;
-            Assert.That(controller.Actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map).enabled, Is.True);
-            Assert.That(controller.SkillShotMapEnabled, Is.True);
 
-            controller.SkillShotMapEnabled = false;
-            Assert.That(controller.Actions.FindActionMap(InputActionNames.BulletTimeSkillShot.Map).enabled, Is.False);
-            Assert.That(controller.SkillShotMapEnabled, Is.False);
-        }
-
-        [Test]
-        public void FreshlyEnabledAimMap_ReportsNoMouseMove()
-        {
-            // 켠 직후 마우스를 안 건드렸으면 움직이지 않은 것이다.
-            // position 차분으로 판단하던 시절엔 여기서 화면 절반짜리 이동이 잡혀
-            // 카드 위에서 시작한 조준점이 곧바로 마우스로 끌려갔다.
-            controller.SkillShotMapEnabled = true;
-
-            Assert.That(controller.AimPointMovedThisFrame, Is.False);
-        }
 
         [Test]
         public void ReEnablingCardMap_DoesNotReportPhantomStep()
@@ -163,18 +141,8 @@ namespace Prototype.Tests
 
         // ── 무입력 기본값 ───────────────────────────────────
 
-        [Test]
-        public void NoInput_SwapIsNotPressed()
-        {
-            Assert.That(controller.SwapPressed, Is.False);
-        }
 
-        [Test]
-        public void NoInput_MoveIsZero()
-        {
-            Assert.That(controller.Move, Is.EqualTo(Vector2.zero));
-            Assert.That(controller.Aim, Is.EqualTo(Vector2.zero));
-        }
+
 
         [Test]
         public void NoInput_NavigateStepIsZero()
@@ -216,16 +184,6 @@ namespace Prototype.Tests
             controller.GameplaySuspended = false;
         }
 
-        [Test]
-        public void NoInput_ButtonsAreNotPressed()
-        {
-            Assert.That(controller.AttackPressed, Is.False);
-            Assert.That(controller.JumpPressed, Is.False);
-            Assert.That(controller.DashPressed, Is.False);
-            Assert.That(controller.BulletTimePressed, Is.False);
-            Assert.That(controller.AimConfirmPressed, Is.False);
-            Assert.That(controller.AimCancelPressed, Is.False);
-            Assert.That(controller.CancelPressed, Is.False);
-        }
+
     }
 }

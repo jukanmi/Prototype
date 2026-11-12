@@ -26,7 +26,6 @@ namespace Prototype
         [Header("참조")]
         [SerializeField] private Player player;
         [SerializeField] private ComboExecutor executor;
-        [SerializeField] private TargetSelector targetSelector;
 
         [Tooltip("비워도 된다. 없으면 U키가 벤치에 앉은 동료를 불러오지 못하고 예전처럼 거부한다.")]
         [SerializeField] private TagSwapController swap;
@@ -168,7 +167,6 @@ namespace Prototype
         {
             pendingBasicSkill = false;
             executor?.Abort();
-            targetSelector?.Cancel();
             tactic?.ChangeTo(tactic.RealTime);
         }
 
@@ -193,7 +191,6 @@ namespace Prototype
 
             if (player == null) player = FindAnyObjectByType<Player>();
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
-            if (targetSelector == null) targetSelector = GetComponentInChildren<TargetSelector>();
             if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
 
             tactic = new TacticStateMachine(this);
@@ -348,7 +345,6 @@ namespace Prototype
         public bool CancelSelection()
         {
             if (!IsActive) return false;
-            targetSelector?.Cancel();
             tactic.ChangeTo(tactic.RealTime);
             OnExit?.Invoke();
             return true;
@@ -374,9 +370,6 @@ namespace Prototype
 
         /// <summary>손패 두 칸의 순서를 바꾼다. 실행 순서가 그대로 바뀐다.</summary>
         public bool SwapHand(int a, int b) => AllowsCardEdit && Hand.Swap(a, b);
-
-        /// <summary>조준을 확정해 해당 칸에 박제한다.</summary>
-        public bool SetHandTarget(int idx, in TargetInfo target) => AllowsCardEdit && Hand.SetTarget(idx, in target);
 
         /// <summary>덱에서 뽑아 손패를 4장까지 채운다. 덱이 비면 Discard가 섞여 되돌아온다.</summary>
         private void RefillHand() => Cards.Refill();

@@ -50,7 +50,6 @@ namespace Prototype.Tests
                 {
                     InputActionNames.Gameplay.Map,
                     InputActionNames.BulletTime.Map,
-                    InputActionNames.BulletTimeSkillShot.Map,
                     InputActionNames.UI.Map,
                 }));
         }
@@ -81,32 +80,6 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void SkillShotMap_HasAllActions()
-        {
-            Assert.That(Map(InputActionNames.BulletTimeSkillShot.Map).actions.Select(a => a.name),
-                Is.EquivalentTo(new[]
-                {
-                    InputActionNames.BulletTimeSkillShot.Aim,
-                    InputActionNames.BulletTimeSkillShot.AimPoint,
-                    InputActionNames.BulletTimeSkillShot.AimDelta,
-                    InputActionNames.BulletTimeSkillShot.Confirm,
-                    InputActionNames.BulletTimeSkillShot.Cancel,
-                }));
-        }
-
-        [Test]
-        public void AimDelta_IsBoundToMouseDelta()
-        {
-            // position의 프레임 차분으로 대신하면 안 된다. 맵을 켠 첫 프레임에 position이
-            // 0을 뱉어서, 실제 좌표가 들어오는 다음 프레임이 큰 이동으로 읽힌다 —
-            // 카드 위에서 시작한 조준점이 손도 안 댄 마우스로 끌려간다.
-            InputAction delta = Action(InputActionNames.BulletTimeSkillShot.Map,
-                InputActionNames.BulletTimeSkillShot.AimDelta);
-
-            Assert.That(delta.bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Mouse>/delta" }));
-        }
-
-        [Test]
         public void CardNavigate_IsNotBoundToMouse()
         {
             // 카드 조작 중 마우스는 드래그 앤 드롭이 쓴다. 액션에 묶으면
@@ -114,17 +87,6 @@ namespace Prototype.Tests
             InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
 
             Assert.That(navigate.bindings.Select(b => b.path), Has.None.StartsWith("<Mouse>"));
-        }
-
-        [Test]
-        public void SkillShotConfirm_TakesKeyboardAndMouse()
-        {
-            // 조준 확정만은 마우스도 받는다. 기존 좌클릭 조준 흐름을 그대로 살린다.
-            InputAction confirm = Action(InputActionNames.BulletTimeSkillShot.Map,
-                InputActionNames.BulletTimeSkillShot.Confirm);
-
-            Assert.That(confirm.bindings.Select(b => b.path),
-                Is.EquivalentTo(new[] { "<Keyboard>/j", "<Mouse>/leftButton" }));
         }
 
         [Test]
@@ -171,7 +133,6 @@ namespace Prototype.Tests
 
         [TestCase(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Move)]
         [TestCase(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate)]
-        [TestCase(InputActionNames.BulletTimeSkillShot.Map, InputActionNames.BulletTimeSkillShot.Aim)]
         public void Vector2Action_IsCompositeWithFourParts(string mapName, string actionName)
         {
             InputAction action = Action(mapName, actionName);

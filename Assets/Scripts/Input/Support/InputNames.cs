@@ -61,30 +61,6 @@ namespace Prototype
             public const string Navigate = "Navigate";
         }
 
-        /// <summary>
-        /// 스킬 시전 위치 지정. 카드를 집은 상태에서 위(<c>Navigate.up</c>)로 들어온다.
-        /// 확정 · 취소 후 다시 <see cref="BulletTime"/> 으로 돌아간다.
-        /// </summary>
-        public static class BulletTimeSkillShot
-        {
-            public const string Map = "BulletTimeSkillShot";
-
-            public const string Aim = "Aim";
-
-            /// <summary>마우스 커서의 화면 좌표.</summary>
-            public const string AimPoint = "AimPoint";
-
-            /// <summary>
-            /// 마우스 이동량. <see cref="AimPoint"/>의 프레임 차분으로 대신하면 안 된다 —
-            /// 맵을 켠 첫 프레임에 position이 0을 뱉어서, 실제 좌표가 들어오는 다음 프레임을
-            /// "화면 절반만큼 움직였다"로 읽는다.
-            /// </summary>
-            public const string AimDelta = "AimDelta";
-
-            public const string Confirm = "Confirm";
-            public const string Cancel = "Cancel";
-        }
-
         /// <summary>UI 맵. <c>InputSystemUIInputModule</c>이 쓰는 이름이라 바꾸면 안 된다.</summary>
         public static class UI
         {
@@ -119,7 +95,6 @@ namespace Prototype
         {
             { InputActionNames.Gameplay.Map, "전투" },
             { InputActionNames.BulletTime.Map, "불릿타임 — 카드 조작" },
-            { InputActionNames.BulletTimeSkillShot.Map, "불릿타임 — 시전 위치" },
         };
 
         private static readonly Dictionary<string, string> Actions = new Dictionary<string, string>
@@ -130,9 +105,6 @@ namespace Prototype
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "불릿타임 진입 · 실행" },
             { InputActionNames.BulletTime.Navigate, "카드 선택 · 순서" },
-            { InputActionNames.BulletTimeSkillShot.Aim, "조준점 이동" },
-            { InputActionNames.BulletTimeSkillShot.Confirm, "확정" },
-            { InputActionNames.BulletTimeSkillShot.Cancel, "취소" },
         };
 
         private static readonly Dictionary<string, string> Parts = new Dictionary<string, string>
