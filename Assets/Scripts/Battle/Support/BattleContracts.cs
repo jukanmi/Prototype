@@ -1,6 +1,6 @@
-// 연출 훅 두 개 — 시전 무대 · 스킬 컷인.
-// 구현은 각각 EntityAnimator와 SkillCutinUI가 한다.
-
+// Battle 층의 계약 모음.
+// 연출 훅 두 개(시전 무대 · 스킬 컷인)는 EntityAnimator와 SkillCutinUI가,
+// 재시작(IStageRestarter)은 BattleSceneController가 구현한다.
 using System.Collections;
 
 namespace Prototype
@@ -78,5 +78,13 @@ namespace Prototype
         /// finally가 돌지 않아 <see cref="TimeControl.Scale"/>이 0에 묶이기 때문.
         /// </summary>
         void Cancel();
+    }
+
+    // ══ IStageRestarter ═════════════════════════════════════════════
+    // 스테이지를 처음부터 다시 거는 쪽. [처음부터] 버튼(BattleRestartUI)은 이것만 알고,
+    // 구현(BattleSceneController · App 층)을 모른다.
+    public interface IStageRestarter
+    {
+        void RestartStage();
     }
 }

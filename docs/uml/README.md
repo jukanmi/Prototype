@@ -98,16 +98,16 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 
 | 파일 | 층 | 구현하는 쪽 | 끊은 것 |
 |---|---:|---|---|
-| `Entities/Support/IHittable.cs` | 1 | `Combat` | Core `HitData.cs` → `Combat` |
-| `Entities/Support/IControl.cs` | 1 | `Control` | `Entity.Control` → Control |
-| `Entities/Support/IAnimatedState.cs` | 1 | `SkillState` · `AssistReady/MoveState` | `EntityAnimator` → Skill · Agent 상태 |
-| `Entities/Support/IGroundPlate.cs` | 1 | `GroundPlate` | `GroundRegistry` → Stage |
-| `Entities/Support/IBattleVfx.cs` (+`BattleVfxSink`) | 1 | `BattleVfx.Sink` | Entities · Skill → `BattleVfx.Cast/Impact/WallBounce` |
+| `Entities/Support/EntityContracts.cs` — `IHittable` | 1 | `Combat` | Core `HitData.cs` → `Combat` |
+| `Entities/Support/EntityContracts.cs` — `IControl` | 1 | `Control` | `Entity.Control` → Control |
+| `Entities/Support/EntityContracts.cs` — `IAnimatedState` | 1 | `SkillState` · `AssistReady/MoveState` | `EntityAnimator` → Skill · Agent 상태 |
+| `Entities/Support/EntityContracts.cs` — `IGroundPlate` | 1 | `GroundPlate` | `GroundRegistry` → Stage |
+| `Entities/Support/EntityContracts.cs` — `IBattleVfx` (+`BattleVfxSink`) | 1 | `BattleVfx.Sink` | Entities · Skill → `BattleVfx.Cast/Impact/WallBounce` |
 | `Skill/Support/ISkillFx.cs` (+`ISkillFxFactory` · `SkillFxSink`) | 2 | `SkillFx` | `SkillState` → `SkillFx` |
 | `Skill/Support/ITauntable.cs` | 2 | `EnemyControl` | `TauntEffect` → `EnemyControl` |
-| `Stage/Support/IStageContext.cs` (+`StageContext`) | 4 | `GameManager` | `StageDirector` · `StageRoom` → `GameManager` · `MapNode` |
+| `Stage/Support/StageEncounter.cs` — `IStageContext` (+`StageContext`) | 4 | `GameManager` | `StageDirector` · `StageRoom` → `GameManager` · `MapNode` |
 | `Progression/Support/IRunHost.cs` (+`RunHost`) | 5 | `GameManager` | `RunProgression.Current` · `BulletTimeController` · `PartyAssembler` → `GameManager` |
-| `Battle/Support/IStageRestarter.cs` | 6 | `BattleSceneController` | `BattleRestartUI` → `BattleSceneController` |
+| `Battle/Support/BattleContracts.cs` — `IStageRestarter` | 6 | `BattleSceneController` | `BattleRestartUI` → `BattleSceneController` |
 
 ### 이벤트 (아래층이 쏘고 위층이 구독)
 
