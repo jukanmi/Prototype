@@ -254,7 +254,8 @@ namespace Prototype.EditorTools
             return list.ToArray();
         }
 
-        private static int Index(string name)
+        /// <summary>스프라이트 이름 끝 <c>_N</c>의 번호. 없으면 0.</summary>
+        internal static int Index(string name)
         {
             int at = name.LastIndexOf('_');
             return at >= 0 && int.TryParse(name.Substring(at + 1), out int n) ? n : 0;
@@ -359,12 +360,17 @@ namespace Prototype.EditorTools
             return controller;
         }
 
-        internal static AnimationClip BuildSpriteClip(ClipSpec spec)
+        /// <summary>
+        /// <paramref name="sheetFolder"/>/<c>spec.sheet</c>.png 의 슬라이스를 클립으로 굽고
+        /// <c>{clipPrefix}{spec.state}.anim</c> 으로 저장한다. 기본값은 Ally 시트.
+        /// </summary>
+        internal static AnimationClip BuildSpriteClip(ClipSpec spec, string sheetFolder = CharFolder,
+                                                      string clipPrefix = "Ally_")
         {
-            Sprite[] all = LoadSprites($"{CharFolder}/{spec.sheet}.png");
+            Sprite[] all = LoadSprites($"{sheetFolder}/{spec.sheet}.png");
             if (all.Length == 0)
             {
-                Debug.LogWarning($"[ArtImportBuilder] {spec.sheet} 슬라이스 결과가 없다.");
+                Debug.LogWarning($"[ArtImportBuilder] {sheetFolder}/{spec.sheet} 슬라이스 결과가 없다.");
                 return null;
             }
 
@@ -407,10 +413,10 @@ namespace Prototype.EditorTools
                 AnimationUtility.SetAnimationClipSettings(clip, settings);
             }
 
-            return SaveClip(clip, "Ally_" + spec.state);
+            return SaveClip(clip, clipPrefix + spec.state);
         }
 
-        private static void SetConstant(AnimationClip clip, System.Type type, string property, float value, float len)
+        internal static void SetConstant(AnimationClip clip, System.Type type, string property, float value, float len)
         {
             var curve = new AnimationCurve();
             curve.AddKey(0f, value);
@@ -587,7 +593,7 @@ namespace Prototype.EditorTools
         /// 거절하는 대신 <c>Art 1</c> · <c>Art 2</c> 처럼 이름을 비켜서 새로 만든다.
         /// 디렉터리를 직접 만들고 임포트만 시키면 그 사고가 안 난다.
         /// </summary>
-        private static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
 

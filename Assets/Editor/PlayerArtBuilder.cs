@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.U2D.Sprites;
 using UnityEngine;
+using static Prototype.EditorTools.ArtImportBuilder;
 
 namespace Prototype.EditorTools
 {
@@ -461,32 +462,5 @@ namespace Prototype.EditorTools
             return SaveClip(clip, clipName);
         }
 
-        private static void SetConstant(AnimationClip clip, System.Type type, string property, float value, float len)
-        {
-            var curve = new AnimationCurve();
-            curve.AddKey(0f, value);
-            curve.AddKey(Mathf.Max(0.01f, len), value);
-
-            AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(SpritePath, type, property), curve);
-        }
-
-        /// <summary>같은 이름으로 다시 구우면 GUID를 지킨다 — 프리팹의 클립 참조가 안 끊긴다.</summary>
-        private static AnimationClip SaveClip(AnimationClip clip, string name)
-        {
-            string path = $"{AnimFolder}/{name}.anim";
-            var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
-
-            if (existing == null)
-            {
-                clip.name = name;
-                AssetDatabase.CreateAsset(clip, path);
-                return clip;
-            }
-
-            EditorUtility.CopySerialized(clip, existing);
-            existing.name = name;
-            EditorUtility.SetDirty(existing);
-            return existing;
-        }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.U2D.Sprites;
 using UnityEngine;
+using static Prototype.EditorTools.ArtImportBuilder;
 
 namespace Prototype.EditorTools
 {
@@ -343,15 +344,8 @@ namespace Prototype.EditorTools
             return AssetDatabase.LoadAllAssetsAtPath(sheetPath)
                 .OfType<Sprite>()
                 .Where(sp => sp.name.Contains(prefix))
-                .OrderBy(sp => ColumnOf(sp.name))
+                .OrderBy(sp => Index(sp.name))   // 문자열 정렬은 _10을 _2 앞에 놓는다
                 .ToArray();
-        }
-
-        /// <summary>이름 끝 두 자리가 열 번호. 문자열 정렬은 _10을 _2 앞에 놓는다.</summary>
-        private static int ColumnOf(string name)
-        {
-            int i = name.LastIndexOf('_');
-            return i >= 0 && int.TryParse(name.Substring(i + 1), out int col) ? col : 0;
         }
 
         // ── 배선 ────────────────────────────
@@ -418,15 +412,5 @@ namespace Prototype.EditorTools
 
         private static string SheetPath(string sheet) => $"{EffectRoot}/{sheet}.png";
 
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-
-            string parent = Path.GetDirectoryName(path).Replace('\\', '/');
-            string leaf = Path.GetFileName(path);
-
-            EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, leaf);
-        }
     }
 }

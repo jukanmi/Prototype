@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using static Prototype.EditorTools.ArtImportBuilder;
 
 namespace Prototype.EditorTools
 {
@@ -127,15 +128,5 @@ namespace Prototype.EditorTools
             return string.CompareOrdinal(a.name, b.name);
         }
 
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-
-            string parent = Path.GetDirectoryName(path).Replace('\\', '/');
-            string leaf = Path.GetFileName(path);
-
-            EnsureFolder(parent);
-            AssetDatabase.CreateFolder(parent, leaf);
-        }
     }
 }

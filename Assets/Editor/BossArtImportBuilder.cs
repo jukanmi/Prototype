@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.U2D.Sprites;
 using UnityEngine;
+using static Prototype.EditorTools.ArtImportBuilder;
 
 namespace Prototype.EditorTools
 {
@@ -20,9 +21,6 @@ namespace Prototype.EditorTools
         private const string SheetFolder = "Assets/Art/Character/BossWarrior";
         private const string AnimFolder = "Assets/Data/Animation";
         private const string ControllerPath = AnimFolder + "/BossAnimator.controller";
-
-        /// <summary>클립이 물리는 자식. <see cref="ArtImportBuilder"/>와 같은 경로여야 한다.</summary>
-        private const string SpritePath = "View/Sprite";
 
         // ── 시트 규격 ──────────────────────────────────
         // 전부 150x150 균일 격자다. 세로 150은 모든 시트가 공유한다.
@@ -44,25 +42,6 @@ namespace Prototype.EditorTools
         private const int Ppu = 18;
 
         private static Vector2 Pivot => new Vector2(0.5f, (float)FootFromBottom / Cell);
-
-        /// <summary>Animator 상태 이름 ↔ 원본 시트. 상태 이름은 <see cref="EntityAnimator"/>가 정한다.</summary>
-        private struct ClipSpec
-        {
-            public string state;
-            public string sheet;
-            public float fps;
-            public bool loop;
-            public int from;          // 사용할 프레임 구간. to < 0이면 끝까지.
-            public int to;
-            public bool reverse;
-
-            public ClipSpec(string state, string sheet, float fps, bool loop,
-                            int from = 0, int to = -1, bool reverse = false)
-            {
-                this.state = state; this.sheet = sheet; this.fps = fps; this.loop = loop;
-                this.from = from; this.to = to; this.reverse = reverse;
-            }
-        }
 
         /// <summary>
         /// 상태머신이 직접 재생하는 클립. 평타(Attack)는 프리팹의 평타 길이(0.55초)에 맞춘 fps다 —
@@ -173,25 +152,6 @@ namespace Prototype.EditorTools
             AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
         }
 
-        /// <summary>슬라이스 결과를 번호 순으로 돌려준다.</summary>
-        private static Sprite[] LoadSprites(string sheet)
-        {
-            string assetPath = $"{SheetFolder}/{sheet}.png";
-
-            var list = new List<Sprite>();
-            foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(assetPath))
-                if (o is Sprite s) list.Add(s);
-
-            list.Sort((a, b) => Index(a.name).CompareTo(Index(b.name)));
-            return list.ToArray();
-        }
-
-        private static int Index(string name)
-        {
-            int at = name.LastIndexOf('_');
-            return at >= 0 && int.TryParse(name.Substring(at + 1), out int n) ? n : 0;
-        }
-
         // ── 2. 애니메이터 ──────────────────────────────
 
         private static AnimatorController BuildController()
@@ -244,7 +204,7 @@ namespace Prototype.EditorTools
 
         private static void AddState(AnimatorStateMachine sm, ClipSpec spec)
         {
-            AnimationClip clip = BuildSpriteClip(spec);
+            AnimationClip clip = BuildSpriteClip(spec, SheetFolder, "Boss_");
             if (clip == null) return;
 
             AnimatorState state = sm.AddState(spec.state);
@@ -258,99 +218,6 @@ namespace Prototype.EditorTools
             foreach (ChildAnimatorState st in sm.states)
                 if (st.state.name == name) return st.state;
             return null;
-        }
-
-        private static AnimationClip BuildSpriteClip(ClipSpec spec)
-        {
-            Sprite[] all = LoadSprites(spec.sheet);
-            if (all.Length == 0)
-            {
-                Debug.LogWarning($"[BossArtImportBuilder] {spec.sheet} 슬라이스 결과가 없다.");
-                return null;
-            }
-
-            int to = spec.to < 0 ? all.Length - 1 : Mathf.Min(spec.to, all.Length - 1);
-            int from = Mathf.Clamp(spec.from, 0, to);
-
-            var frames = new List<Sprite>();
-            for (int i = from; i <= to; i++) frames.Add(all[i]);
-            if (spec.reverse) frames.Reverse();
-
-            float fps = Mathf.Max(1f, spec.fps);
-            var keys = new ObjectReferenceKeyframe[frames.Count + 1];
-            for (int i = 0; i < frames.Count; i++)
-                keys[i] = new ObjectReferenceKeyframe { time = i / fps, value = frames[i] };
-
-            // 마지막 프레임도 제 몫의 시간을 갖게 한 칸 더 찍는다. 없으면 순식간에 지나간다.
-            keys[frames.Count] = new ObjectReferenceKeyframe
-            {
-                time = frames.Count / fps,
-                value = frames[frames.Count - 1],
-            };
-
-            var clip = new AnimationClip { frameRate = fps };
-
-            var binding = EditorCurveBinding.PPtrCurve(SpritePath, typeof(SpriteRenderer), "m_Sprite");
-            AnimationUtility.SetObjectReferenceCurve(clip, binding, keys);
-
-            // 플레이스홀더 클립이 남긴 스케일 · 알파를 되돌린다.
-            // 두 컨트롤러를 오가면 찌그러진 채로 굳는 것을 막는다.
-            float len = frames.Count / fps;
-            SetConstant(clip, typeof(Transform), "m_LocalScale.x", 1f, len);
-            SetConstant(clip, typeof(Transform), "m_LocalScale.y", 1f, len);
-            SetConstant(clip, typeof(SpriteRenderer), "m_Color.a", 1f, len);
-
-            if (spec.loop)
-            {
-                clip.wrapMode = WrapMode.Loop;
-                AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
-                settings.loopTime = true;
-                AnimationUtility.SetAnimationClipSettings(clip, settings);
-            }
-
-            return SaveClip(clip, "Boss_" + spec.state);
-        }
-
-        private static void SetConstant(AnimationClip clip, System.Type type, string property, float value, float len)
-        {
-            var curve = new AnimationCurve();
-            curve.AddKey(0f, value);
-            curve.AddKey(Mathf.Max(0.01f, len), value);
-
-            AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(SpritePath, type, property), curve);
-        }
-
-        private static AnimationClip SaveClip(AnimationClip clip, string name)
-        {
-            string path = $"{AnimFolder}/{name}.anim";
-            var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
-
-            if (existing == null)
-            {
-                clip.name = name;
-                AssetDatabase.CreateAsset(clip, path);
-                return clip;
-            }
-
-            // 에셋을 새로 만들면 컨트롤러 참조가 끊긴다. 내용만 덮어쓴다.
-            EditorUtility.CopySerialized(clip, existing);
-            existing.name = name;
-            EditorUtility.SetDirty(existing);
-            return existing;
-        }
-
-        /// <summary>
-        /// <c>AssetDatabase.CreateFolder</c>는 쓰지 않는다 — 디스크에 이미 있는데 DB에 안 올라온
-        /// 순간에 부르면 <c>Animation 1</c>처럼 이름을 비켜서 새로 만든다(ArtImportBuilder 참조).
-        /// </summary>
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-
-            string abs = Path.GetFullPath(Path.Combine(Application.dataPath, "..", path));
-            Directory.CreateDirectory(abs);
-
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
         }
 
         /// <summary>보스가 서 있는 키(유닛). 프리팹 빌더가 몸통·히트박스 크기를 여기 맞춘다.</summary>
