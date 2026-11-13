@@ -35,6 +35,12 @@ namespace Prototype
             public const string UniqueSkill = "UniqueSkill";
 
             /// <summary>
+            /// 로비 오브젝트 상호작용. 기본 F. E는 불릿타임이라 쓸 수 없다 —
+            /// 로비에도 허수아비가 있어 불릿타임이 살아 있다.
+            /// </summary>
+            public const string Interact = "Interact";
+
+            /// <summary>
             /// 동료 교대. 실시간 전투에는 동료가 한 명만 서 있고 이 키가 다음 생존자로 돌린다.
             ///
             /// 지휘키가 <b>아니다</b> — 정지 중에는 안 먹어야 한다. 그래서
@@ -104,6 +110,7 @@ namespace Prototype
             { InputActionNames.Gameplay.Jump, "점프 · 불릿타임 취소" },
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "불릿타임 진입 · 실행" },
+            { InputActionNames.Gameplay.Interact, "상호작용 (로비)" },
             { InputActionNames.BulletTime.Navigate, "카드 선택 · 순서" },
         };
 

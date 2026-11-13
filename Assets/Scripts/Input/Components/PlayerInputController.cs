@@ -40,6 +40,7 @@ namespace Prototype
         private InputAction jumpAction;
         private InputAction dashAction;
         private InputAction bulletTimeAction;
+        private InputAction interactAction;
         private int consumedJumpFrame = -1;
 
 
@@ -68,6 +69,9 @@ namespace Prototype
         /// 기존 불릿타임키 — 진입 · 실행 요청.
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
+
+        /// <summary>로비 오브젝트 상호작용(기본 F).</summary>
+        public bool InteractPressed => Pressed(interactAction);
 
 
 
@@ -225,6 +229,7 @@ namespace Prototype
             jumpAction = gameplayMap.FindAction(InputActionNames.Gameplay.Jump, throwIfNotFound: true);
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
+            interactAction = gameplayMap.FindAction(InputActionNames.Gameplay.Interact, throwIfNotFound: true);
 
             cardNavigate = new NavigateLatch(
                 bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true));

@@ -64,6 +64,7 @@ namespace Prototype.Tests
                 InputActionNames.Gameplay.Jump,
                 InputActionNames.Gameplay.Dash,
                 InputActionNames.Gameplay.BulletTime,
+                InputActionNames.Gameplay.Interact,
             };
 
             Assert.That(Map(InputActionNames.Gameplay.Map).actions.Select(a => a.name),
