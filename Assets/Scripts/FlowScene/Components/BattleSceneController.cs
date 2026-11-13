@@ -105,11 +105,11 @@ namespace Prototype
             if (isExiting || isRestarting) return;
 
             // 전면 UI(레벨업 · 덱 편집)가 떠 있으면 ESC는 그 창의 것이다. 여기서 먼저 집어가면
-            // 카드를 고르는 도중 창을 닫으려던 한 번이 런을 통째로 버리고 메인 메뉴로 나간다.
+            // 카드를 고르는 도중 창을 닫으려던 한 번이 런을 통째로 버리고 마을로 나간다.
             // 창이 그 ESC로 방금 닫힌 프레임까지 봐야 한다 — 실행 순서가 정해져 있지 않다.
             if (!GameplayModal.IsOpen && !GameplayModal.CancelConsumedThisFrame && WasEscapePressed())
             {
-                ExitToMainMenu();
+                ExitToLobby();
                 return;
             }
 
@@ -243,7 +243,7 @@ namespace Prototype
             }
 
             restartUI?.SetVisible(false);
-            resultUI?.ShowAllClear(ExitToMainMenu);
+            resultUI?.ShowAllClear(ExitToLobby);
         }
 
         private void HandleDefeat()
@@ -255,7 +255,7 @@ namespace Prototype
             Debug.Log($"[Battle] {GameManager.Instance.FloorNumber}층 패배");
 
             restartUI?.SetVisible(false);
-            resultUI?.ShowDefeat(RetryStage, ExitToMainMenu);
+            resultUI?.ShowDefeat(RetryStage, ExitToLobby);
         }
 
         /// <summary>진 뒤에도 적이 시체를 계속 두들기지 않게 한다.</summary>
@@ -286,7 +286,7 @@ namespace Prototype
 
             isExiting = true;   // 전환이 끝날 때까지 이 씬의 판정을 멈춘다
             CleanupStage();
-            ClearStatics();
+            ClearSceneStatics();
         }
 
         /// <summary>
@@ -327,7 +327,7 @@ namespace Prototype
 
             isRestarting = true;
             CleanupStage();
-            ClearStatics();
+            ClearSceneStatics();
         }
 
         /// <summary>
@@ -349,7 +349,7 @@ namespace Prototype
 
                 isRestarting = true;
                 CleanupStage();
-                ClearStatics();
+                ClearSceneStatics();
 
                 SceneManager.LoadScene(SceneName);
                 return;
@@ -361,18 +361,18 @@ namespace Prototype
 
             isRestarting = true;
             CleanupStage();
-            ClearStatics();
+            ClearSceneStatics();
         }
 
-        private void ExitToMainMenu()
+        private void ExitToLobby()
         {
             if (isExiting || isRestarting) return;
             if (GameManager.Instance == null) return;
-            if (!GameManager.Instance.ReturnToMainMenu(SceneName, OnReturnedToMenu)) return;
+            if (!GameManager.Instance.ReturnToLobby(SceneName, OnReturnedToLobby)) return;
 
             isExiting = true;
             CleanupStage();
-            ClearStatics();
+            ClearSceneStatics();
         }
 
         /// <summary>
@@ -382,7 +382,7 @@ namespace Prototype
         /// 갓 등록된 새 Entity 까지 날아가 타게팅이 통째로 죽는다. 지금 비워도 곧 파괴될
         /// 옛 Entity 의 OnDestroy → Unregister 는 빈 목록에 대한 no-op 이라 안전하다.
         /// </summary>
-        private static void ClearStatics()
+        public static void ClearSceneStatics()
         {
             CastDirector.RecallScene();
             TimeControl.Reset();
@@ -441,15 +441,14 @@ namespace Prototype
         /// 배틀 씬이 완전히 내려간 뒤 도는 콜백. 이 시점에 this 는 이미 파괴돼 있으므로
         /// 인스턴스 필드를 만지면 안 된다 — static 만 정리한다.
         /// </summary>
-        private static void OnReturnedToMenu()
+        private static void OnReturnedToLobby()
         {
             // BulletTimeController 가 Scale = 0 인 채로 파괴됐을 수 있다.
             // Domain Reload 가 꺼져 있으면 static 이 그대로 살아남아 다음 런이 멈춘 채 시작한다.
             TimeControl.Reset();
 
-            // Entity 는 OnDestroy 에서 스스로 Unregister 하지만, 씬을 넘나드는 만큼
-            // 잔여 항목이 남지 않도록 한 번 더 비운다.
-            BattleRegistry.Clear();
+            // BattleRegistry 는 여기서 비우지 않는다 — 로비에는 주인공과 허수아비가 있어서
+            // 로드가 끝난 뒤에 비우면 갓 등록된 그 둘이 날아간다. 떠나기 전에 ClearSceneStatics 가 이미 비웠다.
 
             AudioManager.Instance?.PlayMenuBgm();
         }

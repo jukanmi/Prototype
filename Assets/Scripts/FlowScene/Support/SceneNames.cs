@@ -9,6 +9,12 @@ namespace Prototype
         public const string MainMenu = "MainMenu";
 
         /// <summary>
+        /// 마을 — 런과 런 사이에 머무는 곳. <c>Stage_Training</c>을 복제해 걸어다니는 몸과 허수아비를 물려받았다.
+        /// 파일은 <c>Assets/Scenes/Lobby.unity</c>. 계획서: docs/Lobby_Plan.md
+        /// </summary>
+        public const string Lobby = "Lobby";
+
+        /// <summary>
         /// 전투 씬. 씬 파일명은 아직 SampleScene 이지만 나중에 Battle 로 바뀔 가능성이 높아
         /// 상수명은 용도 기준으로 둔다. 파일명이 바뀌면 이 한 줄만 고치면 된다.
         /// </summary>

@@ -5,7 +5,9 @@ using UnityEngine.UI;
 namespace Prototype
 {
     /// <summary>
-    /// 메인화면의 <b>파티 편성</b>. 데려갈 동료를 명단에서 골라 4칸을 채운다.
+    /// 마을 게시판의 <b>파티 편성</b>. 데려갈 동료를 명단에서 골라 4칸을 채운다.
+    /// 잠긴 동료는 눌러서 기억 조각으로 고용한다(<see cref="MetaProgression.TryHire"/>).
+    /// <see cref="Show"/>로 열고 [닫기]로 닫는다 — 처음 열 때 짓는다.
     ///
     /// <see cref="BattleRestartUI"/> · <see cref="StageResultUI"/>와 같이 캔버스를 코드로 짓는다 —
     /// 씬 · 프리팹 배선이 필요 없고, MainMenu 씬을 다시 굽지 않아도 붙는다.
@@ -61,6 +63,14 @@ namespace Prototype
 
         private Text summary;
         private Text warning;
+        private Text rosterHeader;
+        private int rosterCount;
+
+        /// <summary>떠 있는가. 마을이 이걸 보고 조작을 잠근다.</summary>
+        public bool IsOpen => gameObject.activeSelf;
+
+        public void Show() => gameObject.SetActive(true);
+        public void Hide() => gameObject.SetActive(false);
 
         /// <summary>
         /// <c>GameManager</c>에 넘기는 조합. 에셋이 아니라 이 화면이 만든 인스턴스다.
@@ -68,7 +78,7 @@ namespace Prototype
         /// </summary>
         private PartyLoadout runtime;
 
-        /// <summary>메인화면에 띄운다. 씬과 함께 언로드되도록 컨트롤러의 자식으로 붙인다.</summary>
+        /// <summary>짓기만 한다 — 화면은 <see cref="Show"/> 때 처음 그린다. 씬과 함께 언로드되도록 컨트롤러의 자식으로 붙인다.</summary>
         public static PartySelectUI Create(MonoBehaviour owner)
         {
             if (owner == null) return null;
@@ -124,6 +134,9 @@ namespace Prototype
                 if (m == null || picked.Count >= PartyLoadout.MaxMembers) continue;
                 if (!Contains(roster, m) || picked.Contains(m)) continue;
 
+                // 잠긴 동료가 남아 있다 — 저장 파일을 지웠거나 잠금 기준이 바뀌었다. 빼고 연다.
+                if (!MetaProgression.Current.IsUnlocked(m)) continue;
+
                 picked.Add(m);
             }
         }
@@ -159,6 +172,10 @@ namespace Prototype
             title.text = "파티 편성";
             title.alignment = TextAnchor.MiddleLeft;
 
+            Button close = UiKit.CreateButton(p, "Btn_Close", "닫기", RowPlain, new Vector2(80f, 32f), 16);
+            UiKit.Place(close, new Vector2(1f, 1f), new Vector2(-Pad, -Pad), new Vector2(80f, 32f));
+            close.onClick.AddListener(Hide);
+
             Text hint = UiKit.NewText(p, "Hint", 14, DimText, FontStyle.Normal);
             Row(hint.rectTransform, ref y, 22f, inner);
             hint.text = "동료는 카드 발동 시 등장해 스킬을 사용합니다";
@@ -178,10 +195,10 @@ namespace Prototype
             warning.alignment = TextAnchor.MiddleLeft;
 
             y += Gap;
-            Text header = UiKit.NewText(p, "RosterHeader", 15, DimText, FontStyle.Bold);
-            Row(header.rectTransform, ref y, 22f, inner);
-            header.text = $"동료 {roster.Count}명";
-            header.alignment = TextAnchor.MiddleLeft;
+            rosterHeader = UiKit.NewText(p, "RosterHeader", 15, DimText, FontStyle.Bold);
+            Row(rosterHeader.rectTransform, ref y, 22f, inner);
+            rosterHeader.alignment = TextAnchor.MiddleLeft;
+            rosterCount = roster.Count;
 
             BuildRoster(p, roster, y);
         }
@@ -375,6 +392,15 @@ namespace Prototype
 
         private void Toggle(PartyMemberData member)
         {
+            MetaProgression meta = MetaProgression.Current;
+
+            // 잠긴 동료는 누르면 고용한다. 모자라면 아무 일도 없다 — 줄에 값이 이미 적혀 있다.
+            if (!meta.IsUnlocked(member))
+            {
+                if (meta.TryHire(member)) Refresh();
+                return;
+            }
+
             if (!PartyAssembleRules.Toggle(picked, member, PartyLoadout.MaxMembers)) return;
             Refresh();
         }
@@ -426,9 +452,22 @@ namespace Prototype
             }
 
             bool full = picked.Count >= PartyLoadout.MaxMembers;
+            MetaProgression meta = MetaProgression.Current;
+
+            rosterHeader.text = $"동료 {rosterCount}명 · 기억 조각 {meta.Currency}";
 
             foreach ((PartyMemberData m, Image bg, Text mark, Text cards) in rows)
             {
+                if (!meta.IsUnlocked(m))
+                {
+                    bool affordable = meta.Currency >= MetaRules.HireCost;
+                    bg.color = RowBlocked;
+                    mark.text = "";
+                    cards.text = $"고용 {MetaRules.HireCost}";
+                    cards.color = affordable ? WarnColor : DimText;
+                    continue;
+                }
+
                 int at = picked.IndexOf(m);
                 bool inParty = at >= 0;
 

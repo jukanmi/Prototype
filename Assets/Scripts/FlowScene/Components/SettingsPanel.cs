@@ -43,6 +43,9 @@ namespace Prototype
 
         // ── 패널 제어 (버튼 OnClick에 꽂는 자리) ─────────────
 
+        /// <summary>떠 있는가. 마을이 이걸 보고 조작을 잠근다.</summary>
+        public bool IsOpen => settingsPanel != null && settingsPanel.activeSelf;
+
         public void Toggle()
         {
             if (settingsPanel != null)

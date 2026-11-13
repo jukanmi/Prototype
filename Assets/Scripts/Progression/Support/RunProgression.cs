@@ -423,8 +423,13 @@ namespace Prototype
         private static int BaseReward(int floorNumber)
             => BaseClearReward + ClearRewardPerStage * (Math.Max(1, floorNumber) - 1);
 
-        /// <summary>상점에서 이 선택지의 값. 합성 카드도 결과가 황금이라 황금 값이다.</summary>
-        public static int PriceOf(in CardOffer offer) => offer.golden ? GoldenCardPrice : CardPrice;
+        /// <summary>
+        /// 상점에서 이 선택지의 값. 합성 카드도 결과가 황금이라 황금 값이다.
+        /// 유산 제단의 상점 할인이 걸린다(<see cref="MetaRules.ShopDiscountPercent"/>).
+        /// </summary>
+        public static int PriceOf(in CardOffer offer)
+            => MetaRules.Discounted(offer.golden ? GoldenCardPrice : CardPrice,
+                                    MetaRules.ShopDiscountPercent(MetaProgression.Current.LevelOf(MetaUpgrade.ShopDiscount)));
     }
 
     // ══ NodeRules ═══════════════════════════════════════════
@@ -436,7 +441,11 @@ namespace Prototype
     public static class NodeRules
     {
         /// <summary>휴식 칸에 들어가면 파티 전원이 회복하는 체력 비율.</summary>
-        public const float RestHealRatio = 0.3f;
+        public const float BaseRestHealRatio = 0.3f;
+
+        /// <summary>휴식 회복 비율 — 기본값 + 유산 제단 강화(<see cref="MetaRules.RestHealBonus"/>).</summary>
+        public static float RestHealRatio
+            => BaseRestHealRatio + MetaRules.RestHealBonus(MetaProgression.Current.LevelOf(MetaUpgrade.RestHeal));
 
         /// <summary>
         /// 상점 선택지의 황금 확률 단계. 레벨업 2단계와 같다(20%) —

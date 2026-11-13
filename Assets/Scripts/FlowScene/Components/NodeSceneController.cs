@@ -125,10 +125,10 @@ namespace Prototype
                 return;
             }
 
-            // 들어가 있는 칸이 없다 — 지도를 안 거치고 이 씬이 떴다. 갇히지 않게 메인 메뉴로 보낸다.
-            if (gm.CurrentNode == null && gm.ReturnToMainMenu(SceneName, () => AudioManager.Instance?.PlayMenuBgm()))
+            // 들어가 있는 칸이 없다 — 지도를 안 거치고 이 씬이 떴다. 갇히지 않게 마을로 보낸다.
+            if (gm.CurrentNode == null && gm.ReturnToLobby(SceneName, () => AudioManager.Instance?.PlayMenuBgm()))
             {
-                Debug.LogWarning($"[Node] 들어가 있는 지도 칸이 없다({SceneName}) — 메인 메뉴로 돌아간다.");
+                Debug.LogWarning($"[Node] 들어가 있는 지도 칸이 없다({SceneName}) — 마을로 돌아간다.");
                 leaving = true;
             }
         }

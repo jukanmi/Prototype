@@ -281,11 +281,11 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void ReturnToMainMenu_WithoutSceneLoader_IsRefused_AndKeepsRun()
+        public void ReturnToLobby_WithoutSceneLoader_IsRefused_AndKeepsRun()
         {
             gm.StartNewRun();
 
-            Assert.That(gm.ReturnToMainMenu(SceneNames.RunMap), Is.False);
+            Assert.That(gm.ReturnToLobby(SceneNames.RunMap), Is.False);
             Assert.That(gm.IsRunActive, Is.True, "거절됐는데 런이 종료됐다");
             Assert.That(gm.Progress, Is.Not.Null);
         }

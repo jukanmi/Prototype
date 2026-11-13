@@ -74,6 +74,10 @@ namespace Prototype
             {
                 preview = false;
                 Show(gm.Progress, EnterNode);
+
+                // [처음부터]로 버린 런의 정산. 지우지 않는다 — 마을에 들어갈 때 합쳐서 다시 띄운다.
+                if (gm.Meta.LastSettlement > 0 && gm.Progress.Visited.Count == 0)
+                    SetInfo($"버린 런 정산 — 기억 조각 +{gm.Meta.LastSettlement} (보유 {gm.Meta.Currency})");
                 return;
             }
 
@@ -104,12 +108,12 @@ namespace Prototype
             if (!node.HasScene) Redraw();
         }
 
-        private void ReturnToMainMenu()
+        private void ReturnToLobby()
         {
             GameManager gm = GameManager.Instance;
             if (gm == null) return;
 
-            gm.ReturnToMainMenu(gameObject.scene.name, () => AudioManager.Instance?.PlayMenuBgm());
+            gm.ReturnToLobby(gameObject.scene.name, () => AudioManager.Instance?.PlayMenuBgm());
         }
 
         /// <summary>진행을 그린다. <paramref name="pick"/>은 고를 수 있는 칸을 눌렀을 때만 불린다.</summary>
@@ -317,20 +321,20 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 좌상단 버튼. 미리보기면 [다시 굴리기], 실제 런이면 [메인 메뉴] —
+        /// 좌상단 버튼. 미리보기면 [다시 굴리기], 실제 런이면 [마을로] —
         /// 지도 씬에는 전투 씬의 ESC 이탈이 없어서, 이게 없으면 런을 접을 방법이 없다.
         /// 방향키가 칸 대신 이 버튼에 얹히지 않게 내비게이션에서 뺀다.
         /// </summary>
         private void DrawCornerButton()
         {
-            string label = preview ? "다시 굴리기" : "메인 메뉴";
+            string label = preview ? "다시 굴리기" : "마을로";
             Button b = UiKit.CreateButton(mapRoot, "Btn_Corner", label, new Color(0.30f, 0.32f, 0.36f),
                                           new Vector2(220f, 56f), 22);
             UiKit.Place(b, new Vector2(0f, 1f), new Vector2(150f, -56f), new Vector2(220f, 56f));
             b.navigation = new Navigation { mode = Navigation.Mode.None };
 
             if (preview) b.onClick.AddListener(() => StartPreview(Environment.TickCount));
-            else b.onClick.AddListener(ReturnToMainMenu);
+            else b.onClick.AddListener(ReturnToLobby);
         }
 
         // ── 고르기 · 포커스 ─────────────────────────────

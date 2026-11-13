@@ -10,8 +10,8 @@ namespace Prototype
     /// <list type="bullet">
     /// <item><b>출구 화살표</b> — 이겼고 다음 스테이지가 있다. 오른쪽 벽으로 가라는 안내만 띄우고
     /// 조작을 막지 않는다.</item>
-    /// <item><b>전부 클리어</b> — 마지막 스테이지를 이겼다. 갈 곳이 없으니 메인화면 버튼을 준다.</item>
-    /// <item><b>패배</b> — 재시작과 메인화면 버튼.</item>
+    /// <item><b>전부 클리어</b> — 마지막 스테이지를 이겼다. 갈 곳이 없으니 마을로 버튼을 준다.</item>
+    /// <item><b>패배</b> — 재시작과 마을로 버튼.</item>
     /// </list>
     ///
     /// 캔버스를 코드로 만들므로 씬·프리팹 배선이 필요 없다.
@@ -138,7 +138,7 @@ namespace Prototype
             Transform panel = BuildPanel("모든 스테이지 클리어", VictoryColor,
                                          "보스를 쓰러뜨렸다.", 200f);
 
-            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
+            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "마을로", MenuColor,
                                                       new Vector2(200f, 56f), 22);
             UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(200f, 56f));
             menuButton.onClick.AddListener(HandleMenu);
@@ -159,7 +159,7 @@ namespace Prototype
             UiKit.Place(retryButton, new Vector2(0.5f, 0f), new Vector2(-124f, 44f), new Vector2(230f, 56f));
             retryButton.onClick.AddListener(HandleRetry);
 
-            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "메인화면", MenuColor,
+            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "마을로", MenuColor,
                                                       new Vector2(200f, 56f), 22);
             UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(124f, 44f), new Vector2(200f, 56f));
             menuButton.onClick.AddListener(HandleMenu);

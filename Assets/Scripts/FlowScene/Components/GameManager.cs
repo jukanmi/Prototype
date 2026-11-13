@@ -102,6 +102,12 @@ namespace Prototype
         /// </summary>
         public RunProgression Run { get; } = new RunProgression();
 
+        /// <summary>
+        /// 런을 넘어 남는 진행 — 기억 조각 · 강화 · 해금 · 기록. Awake에서 파일을 읽고,
+        /// 런이 끝날 때(<see cref="SettleRun"/>)와 로비에서 살 때만 쓴다.
+        /// </summary>
+        public MetaProgression Meta { get; } = new MetaProgression();
+
         /// <summary>런 누적 경험치. <see cref="Run"/>이 진짜 주인이고 이건 읽는 창구다.</summary>
         public int TotalExp => Run.Exp;
 
@@ -111,6 +117,9 @@ namespace Prototype
             Instance = this;
             StageContext.Current = this;
             RunHost.Current = this;
+
+            Meta.Load();
+            MetaProgression.Current = Meta;
         }
 
         private void OnDestroy()
@@ -118,6 +127,7 @@ namespace Prototype
             if (Instance == this) Instance = null;
             if (ReferenceEquals(StageContext.Current, this)) StageContext.Current = null;
             if (ReferenceEquals(RunHost.Current, this)) RunHost.Current = null;
+            if (ReferenceEquals(MetaProgression.Current, Meta)) MetaProgression.Current = null;
         }
 
         // ── 지도 위 위치 ─────────────────────────────────
@@ -181,6 +191,10 @@ namespace Prototype
 
             Run.Reset();
 
+            // 유산 제단의 시작 골드. Reset 이 골드를 0으로 되돌린 뒤에 얹어야 한다.
+            int startGold = MetaRules.StartGold(Meta.LevelOf(MetaUpgrade.StartGold));
+            if (startGold > 0) Run.AddGold(startGold);
+
             RestoreTime();
 
             // 방 크기는 모양 문자열과 따로 찍는다 — Describe 는 "같은 모양인가"를 비교하는 용도다.
@@ -190,15 +204,35 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>ESC 이탈 또는 패배 시 호출. 런 데이터를 폐기한다.</summary>
+        /// <summary>
+        /// 런을 끝내고 로비로 갈 때 호출(클리어 · 패배 · ESC 이탈). 정산한 뒤 런 데이터를 폐기한다.
+        /// </summary>
         public void EndRun()
         {
+            SettleRun(100);
+
             IsRunActive = false;
             Progress = null;
 
             RestoreTime();
 
             Debug.Log("[GameManager] 런 종료");
+        }
+
+        /// <summary>
+        /// 런을 정산한다 — 끝낸 칸만큼 기억 조각(계획서 1.3). <b>정산한 진행은 바로 버린다</b> —
+        /// 그래서 같은 런을 두 번 정산할 길이 없다. 런이 없으면 아무것도 안 한다.
+        /// </summary>
+        private void SettleRun(int percent)
+        {
+            if (Progress == null) return;
+
+            int got = Meta.Settle(Progress, percent);
+            Debug.Log($"[GameManager] 런 정산 — {Progress.Visited.Count}칸" +
+                      (Progress.IsFinished ? " · 보스 클리어" : "") +
+                      $" · {percent}% → 기억 조각 +{got} (보유 {Meta.Currency})");
+
+            Progress = null;
         }
 
         public void AddExp(int amount) => Run.AddExp(amount);
@@ -285,23 +319,31 @@ namespace Prototype
             return true;
         }
 
-        /// <summary>런을 버리고 새 지도부터. 전투 씬 우상단 [처음부터]가 부른다.</summary>
+        /// <summary>
+        /// 런을 버리고 새 지도부터. 전투 씬 우상단 [처음부터]가 부른다.
+        /// 버린 런은 일부만 정산한다(<see cref="MetaRules.RestartPercent"/>).
+        /// </summary>
         public bool RestartRun(string fromScene, Action onComplete = null)
         {
             if (!CanSwap()) return false;
+
+            SettleRun(MetaRules.RestartPercent);
             if (!StartNewRun()) return false;
 
             Swap(SceneNames.RunMap, fromScene, onComplete);
             return true;
         }
 
-        /// <summary>런을 접고 메인화면으로.</summary>
-        public bool ReturnToMainMenu(string fromScene, Action onComplete = null)
+        /// <summary>
+        /// 런을 접고 로비(마을)로. 런이 끝나는 길(클리어 · 패배 · ESC)이 전부 여기를 지난다 —
+        /// 정산도 그래서 <see cref="EndRun"/> 한 곳이면 된다.
+        /// </summary>
+        public bool ReturnToLobby(string fromScene, Action onComplete = null)
         {
             if (!CanSwap()) return false;
 
             EndRun();
-            Swap(SceneNames.MainMenu, fromScene, onComplete);
+            Swap(SceneNames.Lobby, fromScene, onComplete);
             return true;
         }
 
