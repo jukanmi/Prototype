@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// 깊이 배율과 좌표 변환은 순수 함수다. 여기서 값이 어긋나면 캐릭터 · 투사체가
+    /// 좌표 변환은 순수 함수다. 여기서 값이 어긋나면 캐릭터 · 투사체가
     /// 한꺼번에 틀어진다.
     ///
     /// 예전에는 <c>ToView</c>가 Z를 화면 세로 · 가로로 손수 접었다. 그 가로 접기가
@@ -19,7 +19,6 @@ namespace Prototype.Tests
         [SetUp]
         public void SetUp()
         {
-            BeltScroll.DepthScalePerUnit = 0.06f;
             rig = BeltScrollTestCamera.Attach();
         }
 
@@ -27,30 +26,6 @@ namespace Prototype.Tests
         public void TearDown()
         {
             BeltScrollTestCamera.Detach(rig);
-            BeltScroll.DepthScalePerUnit = 0.06f;
-        }
-
-        // ── 깊이 배율 ───────────────────────────────────
-
-        [Test]
-        public void ScaleAt_Origin_IsOne()
-        {
-            Assert.That(BeltScroll.ScaleAt(0f), Is.EqualTo(1f).Within(0.0001f));
-        }
-
-        /// <summary>방 깊이 ±3에서 앞뒤 1.44배. 이게 "보통" 강도로 고른 값이다.</summary>
-        [Test]
-        public void ScaleAt_BackShrinks_FrontGrows()
-        {
-            Assert.That(BeltScroll.ScaleAt(3f), Is.EqualTo(0.82f).Within(0.0001f), "뒤쪽이 작아야 한다");
-            Assert.That(BeltScroll.ScaleAt(-3f), Is.EqualTo(1.18f).Within(0.0001f), "앞쪽이 커야 한다");
-        }
-
-        /// <summary>하한이 없으면 배율이 음수가 돼 스프라이트가 뒤집힌다.</summary>
-        [Test]
-        public void ScaleAt_FarBeyondRoom_ClampsToMinimum()
-        {
-            Assert.That(BeltScroll.ScaleAt(1000f), Is.EqualTo(BeltScroll.MinScale).Within(0.0001f));
         }
 
         // ── 가로 밀림이 없다는 것 ────────────────────────

@@ -28,7 +28,7 @@ namespace Prototype.Tests
         {
             // 머리 위 오프셋이 화면 위(0, cosθ, sinθ) 방향으로 올라간다. 카메라를 명시적으로
             // 물려 주지 않으면 Camera.main을 집어 열려 있던 씬에 따라 값이 달라진다.
-            BeltScroll.DepthScalePerUnit = 0.06f;
+
             camRig = BeltScrollTestCamera.Attach();
         }
 
@@ -36,7 +36,7 @@ namespace Prototype.Tests
         public void TearDown()
         {
             BeltScrollTestCamera.Detach(camRig);
-            BeltScroll.DepthScalePerUnit = 0.06f;
+
 
             for (int i = 0; i < spawned.Count; i++)
                 Object.DestroyImmediate(spawned[i]);

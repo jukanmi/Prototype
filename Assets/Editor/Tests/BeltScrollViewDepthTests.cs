@@ -33,7 +33,6 @@ namespace Prototype.Tests
             BeltScrollTestCamera.Detach(camRig);
 
             // Sync가 static을 덮어쓴다. 다음 테스트로 새지 않게 되돌린다.
-            BeltScroll.DepthScalePerUnit = 0.06f;
         }
 
         /// <summary>root(Physics + BeltScrollView) → [View →] Sprite, root → Shadow.</summary>
@@ -68,7 +67,6 @@ namespace Prototype.Tests
             so.FindProperty("sprite").objectReferenceValue = sprite;
             so.FindProperty("shadow").objectReferenceValue = shadow;
             so.FindProperty("depthRoot").objectReferenceValue = depthRoot;
-            so.FindProperty("depthScalePerUnit").floatValue = 0.06f;
             so.FindProperty("spriteOffsetY").floatValue = 0.5f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -83,8 +81,8 @@ namespace Prototype.Tests
 
             view.Sync();
 
-            Assert.That(depthRoot.localScale.x, Is.EqualTo(0.82f).Within(0.001f));
-            Assert.That(depthRoot.localScale.y, Is.EqualTo(0.82f).Within(0.001f));
+            Assert.That(depthRoot.localScale.x, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(depthRoot.localScale.y, Is.EqualTo(1f).Within(0.001f));
         }
 
         /// <summary>이 테스트가 이 태스크의 핵심이다. 애니 충돌 회귀 방지.</summary>
@@ -115,7 +113,7 @@ namespace Prototype.Tests
 
             view.Sync();
 
-            float lift = 0.5f * 0.82f;   // spriteOffsetY × 깊이 배율
+            float lift = 0.5f;   // spriteOffsetY
 
             Assert.That(depthRoot.position.x, Is.EqualTo(0f).Within(0.001f), "옆으로 밀리면 안 된다");
             Assert.That(depthRoot.position.y, Is.EqualTo(lift * BeltScrollTestCamera.Cos).Within(0.001f));
@@ -164,8 +162,8 @@ namespace Prototype.Tests
 
             // shadowBaseScale 기본값 (0.9, 0.9, 1). 바닥 평면에 눕히므로 XY 모두 실제 지름이다 —
             // 납작해 보이는 건 카메라 기울기가 만든다. 높이 0이라 shrink는 1이다.
-            Assert.That(shadow.localScale.x, Is.EqualTo(0.9f * 0.82f).Within(0.001f));
-            Assert.That(shadow.localScale.y, Is.EqualTo(0.9f * 0.82f).Within(0.001f));
+            Assert.That(shadow.localScale.x, Is.EqualTo(0.9f).Within(0.001f));
+            Assert.That(shadow.localScale.y, Is.EqualTo(0.9f).Within(0.001f));
         }
 
         /// <summary>배선 안 된 프리팹(변종 적 등)이 깨지면 안 된다.</summary>
