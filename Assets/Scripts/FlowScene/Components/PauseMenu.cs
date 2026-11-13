@@ -142,7 +142,7 @@ namespace Prototype
             onExit?.Invoke();
         }
 
-        /// <summary>다른 곳(설정 패널 · 다른 씬)에서 바꿨을 수 있으므로 열 때마다 맞춘다.</summary>
+        /// <summary>다른 씬의 일시정지 창에서 바꿨을 수 있으므로 열 때마다 맞춘다.</summary>
         private void Sync()
         {
             AudioManager audio = AudioManager.Instance;
@@ -151,9 +151,19 @@ namespace Prototype
             foreach (Slider s in new[] { master, bgm, sfx }) s.interactable = has;
             if (!has) return;
 
-            SettingsPanel.Bind(master, audio.MasterVolume, audio.SetMasterVolume);
-            SettingsPanel.Bind(bgm, audio.BgmVolume, audio.SetBgmVolume);
-            SettingsPanel.Bind(sfx, audio.SfxVolume, audio.SetSfxVolume);
+            Bind(master, audio.MasterVolume, audio.SetMasterVolume);
+            Bind(bgm, audio.BgmVolume, audio.SetBgmVolume);
+            Bind(sfx, audio.SfxVolume, audio.SetSfxVolume);
+        }
+
+        /// <summary>슬라이더를 현재 값에 맞추고 움직이면 그대로 밀어 넣는다.</summary>
+        private static void Bind(Slider slider, float value, UnityEngine.Events.UnityAction<float> apply)
+        {
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = value;
+            slider.onValueChanged.RemoveAllListeners();
+            slider.onValueChanged.AddListener(apply);
         }
 
         // ── 짓기 ────────────────────────────────────────

@@ -5,7 +5,7 @@
 > 정산 알림은 마을이 못 띄운 것을 합쳐 띄운다([처음부터] 뒤 지도에도 한 줄).
 > 확정: **허브형(걸어다님)** · **영구 진행 넣음(재화: 기억 조각)** · **난이도는 지금 그대로 반복**(승천 · 순환 강화는 뒤로) · 수치는 임시값.
 > 관련 코드: `Assets/Scripts/FlowScene/GameManager.cs`, `MainMenuController.cs`, `BattleSceneController.cs`,
-> `NodeSceneController.cs`, `RunMapScreen.cs`, `PartySelectUI.cs`, `SettingsPanel.cs`, `SceneNames.cs`, `BootStrapper.cs`,
+> `NodeSceneController.cs`, `RunMapScreen.cs`, `PartySelectUI.cs`, `PauseMenu.cs`, `SceneNames.cs`, `BootStrapper.cs`,
 > `Assets/Scripts/Progression/Support/RunProgression.cs`(`GoldRules` · `NodeRules` · `PartyState`),
 > `Assets/Scripts/Party/Support/PartyCatalog.cs`, `Assets/Scenes/Level/Stage_Training.unity`
 > 관련: [story.md](story.md) — "심층을 빠져나와 로비 마을로", "마을에서 용병 고용과 재화 사용법", "마법사의 능력으로 마을에 긴급 귀환"
@@ -129,12 +129,12 @@ MetaProgression (GameManager가 소유, RunProgression과 같은 자리)
 | 미궁 입구 | 런 시작 → RunMap | `GameManager.StartNewRun` + `SceneLoader.SwapTo` (MainMenu에서 옮김) | 1 |
 | 용병 게시판 | 동료 편성 + (3단계부터) 고용 | `PartySelectUI` 그대로 | 2 |
 | 허수아비 | 콤보 연습 | `Enemy_Dummy` — 복제로 이미 있음 | 1 (공짜) |
-| 마법사 | 설정 · 키 바인딩 | `SettingsPanel.Open()` | 2 |
+| 마법사 | 설정 · 키 바인딩 | `PauseMenu.Open()` (일시정지 창과 같은 창) | 2 |
 | 유산 제단 | 재화로 영구 강화 | 새로 — `MetaUpgradeWindow` (`NodeWindows`의 상점 창과 같은 방식으로 코드로 짓는다) | 4 |
 | 기록판 | 런 수 · 최고 층 | 새로 — 텍스트 한 장 | 4 (작다) |
 | ~~카드 서가~~ | 동료별 카드 도감 | `DeckInspectorUI`는 전투 중 런 덱 전용이라 공개 진입점이 없다 | **뺀다.** 필요해지면 따로 |
 
-이름(마법사 · 유산 제단)은 story에 맞춘 가칭이다. 코드 이름은 기능으로 짓는다(`SettingsTerminal`이 아니라 그냥 `LobbyInteractable`에 `SettingsPanel.Open` 연결).
+이름(마법사 · 유산 제단)은 story에 맞춘 가칭이다. 코드 이름은 기능으로 짓는다(`SettingsTerminal`이 아니라 그냥 `LobbyInteractable`에 `PauseMenu.Open` 연결).
 
 ---
 
@@ -164,7 +164,7 @@ MetaProgression (GameManager가 소유, RunProgression과 같은 자리)
 
 1. 게시판 `Interact` → `PartySelectUI` 띄우기. 지금은 `Create(this)`로 생성 즉시 떠 있는 방식이라
    **열기 · 닫기(`Show`/`Hide`)를 붙인다.** 닫을 때 `GameplayModal` 해제.
-2. 마법사 `Interact` → `SettingsPanel.Open()`. 로비 씬에 `SettingsPanel`을 두거나 MainMenu의 것을 프리팹으로 뺀다 — 둘 중 씬 배선이 적은 쪽.
+2. 마법사 `Interact` → `PauseMenu.Open()`. 설정은 일시정지 창 하나로 통일했다(옛 `SettingsPanel` · `UIManager` 프리팹은 지웠다).
 
 **결과:** MainMenu에 있던 기능 전부가 로비 오브젝트로 옮겨졌다.
 

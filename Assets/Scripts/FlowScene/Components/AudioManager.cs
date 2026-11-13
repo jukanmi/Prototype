@@ -49,7 +49,7 @@ namespace Prototype
 
         // ── 볼륨 ─────────────────────────────────────────
 
-        /// <summary>0~1. 슬라이더(<see cref="SettingsPanel"/>)가 현재 값을 읽어 자기 위치를 맞춘다.</summary>
+        /// <summary>0~1. 슬라이더(<see cref="PauseMenu"/>)가 현재 값을 읽어 자기 위치를 맞춘다.</summary>
         public float MasterVolume => masterVolume;
         public float BgmVolume => bgmVolume;
         public float SfxVolume => sfxVolume;
