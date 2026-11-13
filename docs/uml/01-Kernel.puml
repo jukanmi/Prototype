@@ -138,6 +138,7 @@ BasicComboRules ..> HitData
 BattleLog ..> IState
 
 note bottom of pkgCore
-  생략: UiKit · MenuCursor (UI 헬퍼), RoleNames (문자열 표)
+  생략: UiKit · MenuCursor (UI 헬퍼), RoleNames (문자열 표 · Enums.cs 안)
+  파일: AttackInputBuffer → BasicAttackCombo.cs, GameplayModal → TimeControl.cs
 end note
 @enduml

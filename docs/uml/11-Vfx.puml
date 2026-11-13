@@ -50,7 +50,19 @@ package "10 Vfx" {
       + HidesProjectile : bool
     }
     class "SkillFx.Factory" as FxFactory
-    class "SlashVFX · SpinSlashVFX · FrostFieldVFX\nFlashSlashVFX · ComboSlashVFX · HookChainVFX\nChainBindVFX · MagicMissileVFX · ManaRiftVFX\nShoulderChargeVFX · ManaSpearVFX" as FxComponents <<MonoBehaviour>>
+    abstract class VfxBehaviour <<MonoBehaviour>> {
+      # mat : Material
+      # rng : System.Random
+      + SetFacing(facingRight)
+      # Rand · SStep · Polar · ToPlane
+      # NewMesh · SetupRenderer
+      # AddQuad · AddVertex (Buffers)
+    }
+    class "VfxBehaviour.Buffers" as FxBuffers {
+      verts · uv0~uv3 · tris
+      + Clear() / Apply(mesh)
+    }
+    class "SlashVFX · SpinSlashVFX · FrostFieldVFX\nFlashSlashVFX · ComboSlashVFX · HookChainVFX\nChainBindVFX · MagicMissileVFX · ManaRiftVFX\nShoulderChargeVFX · ManaSpearVFX" as FxComponents
   }
 
   package "적 · 상태 표시" as PEnemy {
@@ -72,12 +84,10 @@ package "10 Vfx" {
     class CombatStateVisuals <<static>>
   }
 
-  package "조준 · 범위 표시" as PAim {
+  package "범위 표시" as PAim {
     abstract class GroundShapeIndicator <<MonoBehaviour>>
     class AttackRangeIndicator
     class SkillRangeIndicator
-    class RangeIndicator <<MonoBehaviour>>
-    class KnockbackIndicator <<MonoBehaviour>>
   }
 
   package "화면 가장자리 마커" as PMarker {
@@ -104,14 +114,14 @@ BattleVfx ..> BattleVfxSink : InstallSink (BeforeSceneLoad · 에디터 로드)
 BattleVfx ..> VfxRunner
 BattleVfx ..> VfxLibrary
 VfxRunner *--> "*" VfxSprite : 풀
-VfxRunner ..> RangeIndicator : 함께 생성
-VfxRunner ..> KnockbackIndicator : 함께 생성
 
 SkillFx ..|> ISkillFx
 FxFactory ..|> ISkillFxFactory
 FxFactory ..> SkillFx : Create
 SkillFx ..> SkillFxSink : InstallFactory
 SkillFx ..> FxComponents : 종류별 하위 연출이 구동
+VfxBehaviour <|-- FxComponents
+VfxBehaviour +-- FxBuffers
 
 EnemyStateTint ..> EnemyCreated : 구독
 StatusEffectBar ..> StatusEffectVisuals
@@ -123,9 +133,6 @@ GroundShapeIndicator <|-- SkillRangeIndicator
 GroundShapeIndicator ..> "AttackRangePreview (1)" : 그릴 모양
 AttackRangeIndicator ..> "IEnemySpecialAction (3)" : 적 특수기 예고
 SkillRangeIndicator ..> "SkillState · Installation (2)" : 스킬 · 장판 범위
-RangeIndicator ..> "TargetSelector (6)" : 조준 커서
-KnockbackIndicator ..> "TargetSelector (6)"
-KnockbackIndicator ..> "KnockbackPreview (2)"
 
 MarkerLayer ..> IMarkerSource : 매 프레임 수집
 MarkerLayer *--> "*" WorldMarker

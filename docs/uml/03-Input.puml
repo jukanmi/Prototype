@@ -14,10 +14,11 @@ package "1.5 Input" {
     + Actions : InputActionAsset
     + Move : Vector2
     + AttackPressed / JumpPressed / DashPressed : bool
-    + BulletTimePressed / UniqueSkillPressed : bool
+    + BulletTimePressed : bool
     + NavigateStep : Vector2Int
-    + Aim : Vector2
+    + GameplaySuspended : bool
     + ConsumeJumpPress()
+    + {static} SetSuspended(value : bool)
   }
   class RebindManager {
     + IsListening : bool
@@ -44,8 +45,7 @@ package "1.5 Input" {
     + map / action / part / path : string
   }
   class InputActionNames <<static>> {
-    Gameplay · BulletTime
-    BulletTimeSkillShot · UI
+    Gameplay · BulletTime · UI
   }
   class InputDisplayNames <<static>> {
     + Map(name) / Action(name) : string
@@ -68,11 +68,14 @@ InputDisplayNames ..> InputBindingUtility
 package "읽는 쪽 (위층)" #F5F5F5 {
   class "PlayerPilot" as Pilot <<3 Agent>>
   class "InputMapSwitcher" as Switcher <<6 Tactic>>
-  class "ComboBoardUI · TargetSelector" as TacticUI <<6 Tactic>>
+  class "ComboBoardUI" as TacticUI <<6 Tactic>>
   class "RebindUI" as RebindUI <<6 Tactic>>
+  class "LevelUpSession · DeckBuilderUI" as ModalUI <<6 Tactic>>
 }
 Pilot ..> PlayerInputController : Instance
 Switcher ..> PlayerInputController : 맵 여닫기
 TacticUI ..> PlayerInputController : Instance
 RebindUI ..> RebindManager
+RebindUI ..> PlayerInputController : SetSuspended
+ModalUI ..> PlayerInputController : SetSuspended
 @enduml

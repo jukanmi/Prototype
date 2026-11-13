@@ -8,14 +8,15 @@
 > 다이어그램: [01-Kernel.puml](01-Kernel.puml)
 
 `UiKit` · `MenuCursor` · `RoleNames` 는 생략 (UI 헬퍼 · 문자열 표).
+작은 타입은 같은 폴더의 관련 파일에 들어 있다 — `RoleNames` → `Enums.cs`, `AttackInputBuffer` → `BasicAttackCombo.cs`, `GameplayModal` → `TimeControl.cs`.
 
 ## 이번에 끊은 역방향
 
 | 전 | 문제 | 조치 | 수단 |
 |---|---|---|---|
 | `StateMachine.cs` 안의 `EntityState` + 상태 14종 | 기계가 `Entity`·`Combat`·`Physics` 를 앎 | → `Entities/Support/EntityStates.cs` | 옮김 |
-| `HitData.cs` 의 `IHittable`·`IDamageable` | 시그니처에 `Combat` | → `Entities/Support/IHittable.cs` | 인터페이스 파일 (Actor 층으로) |
-| `KnockbackPreview.cs` 의 `WallFinder` | Core `HitData` 가 Skill 폴더 클래스를 부름 | → `Core/Support/WallFinder.cs` | 옮김 (아래로) |
+| `HitData.cs` 의 `IHittable`·`IDamageable` | 시그니처에 `Combat` | → `Entities/Support/IHittable.cs` (지금은 `EntityContracts.cs`) | 인터페이스 파일 (Actor 층으로) |
+| `WallFinder` (Skill 폴더에 있던 것) | Core `HitData` 가 Skill 폴더 클래스를 부름 | → `Core/Support/WallFinder.cs` | 옮김 (아래로) |
 | `Core/Support/BattleRegistry.cs` | `Entity` 목록 레지스트리 | → `Entities/Support/` | 옮김 |
 | `Core/Support/CombatLayers.cs` | `Attack` 히트박스에 레이어 적용 | → `Entities/Support/` | 옮김 |
 | `Core/Components/AudioManager.cs` | `CombatEvents` 구독 · 씬 흐름 전용 | → `FlowScene/Components/` | 옮김 |

@@ -75,6 +75,10 @@ package "1 Actor (Entities)" {
     + HeightAt(point, fallback) : float
     + Supports(point) : bool
   }
+  class GroundRules <<static>> {
+    + TryHeightAt(plates, point, margin, out y) : bool
+    + FlatDirection(dir) : Vector3
+  }
   class AttackRangePreview <<struct>> {
     + center : Vector3
     + {static} FromCircle / FromCone / FromBox
@@ -122,6 +126,8 @@ Projectile ..> EffectUtil : 폭발
 EffectUtil ..> AttackRangePreview : 같은 모양
 Physics ..> GroundRegistry : 바닥 높이
 GroundRegistry o--> "*" IGroundPlate
+GroundRegistry ..> GroundRules : 높이 질의
+AttackRangePreview ..> GroundRules : FlatDirection
 BattleVfxSink o--> IBattleVfx
 EntityAnimator ..> IAnimatedState : 있으면 맡김
 
