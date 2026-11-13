@@ -784,7 +784,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &767320464410369420
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2170,11 +2170,11 @@ RectTransform:
   - {fileID: 3365053267910840942}
   m_Father: {fileID: 2929556830583283967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0}
-  m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 210}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 40, y: -90}
   m_SizeDelta: {x: 280, y: 54}
-  m_Pivot: {x: 0.5, y: 0}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &161132052215452427
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2578,12 +2578,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BulletTimeController
   player: {fileID: 0}
   executor: {fileID: 0}
-  targetSelector: {fileID: 0}
   swap: {fileID: 0}
   maxGauge: 100
   gaugeRegen: 8
   requiredRatio: 1
   parryGaugeReward: 12
+  basicAttackGaugeReward: 2
   manaCost: 0
   cooldown: 0
   buildDeckOnStart: 1
@@ -2619,7 +2619,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4e942902b9a06a4d8d36854c3033bb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.ComboBoardUI
-  targetSelector: {fileID: 0}
   _canvasRoot: {fileID: 159760533384134689}
   _handPanelRect: {fileID: 7273922501620590052}
   _rowRect: {fileID: 6398865539065671872}

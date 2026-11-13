@@ -286,7 +286,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.InputMapSwitcher
   bulletTime: {fileID: 0}
-  targetSelector: {fileID: 0}
 --- !u!114 &1992139283966176409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -315,7 +314,6 @@ MonoBehaviour:
   bulletTime: {fileID: 1490962342387795252}
   cameraFollow: {fileID: 0}
   cameraAnchor: {fileID: 331118652805039931}
-  targetSelector: {fileID: 0}
   pilot: {fileID: 1992139283966176409}
 --- !u!114 &3934412128785038699
 MonoBehaviour:
@@ -330,7 +328,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.BattleCommander
   bulletTime: {fileID: 1490962342387795252}
-  swap: {fileID: 8887573751772618589}
 --- !u!114 &5110503542116373734
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -366,6 +363,51 @@ MonoBehaviour:
   showNumbers: 1
   panel: {fileID: 6296000880621813144}
   rowTemplate: {fileID: 5858297631361106852}
+--- !u!114 &710000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3888511937950883998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2505b3a8dd174ea4a5b2b068a0aa7057, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.CastTester
+  director: {fileID: 710000000000000002}
+  caster: {fileID: 0}
+  skill: {fileID: 0}
+--- !u!114 &710000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3888511937950883998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a3e02cdcd2046dba7098f52b527498f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.CastDirector
+  preparationSeconds: 0.25
+  impactGapSeconds: 0.3
+  maxReactionWaitSeconds: 1
+--- !u!114 &710000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3888511937950883998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 005a79992264495f9bc5ee8a4ac8f315, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AssistManager
+  moveSpeed: 7
+  lingerSeconds: 0.15
+  formationSpacing: 1.15
 --- !u!1 &5506204358342540402
 GameObject:
   m_ObjectHideFlags: 0
@@ -627,11 +669,11 @@ RectTransform:
   - {fileID: 5858297631361106852}
   m_Father: {fileID: 5446877207610092345}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 0}
-  m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -24, y: 24}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 60}
   m_SizeDelta: {x: 300, y: 0}
-  m_Pivot: {x: 1, y: 0}
+  m_Pivot: {x: 0.5, y: 0}
 --- !u!1 &8234690576731755242
 GameObject:
   m_ObjectHideFlags: 0
@@ -938,48 +980,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9153631484317662589, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
   m_PrefabInstance: {fileID: 141502403150543977}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &710000000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3888511937950883998}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 005a79992264495f9bc5ee8a4ac8f315, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.AssistManager
-  moveSpeed: 7
-  lingerSeconds: 0.15
-  formationSpacing: 1.15
---- !u!114 &710000000000000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3888511937950883998}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a3e02cdcd2046dba7098f52b527498f, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.CastDirector
-  preparationSeconds: 0.25
-  impactGapSeconds: 0.3
-  maxReactionWaitSeconds: 1
---- !u!114 &710000000000000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3888511937950883998}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2505b3a8dd174ea4a5b2b068a0aa7057, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.CastTester
-  director: {fileID: 710000000000000002}
-  caster: {fileID: 0}
-  skill: {fileID: 0}

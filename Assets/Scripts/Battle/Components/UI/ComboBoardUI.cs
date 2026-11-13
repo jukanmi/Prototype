@@ -95,6 +95,9 @@ namespace Prototype
 
         private readonly BulletTimeGaugeWidget _gauge = new BulletTimeGaugeWidget();
 
+        /// <summary>손패 판 배경. 실시간에는 끈다.</summary>
+        private Image _handPanelImage;
+
         /// <summary>배선이 빈 채로 돌 때 경고를 한 번만 낸다.</summary>
         private bool _warned;
 
@@ -244,6 +247,7 @@ namespace Prototype
             }
 
             _detailRect = (RectTransform)_detailPanel.transform;
+            _handPanelImage = _handPanelRect.GetComponent<Image>();
             _arrowRect = _arrowText.rectTransform;
 
             ApplyLayout();
@@ -288,8 +292,13 @@ namespace Prototype
             // TimeControl.Scale이 0이므로 배율 시간으로 돌리면 화면이 얼어붙는다.
             float dt = TimeControl.UnscaledDeltaTime;
 
-            // 스킬카드는 불릿타임 중에만 보인다.
-            if (_rowRect != null) _rowRect.gameObject.SetActive(_bulletTime.IsActive);
+            // 손패 판(카드 · 배경 · 제목 · 안내)은 불릿타임 중에만 보인다. 실시간에는 게이지만 남는다 —
+            // 실시간 화면은 몬스터 체력(좌상) · 콤보(우) · 플레이어 체력/마나(하단 중앙)만 둔다.
+            bool board = _bulletTime.IsActive;
+            if (_rowRect != null) _rowRect.gameObject.SetActive(board);
+            if (_handPanelImage != null) _handPanelImage.enabled = board;
+            _titleText.enabled = board;
+            _hintText.enabled = board;
 
             AnimateCards(dt);
             AnimateArrow(dt);

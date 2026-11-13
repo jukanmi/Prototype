@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Prototype
 {
     /// <summary>
-    /// 화면 <b>우측 하단</b>의 파티 체력. 태그 로스터 전원을 한 줄씩 세운다.
+    /// 화면 <b>하단 중앙</b>(불릿타임 게이지 아래)의 플레이어 체력. 불릿타임 중에는 손패에 자리를 내주고 숨는다.
     ///
     /// <b>왜 전원인가.</b> 교대(F)는 로스터를 순환하므로, 바꾸기 전에 누가 성한지 알아야
     /// 고를 수가 있다. 조작 중인 한 명만 띄우면 "바꿔 봐야 아는" 상태가 된다.
@@ -79,9 +79,13 @@ namespace Prototype
         /// <summary>테스트와 다른 HUD가 읽는다. 지어진 줄 수 — 빈 편성 칸은 세지 않는다.</summary>
         public int RowCount => rows.Count;
 
+        /// <summary>불릿타임 중에는 손패가 하단 중앙을 차지하므로 패널을 숨긴다.</summary>
+        private BulletTimeController bulletTime;
+
         private void Awake()
         {
             if (swap == null) swap = GetComponent<TagSwapController>();
+            bulletTime = GetComponentInChildren<BulletTimeController>();
         }
 
         /// <summary>
@@ -108,6 +112,7 @@ namespace Prototype
                 built = true;
             }
 
+            panel.gameObject.SetActive(bulletTime == null || !bulletTime.IsActive);
             Refresh();
         }
 
