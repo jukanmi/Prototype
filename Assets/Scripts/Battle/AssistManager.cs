@@ -148,20 +148,25 @@ namespace Prototype
         public Vector3 ExitPosition(Entity ally)
             => ClampPosition(ally.Physics.GroundPosition - Hero.Physics.Facing * 0.8f);
 
+        /// <summary>벽에서 이만큼 안쪽에 선다.</summary>
+        private const float RoomMargin = 0.4f;
+
+        /// <summary>
+        /// 동료가 설 자리를 <b>방 안으로</b> 자른다. 방은 크기를 조정한 씬이면 StageRoom 이, 아니면 기본 방이다.
+        /// 가로로 스크롤하는 아레나 씬(StageBounds)은 가로만 그쪽 구간을 쓴다.
+        /// </summary>
         public Vector3 ClampPosition(Vector3 point)
         {
+            StageRoom stageRoom = StageRoom.Find();
+            RoomRect room = stageRoom != null ? stageRoom.Room : RoomRect.Default;
+
+            float minX = room.MinX + RoomMargin, maxX = room.MaxX - RoomMargin;
             StageBounds bounds = StageBounds.Instance;
-            float min = float.NegativeInfinity, max = float.PositiveInfinity;
             if (bounds != null && bounds.UnitMax > bounds.UnitMin)
-            { min = bounds.UnitMin + 0.4f; max = bounds.UnitMax - 0.4f; }
-            Camera camera = Camera.main;
-            if (camera != null && camera.orthographic)
-            {
-                float half = camera.orthographicSize * camera.aspect;
-                min = Mathf.Max(min, camera.transform.position.x - half + 0.6f);
-                max = Mathf.Min(max, camera.transform.position.x + half - 0.6f);
-            }
-            point.x = min <= max ? Mathf.Clamp(point.x, min, max) : (min + max) * 0.5f;
+            { minX = bounds.UnitMin + RoomMargin; maxX = bounds.UnitMax - RoomMargin; }
+
+            point.x = Mathf.Clamp(point.x, minX, maxX);
+            point.z = Mathf.Clamp(point.z, room.MinZ + RoomMargin, room.MaxZ - RoomMargin);
             // Search back toward the hero if the proposed point lies past a platform edge.
             if (Hero != null && GroundRegistry.HasPlates)
             {
