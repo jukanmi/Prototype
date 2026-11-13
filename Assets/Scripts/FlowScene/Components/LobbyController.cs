@@ -12,8 +12,8 @@ namespace Prototype
     /// 씬은 <c>Stage_Training</c>을 복제해 몸 · 카메라 · 허수아비를 물려받았고
     /// <see cref="BattleSceneController"/>만 뺐다 — 승패 판정이 없는 방이다.
     ///
-    /// 창(편성 · 제단 · 기록판 · 설정)이 떠 있는 동안 조작을 잠그고, ESC는 창을 닫는다.
-    /// 창이 없을 때 ESC는 타이틀로 간다.
+    /// 창(편성 · 제단 · 기록판)이 떠 있는 동안 조작을 잠그고, ESC는 창을 닫는다.
+    /// 창이 없을 때 ESC는 일시정지(<see cref="PauseMenu"/>) — 음량 · 조작키 · [타이틀로]. 마법사도 같은 창을 연다.
     /// 계획서: docs/Lobby_Plan.md
     /// </summary>
     public class LobbyController : MonoBehaviour
@@ -23,7 +23,7 @@ namespace Prototype
         private static readonly Color HudColor = new Color(1f, 0.86f, 0.45f);
 
         private PartySelectUI party;
-        private SettingsPanel settings;
+        private PauseMenu pause;
         private GameObject window;
 
         private Text prompt;
@@ -58,7 +58,8 @@ namespace Prototype
             party = PartySelectUI.Create(this);
             party.Hide();
 
-            settings = FindAnyObjectByType<SettingsPanel>();
+            // ESC · 마법사가 여는 설정. 마을에서 나가는 길은 [타이틀로]다.
+            pause = PauseMenu.Create(this, "타이틀로", ToTitle);
 
             BuildHud();
 
@@ -84,7 +85,7 @@ namespace Prototype
             MetaProgression meta = MetaProgression.Current;
             currency.text = $"기억 조각 {meta.Currency}";
 
-            bool ownOpen = window != null || party.IsOpen || (settings != null && settings.IsOpen);
+            bool ownOpen = window != null || party.IsOpen;
             SetSuspended(ownOpen);
 
             if (ownOpen)
@@ -99,8 +100,8 @@ namespace Prototype
                 return;
             }
 
-            // 남의 창(조작키 설정 · 레벨업)이 떠 있거나 방금 닫혔다. 그 ESC는 내 것이 아니다 —
-            // 지난 프레임까지 잠겨 있었는지도 봐야 같은 ESC로 창이 닫히면서 타이틀까지 가지 않는다.
+            // 남의 창(일시정지 · 조작키 · 레벨업)이 떠 있거나 방금 닫혔다 — 안내도 상호작용도 쉰다.
+            // ESC로 일시정지를 여는 것은 PauseMenu 가 직접 한다.
             bool suspended = input == null || input.GameplaySuspended;
             bool blocked = suspended || wasSuspended || GameplayModal.IsOpen;
             wasSuspended = suspended;
@@ -112,13 +113,7 @@ namespace Prototype
             prompt.text = near != null ? $"{KeyName()}  {near.Label}" : "";
 
             if (near != null && input.InteractPressed)
-            {
                 Activate(near.Station);
-                return;
-            }
-
-            if (input.CancelPressed && !GameplayModal.CancelConsumedThisFrame)
-                ToTitle();
         }
 
         // ── 오브젝트 ────────────────────────────────────
@@ -129,7 +124,7 @@ namespace Prototype
             {
                 case LobbyStation.Depart:   Depart(); break;
                 case LobbyStation.Party:    party.Show(); break;
-                case LobbyStation.Settings: OpenSettings(); break;
+                case LobbyStation.Settings: pause.Open(); break;
                 case LobbyStation.Altar:    OpenAltar(); break;
                 case LobbyStation.Records:  OpenRecords(); break;
             }
@@ -177,24 +172,12 @@ namespace Prototype
             SceneLoader.Instance.SwapTo(scene, SceneName, () => AudioManager.Instance?.PlayMenuBgm());
         }
 
-        private void OpenSettings()
-        {
-            if (settings == null)
-            {
-                ShowNotice("설정 창이 없다 — Boot 씬에서 시작할 것");
-                return;
-            }
-
-            settings.Open();
-        }
-
         private void CloseWindows()
         {
             if (window != null) Destroy(window);
             window = null;
 
             party.Hide();
-            if (settings != null) settings.Close();
         }
 
         private void SetSuspended(bool value)

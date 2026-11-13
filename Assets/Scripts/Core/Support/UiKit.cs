@@ -43,6 +43,9 @@ namespace Prototype
         /// </summary>
         public const int NodeWindow = 50;
 
+        /// <summary>일시정지 창. 조작키 창(<see cref="Rebind"/>)이 그 위에 떠야 한다.</summary>
+        public const int Pause = 190;
+
         /// <summary>인게임 [처음부터] 버튼.</summary>
         public const int BattleRestart = 100;
 

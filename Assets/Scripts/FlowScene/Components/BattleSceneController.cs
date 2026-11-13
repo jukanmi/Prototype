@@ -62,6 +62,7 @@ namespace Prototype
         {
             // 초기화 UI 는 씬 단독 실행에서도 필요하다. GameManager 체크보다 먼저 띄운다.
             restartUI = BattleRestartUI.Create(this);
+            PauseMenu.Create(this, "마을로", ExitToLobby);
 
             progress = FindAnyObjectByType<StageProgressSource>();
 
@@ -104,14 +105,7 @@ namespace Prototype
         {
             if (isExiting || isRestarting) return;
 
-            // 전면 UI(레벨업 · 덱 편집)가 떠 있으면 ESC는 그 창의 것이다. 여기서 먼저 집어가면
-            // 카드를 고르는 도중 창을 닫으려던 한 번이 런을 통째로 버리고 마을로 나간다.
-            // 창이 그 ESC로 방금 닫힌 프레임까지 봐야 한다 — 실행 순서가 정해져 있지 않다.
-            if (!GameplayModal.IsOpen && !GameplayModal.CancelConsumedThisFrame && WasEscapePressed())
-            {
-                ExitToLobby();
-                return;
-            }
+            // ESC는 일시정지 창이 맡는다(PauseMenu) — 거기 [마을로]가 ExitToLobby 다.
 
             if (flowEnabled) TickOutcome();
         }
@@ -410,19 +404,6 @@ namespace Prototype
         private static void OnReturnedToMap()
         {
             AudioManager.Instance?.PlayMenuBgm();
-        }
-
-        /// <summary>
-        /// UI/Cancel 액션을 본다. 기본 바인딩은 ESC 지만 리바인드로 바뀔 수 있다.
-        ///
-        /// 플레이어가 죽어도 계속 먹어야 한다 — <see cref="PlayerInputController"/> 는
-        /// 비활성화될 때 UI 맵만은 끄지 않고, 사망은 오브젝트를 파괴하지 않으므로
-        /// <c>Instance</c> 도 살아 있다.
-        /// </summary>
-        private static bool WasEscapePressed()
-        {
-            PlayerInputController input = PlayerInputController.Instance;
-            return input != null && input.CancelPressed;
         }
 
         /// <summary>

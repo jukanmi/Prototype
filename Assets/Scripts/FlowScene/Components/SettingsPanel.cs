@@ -30,7 +30,7 @@ namespace Prototype
         }
 
         /// <summary>슬라이더를 현재 값에 맞추고 움직이면 그대로 밀어 넣는다.</summary>
-        private static void Bind(Slider slider, float value, UnityEngine.Events.UnityAction<float> apply)
+        public static void Bind(Slider slider, float value, UnityEngine.Events.UnityAction<float> apply)
         {
             if (slider == null) return;
 

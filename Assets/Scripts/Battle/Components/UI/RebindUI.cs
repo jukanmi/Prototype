@@ -96,7 +96,7 @@ namespace Prototype
             _panelRoot != null && _content != null && _statusText != null
             && _listeningRoot != null && _footerRow != null;
 
-        private bool IsOpen => _panelRoot != null && _panelRoot.activeSelf;
+        public bool IsOpen => _panelRoot != null && _panelRoot.activeSelf;
 
         private void Start()
         {
@@ -170,7 +170,12 @@ namespace Prototype
             // 키를 받는 중에는 ESC가 대기 취소다. 그건 RebindManager가 디바이스에서 직접 듣는다.
             if (_manager != null && _manager.IsListening) return;
 
-            if (_cancelAction != null && _cancelAction.WasPressedThisFrame()) Close();
+            if (_cancelAction != null && _cancelAction.WasPressedThisFrame())
+            {
+                // 일시정지 창이 같은 ESC로 닫히지 않게 먹었다고 표시한다.
+                GameplayModal.ConsumeCancel();
+                Close();
+            }
         }
 
         // ── 열고 닫기 ────────────────────────────────────
