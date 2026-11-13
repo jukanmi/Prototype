@@ -76,7 +76,7 @@ namespace Prototype
                                           int row, float rowStep, float width)
         {
             Vector3 center = BeltScroll.ToView(ground, height)
-                           + BeltScroll.ScreenUp * ((headOffset + row * rowStep) * BeltScroll.ScaleAt(ground.z));
+                           + BeltScroll.ScreenUp * (headOffset + row * rowStep);
             center.x -= width * 0.5f;
             return center;
         }

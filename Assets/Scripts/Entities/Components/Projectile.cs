@@ -222,20 +222,18 @@ namespace Prototype
                     : $"  └ 투사체 도착 폭발 중심 {center} 반경 {blastRadius:0.#} → {extra}마리", this);
         }
 
-        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환 · 같은 깊이 배율을 쓴다.</summary>
+        /// <summary>논리 좌표를 화면 좌표로 접는다. 캐릭터와 같은 변환을 쓴다.</summary>
         private void UpdateView()
         {
             Vector3 ground = logical;
             ground.y = 0f;
 
-            // 캐릭터만 줄고 화염구는 안 줄면 뒤쪽 적에게 날아갈 때 눈에 띄게 어긋난다.
-            float scale = BeltScroll.ScaleAt(ground.z);
 
             if (sprite != null)
             {
                 sprite.position = BeltScroll.ToView(ground, logical.y);
                 sprite.rotation = BeltScroll.Billboard;   // 빌보드
-                sprite.localScale = spriteBaseScale * scale;
+                sprite.localScale = spriteBaseScale;
             }
 
             if (shadow != null)
@@ -243,7 +241,7 @@ namespace Prototype
                 // 그림자는 빌보드가 아니라 바닥 평면에 눕는다 — 캐릭터 그림자와 같은 규칙.
                 shadow.position = BeltScroll.ToView(ground) + Vector3.up * 0.01f;
                 shadow.rotation = BeltScrollView.LieOnGround;
-                shadow.localScale = shadowBaseScale * scale;
+                shadow.localScale = shadowBaseScale;
             }
         }
 

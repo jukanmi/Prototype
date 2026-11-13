@@ -33,7 +33,7 @@ namespace Prototype
         /// </summary>
         public static Vector3 Position(Vector3 ground, float height, float headOffset, float bob = 0f)
             => BeltScroll.ToView(ground, height)
-             + BeltScroll.ScreenUp * ((headOffset + bob) * BeltScroll.ScaleAt(ground.z));
+             + BeltScroll.ScreenUp * (headOffset + bob);
 
         public static WorldMarker Create(Transform parent)
         {

@@ -68,7 +68,7 @@ namespace Prototype
             sr.transform.position = BeltScroll.ToView(ground) + Vector3.up * Lift;
             sr.transform.rotation = BeltScrollView.LieOnGround;
 
-            float d = EliteMarkRules.Diameter * BeltScroll.ScaleAt(ground.z) * EliteMarkRules.PulseScale(now);
+            float d = EliteMarkRules.Diameter * EliteMarkRules.PulseScale(now);
             sr.transform.localScale = new Vector3(d, d, 1f);
 
             Color c = EliteMarkRules.AuraColor;
@@ -181,7 +181,7 @@ namespace Prototype
         /// </summary>
         public static Vector3 LabelPosition(Vector3 ground, float height, float headOffset)
             => BeltScroll.ToView(ground, height)
-             + BeltScroll.ScreenUp * (headOffset * BeltScroll.ScaleAt(ground.z));
+             + BeltScroll.ScreenUp * headOffset;
 
         // 캐릭터 위치는 LateUpdate에 확정된다(BeltScrollView). 그 뒤에 읽는다.
         // TimeControl을 보지 않으므로 불릿타임 중에도 보인다 — 조준하는 동안 상태가 보여야 한다.

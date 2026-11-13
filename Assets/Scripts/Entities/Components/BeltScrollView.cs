@@ -24,8 +24,6 @@ namespace Prototype
         [SerializeField] private Transform depthRoot;
         [Tooltip("바닥에 고정되는 그림자.")]
         [SerializeField] private Transform shadow;
-        [Tooltip("깊이(Z) 1당 줄어드는 표시 배율. 0이면 크기가 일정하다. 모든 인스턴스가 같은 값이어야 한다.")]
-        [SerializeField] private float depthScalePerUnit = 0.06f;
         [Tooltip("이 몸만의 크기 배수. 1이면 프리팹 그대로.\n\n" +
                  "<b>여기가 몸 크기의 유일한 자리다.</b> depthRoot 와 shadow 의 localScale 은 " +
                  "매 프레임 이 컴포넌트가 통째로 덮어쓰므로, 거기 직접 쓴 값은 " +
@@ -110,16 +108,11 @@ namespace Prototype
                 if (physics == null) return;
             }
 
-            // 조준점 등 다른 시스템도 같은 배율을 써야 한다. 한 벌만 유지한다.
-            BeltScroll.DepthScalePerUnit = depthScalePerUnit;
-
             Vector3 ground = physics.GroundPosition;
             float height = Mathf.Max(0f, physics.Height);
 
             // depthRoot가 없는 프리팹은 예전 동작 그대로 둔다 — 배율 1.
-            // 몸 배율은 깊이 배율에 곱해서 함께 싣는다. 따로 두면 어느 한쪽이 다른 쪽을 덮는다.
-            float body = bodyScale > 0f ? bodyScale : 1f;
-            float scale = depthRoot != null ? BeltScroll.ScaleAt(ground.z) * body : 1f;
+            float scale = depthRoot != null && bodyScale > 0f ? bodyScale : 1f;
 
             // 발밑 보정은 <b>화면 위</b>로 올린다. 월드 Y로 올리면 기울기만큼(cosθ) 짧아져
             // 뒤쪽 캐릭터의 발이 그림자에 파묻힌다.
