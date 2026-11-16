@@ -16,8 +16,8 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | [usecase-00-Overview.puml](usecase-00-Overview.puml) | 액터 5 + 하위 시스템 5개 개요 |
 | [usecase-01-App.puml](usecase-01-App.puml) | ① 게임 시작 · 파티 선택 · 설정 · 키 바인딩 · 재시작 |
 | [usecase-02-Run.puml](usecase-02-Run.puml) | ② 런 맵 · 상점 · 이벤트 · 휴식 · 레벨업 · 합성 · 결과 |
-| [usecase-03-Combat.puml](usecase-03-Combat.puml) | ③ 이동 · 평타 · 대시 패리 · 고유 스킬 · 피격 · 상태이상 · 가드 |
-| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 불릿타임 · 카드 배치 · 조준 · 콤보 실행 · 어시스트 · 자동 카드 |
+| [usecase-03-Combat.puml](usecase-03-Combat.puml) | ③ 이동 · 평타 · 대시 패리 · 피격 · 상태이상 · 가드 |
+| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 불릿타임 · 카드 배치 · 콤보 실행 · 어시스트 · 자동 카드 |
 | [usecase-05-Stage.puml](usecase-05-Stage.puml) | ⑤ 웨이브 · 적 행동 · 보스 패턴 · 클리어 · 경험치 |
 
 제외: 태그 교대(삭제됨) · 동료 고유기 ZXCV(삭제됨) · `DeckBuilderUI`(개발용) · `CastTester` · `TrainingDummy`(테스트용).
@@ -29,7 +29,7 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | [01-Kernel.puml](01-Kernel.puml) | 0 | Core · Stats · StateMachine |
 | [02-Actor.puml](02-Actor.puml) · [02-Actor-Hit.puml](02-Actor-Hit.puml)(시퀀스) | 1 | Entities |
 | [03-Input.puml](03-Input.puml) | 1.5 | Input |
-| [04-Skill.puml](04-Skill.puml) | 2 | Skill |
+| [04-Skill.puml](04-Skill.puml) · [04-Skill-Core.puml](04-Skill-Core.puml)(핵심만) | 2 | Skill |
 | [05-Agent.puml](05-Agent.puml) | 3 | Characters · Control · AI |
 | [06-Stage.puml](06-Stage.puml) | 4 | Stage |
 | [07-Party.puml](07-Party.puml) | 4.5 | Party |
@@ -104,7 +104,6 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 | `Entities/Support/EntityContracts.cs` — `IGroundPlate` | 1 | `GroundPlate` | `GroundRegistry` → Stage |
 | `Entities/Support/EntityContracts.cs` — `IBattleVfx` (+`BattleVfxSink`) | 1 | `BattleVfx.Sink` | Entities · Skill → `BattleVfx.Cast/Impact/WallBounce` |
 | `Skill/Support/ISkillFx.cs` (+`ISkillFxFactory` · `SkillFxSink`) | 2 | `SkillFx` | `SkillState` → `SkillFx` |
-| `Skill/Support/ITauntable.cs` | 2 | `EnemyControl` | `TauntEffect` → `EnemyControl` |
 | `Stage/Support/StageEncounter.cs` — `IStageContext` (+`StageContext`) | 4 | `GameManager` | `StageDirector` · `StageRoom` → `GameManager` · `MapNode` |
 | `Progression/Support/IRunHost.cs` (+`RunHost`) | 5 | `GameManager` | `RunProgression.Current` · `BulletTimeController` · `PartyAssembler` → `GameManager` |
 | `Battle/Support/BattleContracts.cs` — `IStageRestarter` | 6 | `BattleSceneController` | `BattleRestartUI` → `BattleSceneController` |

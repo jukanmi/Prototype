@@ -242,6 +242,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.RunMapScreen
   previewRecipe: {fileID: 11400000, guid: 81d721137b41c1e4b829e58cc585005a, type: 2}
   previewSeed: 0
+  actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
 --- !u!4 &1680711862
 Transform:
   m_ObjectHideFlags: 0
