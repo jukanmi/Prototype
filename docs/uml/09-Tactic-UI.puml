@@ -10,8 +10,8 @@ hide empty members
 
 package "6 Tactic — UI" {
   class ComboBoardUI <<MonoBehaviour>> {
-    .. 손패 · 슬롯 · 게이지 · 조준 HUD ..
-    .. partial: ComboBoardUI.Input (카드 집기 · 놓기 · 조준) ..
+    .. 손패 · 슬롯 · 게이지 ..
+    .. partial: ComboBoardUI.Input (카드 집기 · 놓기) ..
   }
   class HandFanLayout <<static>> {
     + CardWidth · CardHeight · StepAngle
@@ -71,8 +71,7 @@ package "6 Tactic — UI" {
 }
 
 ComboBoardUI ..> "BulletTimeController" : 페이즈 · 손패
-ComboBoardUI ..> "TargetSelector" : 조준
-ComboBoardUI ..> "PlayerInputController (1.5)" : Navigate · Aim
+ComboBoardUI ..> "PlayerInputController (1.5)" : Navigate
 ComboBoardUI ..> HandFanLayout
 ComboBoardUI ..> HandBoardLayout
 ComboBoardUI ..> CardPoseAnimator

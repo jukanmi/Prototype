@@ -70,7 +70,6 @@ legend right
   1 IGroundPlate ← GroundPlate
   1 IBattleVfx (+BattleVfxSink) ← BattleVfx
   2 ISkillFx · ISkillFxFactory (+SkillFxSink) ← SkillFx
-  2 ITauntable ← EnemyControl
   4 IStageContext (+StageContext) ← GameManager
   5 IRunHost (+RunHost) ← GameManager
   6 IStageRestarter ← BattleSceneController

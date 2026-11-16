@@ -16,7 +16,7 @@ package "6 Tactic" {
       + Gauge : Energy
       + Executor : ComboExecutor
       + Director : CastDirector
-      + OnPhaseChanged / OnEnter / OnExit : event
+      + OnEnter / OnExit : event
       + GrantCard(card, fusedFrom, fuseCount)
       + SetCastDirector(director)
     }
@@ -34,16 +34,9 @@ package "6 Tactic" {
       + Config : Max · Regen · ParryReward
       BasicHitReward · ManaCost · Cooldown
     }
-    class TargetSelector <<MonoBehaviour>> {
-      + IsSelecting : bool
-      + Current : SkillData
-      + CursorPoint : Vector3
-      + EnemiesInRange : int
-      + Begin(data) / Confirm() : TargetInfo
-    }
     class InputMapSwitcher <<MonoBehaviour>> {
       + Apply()
-      .. 페이즈 · 조준 여부로 입력 맵 여닫기 ..
+      .. 페이즈로 카드 입력 맵 여닫기 ..
     }
   }
 
@@ -155,11 +148,9 @@ TacticState --> TacticPhase
 BulletTimeController *--> TacticGauge
 BulletTimeController *--> CardSupply
 BulletTimeController --> ComboExecutor
-BulletTimeController --> TargetSelector
 BulletTimeController --> CastDirector
 BulletTimeController ..> "RunHost (5)" : 덱 시작 방식
 InputMapSwitcher ..> BulletTimeController : Phase
-InputMapSwitcher ..> TargetSelector : IsSelecting
 
 CardSupply *--> Deck
 CardSupply *--> Hand

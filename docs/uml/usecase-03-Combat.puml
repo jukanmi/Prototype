@@ -19,7 +19,6 @@ rectangle "실시간 전투 (Entities · Control · Characters)" {
   usecase "공중 공격\n(AerialAttackState)" as UC_Aerial
   usecase "대시\n(Physics)" as UC_Dash
   usecase "대시 패리\n(DefenseWindows · Combat.TryParry)" as UC_Parry
-  usecase "고유 스킬 사용 (Z)\n(Ally.UniqueSkill)" as UC_Unique
   usecase "타격 판정\n(Attack · Combat.Attack)" as UC_HitCheck
   usecase "피격 처리 — 상태 전이\n(Combat.Hit · CombatStateRules)" as UC_Hit
   usecase "넉백 · 띄우기 · 벽 바운드\n(Combat.Impact · Physics · WallFinder)" as UC_Knock
@@ -32,12 +31,10 @@ Player --> UC_Move
 Player --> UC_Jump
 Player --> UC_Basic
 Player --> UC_Dash
-Player --> UC_Unique
 
 UC_Aerial .> UC_Basic : <<extend>>
 UC_Parry .> UC_Dash : <<extend>>
 UC_Basic .> UC_HitCheck : <<include>>
-UC_Unique .> UC_HitCheck : <<include>>
 
 UC_HitCheck <-- EnemyAI
 UC_Hit <-- GameSys

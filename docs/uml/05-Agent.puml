@@ -13,7 +13,6 @@ package "1 Actor" #F5F5F5 {
   interface IControl
 }
 package "2 Skill" #F5F5F5 {
-  interface ITauntable
   class ComboCard
   class SkillData
 }
@@ -141,7 +140,6 @@ EnemyData --> EnemyBrainAsset
 
 Control ..|> IControl
 EnemyControl --|> Control
-EnemyControl ..|> ITauntable
 EnemyControl --> EnemyBrainAsset
 EnemyControl o--> IEnemySpecialAction
 EnemyControl ..> EnemyAttackTokens : 공격 순번
