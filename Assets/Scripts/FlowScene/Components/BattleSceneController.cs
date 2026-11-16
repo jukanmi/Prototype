@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -244,8 +243,9 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 클리어 보상 물건을 준다. 카드는 파티가 쓸 수 있는 스킬에서 한 장을 뽑아 런 덱에 넣고
-        /// 손패에도 바로 꽂는다. 유물은 Mock이라 로그와 안내 문구뿐이다. 안내 문구 조각을 돌려준다.
+        /// 클리어 보상 물건을 준다. 카드는 <b>고르는 창</b>(<see cref="CardRewardSession"/>)을 열고,
+        /// 유물은 Mock이라 로그와 안내 문구뿐이다. 판정은 결과가 정해질 때 한 번만 부르므로
+        /// 창도 한 칸에 한 번만 뜬다. 안내 문구 조각을 돌려준다.
         /// </summary>
         private static string GrantClearRewards(MapNodeKind kind)
         {
@@ -253,24 +253,8 @@ namespace Prototype
 
             if (ClearRewardRules.GrantsCard(kind))
             {
-                var bulletTime = FindAnyObjectByType<BulletTimeController>();
-                List<SkillData> pool = bulletTime != null
-                    ? bulletTime.AvailableSkillPool()
-                    : SkillCatalog.Pool(null, RunProgression.Current.Cards);
-
-                List<CardOffer> offers = CardOfferRules.Build(pool, () => Random.value);
-                ComboCard card = offers.Count > 0 ? RunProgression.Current.Grant(offers[0]) : null;
-
-                if (card != null)
-                {
-                    if (bulletTime != null) bulletTime.GrantCard(card);
-                    text += $" · 카드 {card.Data.skillName}";
-                    Debug.Log($"[Battle] 클리어 보상 카드 — {card.Data.skillName}");
-                }
-                else
-                {
-                    Debug.LogWarning("[Battle] 클리어 보상 카드를 뽑을 스킬이 없다 — SkillCatalog를 확인할 것.");
-                }
+                CardRewardSession.RequestOpen();
+                text += " · 카드 1장";
             }
 
             if (ClearRewardRules.GrantsRelic(kind))

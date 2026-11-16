@@ -173,6 +173,7 @@ namespace Prototype
 
         public void Save()
         {
+            InputBindingUtility.SyncNavigateToMove(actions);
             PlayerPrefs.SetString(PrefsKey, actions.SaveBindingOverridesAsJson());
             PlayerPrefs.Save();
         }
@@ -191,9 +192,9 @@ namespace Prototype
             actions.RemoveAllBindingOverrides();
 
             string json = PlayerPrefs.GetString(PrefsKey, null);
-            if (string.IsNullOrEmpty(json)) return;
+            if (!string.IsNullOrEmpty(json)) actions.LoadBindingOverridesFromJson(json);
 
-            actions.LoadBindingOverridesFromJson(json);
+            InputBindingUtility.SyncNavigateToMove(actions);
         }
     }
 
@@ -225,6 +226,15 @@ namespace Prototype
         /// <c>Cancel</c>은 <c>*/{Cancel}</c> 용도 바인딩이라 특정 키로 바꿀 자리가 아니다.
         /// </summary>
         public static bool IsRebindableMap(string mapName) => mapName != InputActionNames.UI.Map;
+
+        /// <summary>
+        /// 직접 바꾸는 자리가 아니라 다른 액션을 따라가는 것. 카드 선택(<c>BulletTime/Navigate</c>)은
+        /// 이동(<c>Gameplay/Move</c>)과 같은 키라서 화면 목록에서는 뺀다(<see cref="InputBindingUtility.SyncNavigateToMove"/>).
+        /// </summary>
+        public static bool IsMirrored(InputAction action)
+            => action != null
+               && action.actionMap.name == InputActionNames.BulletTime.Map
+               && action.name == InputActionNames.BulletTime.Navigate;
 
         public static bool IsRebindableAction(InputAction action)
             => action != null

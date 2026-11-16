@@ -311,6 +311,9 @@ namespace Prototype
 
             foreach ((InputAction action, int bindingIndex) in InputRebindRules.Enumerate(_actions))
             {
+                // 카드 선택은 이동키를 그대로 따라간다 — 따로 바꾸는 줄을 두지 않는다.
+                if (InputRebindRules.IsMirrored(action)) continue;
+
                 if (action.actionMap.name != currentMap)
                 {
                     currentMap = action.actionMap.name;

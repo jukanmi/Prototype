@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Prototype
@@ -35,6 +36,12 @@ namespace Prototype
 
         [Tooltip("0이면 켤 때마다 새 시드. 숫자를 넣으면 그 지도를 다시 본다.")]
         [SerializeField] private int previewSeed;
+
+        [Header("입력")]
+        [Tooltip("칸 고르기에 쓸 상호작용 키(Gameplay/Interact)를 읽는 액션 자산. 이 씬에는 PlayerInput이 없어 직접 받는다.")]
+        [SerializeField] private InputActionAsset actions;
+
+        private InputAction interact;
 
         private static readonly Color BackdropColor = new Color(0.05f, 0.06f, 0.08f, 1f);
         private static readonly Color FocusColor = new Color(1f, 0.86f, 0.45f);
@@ -67,6 +74,7 @@ namespace Prototype
         {
             UiKit.EnsureEventSystem();
             BuildFrame();
+            SetUpInteractKey();
 
             GameManager gm = GameManager.Instance;
 
@@ -179,6 +187,27 @@ namespace Prototype
             UiKit.Place(info, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(1500f, 44f));
         }
 
+        /// <summary>
+        /// 저장해 둔 키를 얹고 Interact 액션을 켠다. 자산이 비어 있으면 Enter · 클릭만 먹는다.
+        /// 다른 씬의 PlayerInput과 같은 액션 맵을 쓰지만 끄지는 않는다 — 끄면 그쪽 키까지 같이 죽을 수 있다.
+        /// </summary>
+        private void SetUpInteractKey()
+        {
+            if (actions == null)
+            {
+                Debug.LogWarning("[RunMap] 입력 액션 자산이 비어 있다 — 상호작용 키로 칸을 못 고른다(Enter · 클릭은 된다).", this);
+                return;
+            }
+
+            RebindManager.Load(actions);
+
+            interact = InputBindingUtility.FindAction(actions, InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Interact);
+            if (interact != null && !interact.enabled) interact.Enable();
+        }
+
+        private string InteractKeyName()
+            => InputHints.Key(actions, InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Interact);
+
         private void SetInfo(string text)
         {
             if (info != null) info.text = text;
@@ -216,7 +245,7 @@ namespace Prototype
             DrawHeader(map);
             DrawCornerButton();
 
-            SetInfo(selectables.Count > 0 ? "칸을 고른다 — 방향키 · Enter 또는 클릭" : "");
+            SetInfo(selectables.Count > 0 ? $"칸을 고른다 — 방향키 · {InteractKeyName()} 또는 클릭" : "");
             if (selectables.Count > 0) Select(selectables[0].gameObject);
         }
 
@@ -379,6 +408,14 @@ namespace Prototype
             if (EventSystem.current == null || selectables.Count == 0) return;
 
             GameObject selected = EventSystem.current.currentSelectedGameObject;
+
+            // 상호작용 키 = 고른 칸 들어가기. 클릭 · Enter와 같은 길(onClick)로 들어간다.
+            if (interact != null && interact.WasPressedThisFrame() && selected != null &&
+                nodeOf.ContainsKey(selected) && selected.TryGetComponent(out Button picked) && picked.interactable)
+            {
+                picked.onClick.Invoke();
+                return;
+            }
 
             if (selected == null || !nodeOf.ContainsKey(selected))
             {

@@ -150,6 +150,38 @@ namespace Prototype
         }
     }
 
+    // ══ InputHints ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 화면 안내문에 넣을 <b>지금 실제로 눌러야 하는 키</b>. 글자로 박아 두지 않고 매번 묻는다 —
+    /// 리바인드 · 프리셋으로 키가 바뀌어도 안내가 따라온다.
+    /// </summary>
+    public static class InputHints
+    {
+        /// <summary>그 액션의 키 이름. 컴포지트면 <paramref name="part"/>(up · down · left · right)를 준다. 못 찾으면 "?".</summary>
+        public static string Key(string map, string action, string part = null)
+        {
+            InputActionAsset actions = PlayerInputController.Instance != null ? PlayerInputController.Instance.Actions : null;
+            return Key(actions, map, action, part);
+        }
+
+        public static string Key(InputActionAsset actions, string map, string action, string part = null)
+        {
+            InputAction found = InputBindingUtility.FindAction(actions, map, action);
+            if (found == null) return "?";
+
+            int index = InputBindingUtility.FindBindingIndex(found, part);
+            return index >= 0 ? InputDisplayNames.Key(found, index) : "?";
+        }
+
+        public static string BulletTime => Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
+        public static string Jump => Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Jump);
+
+        /// <summary>손패 카드 이동 · 집기 · 놓기 키. 이동키와 같다.</summary>
+        public static string CardKey(string part)
+            => Key(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate, part);
+    }
+
     // ══ InputBindingUtility ═══════════════════════════════════════════
 
     /// <summary>
@@ -207,6 +239,29 @@ namespace Prototype
             }
 
             return -1;
+        }
+
+        private static readonly string[] CompositeParts = { "up", "down", "left", "right" };
+
+        /// <summary>
+        /// 손패 카드 선택(<c>BulletTime/Navigate</c>)을 이동(<c>Gameplay/Move</c>) 키에 그대로 맞춘다.
+        /// 카드 조작 키는 따로 바꾸지 않는다 — 이동키를 바꾸면 카드 선택도 같이 따라간다.
+        /// 오버라이드를 적용 · 불러오는 모든 자리 뒤에 부른다.
+        /// </summary>
+        public static void SyncNavigateToMove(InputActionAsset actions)
+        {
+            InputAction move = FindAction(actions, InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Move);
+            InputAction navigate = FindAction(actions, InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
+            if (move == null || navigate == null) return;
+
+            foreach (string part in CompositeParts)
+            {
+                int from = FindBindingIndex(move, part);
+                int to = FindBindingIndex(navigate, part);
+                if (from < 0 || to < 0) continue;
+
+                navigate.ApplyBindingOverride(to, move.bindings[from].effectivePath);
+            }
         }
 
         /// <summary>

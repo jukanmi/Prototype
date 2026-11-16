@@ -399,7 +399,7 @@ namespace Prototype
             else if (bt.IsGaugeReady)
             {
                 _fill.color = Color.Lerp(ReadyLowColor, ReadyHighColor, Pulse(Time.unscaledTime));
-                _label.text = "불릿타임 준비 — E";
+                _label.text = $"불릿타임 준비 — {InputHints.BulletTime}";
             }
             else
             {

@@ -420,15 +420,20 @@ namespace Prototype
             {
                 _titleText.text = "전술 배치 — 왼쪽부터 순서대로 발동";
 
+                // 키 이름은 지금 바인딩에서 읽는다 — 리바인드해도 안내가 따라온다.
+                string left = InputHints.CardKey("left"), right = InputHints.CardKey("right");
+                string up = InputHints.CardKey("up"), down = InputHints.CardKey("down");
+                string cast = InputHints.BulletTime, cancel = InputHints.Jump;
+
                 if (_grabbedIndex >= 0)
-                    _hintText.text = "집은 상태: ←/→ 순서 변경 · ↓ 놓기 · 불릿타임키 시전 · 점프키 취소";
+                    _hintText.text = $"집은 상태: {left}/{right} 순서 변경 · {down} 놓기 · {cast} 시전 · {cancel} 취소";
                 else
-                    _hintText.text = "←/→ 카드 선택 · ↑ 집기 · 드래그도 가능 · 불릿타임키 시전 · 점프키 취소";
+                    _hintText.text = $"{left}/{right} 카드 선택 · {up} 집기 · 드래그도 가능 · {cast} 시전 · {cancel} 취소";
             }
             else
             {
                 _titleText.text = $"손패  <color=#808080>덱 {_bulletTime.Deck.Count} · 버린 더미 {_bulletTime.Discard.Count}</color>";
-                _hintText.text = "불릿타임키 — 진입";
+                _hintText.text = $"{InputHints.BulletTime} — 불릿타임 진입";
             }
 
             for (int i = 0; i < Hand.Size; i++)
