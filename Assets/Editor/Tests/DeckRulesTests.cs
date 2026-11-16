@@ -107,21 +107,21 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void BasicAttackDraw_AllNormalCardsEqual_GoldenHasHalfWeight()
+        public void BasicAttackDraw_AllCardsEqual()
         {
             var cards = new[]
             {
                 new ComboCard(Skill(), 100f), new ComboCard(Skill(), 0.01f),
-                new ComboCard(Skill(), 100f, true), new ComboCard(Skill(), 0.01f, true),
+                new ComboCard(Skill(), 100f), new ComboCard(Skill(), 0.01f),
             };
             var counts = new int[4];
-            // 각 가중치 구간의 중심을 순회하므로 난수에 따라 실패하지 않는다.
+            // 각 구간의 중심을 순회하므로 난수에 따라 실패하지 않는다.
             for (int i = 0; i < 600; i++)
             {
                 counts[BasicAttackDrawRules.SelectIndex(cards, (i + 0.5f) / 600f)]++;
             }
 
-            Assert.That(counts, Is.EqualTo(new[] { 200, 200, 100, 100 }));
+            Assert.That(counts, Is.EqualTo(new[] { 150, 150, 150, 150 }));
             Assert.That(BasicAttackDrawRules.SelectIndex(cards, 1f), Is.EqualTo(3));
         }
 
@@ -142,7 +142,7 @@ namespace Prototype.Tests
         {
             var hand = new Hand();
             var handCard = new ComboCard(Skill());
-            var deckCard = new ComboCard(Skill(), golden: true);
+            var deckCard = new ComboCard(Skill());
             hand.Add(handCard);
             var deck = new Deck(new[] { deckCard });
             int handChanges = 0, deckChanges = 0;

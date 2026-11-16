@@ -90,8 +90,7 @@ namespace Prototype
         ///
         /// <see cref="ComboCard"/>는 ScriptableObject가 아니라 <c>[Serializable]</c> 클래스라
         /// 에셋에 든 인스턴스를 그대로 <see cref="Ally.Equipped"/>에 꽂으면 참조가 공유된다.
-        /// 그 상태에서 레벨업 합성이 황금 카드로 승급시키면(<see cref="ComboCard.AsGolden"/>)
-        /// 그 결과가 <b>에셋에 눌러붙어</b> 다음 런까지 따라간다.
+        /// 그 상태에서 카드가 바뀌면 그 결과가 <b>에셋에 눌러붙어</b> 다음 런까지 따라간다.
         /// </summary>
         public List<ComboCard> CloneCards()
         {

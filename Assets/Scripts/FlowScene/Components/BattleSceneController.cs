@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -224,6 +225,8 @@ namespace Prototype
 
             Debug.Log($"[Battle] {gm.FloorNumber}층 {kind} 클리어 — 골드 +{gold} (누적 {RunProgression.Current.Gold})");
 
+            string rewards = GrantClearRewards(kind);
+
             if (gm.HasNextNode)
             {
                 // 안내만 띄우고 조작은 막지 않는다. 걸어가야 넘어가는 방식이다.
@@ -232,12 +235,51 @@ namespace Prototype
                 // (CardOfferView의 "데미지 x1.5"와 같은 이유).
                 int percent = GoldRules.ClearRewardPercent(kind);
                 string bonus = percent != 100 ? $" (정예 x{percent / 100f:0.##})" : "";
-                resultUI?.ShowExitArrow($"골드 +{gold}{bonus} · 지도로");
+                resultUI?.ShowExitArrow($"골드 +{gold}{bonus}{rewards} · 지도로");
                 return;
             }
 
             restartUI?.SetVisible(false);
             resultUI?.ShowAllClear(ExitToLobby);
+        }
+
+        /// <summary>
+        /// 클리어 보상 물건을 준다. 카드는 파티가 쓸 수 있는 스킬에서 한 장을 뽑아 런 덱에 넣고
+        /// 손패에도 바로 꽂는다. 유물은 Mock이라 로그와 안내 문구뿐이다. 안내 문구 조각을 돌려준다.
+        /// </summary>
+        private static string GrantClearRewards(MapNodeKind kind)
+        {
+            string text = "";
+
+            if (ClearRewardRules.GrantsCard(kind))
+            {
+                var bulletTime = FindAnyObjectByType<BulletTimeController>();
+                List<SkillData> pool = bulletTime != null
+                    ? bulletTime.AvailableSkillPool()
+                    : SkillCatalog.Pool(null, RunProgression.Current.Cards);
+
+                List<CardOffer> offers = CardOfferRules.Build(pool, () => Random.value);
+                ComboCard card = offers.Count > 0 ? RunProgression.Current.Grant(offers[0]) : null;
+
+                if (card != null)
+                {
+                    if (bulletTime != null) bulletTime.GrantCard(card);
+                    text += $" · 카드 {card.Data.skillName}";
+                    Debug.Log($"[Battle] 클리어 보상 카드 — {card.Data.skillName}");
+                }
+                else
+                {
+                    Debug.LogWarning("[Battle] 클리어 보상 카드를 뽑을 스킬이 없다 — SkillCatalog를 확인할 것.");
+                }
+            }
+
+            if (ClearRewardRules.GrantsRelic(kind))
+            {
+                text += " · 유물 1개";
+                Debug.Log("[Battle] 클리어 보상 유물 1개 (Mock — 효과 없음)");
+            }
+
+            return text;
         }
 
         private void HandleDefeat()

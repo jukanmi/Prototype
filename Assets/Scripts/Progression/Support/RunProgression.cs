@@ -55,7 +55,7 @@ namespace Prototype
         /// <summary>
         /// 런 골드. 스테이지를 클리어할 때 들어오고(<see cref="GoldRules.StageClearReward"/>)
         /// 상점 · 이벤트 칸에서 나간다. <b>경험치와 따로 둔다</b> — 경험치는 레벨업 단계를 사는 돈이라
-        /// 둘을 한 주머니에 넣으면 상점에서 산 만큼 황금 확률이 줄어드는 교환이 생긴다.
+        /// 둘을 한 주머니에 넣으면 상점에서 산 만큼 레벨업이 늦어지는 교환이 생긴다.
         /// </summary>
         public int Gold { get; private set; }
 
@@ -139,7 +139,7 @@ namespace Prototype
 
         /// <summary>
         /// 그 단계로 레벨을 올린다. <b>그 단계 값만</b> 빠지고 남은 경험치는 그대로 있다.
-        /// 단계와 무관하게 레벨은 +1이다 — 단계가 바꾸는 것은 가격과 황금 확률뿐이다.
+        /// 단계와 무관하게 레벨은 +1이다 — 단계가 바꾸는 것은 가격뿐이다.
         /// </summary>
         public bool Spend(int tier)
         {
@@ -196,7 +196,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 레벨업에서 고른 카드를 런 덱에 넣는다. 합성이면 기존 두 장이 사라진다.
+        /// 고른 카드를 런 덱에 넣는다.
         /// 실제로 들어간 카드를 돌려준다 — 부르는 쪽이 <b>같은 인스턴스</b>를 손패에도 꽂는다.
         /// </summary>
         public ComboCard Grant(in CardOffer pick)
@@ -257,13 +257,10 @@ namespace Prototype
     /// <code>
     ///   BaseCost(L)   = 10 × 1.1^(L-1)     레벨업할 때마다 다음 요구치가 1.1배
     ///   Cost(L, tier) = ceil(BaseCost(L) × [1.0, 1.5, 2.0][tier])
-    ///   황금 확률      = [0%, 20%, 50%][tier]   선택지 카드 1장마다 따로 굴린다
     /// </code>
     ///
     /// <b>단계는 레벨 상승폭을 바꾸지 않는다</b> — 어느 단계로 올리든 레벨은 +1이다.
-    /// 비싼 단계를 사는 이유는 오직 황금 카드 확률이고, 그래서 "싸게 여러 번 vs 모아서 크게"가
-    /// 라운드마다 실제 선택이 된다. 단계가 레벨까지 더 올려 주면 3단계가 언제나 정답이 되어
-    /// 선택이 사라진다.
+    /// 황금 카드를 없애면서 단계는 가격만 다르다. 경험치 사용처는 추후 다시 짠다.
     ///
     /// 소모는 <b>그 단계 값만</b> 빠진다. 남은 경험치는 다음 레벨업으로 이월된다.
     /// </summary>
@@ -278,14 +275,10 @@ namespace Prototype
         /// <summary>레벨이 오를 때마다 요구 경험치에 곱해지는 값.</summary>
         public const double LevelGrowth = 1.1;
 
-        /// <summary>황금 카드의 데미지 배율.</summary>
-        public const float GoldenDamageMul = ComboCard.GoldenDamageMul;
-
         /// <summary>레벨은 1부터 센다.</summary>
         public const int FirstLevel = 1;
 
         private static readonly double[] CostMul = { 1.0, 1.5, 2.0 };
-        private static readonly float[] Golden = { 0f, 0.20f, 0.50f };
 
         /// <summary>
         /// 올림 직전에 빼 주는 오차 여유.
@@ -306,9 +299,6 @@ namespace Prototype
             => IsValidTier(tier)
                 ? (int)Math.Ceiling(BaseCostOf(level) * CostMul[tier] - CeilEpsilon)
                 : int.MaxValue;
-
-        /// <summary>이 단계에서 카드 한 장이 황금으로 나올 확률. 0~1.</summary>
-        public static float GoldenChanceOf(int tier) => IsValidTier(tier) ? Golden[tier] : 0f;
 
         public static bool CanAfford(int exp, int level, int tier)
             => IsValidTier(tier) && exp >= CostOf(level, tier);
@@ -386,7 +376,7 @@ namespace Prototype
     /// <code>
     ///   클리어 보상(n, 칸) = (40 + 10 × (n − 1)) × 배율     n = 1부터 세는 층 번호
     ///   배율               = 정예 150% · 나머지 100%
-    ///   카드 값            = 일반 50 · 황금 100
+    ///   카드 값            = 50
     /// </code>
     ///
     /// 1층 보상으로 카드 한 장을 못 산다. 두 판을 모아야 한 장이다 —
@@ -405,7 +395,6 @@ namespace Prototype
         public const int EliteClearRewardPercent = 150;
 
         public const int CardPrice = 50;
-        public const int GoldenCardPrice = 100;
 
         /// <summary>
         /// 그 층의 그 칸을 클리어하면 받는 골드. 1보다 작은 번호는 1로 본다.
@@ -424,12 +413,26 @@ namespace Prototype
             => BaseClearReward + ClearRewardPerStage * (Math.Max(1, floorNumber) - 1);
 
         /// <summary>
-        /// 상점에서 이 선택지의 값. 합성 카드도 결과가 황금이라 황금 값이다.
-        /// 유산 제단의 상점 할인이 걸린다(<see cref="MetaRules.ShopDiscountPercent"/>).
+        /// 상점에서 카드 한 장의 값. 유산 제단의 상점 할인이 걸린다(<see cref="MetaRules.ShopDiscountPercent"/>).
         /// </summary>
-        public static int PriceOf(in CardOffer offer)
-            => MetaRules.Discounted(offer.golden ? GoldenCardPrice : CardPrice,
+        public static int CardPriceNow()
+            => MetaRules.Discounted(CardPrice,
                                     MetaRules.ShopDiscountPercent(MetaProgression.Current.LevelOf(MetaUpgrade.ShopDiscount)));
+    }
+
+    // ══ ClearRewardRules ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 전투 칸을 깼을 때 받는 <b>물건</b>. 골드(<see cref="GoldRules"/>)와 별개다.
+    /// 일반 전투 · 정예는 카드 한 장을 반드시 받고, 정예는 유물 한 개를 더 받는다.
+    /// 유물은 아직 Mock이다 — 받았다는 사실만 알리고 효과는 없다.
+    /// </summary>
+    public static class ClearRewardRules
+    {
+        public static bool GrantsCard(MapNodeKind kind)
+            => kind == MapNodeKind.Battle || kind == MapNodeKind.Elite;
+
+        public static bool GrantsRelic(MapNodeKind kind) => kind == MapNodeKind.Elite;
     }
 
     // ══ NodeRules ═══════════════════════════════════════════
@@ -446,12 +449,6 @@ namespace Prototype
         /// <summary>휴식 회복 비율 — 기본값 + 유산 제단 강화(<see cref="MetaRules.RestHealBonus"/>).</summary>
         public static float RestHealRatio
             => BaseRestHealRatio + MetaRules.RestHealBonus(MetaProgression.Current.LevelOf(MetaUpgrade.RestHeal));
-
-        /// <summary>
-        /// 상점 선택지의 황금 확률 단계. 레벨업 2단계와 같다(20%) —
-        /// 황금이 섞여야 값이 두 가지로 갈려 "무엇을 살까"가 선택이 된다.
-        /// </summary>
-        public const int ShopOfferTier = 1;
 
         /// <summary>
         /// 카드를 쓸 수 있는 직업들. <b>이번 런에서 죽은 동료의 직업은 뺀다.</b>

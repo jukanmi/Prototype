@@ -19,7 +19,7 @@ namespace Prototype
         /// <summary>
         /// 선택지를 적용한다. 고를 수 없으면 <b>아무것도 안 바꾸고</b> 거짓이다.
         ///
-        /// 카드는 <paramref name="pool"/>에서 레벨업 1단계 규칙으로 한 장을 뽑는다(황금 없음).
+        /// 카드는 <paramref name="pool"/>에서 한 장을 뽑는다.
         /// 모집단이 비어 있으면 카드만 빠지고 나머지는 적용된다 — 표 배선이 빠진 것이지
         /// 플레이어가 고른 것을 되돌릴 이유는 아니다.
         /// </summary>
@@ -38,7 +38,7 @@ namespace Prototype
 
             if (choice.grantCard && roll != null)
             {
-                List<CardOffer> offers = CardOfferRules.Build(pool, run.Cards, 0, roll);
+                List<CardOffer> offers = CardOfferRules.Build(pool, roll);
                 if (offers.Count > 0) granted = run.Grant(offers[0]);
             }
 

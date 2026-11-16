@@ -111,16 +111,6 @@ namespace Prototype.Tests
             }
         }
 
-        [Test]
-        public void PriceOf_GoldenCostsMore()
-        {
-            var normal = new CardOffer { data = Skill(Role.Warrior) };
-            var golden = new CardOffer { data = normal.data, golden = true };
-
-            Assert.That(GoldRules.PriceOf(normal), Is.EqualTo(GoldRules.CardPrice));
-            Assert.That(GoldRules.PriceOf(golden), Is.EqualTo(GoldRules.GoldenCardPrice));
-        }
-
         // ── 런 골드 ─────────────────────────────────────
 
         [Test]

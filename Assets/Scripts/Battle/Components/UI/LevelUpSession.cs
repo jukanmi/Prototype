@@ -140,7 +140,7 @@ namespace Prototype
         /// <summary>카드 판에서 커서가 가리키는 칸.</summary>
         private int offerCursor;
 
-        /// <summary>이번 선택지를 뽑은 단계. 합성 표시와 안내 문구가 이 값을 읽는다.</summary>
+        /// <summary>이번 선택지를 뽑은 단계. 안내 문구가 이 값을 읽는다.</summary>
         private int pendingTier = -1;
 
         /// <summary>지금 굴러가는 런. <c>GameManager</c>가 없어도 null이 아니다.</summary>
@@ -366,8 +366,6 @@ namespace Prototype
                 bool can = run.CanLevelUp(tier);
 
                 tierCostLabels[tier].text = $"{cost} EXP";
-                tierChanceLabels[tier].text = $"황금 {ExpRules.GoldenChanceOf(tier) * 100f:0}%";
-
                 tierButtons[tier].interactable = can;
 
                 // 잠긴 단계는 색까지 죽인다. interactable만으로는 어떤 게 잠겼는지 잘 안 읽힌다.
@@ -398,8 +396,7 @@ namespace Prototype
                 ? bulletTime.AvailableSkillPool()
                 : SkillCatalog.Pool(null, run.Cards);
 
-            // 합성 판정만 지금 든 카드를 본다. 같은 카드를 이미 두 장 쥐고 있는지는 덱의 사실이다.
-            offers = CardOfferRules.Build(pool, run.Cards, tier, () => Random.value);
+            offers = CardOfferRules.Build(pool, () => Random.value);
 
             BattleLog.Log(LogCategory.State,
                 $"<b>레벨업</b> {ExpRules.TierNumber(tier)}단계 — Lv.{run.Level} · " +
@@ -424,10 +421,7 @@ namespace Prototype
             tierPanel.SetActive(false);
             offerPanel.SetActive(true);
 
-            offerTitle.text = $"<b>{ExpRules.TierNumber(pendingTier)}단계</b>  —  황금 확률 " +
-                              $"{ExpRules.GoldenChanceOf(pendingTier) * 100f:0}%";
-
-            bool anyFuse = false;
+            offerTitle.text = $"<b>{ExpRules.TierNumber(pendingTier)}단계</b>";
 
             for (int i = 0; i < offerViews.Length; i++)
             {
@@ -436,8 +430,6 @@ namespace Prototype
                 CardOffer offer = offers[i];
                 offerViews[i].Show(in offer);
                 offerViews[i].SetInteractable(true);
-
-                anyFuse |= offer.fuses;
             }
 
             Layout(offerViews, offers.Count, CardOfferView.Width, OfferGap, -30f);
@@ -446,9 +438,7 @@ namespace Prototype
             offerCursor = 0;
             RefreshOfferFocus();
 
-            offerHint.text = anyFuse
-                ? "★ 표시는 합성 — 고르면 들고 있던 같은 카드 2장이 사라지고 황금 1장이 된다"
-                : "한 장을 고른다";
+            offerHint.text = "한 장을 고른다";
         }
 
         private void PickCard(int index)
@@ -460,23 +450,17 @@ namespace Prototype
             CardOffer pick = offers[index];
 
             // 고른 뒤 두 번 눌리지 않게 곧바로 잠근다. 한 프레임에 두 번 들어오면
-            // 카드가 두 장 들어오고 합성이 두 번 일어난다.
+            // 카드가 두 장 들어온다.
             for (int i = 0; i < offerViews.Length; i++) offerViews[i].SetInteractable(false);
 
             ComboCard granted = run.Grant(in pick);
             if (granted == null) { ShowTiers(); return; }
 
-            // 런 덱에 들어간 그 카드를 <b>손패에 바로</b> 꽂는다. 합성이면 재료 두 장도
-            // 지금 판(덱 · 손패 · 버린 더미)에서 같이 걷어낸다.
-            if (bulletTime != null)
-                bulletTime.GrantCard(granted,
-                    pick.fuses ? pick.data : null,
-                    CardOfferRules.FuseCopies - 1);
+            // 런 덱에 들어간 그 카드를 <b>손패에 바로</b> 꽂는다.
+            if (bulletTime != null) bulletTime.GrantCard(granted);
 
             BattleLog.Log(LogCategory.State,
                 $"카드 선택 — {pick.data.skillName}" +
-                (pick.fuses ? " <color=#FFD166>(합성 → 황금)</color>"
-                            : pick.golden ? " <color=#FFD166>(황금)</color>" : "") +
                 $" | 런 덱 {run.Cards.Count}장", this);
 
             offers.Clear();

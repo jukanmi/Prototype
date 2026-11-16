@@ -156,7 +156,7 @@ namespace Prototype
             {
                 case MapNodeKind.Elite:
                     return $"정예 — 강화된 적이 {EncounterModifierRules.EliteNodeEvery}기마다 1기 섞여 나온다. " +
-                           $"클리어 골드 x{GoldRules.ClearRewardPercent(MapNodeKind.Elite) / 100f:0.##}";
+                           $"클리어 골드 x{GoldRules.ClearRewardPercent(MapNodeKind.Elite) / 100f:0.##} · 카드 1장 · 유물 1개";
                 case MapNodeKind.Rest:
                     return $"휴식 — 파티 전원의 체력을 {NodeRules.RestHealRatio:0%} 회복한다.";
                 case MapNodeKind.Shop:
@@ -166,7 +166,7 @@ namespace Prototype
                 case MapNodeKind.Boss:
                     return "보스 — 이 칸을 깨면 런이 끝난다.";
                 default:
-                    return "전투 — 적을 모두 쓰러뜨린다.";
+                    return "전투 — 적을 모두 쓰러뜨린다. 클리어하면 카드 1장.";
             }
         }
     }

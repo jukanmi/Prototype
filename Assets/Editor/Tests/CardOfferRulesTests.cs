@@ -7,12 +7,7 @@ using Object = UnityEngine.Object;
 namespace Prototype.Tests
 {
     /// <summary>
-    /// 레벨업 선택지를 짜는 규칙.
-    ///
-    /// <b>난수를 주입받는 것 자체가 설계다.</b> 20% · 50%는 플레이로는 절대 검증할 수 없는 값이고,
-    /// 경계(0.199 / 0.200)가 뒤집혀 있어도 몇 십 판을 돌려서는 알아채지 못한다.
-    ///
-    /// 난수 소비 순서는 <b>고르기 3번 → 황금 3번</b>이다. 아래 테스트가 전부 이 순서에 기댄다.
+    /// 카드 선택지를 짜는 규칙. 난수를 주입받는다.
     /// </summary>
     public class CardOfferRulesTests
     {
@@ -41,7 +36,7 @@ namespace Prototype.Tests
         [Test]
         public void Build_GivesThreeDistinctCards()
         {
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 0, Rolls(0f));
+            List<CardOffer> offers = Build(Pool(), Rolls(0f));
 
             Assert.That(offers.Count, Is.EqualTo(CardOfferRules.OfferCount));
 
@@ -56,7 +51,7 @@ namespace Prototype.Tests
         {
             var pool = new List<SkillData> { tank, warrior };
 
-            List<CardOffer> offers = Build(pool, Owned(), tier: 0, Rolls(0f));
+            List<CardOffer> offers = Build(pool, Rolls(0f));
 
             Assert.That(offers.Count, Is.EqualTo(2));
             Assert.That(offers[0].data, Is.Not.EqualTo(offers[1].data));
@@ -65,8 +60,8 @@ namespace Prototype.Tests
         [Test]
         public void Build_WithEmptyPool_GivesNothing()
         {
-            Assert.That(Build(new List<SkillData>(), Owned(), 0, Rolls(0f)), Is.Empty);
-            Assert.That(CardOfferRules.Build(null, Owned(), 0, Rolls(0f)), Is.Empty);
+            Assert.That(Build(new List<SkillData>(), Rolls(0f)), Is.Empty);
+            Assert.That(CardOfferRules.Build(null, Rolls(0f)), Is.Empty);
         }
 
         /// <summary>null과 중복이 섞인 표를 그대로 쓰면 빈 카드가 선택지에 뜬다.</summary>
@@ -75,127 +70,10 @@ namespace Prototype.Tests
         {
             var pool = new List<SkillData> { tank, null, tank, warrior, null };
 
-            List<CardOffer> offers = Build(pool, Owned(), 0, Rolls(0f));
+            List<CardOffer> offers = Build(pool, Rolls(0f));
 
             Assert.That(offers.Count, Is.EqualTo(2));
             foreach (CardOffer o in offers) Assert.That(o.data, Is.Not.Null);
-        }
-
-        // ── 황금 판정 ───────────────────────────────────
-
-        [Test]
-        public void Tier1_NeverRollsGolden()
-        {
-            // 황금 굴림이 전부 0이어도(가장 잘 나오는 값) 1단계는 특전이 없다.
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 0, Rolls(0f));
-
-            foreach (CardOffer o in offers)
-                Assert.That(o.golden, Is.False, $"{o.data.skillName}");
-        }
-
-        /// <summary>
-        /// 20% 경계. 0.199는 황금이고 0.200은 아니다 —
-        /// <c>&lt;=</c>로 잘못 쓰면 확률이 조용히 커진다.
-        /// </summary>
-        [Test]
-        public void Tier2_GoldenBoundaryIsTwentyPercent()
-        {
-            // 앞 3번은 카드 고르기, 뒤 3번이 황금 판정이다.
-            var rolls = new Queue<float>(new[] { 0f, 0f, 0f, 0.199f, 0.200f, 0.999f });
-
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 1, () => rolls.Dequeue());
-
-            Assert.That(offers[0].golden, Is.True, "0.199 < 0.20");
-            Assert.That(offers[1].golden, Is.False, "0.200은 경계 밖");
-            Assert.That(offers[2].golden, Is.False);
-        }
-
-        [Test]
-        public void Tier3_GoldenBoundaryIsFiftyPercent()
-        {
-            var rolls = new Queue<float>(new[] { 0f, 0f, 0f, 0.499f, 0.500f, 0.1f });
-
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 2, () => rolls.Dequeue());
-
-            Assert.That(offers[0].golden, Is.True);
-            Assert.That(offers[1].golden, Is.False);
-            Assert.That(offers[2].golden, Is.True);
-        }
-
-        /// <summary>
-        /// 세 장이 <b>따로</b> 굴러야 한다. 선택지 전체에 한 번만 굴리면
-        /// "셋 다 황금이거나 셋 다 일반"이 되어 고를 이유가 사라진다.
-        /// </summary>
-        [Test]
-        public void GoldenIsRolledPerCard_NotOncePerOffer()
-        {
-            var rolls = new Queue<float>(new[] { 0f, 0f, 0f, 0.1f, 0.9f, 0.1f });
-
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 1, () => rolls.Dequeue());
-
-            Assert.That(offers[0].golden, Is.True);
-            Assert.That(offers[1].golden, Is.False);
-            Assert.That(offers[2].golden, Is.True);
-        }
-
-        // ── 합성 ────────────────────────────────────────
-
-        /// <summary>일반 두 장을 들고 있으면 세 장째가 합성 자리로 뜬다.</summary>
-        [Test]
-        public void HoldingTwoNormalCopies_MarksThatOfferAsFusing()
-        {
-            var owned = Owned(Card(tank), Card(tank));
-
-            List<CardOffer> offers = Build(new List<SkillData> { tank }, owned, tier: 0, Rolls(0.99f));
-
-            Assert.That(offers[0].fuses, Is.True);
-        }
-
-        /// <summary>합성은 확률을 이긴다 — 1단계(황금 0%)에서도 결과는 황금이다.</summary>
-        [Test]
-        public void Fusing_ForcesGolden_EvenAtTier1()
-        {
-            var owned = Owned(Card(tank), Card(tank));
-
-            List<CardOffer> offers = Build(new List<SkillData> { tank }, owned, tier: 0, Rolls(0.99f));
-
-            Assert.That(offers[0].golden, Is.True);
-        }
-
-        [Test]
-        public void HoldingOneOrThreeCopies_DoesNotFuse()
-        {
-            var pool = new List<SkillData> { tank };
-
-            Assert.That(Build(pool, Owned(Card(tank)), 0, Rolls(0.99f))[0].fuses,
-                Is.False, "한 장으로는 아직");
-
-            Assert.That(Build(pool, Owned(Card(tank), Card(tank), Card(tank)), 0, Rolls(0.99f))[0].fuses,
-                Is.False, "이미 세 장이면 합성 자리가 아니다");
-        }
-
-        /// <summary>황금 위의 등급이 없다. 황금 두 장은 합성 재료가 되지 않는다.</summary>
-        [Test]
-        public void GoldenCopies_DoNotCountTowardFusing()
-        {
-            var owned = Owned(Golden(tank), Golden(tank));
-
-            List<CardOffer> offers = Build(new List<SkillData> { tank }, owned, tier: 0, Rolls(0.99f));
-
-            Assert.That(offers[0].fuses, Is.False);
-            Assert.That(CardOfferRules.CountNormalCopies(owned, tank), Is.Zero);
-        }
-
-        [Test]
-        public void CountNormalCopies_CountsOnlyMatchingNonGolden()
-        {
-            var owned = Owned(Card(tank), Golden(tank), Card(warrior), Card(tank));
-
-            Assert.That(CardOfferRules.CountNormalCopies(owned, tank), Is.EqualTo(2));
-            Assert.That(CardOfferRules.CountNormalCopies(owned, warrior), Is.EqualTo(1));
-            Assert.That(CardOfferRules.CountNormalCopies(owned, archer), Is.Zero);
-            Assert.That(CardOfferRules.CountNormalCopies(null, tank), Is.Zero);
-            Assert.That(CardOfferRules.CountNormalCopies(owned, null), Is.Zero);
         }
 
         // ── 모집단 ──────────────────────────────────────
@@ -208,10 +86,9 @@ namespace Prototype.Tests
         [Test]
         public void EmptyDeck_StillGetsAFullOffer()
         {
-            List<CardOffer> offers = Build(Pool(), Owned(), tier: 2, Rolls(0f));
+            List<CardOffer> offers = Build(Pool(), Rolls(0f));
 
             Assert.That(offers.Count, Is.EqualTo(CardOfferRules.OfferCount));
-            foreach (CardOffer o in offers) Assert.That(o.fuses, Is.False, "빈 덱에서는 합성이 설 수 없다");
         }
 
         /// <summary>
@@ -247,19 +124,15 @@ namespace Prototype.Tests
 
         // ── 도구 ────────────────────────────────────────
 
-        private static List<CardOffer> Build(IReadOnlyList<SkillData> pool, IReadOnlyList<ComboCard> owned,
-                                             int tier, System.Func<float> roll)
-            => CardOfferRules.Build(pool, owned, tier, roll);
+        private static List<CardOffer> Build(IReadOnlyList<SkillData> pool, System.Func<float> roll)
+            => CardOfferRules.Build(pool, roll);
 
         /// <summary>항상 같은 값을 주는 난수원.</summary>
         private static System.Func<float> Rolls(float value) => () => value;
 
         private List<SkillData> Pool() => new List<SkillData> { tank, warrior, archer, wizard };
 
-        private static List<ComboCard> Owned(params ComboCard[] cards) => new List<ComboCard>(cards);
-
         private static ComboCard Card(SkillData data) => new ComboCard(data);
-        private static ComboCard Golden(SkillData data) => new ComboCard(data, 1f, true);
 
         private SkillData NewSkill(string name, Role role)
         {

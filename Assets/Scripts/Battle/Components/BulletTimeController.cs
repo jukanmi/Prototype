@@ -314,7 +314,7 @@ namespace Prototype
                 caster = caster,
                 target = caster.AutoTarget(card.Data),
             };
-            CastTicket ticket = Director.Cast(new CastRequest(caster, card.Data, slot.target, card.DamageScale), _ =>
+            CastTicket ticket = Director.Cast(new CastRequest(caster, card.Data, slot.target), _ =>
             {
                 HandleSlotConsumed(card);
                 if (Phase == TacticPhase.RealTime && isActiveAndEnabled) RefillHand();
@@ -326,7 +326,7 @@ namespace Prototype
                 return false;
             }
             BattleLog.Log(LogCategory.Combo,
-                $"평타 적중 스킬 발동 — {card.Data.skillName}{(card.Golden ? " (황금)" : "")}", this);
+                $"평타 적중 스킬 발동 — {card.Data.skillName}", this);
             return true;
         }
 
@@ -577,19 +577,17 @@ namespace Prototype
         /// 일으키지 않은 것처럼 보인다. 보상은 고른 그 자리에서 손에 잡혀야 한다.
         /// </summary>
         /// <param name="card">받은 카드.</param>
-        /// <param name="fusedFrom">합성이면 재료가 된 스킬. 아니면 null.</param>
-        /// <param name="fuseCount">걷어낼 재료 장수.</param>
-        public void GrantCard(ComboCard card, SkillData fusedFrom = null, int fuseCount = 0)
+        public void GrantCard(ComboCard card)
         {
             if (card == null || card.Data == null) return;
 
-            Cards.Grant(card, fusedFrom, fuseCount);
+            Cards.Grant(card);
 
-            // 합성으로 손패가 빘을 수 있다. 남은 칸은 평소대로 덱에서 채운다.
+            // 손패가 비어 있을 수 있다. 남은 칸은 평소대로 덱에서 채운다.
             RefillHand();
 
             BattleLog.Log(LogCategory.Deck,
-                $"카드 획득 — {card.Data.skillName}{(card.Golden ? " <color=#FFD166>(황금)</color>" : "")} " +
+                $"카드 획득 — {card.Data.skillName} " +
                 $"→ 손패 | 덱 {Deck.Count} · 손패 {Hand.Count} · Discard {Discard.Count}", this);
         }
     }

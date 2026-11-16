@@ -62,23 +62,12 @@ namespace Prototype.Tests
                         $"Lv{level} → Lv{level + 1}, {tier}단계");
         }
 
-        // ── 황금 확률 ───────────────────────────────────
-
-        [Test]
-        public void GoldenChance_RisesWithTier()
-        {
-            Assert.That(ExpRules.GoldenChanceOf(0), Is.EqualTo(0f), "1단계는 특전 없음");
-            Assert.That(ExpRules.GoldenChanceOf(1), Is.EqualTo(0.20f).Within(0.0001f));
-            Assert.That(ExpRules.GoldenChanceOf(2), Is.EqualTo(0.50f).Within(0.0001f));
-        }
-
         [Test]
         public void InvalidTier_CannotBeBought()
         {
             Assert.That(ExpRules.IsValidTier(-1), Is.False);
             Assert.That(ExpRules.IsValidTier(ExpRules.TierCount), Is.False);
             Assert.That(ExpRules.CanAfford(999999, 1, 3), Is.False);
-            Assert.That(ExpRules.GoldenChanceOf(3), Is.EqualTo(0f));
         }
 
         // ── 지금 살 수 있는 것 ───────────────────────────
@@ -259,11 +248,10 @@ namespace Prototype.Tests
             var run = new RunProgression();
             run.SeedDeck(new List<ComboCard> { Card(), Card(), Card() });
 
-            run.SetDeck(new List<ComboCard> { Golden() });
+            run.SetDeck(new List<ComboCard> { Card() });
 
             Assert.That(run.Seeded, Is.True);
             Assert.That(run.Cards.Count, Is.EqualTo(1), "3장이 1장으로 갈아 끼워진다");
-            Assert.That(run.Cards[0].Golden, Is.True);
 
             run.SetDeck(new List<ComboCard>());
             Assert.That(run.Cards, Is.Empty, "빈 목록으로 덮으면 0장이어야 한다");
@@ -283,6 +271,5 @@ namespace Prototype.Tests
         // ── 도구 ────────────────────────────────────────
 
         private ComboCard Card() => new ComboCard(skill);
-        private ComboCard Golden() => new ComboCard(skill, 1f, true);
     }
 }

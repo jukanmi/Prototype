@@ -8,12 +8,11 @@ namespace Prototype
 {
     /// <summary>
     /// <b>디버그 모드</b>(<see cref="DeckStartupMode.Pick"/>)의 시작 덱 편집기.
-    /// 모든 카드 종류를 <b>일반 · 황금 두 벌로</b> 늘어놓고, 좌클릭으로 한 장 늘리고
+    /// 모든 카드 종류를 늘어놓고, 좌클릭으로 한 장 늘리고
     /// 우클릭으로 한 장 줄인다. 칸 아래에 장수가, 화면 맨 아래에 지금까지 담은 목록이 뜬다.
     ///
-    /// 카드 한 종류를 여러 장 담을 수 있는 것이 요점이다 — 합성(같은 카드 3장)과
-    /// 황금 데미지를 확인하려면 원하는 카드를 원하는 장수만큼 손에 쥘 수 있어야 하는데,
-    /// 정상 흐름으로는 레벨업 선택지가 그 카드를 뽑아 줄 때까지 기다리는 수밖에 없다.
+    /// 카드 한 종류를 여러 장 담을 수 있는 것이 요점이다 — 원하는 카드를 원하는 장수만큼
+    /// 손에 쥘 수 있어야 감각을 보는데, 정상 흐름으로는 선택지가 그 카드를 뽑아 줄 때까지 기다려야 한다.
     ///
     /// <c>RebindUI</c> · <see cref="LevelUpSession"/>과 같은 모달 패턴이다 —
     /// 씬 배선 없이 코드로 짓고, 열려 있는 동안 게임 조작을 잠근다.
@@ -31,7 +30,7 @@ namespace Prototype
         private const float CellGap = 10f;
         private const int Columns = 8;
 
-        /// <summary>칸 테두리 두께. 황금은 이 폭만큼 금색으로 남는다.</summary>
+        /// <summary>칸 테두리 두께.</summary>
         private const float CellFrame = 5f;
 
         private const float ViewportHeight = 520f;
@@ -45,7 +44,6 @@ namespace Prototype
         private static readonly Color CellColor = new Color(0.22f, 0.26f, 0.30f);
         private static readonly Color PickedColor = new Color(0.26f, 0.40f, 0.30f);
         private static readonly Color FrameColor = new Color(0.08f, 0.09f, 0.11f);
-        private static readonly Color GoldColor = new Color(1f, 0.80f, 0.28f);
         private static readonly Color TitleColor = new Color(1f, 0.86f, 0.45f);
         private static readonly Color SubColor = new Color(0.75f, 0.78f, 0.82f);
         private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
@@ -83,11 +81,10 @@ namespace Prototype
 
         // ── 한 칸 ────────────────────────────────────────
 
-        /// <summary>고를 수 있는 카드 한 종류. 같은 스킬이 일반 · 황금 두 칸으로 나온다.</summary>
+        /// <summary>고를 수 있는 카드 한 종류.</summary>
         private class Entry
         {
             public SkillData data;
-            public bool golden;
             public int count;
 
             public Image frame;
@@ -187,7 +184,7 @@ namespace Prototype
             {
                 Entry e = entries[i];
                 for (int n = 0; n < e.count; n++)
-                    picked.Add(new ComboCard(e.data, CardGrantRules.WeightOf(e.data), e.golden));
+                    picked.Add(new ComboCard(e.data, CardGrantRules.WeightOf(e.data)));
             }
 
             RunProgression.Current.SetDeck(picked);
@@ -233,7 +230,7 @@ namespace Prototype
                 e.countLabel.text = e.count > 0 ? $"×{e.count}" : "0";
                 e.countLabel.color = e.count > 0 ? HintColor : SubColor;
 
-                // 담은 칸은 면색으로 표시한다. 테두리는 등급(황금) 전용이라 겹쳐 쓸 수 없다.
+                // 담은 칸은 면색으로 표시한다.
                 e.body.color = e.count > 0 ? PickedColor : CellColor;
             }
 
@@ -255,8 +252,7 @@ namespace Prototype
 
                 string name = e.data != null ? e.data.skillName : "?";
 
-                if (e.golden && !plain) summary.Append($"<color=#FFCC47>{name}(황금) ×{e.count}</color>");
-                else summary.Append($"{name}{(e.golden ? "(황금)" : "")} ×{e.count}");
+                summary.Append($"{name} ×{e.count}");
             }
 
             return summary.Length > 0 ? summary.ToString() : "(아직 담은 카드가 없다 — 이대로 시작하면 0장 덱이다)";
@@ -280,7 +276,7 @@ namespace Prototype
             UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 48f));
 
             Text hint = UiKit.CreateText(p, "Hint",
-                "좌클릭 +1장 · 우클릭 −1장 · 황금 카드는 테두리가 금색이다", 20, HintColor);
+                "좌클릭 +1장 · 우클릭 −1장", 20, HintColor);
             UiKit.Place(hint, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(1200f, 30f));
 
             BuildScrollView(p);
@@ -337,8 +333,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 스킬 하나당 칸 둘 — 일반과 황금. 황금을 따로 놓지 않으면 "황금 카드도 모두 보여준다"가
-        /// 성립하지 않고, 황금 데미지를 확인하려면 레벨업 확률을 기다려야 한다.
+        /// 스킬 하나당 칸 하나.
         /// </summary>
         private void BuildEntries(IReadOnlyList<SkillData> pool)
         {
@@ -353,8 +348,7 @@ namespace Prototype
             {
                 if (pool[i] == null) continue;
 
-                entries.Add(new Entry { data = pool[i], golden = false });
-                entries.Add(new Entry { data = pool[i], golden = true });
+                entries.Add(new Entry { data = pool[i] });
             }
 
             for (int i = 0; i < entries.Count; i++) BuildCell(entries[i], i);
@@ -372,9 +366,8 @@ namespace Prototype
             float x = -span * 0.5f + CellWidth * 0.5f + column * (CellWidth + CellGap);
             float y = -CellGap - CellHeight * 0.5f - row * (CellHeight + CellGap);
 
-            // 테두리 판이 곧 칸의 루트다. 등급은 여기 색으로만 나타낸다.
-            GameObject frameGo = UiKit.CreateImage(content, $"Cell_{index}",
-                entry.golden ? GoldColor : FrameColor);
+            // 테두리 판이 곧 칸의 루트다.
+            GameObject frameGo = UiKit.CreateImage(content, $"Cell_{index}", FrameColor);
 
             var rect = (RectTransform)frameGo.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
@@ -414,10 +407,6 @@ namespace Prototype
                 entry.data != null ? entry.data.skillName : "?", 16, Color.white);
             UiKit.Band(name, new Vector2(0f, 0.24f), new Vector2(1f, 0.40f), 4f);
             name.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            Text grade = UiKit.CreateText(body, "Grade", entry.golden ? "황금" : "일반", 14,
-                entry.golden ? GoldColor : SubColor);
-            UiKit.Band(grade, new Vector2(0f, 0.12f), new Vector2(1f, 0.24f), 4f);
 
             // 장수는 칸 <b>아래</b>에 둔다. 아이콘 위에 겹치면 어느 카드인지가 안 읽힌다.
             entry.countLabel = UiKit.CreateText(body, "Count", "0", 20, SubColor);

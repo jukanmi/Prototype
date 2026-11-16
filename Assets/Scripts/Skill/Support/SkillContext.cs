@@ -42,8 +42,7 @@ namespace Prototype
         public int comboIndex;
 
         /// <summary>
-        /// 카드가 실어 보내는 데미지 배율. 황금 카드가 1.5를 넣는다
-        /// (<see cref="ComboCard.DamageScale"/>).
+        /// 카드가 실어 보내는 데미지 배율.
         /// </summary>
         public float damageScale;
 

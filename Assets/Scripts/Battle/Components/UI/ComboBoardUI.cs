@@ -31,9 +31,6 @@ namespace Prototype
         // 카드 크기 · 부채꼴 기하 · 판의 세로 쌓기는 HandFanLayout · HandBoardLayout이 정한다.
         // 카드 내부 치수와 색은 프리팹으로 옮겼다 — 여기 남은 건 <b>상태에 따라 코드가 갈아 끼우는</b> 값뿐이다.
 
-        /// <summary>황금 카드의 안쪽 판이 물러나는 두께. 그만큼이 금테로 남는다.</summary>
-        private const float ArtInset = 3f;
-
         /// <summary>조준 시작점을 카드 위쪽 모서리에서 얼마나 더 띄울지. 카드 높이 대비 비율.</summary>
 
         /// <summary>쿨타임 중인 카드의 투명도. 지금 못 쓴다는 걸 글자 없이도 알아보게 한다.</summary>
@@ -44,9 +41,6 @@ namespace Prototype
         private static readonly Color CursorCardColor = new Color(0.30f, 0.44f, 0.58f);
         private static readonly Color GrabbedCardColor = new Color(0.52f, 0.44f, 0.20f);
         private static readonly Color EmptyCardColor = new Color(0.4f, 0.18f, 0.18f);
-
-        /// <summary>황금 카드의 테두리. 레벨업 화면(<see cref="CardOfferView"/>)과 같은 금색이다.</summary>
-        private static readonly Color GoldFrameColor = new Color(1f, 0.80f, 0.28f);
 
         /// <summary>손패 판과 상세 패널 사이 여백.</summary>
         private const float DetailGap = 12f;
@@ -127,11 +121,7 @@ namespace Prototype
             /// <summary>카드 전체를 덮는 판. 아트 바깥 테두리 · 하단 상태 띠가 이 색으로 보인다.</summary>
             public Image background;
 
-            /// <summary>
-            /// 황금 카드의 안쪽 판. 배경을 금색으로 칠한 뒤 이 판이 <see cref="ArtInset"/>만큼
-            /// 물러난 자리를 상태색으로 덮어, 딱 그 두께의 금테만 남긴다.
-            /// 일반 카드에서는 꺼져 있어 배경 하나로 그리던 예전 그림 그대로다.
-            /// </summary>
+            /// <summary>예전 황금 테두리용 안쪽 판. 프리팹 직렬화가 남아 있어 필드만 두고 항상 끈다.</summary>
             public Image inner;
 
             /// <summary>SkillData.icon. 없으면 꺼지고 이름 · 직업 텍스트가 대신 나온다.</summary>
@@ -469,7 +459,7 @@ namespace Prototype
                     w.nameLabel.text = "(빈 카드)";
                     w.subLabel.text = "SkillData 미지정";
                     w.statusLabel.text = string.Empty;
-                    SetCardColor(w, EmptyCardColor, false);
+                    SetCardColor(w, EmptyCardColor);
                     w.group.alpha = 1f;
                     w.group.blocksRaycasts = true;
                     continue;
@@ -502,7 +492,7 @@ namespace Prototype
                            : CardColor;
 
                 // 등급은 테두리로, 상태는 면으로. 두 정보를 같은 채널에 실으면 둘 다 안 읽힌다.
-                SetCardColor(w, face, slot.card != null && slot.card.Golden);
+                SetCardColor(w, face);
 
                 w.group.alpha = 1f;
                 w.group.blocksRaycasts = true;
@@ -515,20 +505,12 @@ namespace Prototype
             UpdateTargets();
         }
 
-        /// <summary>
-        /// 카드 면색과 등급 테두리를 한 번에 바른다.
-        ///
-        /// 일반 카드면 두 겹을 꺼서 배경 하나로 그리던 예전 그림 그대로 두고,
-        /// 황금이면 금색 판을 켠 뒤 안쪽만 면색으로 덮어 <see cref="ArtInset"/> 두께의 링을 남긴다.
-        /// </summary>
-        private static void SetCardColor(CardWidgets w, Color face, bool golden)
+        /// <summary>카드 면색을 바른다. 안쪽 판(<c>inner</c>)은 프리팹에 남아 있을 뿐 항상 꺼 둔다.</summary>
+        private static void SetCardColor(CardWidgets w, Color face)
         {
-            w.background.color = golden ? GoldFrameColor : face;
+            w.background.color = face;
 
-            if (w.inner == null) return;
-
-            w.inner.enabled = golden;
-            w.inner.color = face;
+            if (w.inner != null) w.inner.enabled = false;
         }
 
         // ── 포즈 · 애니메이션 ────────────────────────────

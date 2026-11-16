@@ -297,7 +297,7 @@ namespace Prototype
     {
     }
 
-    /// <summary>평타 적중 추첨. 기존 시동기 DrawWeight와 무관하게 등급만 반영한다.</summary>
+    /// <summary>평타 적중 추첨. 기존 시동기 DrawWeight와 무관하게 카드마다 같은 몫이다.</summary>
     public static class BasicAttackDrawRules
     {
         public const float DrawChance = 0.25f;
@@ -312,14 +312,14 @@ namespace Prototype
             for (int i = 0; i < cards.Count; i++)
             {
                 if (cards[i] == null || cards[i].Data == null) continue;
-                total += cards[i].Golden ? 1 : 2;
+                total += 1;
                 last = i;
             }
             float remaining = Mathf.Clamp01(roll) * total;
             for (int i = 0; i < cards.Count; i++)
             {
                 if (cards[i] == null || cards[i].Data == null) continue;
-                remaining -= cards[i].Golden ? 1 : 2;
+                remaining -= 1;
                 if (remaining < 0f) return i;
             }
             return last;

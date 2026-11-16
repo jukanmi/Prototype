@@ -140,7 +140,7 @@ namespace Prototype
         /// <see cref="ComboExecutor"/>를 거치지 않고 상태머신에 바로 밀어넣는다 —
         /// 실시간 사용은 콤보 큐가 아니라 즉발이기 때문.
         /// </summary>
-        /// <param name="damageScale">카드가 실어 보내는 데미지 배율. 황금 카드가 1.5를 넣는다.</param>
+        /// <param name="damageScale">카드가 실어 보내는 데미지 배율.</param>
         public bool CastCard(SkillData data, in TargetInfo info, float damageScale = 1f)
         {
             if (data == null || !CanCastCard) return false;

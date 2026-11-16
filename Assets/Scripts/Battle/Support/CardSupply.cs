@@ -255,21 +255,9 @@ namespace Prototype
         // ── 보상 카드 ────────────────────────────────────
 
         /// <summary>
-        /// 받은 카드를 <b>곧바로 손패에 꽂는다</b>. 합성이면 재료를 먼저 걷는다.
-        /// 남은 칸 보충과 로그는 부르는 쪽 몫이다.
+        /// 받은 카드를 <b>곧바로 손패에 꽂는다</b>. 남은 칸 보충과 로그는 부르는 쪽 몫이다.
         /// </summary>
-        public void Grant(ComboCard card, SkillData fusedFrom, int fuseCount)
-        {
-            if (fusedFrom != null && fuseCount > 0)
-            {
-                int eaten = ConsumeNormalCopies(fusedFrom, fuseCount);
-
-                BattleLog.Log(LogCategory.Deck,
-                    $"합성 재료 회수 — {fusedFrom.skillName} {eaten}/{fuseCount}장", logContext);
-            }
-
-            PlaceInHand(card);
-        }
+        public void Grant(ComboCard card) => PlaceInHand(card);
 
         /// <summary>
         /// 카드를 손패에 바로 꽂는다. 손패가 차 있으면 <b>맨 오른쪽</b> 칸을 덱으로 돌려보내고
@@ -287,31 +275,6 @@ namespace Prototype
 
             // 손패가 꽉 찬 채로 여기 오는 경우는 없지만, 실패해도 카드를 잃지는 않는다.
             if (!Hand.Add(card)) Discard.Add(card);
-        }
-
-        /// <summary>
-        /// 합성 재료를 지금 판에서 걷어낸다. <b>버린 더미 → 덱 → 손패</b> 순서다 —
-        /// 손패는 유저가 눈으로 짜 둔 순서라 마지막까지 아낀다.
-        /// 황금은 재료가 아니므로 건드리지 않는다.
-        /// </summary>
-        private int ConsumeNormalCopies(SkillData data, int count)
-        {
-            int budget = count;
-
-            bool Match(ComboCard c)
-            {
-                if (budget <= 0) return false;
-                if (c == null || c.Golden || c.Data != data) return false;
-
-                budget--;
-                return true;
-            }
-
-            int removed = Discard.RemoveAll(Match);
-            removed += Deck.RemoveAll(Match);
-            removed += Hand.RemoveAll(Match);
-
-            return removed;
         }
     }
 }
