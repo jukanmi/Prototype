@@ -267,7 +267,9 @@ namespace Prototype
 
         private void DrawNode(RunMap map, MapNode node, MapNodeState state)
         {
-            string sub = node.HasScene ? $"\n<size=15>{node.Scene}</size>" : "";
+            // 아이콘이 있는 칸은 그림 + 이름만. 씬 이름까지 얹으면 110 높이에 안 들어간다.
+            Sprite icon = IconOf(node.Kind);
+            string sub = node.HasScene && icon == null ? $"\n<size=15>{node.Scene}</size>" : "";
             Button b = UiKit.CreateButton(mapRoot, $"Node_{node.Id}", RunMapViewRules.KindLabel(node.Kind) + sub,
                                           NodeColor(node.Kind, state), RunMapLayout.NodeSize, 28);
             UiKit.Place(b, new Vector2(0.5f, 0.5f), RunMapLayout.PositionOf(map, node), RunMapLayout.NodeSize);
@@ -284,6 +286,22 @@ namespace Prototype
             {
                 label.supportRichText = true;
                 label.color = state == MapNodeState.Closed ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
+
+                if (icon != null)
+                {
+                    // 글자는 아래 띠로 내리고, 위 칸에 아이콘을 앉힌다.
+                    var labelRect = (RectTransform)label.transform;
+                    labelRect.anchorMin = Vector2.zero;
+                    labelRect.anchorMax = new Vector2(1f, 0.3f);
+                    labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+                    label.fontSize = 22;
+
+                    Color tint = state == MapNodeState.Closed ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
+                    Image img = UiKit.NewImage(b.transform, "Icon", tint);
+                    img.sprite = icon;
+                    img.preserveAspect = true;
+                    UiKit.Place(img, new Vector2(0.5f, 1f), new Vector2(0f, -4f - IconSize * 0.5f), new Vector2(IconSize, IconSize));
+                }
             }
 
             bool selectable = state == MapNodeState.Selectable;
@@ -378,6 +396,31 @@ namespace Prototype
         }
 
         // ── 색 ─────────────────────────────────────────
+
+        private const float IconSize = 68f;
+
+        private static readonly Dictionary<MapNodeKind, Sprite> iconCache = new Dictionary<MapNodeKind, Sprite>();
+
+        /// <summary>Resources/MapIcons/map_*.png. 휴식은 그림이 아직 없어 null — 글자 칸으로 남는다.</summary>
+        private static Sprite IconOf(MapNodeKind kind)
+        {
+            if (iconCache.TryGetValue(kind, out Sprite cached) && cached != null) return cached;
+
+            string name;
+            switch (kind)
+            {
+                case MapNodeKind.Battle: name = "map_battle"; break;
+                case MapNodeKind.Elite:  name = "map_elite";  break;
+                case MapNodeKind.Shop:   name = "map_shop";   break;
+                case MapNodeKind.Event:  name = "map_event";  break;
+                case MapNodeKind.Boss:   name = "map_boss";   break;
+                default: return null;
+            }
+
+            Sprite sprite = Resources.Load<Sprite>("MapIcons/" + name);
+            iconCache[kind] = sprite;
+            return sprite;
+        }
 
         private static Color KindColor(MapNodeKind kind)
         {

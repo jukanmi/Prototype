@@ -98,7 +98,7 @@ namespace Prototype
 
     /// <summary>
     /// 카드 세 장을 골드로 사는 창. 들어올 때 한 번 뽑고, 산 칸은 "구매함"으로 잠긴다.
-    /// 레벨업 화면의 카드 그림(<see cref="CardOfferView"/>)을 그대로 쓴다 — 같은 카드가
+    /// 카드 선택 그림(<see cref="CardOfferView"/>)을 그대로 쓴다 — 같은 카드가
     /// 두 화면에서 다르게 생기면 같은 물건으로 안 읽힌다.
     /// </summary>
     public class ShopWindow
@@ -127,7 +127,7 @@ namespace Prototype
             notice = UiKit.CreateText(panel, "Notice", "", 22, NodeWindows.WarnColor);
             UiKit.Place(notice, new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(900f, 36f));
 
-            offers = CardOfferRules.Build(Pool(), Run.Cards, NodeRules.ShopOfferTier, () => UnityEngine.Random.value);
+            offers = CardOfferRules.Build(Pool(), () => UnityEngine.Random.value);
             views = new CardOfferView[offers.Count];
             prices = new Text[offers.Count];
             sold = new bool[offers.Count];
@@ -158,7 +158,7 @@ namespace Prototype
             // 살 수 있는 첫 카드에 커서를 둔다. 하나도 못 사면 [나가기]다.
             Selectable first = exit;
             for (int i = 0; i < views.Length; i++)
-                if (Run.Gold >= GoldRules.PriceOf(offers[i]))
+                if (Run.Gold >= GoldRules.CardPriceNow())
                 {
                     first = views[i].Root.GetComponentInChildren<Button>();
                     break;
@@ -173,7 +173,7 @@ namespace Prototype
         {
             if (index < 0 || index >= offers.Count || sold[index]) return;
 
-            int price = GoldRules.PriceOf(offers[index]);
+            int price = GoldRules.CardPriceNow();
             if (!Run.TrySpendGold(price))
             {
                 notice.text = $"골드가 모자라다 ({Run.Gold} / {price})";
@@ -194,7 +194,7 @@ namespace Prototype
 
             for (int i = 0; i < offers.Count; i++)
             {
-                int price = GoldRules.PriceOf(offers[i]);
+                int price = GoldRules.CardPriceNow();
                 bool affordable = Run.Gold >= price;
 
                 views[i].SetInteractable(!sold[i] && affordable);
