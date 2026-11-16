@@ -329,7 +329,7 @@ namespace Prototype
                     Image img = UiKit.NewImage(b.transform, "Icon", tint);
                     img.sprite = icon;
                     img.preserveAspect = true;
-                    UiKit.Place(img, new Vector2(0.5f, 1f), new Vector2(0f, -4f - IconSize * 0.5f), new Vector2(IconSize, IconSize));
+                    UiKit.Place(img, new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(IconSize, IconSize));
                 }
             }
 
