@@ -10,7 +10,7 @@ namespace Prototype
     // ══ RunProgression ═══════════════════════════════════════════
 
     /// <summary>
-    /// 런 하나가 들고 가는 성장 상태 — 경험치 · 레벨 · <b>런 덱</b>.
+    /// 런 하나가 들고 가는 상태 — 골드 · <b>런 덱</b>.
     ///
     /// <see cref="UnityEngine.MonoBehaviour"/>가 아니다. 씬 오브젝트를 절대 참조하지 않는
     /// <c>GameManager</c>가 소유하므로, 스테이지 씬이 언로드돼도 여기 든 카드는 살아남는다.
@@ -49,13 +49,20 @@ namespace Prototype
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => standalone = null;
 
+        /// <summary>
+        /// 런 누적 경험치. 적 처치로 쌓이기만 한다 — 아직 쓰는 곳이 없다(스킬 카드 획득과 무관).
+        /// 사용처는 추후 붙인다.
+        /// </summary>
         public int Exp { get; private set; }
-        public int Level { get; private set; } = ExpRules.FirstLevel;
+
+        /// <summary>
+        /// 웨이브 도중 처치로 쌓인, 아직 정산 전인 경험치. <see cref="Exp"/>에는 안 들어간다.
+        /// </summary>
+        public int PendingExp { get; private set; }
 
         /// <summary>
         /// 런 골드. 스테이지를 클리어할 때 들어오고(<see cref="GoldRules.StageClearReward"/>)
-        /// 상점 · 이벤트 칸에서 나간다. <b>경험치와 따로 둔다</b> — 경험치는 레벨업 단계를 사는 돈이라
-        /// 둘을 한 주머니에 넣으면 상점에서 산 만큼 레벨업이 늦어지는 교환이 생긴다.
+        /// 상점 · 이벤트 칸에서 나간다.
         /// </summary>
         public int Gold { get; private set; }
 
@@ -72,7 +79,7 @@ namespace Prototype
         /// </summary>
         public bool Seeded { get; private set; }
 
-        /// <summary>경험치 · 레벨 · 덱 중 무엇이든 바뀌면 발화. UI가 이걸 보고 다시 그린다.</summary>
+        /// <summary>골드 · 덱 중 무엇이든 바뀌면 발화. UI가 이걸 보고 다시 그린다.</summary>
         public event Action OnChanged;
 
         // ── 경험치 ──────────────────────────────────────
@@ -84,12 +91,6 @@ namespace Prototype
             Exp += amount;
             OnChanged?.Invoke();
         }
-
-        /// <summary>
-        /// 웨이브 도중 처치로 쌓인, 아직 정산 전인 경험치. <see cref="Exp"/>에는 안 들어간다 —
-        /// 웨이브가 끝나기 전에 레벨업 화면이 새 값을 읽으면 안 된다.
-        /// </summary>
-        public int PendingExp { get; private set; }
 
         public void BankExp(int amount)
         {
@@ -125,29 +126,6 @@ namespace Prototype
             if (amount == 0) return true;
 
             Gold -= amount;
-            OnChanged?.Invoke();
-            return true;
-        }
-
-        public bool CanLevelUp(int tier) => ExpRules.CanAfford(Exp, Level, tier);
-
-        /// <summary>지금 살 수 있는 가장 비싼 단계. 하나도 못 사면 -1.</summary>
-        public int HighestAffordableTier => ExpRules.HighestAffordableTier(Exp, Level);
-
-        /// <summary>이번 레벨에서 그 단계에 드는 경험치.</summary>
-        public int CostOf(int tier) => ExpRules.CostOf(Level, tier);
-
-        /// <summary>
-        /// 그 단계로 레벨을 올린다. <b>그 단계 값만</b> 빠지고 남은 경험치는 그대로 있다.
-        /// 단계와 무관하게 레벨은 +1이다 — 단계가 바꾸는 것은 가격뿐이다.
-        /// </summary>
-        public bool Spend(int tier)
-        {
-            if (!CanLevelUp(tier)) return false;
-
-            Exp -= ExpRules.CostOf(Level, tier);
-            Level++;
-
             OnChanged?.Invoke();
             return true;
         }
@@ -237,7 +215,6 @@ namespace Prototype
             Exp = 0;
             PendingExp = 0;
             Gold = 0;
-            Level = ExpRules.FirstLevel;
             Seeded = false;
             cards.Clear();
 
@@ -248,86 +225,15 @@ namespace Prototype
         }
     }
 
-    // ══ ExpRules ═══════════════════════════════════════════
-
-    /// <summary>
-    /// 경험치와 레벨업 단계의 <b>수치 전부</b>. 순수 함수라 씬을 켜지 않고 검증한다
-    /// (<see cref="EncounterClearRules"/> · <see cref="StageOutcomeRules"/>와 같은 이유).
-    ///
-    /// <code>
-    ///   BaseCost(L)   = 10 × 1.1^(L-1)     레벨업할 때마다 다음 요구치가 1.1배
-    ///   Cost(L, tier) = ceil(BaseCost(L) × [1.0, 1.5, 2.0][tier])
-    /// </code>
-    ///
-    /// <b>단계는 레벨 상승폭을 바꾸지 않는다</b> — 어느 단계로 올리든 레벨은 +1이다.
-    /// 황금 카드를 없애면서 단계는 가격만 다르다. 경험치 사용처는 추후 다시 짠다.
-    ///
-    /// 소모는 <b>그 단계 값만</b> 빠진다. 남은 경험치는 다음 레벨업으로 이월된다.
-    /// </summary>
-    public static class ExpRules
-    {
-        /// <summary>1단계 · 2단계 · 3단계.</summary>
-        public const int TierCount = 3;
-
-        /// <summary>1레벨 1단계의 비용. 적 한 기가 떨어뜨리는 경험치와 같게 맞췄다.</summary>
-        public const int BaseCost = 10;
-
-        /// <summary>레벨이 오를 때마다 요구 경험치에 곱해지는 값.</summary>
-        public const double LevelGrowth = 1.1;
-
-        /// <summary>레벨은 1부터 센다.</summary>
-        public const int FirstLevel = 1;
-
-        private static readonly double[] CostMul = { 1.0, 1.5, 2.0 };
-
-        /// <summary>
-        /// 올림 직전에 빼 주는 오차 여유.
-        ///
-        /// <c>10 × 1.1</c>은 부동소수점에서 정확히 11이 아니라 11.000000000000002다.
-        /// 그대로 올리면 2레벨 1단계가 11이 아니라 <b>12</b>가 되어 표와 어긋난다.
-        /// </summary>
-        private const double CeilEpsilon = 1e-6;
-
-        public static bool IsValidTier(int tier) => tier >= 0 && tier < TierCount;
-
-        /// <summary>이 레벨의 1단계 비용(올림 전 실수값).</summary>
-        public static double BaseCostOf(int level)
-            => BaseCost * Math.Pow(LevelGrowth, Math.Max(FirstLevel, level) - FirstLevel);
-
-        /// <summary>이 레벨에서 그 단계로 올리는 데 드는 경험치. 잘못된 단계는 살 수 없게 int.MaxValue.</summary>
-        public static int CostOf(int level, int tier)
-            => IsValidTier(tier)
-                ? (int)Math.Ceiling(BaseCostOf(level) * CostMul[tier] - CeilEpsilon)
-                : int.MaxValue;
-
-        public static bool CanAfford(int exp, int level, int tier)
-            => IsValidTier(tier) && exp >= CostOf(level, tier);
-
-        /// <summary>지금 살 수 있는 가장 비싼 단계. 하나도 못 사면 -1.</summary>
-        public static int HighestAffordableTier(int exp, int level)
-        {
-            for (int tier = TierCount - 1; tier >= 0; tier--)
-                if (CanAfford(exp, level, tier)) return tier;
-
-            return -1;
-        }
-
-        /// <summary>사람에게 보여 줄 번호. 0번 단계가 "1단계"다.</summary>
-        public static int TierNumber(int tier) => tier + 1;
-    }
-
     // ══ ExpRewards ═══════════════════════════════════════════
 
     /// <summary>
-    /// 적이 죽었을 때 경험치를 누구에게 얼마나 주는지. 정책을 한 곳에 모아 둔다 —
-    /// <see cref="Enemy"/>는 "죽었다"만 알리고 계산은 여기서 한다.
+    /// 적이 죽었을 때 경험치를 적립하고, 방의 웨이브를 다 깼을 때 정산한다.
+    /// 경험치는 쌓이기만 한다 — 레벨업 · 카드 획득과 이어지지 않는다.
     /// </summary>
     public static class ExpRewards
     {
-        // ── 적이 쓰러질 때마다 (Enemy.Defeated) ──
-
 #if UNITY_EDITOR
-        // 에디트 모드(EditMode 테스트)에서도 꽂혀 있어야 예전 동작과 같다.
         [UnityEditor.InitializeOnLoadMethod]
 #endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -335,27 +241,27 @@ namespace Prototype
         {
             Enemy.Defeated -= Award;
             Enemy.Defeated += Award;
+
+            StageDirector.AllWavesCleared -= Settle;
+            StageDirector.AllWavesCleared += Settle;
         }
 
-        /// <summary>
-        /// 적 한 기의 사망 보상. <see cref="EnemyData.exp"/>가 0인 개체(훈련장 더미)는 그냥 넘어간다.
-        /// </summary>
+        /// <summary>적 한 기의 사망 보상. <see cref="EnemyData.exp"/>가 0인 개체(훈련장 더미)는 그냥 넘어간다.</summary>
         public static void Award(Enemy enemy)
         {
             if (enemy == null || enemy.Data == null) return;
 
-            RunProgression run = RunProgression.Current;
-
             int amount = enemy.Data.exp;
             if (amount <= 0) return;
 
+            RunProgression run = RunProgression.Current;
             run.BankExp(amount);
 
             BattleLog.Log(LogCategory.State,
                 $"{enemy.name} 처치 — 경험치 +{amount} 적립 (정산 대기 {run.PendingExp})", enemy);
         }
 
-        /// <summary>웨이브가 끝났을 때 쌓인 경험치를 한꺼번에 넣는다. 레벨업 화면을 열기 <b>전에</b> 부른다.</summary>
+        /// <summary>웨이브가 끝났을 때 쌓인 경험치를 한꺼번에 넣는다.</summary>
         public static void Settle()
         {
             RunProgression run = RunProgression.Current;
@@ -363,8 +269,7 @@ namespace Prototype
             int amount = run.SettleExp();
             if (amount <= 0) return;
 
-            BattleLog.Log(LogCategory.State,
-                $"웨이브 정산 — 경험치 +{amount} (누적 {run.Exp}, Lv.{run.Level})");
+            BattleLog.Log(LogCategory.State, $"웨이브 정산 — 경험치 +{amount} (누적 {run.Exp})");
         }
     }
 

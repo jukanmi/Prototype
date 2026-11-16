@@ -52,7 +52,7 @@ namespace Prototype
     }
 
     // ══ GameplayModal ═══════════════════════════════════════════════
-    // "지금 게임을 멈추는 창이 떠 있는가". 여는 쪽(LevelUpSession · DeckBuilderUI · Run 층)이
+    // "지금 게임을 멈추는 창이 떠 있는가". 여는 쪽(CardRewardSession · DeckBuilderUI · Run 층)이
     // 자기 열림 여부를 등록하고, 멈춰야 하는 쪽(StageDirector · BattleSceneController)은 IsOpen만 본다.
     public static class GameplayModal
     {

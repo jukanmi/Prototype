@@ -24,7 +24,7 @@ namespace Prototype
         /// <summary>웨이브 하나를 소탕했다. 전술층(CastDirector)이 남은 시전을 회수한다.</summary>
         public static event Action AnyWaveCleared;
 
-        /// <summary>방의 웨이브를 전부 소탕했다. 진행층(ExpRewards)이 정산하고 레벨업을 연다.</summary>
+        /// <summary>방의 웨이브를 전부 소탕했다. 진행층(ExpRewards)이 경험치를 정산한다.</summary>
         public static event Action AllWavesCleared;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

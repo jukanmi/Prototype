@@ -14,7 +14,7 @@ namespace Prototype
     /// 카드 한 종류를 여러 장 담을 수 있는 것이 요점이다 — 원하는 카드를 원하는 장수만큼
     /// 손에 쥘 수 있어야 감각을 보는데, 정상 흐름으로는 선택지가 그 카드를 뽑아 줄 때까지 기다려야 한다.
     ///
-    /// <c>RebindUI</c> · <see cref="LevelUpSession"/>과 같은 모달 패턴이다 —
+    /// <c>RebindUI</c> · <see cref="CardRewardSession"/>과 같은 모달 패턴이다 —
     /// 씬 배선 없이 코드로 짓고, 열려 있는 동안 게임 조작을 잠근다.
     /// </summary>
     public class DeckBuilderUI : MonoBehaviour

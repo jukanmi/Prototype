@@ -111,6 +111,8 @@ namespace Prototype
         /// <summary>런 누적 경험치. <see cref="Run"/>이 진짜 주인이고 이건 읽는 창구다.</summary>
         public int TotalExp => Run.Exp;
 
+        public void AddExp(int amount) => Run.AddExp(amount);
+
         private void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -234,8 +236,6 @@ namespace Prototype
 
             Progress = null;
         }
-
-        public void AddExp(int amount) => Run.AddExp(amount);
 
         // ── 전환 ────────────────────────────────────────
         // 전부 "지금 떠 있는 씬 이름"을 받아 그 씬을 내리고 새 씬을 얹는다.

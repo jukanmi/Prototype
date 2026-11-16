@@ -206,7 +206,7 @@ namespace Prototype
 
             BattleLog.Log(LogCategory.Deck,
                 $"덱 구성 완료 — {cards.Count}장을 Discard에 적재 (덱 0장에서 시작) | " +
-                $"동료 {members}명 · 한 바퀴 {DeckRules.CycleHands(cards.Count)}핸드 | 런 Lv.{run.Level}", logContext);
+                $"동료 {members}명 · 한 바퀴 {DeckRules.CycleHands(cards.Count)}핸드", logContext);
 
             if (empty > 0)
                 BattleLog.Warn(LogCategory.Deck,
