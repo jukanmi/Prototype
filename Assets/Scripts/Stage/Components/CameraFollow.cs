@@ -82,13 +82,97 @@ namespace Prototype
             transform.position = Rig(transform.position.x);
         }
 
+        // ── 화면 흔들림 ──────────────────────────────────
+
+        private const string ShakePref = "ScreenShake";
+
+        /// <summary>설정에서 끄고 켠다. 기본 켜짐.</summary>
+        public static bool ShakeEnabled
+        {
+            get => PlayerPrefs.GetInt(ShakePref, 1) == 1;
+            set => PlayerPrefs.SetInt(ShakePref, value ? 1 : 0);
+        }
+
+        [System.Serializable]
+        private class ShakeProfile
+        {
+            public float amplitude;
+            public float duration;
+            [Tooltip("다음 흔들림이 허용될 때까지의 시간(초). 흔들리는 시간 포함.")]
+            public float cooldown;
+            [System.NonSerialized] public float next;
+
+            public ShakeProfile(float amplitude, float duration, float cooldown)
+            {
+                this.amplitude = amplitude;
+                this.duration = duration;
+                this.cooldown = cooldown;
+            }
+        }
+
+        [Header("흔들림 (적 피격 시)")]
+        [SerializeField] private ShakeProfile basicShake = new ShakeProfile(0.08f, 0.1f, 0.15f);
+        [SerializeField] private ShakeProfile skillShake = new ShakeProfile(0.3f, 0.25f, 0.5f);
+
+        private float _shakeLeft, _shakeAmp, _shakeDur;
+        private bool _pendingHit, _pendingBasic;
+        private Vector3 _shakeOffset;
+
+        private void OnEnable()
+        {
+            CombatEvents.OnAnyDamageDealt += OnDamage;
+            CombatEvents.OnAnyBasicHitLanded += OnBasicHit;
+        }
+
+        private void OnDisable()
+        {
+            CombatEvents.OnAnyDamageDealt -= OnDamage;
+            CombatEvents.OnAnyBasicHitLanded -= OnBasicHit;
+        }
+
+        // 피해 이벤트가 먼저, 평타 이벤트가 같은 Attack 안에서 바로 뒤에 온다(Combat.Attack).
+        // 그래서 여기서는 표시만 하고 LateUpdate에서 평타인지 보고 정한다.
+        private void OnDamage(Combat attacker, Combat victim, float dealt)
+        {
+            if (victim != null && victim.GetComponentInParent<Enemy>() != null) _pendingHit = true;
+        }
+
+        private void OnBasicHit(Combat attacker, Combat victim, int swing) => _pendingBasic = true;
+
+        private void StartShake()
+        {
+            bool basic = _pendingBasic;
+            _pendingHit = _pendingBasic = false;
+
+            ShakeProfile p = basic ? basicShake : skillShake;
+            if (!ShakeEnabled || Time.unscaledTime < p.next) return;
+
+            // 더 센 흔들림이 진행 중이면 약한 걸로 덮지 않는다.
+            if (_shakeLeft > 0f && p.amplitude < _shakeAmp * _shakeLeft / _shakeDur) return;
+
+            _shakeAmp = p.amplitude;
+            _shakeDur = p.duration;
+            _shakeLeft = p.duration;
+            p.next = Time.unscaledTime + p.cooldown;
+        }
+
         private void LateUpdate()
         {
             transform.rotation = Rotation;
 
             if (target == null) return;
 
+            // 지난 프레임 흔들림을 걷어내야 Frame이 흔들린 x를 기준점으로 읽지 않는다.
+            transform.position -= _shakeOffset;
             transform.position = Frame(transform.position.x, Time.unscaledDeltaTime);
+
+            if (_pendingHit) StartShake();
+
+            _shakeLeft = Mathf.Max(0f, _shakeLeft - Time.unscaledDeltaTime);
+            _shakeOffset = ShakeEnabled && _shakeLeft > 0f
+                ? (Vector3)(Random.insideUnitCircle * (_shakeAmp * _shakeLeft / _shakeDur))
+                : Vector3.zero;
+            transform.position += _shakeOffset;
         }
 
         /// <summary>즉시 목표 지점으로 붙인다. 스테이지 진입 시.</summary>

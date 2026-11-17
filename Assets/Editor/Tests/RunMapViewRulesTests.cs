@@ -177,48 +177,6 @@ namespace Prototype.Tests
                         "열 간격이 칸 높이보다 좁으면 위아래 칸이 겹친다");
         }
 
-        // ── 글 ─────────────────────────────────────────
-
-        /// <summary>설명의 수치는 규칙에서 읽는다 — 회복량을 바꾸면 글도 따라 바뀌어야 한다.</summary>
-        [Test]
-        public void Describe_ReadsNumbersFromRules()
-        {
-            var rest = new MapNode(0, 0, 0, MapNodeKind.Rest, "", null);
-            var elite = new MapNode(1, 0, 1, MapNodeKind.Elite, "S", null);
-
-            Assert.That(RunMapViewRules.Describe(rest), Does.Contain($"{NodeRules.RestHealRatio:0%}"));
-            Assert.That(RunMapViewRules.Describe(elite), Does.Contain(EncounterModifierRules.EliteNodeEvery.ToString()));
-            Assert.That(RunMapViewRules.Describe(elite),
-                        Does.Contain($"x{GoldRules.ClearRewardPercent(MapNodeKind.Elite) / 100f:0.##}"),
-                        "정예를 고를 이유(골드 배율)가 설명에 보여야 한다");
-        }
-
-        /// <summary>
-        /// 방 크기가 바뀐 칸은 고르기 전에 알 수 있어야 한다(docs/Room_Size_Plan.md 2.1 · 8단계).
-        /// 100%인 칸에는 안 붙인다 — 모든 칸에 "방 크기 100%"가 붙으면 정보가 아니라 소음이다.
-        /// </summary>
-        [Test]
-        public void Describe_ShowsRoomPercent_OnlyWhenResized()
-        {
-            var battle = new MapNode(0, 0, 0, MapNodeKind.Battle, "A", null, 90);
-            var elite = new MapNode(1, 0, 1, MapNodeKind.Elite, "S", null, 110);
-            var full = new MapNode(2, 0, 2, MapNodeKind.Battle, "B", null);
-
-            Assert.That(RunMapViewRules.Describe(battle), Does.EndWith(" · 방 크기 90%"));
-            Assert.That(RunMapViewRules.Describe(elite), Does.EndWith(" · 방 크기 110%"));
-            Assert.That(RunMapViewRules.Describe(elite), Does.Contain($"x{GoldRules.ClearRewardPercent(MapNodeKind.Elite) / 100f:0.##}"),
-                        "방 크기를 붙이면서 정예 설명이 잘렸다");
-            Assert.That(RunMapViewRules.Describe(full), Does.Not.Contain("방 크기"));
-        }
-
-        /// <summary>보스 칸에 비율이 박혀 있어도 전투는 100%로 돈다. 지도도 그렇게 말해야 한다.</summary>
-        [Test]
-        public void Describe_BossNeverShowsRoomPercent()
-        {
-            var boss = new MapNode(0, 0, 0, MapNodeKind.Boss, "Z", null, 90);
-            Assert.That(RunMapViewRules.Describe(boss), Does.Not.Contain("방 크기"));
-        }
-
         [Test]
         public void KindLabel_EveryKindHasItsOwn()
         {

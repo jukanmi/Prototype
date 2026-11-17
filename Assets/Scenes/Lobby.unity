@@ -127,6 +127,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1398210360456808889, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2219754581378737675, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -167,9 +191,41 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3527330499460878549, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3527330499460878549, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3888511937950883998, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
       propertyPath: m_Name
       value: BattleInput
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6525660696694718364, guid: 9e5fe3eee62274744b62f695637bb06c, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -564,7 +620,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ba5aa6b422d550c41946a3f92aa44750, type: 3}
   m_Name: 
@@ -577,6 +633,9 @@ MonoBehaviour:
   deadZoneHalfWidth: 1.5
   minX: 0
   maxX: 0
+  shakeAmplitude: 0.3
+  shakeDuration: 0.25
+  shakeCooldown: 0.5
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -1026,11 +1085,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4356677809429472531, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.88
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4356677809429472531, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.88
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4356677809429472531, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1050,15 +1109,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4385537175810146633, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.792
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 4385537175810146633, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.792
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 4385537175810146633, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.88
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4385537175810146633, guid: 866093a366d4cc64bbec45106a4f06c2, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1173,7 +1232,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3fc03c1bb41e427bb4744bd04da44f43, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyController
 --- !u!1 &2000000200
 GameObject:
@@ -1217,7 +1276,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
   station: 0
   label: "\uBBF8\uAD81 \uC785\uAD6C"
@@ -1264,7 +1323,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
   station: 1
   label: "\uC6A9\uBCD1 \uAC8C\uC2DC\uD310"
@@ -1311,7 +1370,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
   station: 3
   label: "\uC720\uC0B0 \uC81C\uB2E8"
@@ -1358,7 +1417,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
   station: 2
   label: "\uB9C8\uBC95\uC0AC"
@@ -1405,7 +1464,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
   station: 4
   label: "\uAE30\uB85D\uD310"

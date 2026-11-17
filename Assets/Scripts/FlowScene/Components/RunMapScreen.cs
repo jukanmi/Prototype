@@ -231,7 +231,7 @@ namespace Prototype
             RunMap map = progress.Map;
             HashSet<int> reach = RunMapViewRules.Reachable(progress);
 
-            DrawFloorLabels(map);
+
             DrawEdges(map, reach);
 
             // 칸보다 먼저 깔아야 테두리가 칸 뒤에 선다.
@@ -252,23 +252,11 @@ namespace Prototype
         private void DrawHeader(RunMap map)
         {
             string gold = $"골드 {RunProgression.Current.Gold}";
-            string where = progress.IsFinished ? "완주" : $"{progress.FloorNumber}층 / {map.FloorCount}층";
             string tag = preview ? $"   (미리보기 · 시드 {map.Seed})" : "";
 
-            header.text = $"{where}   ·   {gold}{tag}";
+            header.text = $"{gold}{tag}";
         }
 
-        private void DrawFloorLabels(RunMap map)
-        {
-            for (int f = 0; f < map.FloorCount; f++)
-            {
-                float x = RunMapLayout.PositionOf(f, 0, 1, map.FloorCount).x;
-                string label = f == map.LastFloor ? "보스" : $"{f + 1}층";
-
-                Text t = UiKit.CreateText(mapRoot, $"Floor_{f}", label, 22, FloorLabelColor);
-                UiKit.Place(t, new Vector2(0.5f, 0.5f), new Vector2(x, RunMapLayout.Height * 0.5f + 110f), new Vector2(200f, 32f));
-            }
-        }
 
         private void DrawEdges(RunMap map, HashSet<int> reach)
         {
@@ -429,7 +417,6 @@ namespace Prototype
             MapNode node = nodeOf[selected];
             focus.gameObject.SetActive(true);
             focus.anchoredPosition = RunMapLayout.PositionOf(progress.Map, node);
-            SetInfo(RunMapViewRules.Describe(node));
         }
 
         // ── 색 ─────────────────────────────────────────

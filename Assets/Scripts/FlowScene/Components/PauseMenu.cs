@@ -31,7 +31,7 @@ namespace Prototype
 
         private GameObject root;
         private Slider master, bgm, sfx;
-        private Button rebindButton;
+        private Button rebindButton, shakeButton;
         private Button first;
         private RebindUI rebind;
 
@@ -178,7 +178,7 @@ namespace Prototype
             Image dim = UiKit.NewImage(root.transform, "Dim", DimColor, raycast: true);
             UiKit.Stretch(dim.rectTransform);
 
-            var size = new Vector2(620f, 560f);
+            var size = new Vector2(620f, 630f);
             Image panel = UiKit.NewImage(dim.transform, "Panel", PanelColor);
             RectTransform p = UiKit.Place(panel, new Vector2(0.5f, 0.5f), Vector2.zero, size);
 
@@ -191,12 +191,21 @@ namespace Prototype
             bgm    = VolumeRow(p, "배경음", -195f);
             sfx    = VolumeRow(p, "효과음", -260f);
 
-            Button resume = MenuButton(p, "계속", NodeWindows.ButtonColor, -340f, Close);
-            rebindButton  = MenuButton(p, "조작키", NodeWindows.ButtonColor, -410f, OpenRebind);
-            MenuButton(p, exitLabel, NodeWindows.ExitColor, -480f, Exit);
+            shakeButton   = MenuButton(p, ShakeLabel(), NodeWindows.ButtonColor, -340f, ToggleShake);
+            Button resume = MenuButton(p, "계속", NodeWindows.ButtonColor, -410f, Close);
+            rebindButton  = MenuButton(p, "조작키", NodeWindows.ButtonColor, -480f, OpenRebind);
+            MenuButton(p, exitLabel, NodeWindows.ExitColor, -550f, Exit);
 
             first = resume;
             root.SetActive(false);
+        }
+
+        private static string ShakeLabel() => CameraFollow.ShakeEnabled ? "화면 흔들림: 켜짐" : "화면 흔들림: 꺼짐";
+
+        private void ToggleShake()
+        {
+            CameraFollow.ShakeEnabled = !CameraFollow.ShakeEnabled;
+            shakeButton.GetComponentInChildren<Text>().text = ShakeLabel();
         }
 
         private void OpenRebind()

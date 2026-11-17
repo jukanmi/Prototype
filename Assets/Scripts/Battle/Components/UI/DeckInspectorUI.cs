@@ -112,31 +112,31 @@ namespace Prototype
 
         private void Start()
         {
-            UiKit.EnsureEventSystem();
-
-            if (!Wired)
-            {
-                Warn();
-                return;
-            }
-
-            // 버튼은 인스펙터가 아니라 여기서 묶는다 — 대상 메서드를 private으로 두려면
-            // UnityEvent 배선이 안 된다. 프리팹에는 참조만 꽂는다.
-            if (_discardButton != null) _discardButton.onClick.AddListener(() => Toggle(Pile.Discard));
-            if (_deckButton != null) _deckButton.onClick.AddListener(() => Toggle(Pile.Deck));
-            if (_backdropButton != null) _backdropButton.onClick.AddListener(Close);
-            if (_closeButton != null) _closeButton.onClick.AddListener(Close);
-
-            _popupRoot.SetActive(false);
-
-            _bulletTime.Deck.OnChanged += HandlePileChanged;
-            _bulletTime.Discard.OnChanged += HandlePileChanged;
-
-            // 꼬리말이 손패 장수도 같이 보여 준다. 동료 사망으로 손패만 줄어드는 경우가 있어
-            // 덱·버린 더미만 구독하면 그 숫자가 묵는다.
-            _bulletTime.Hand.OnChanged += HandlePileChanged;
-
-            HandlePileChanged();
+            // UI 끔 — 상황판 배선(버튼 · 구독 · 첫 갱신)을 전부 막는다. 되살리려면 이 주석을 푼다.
+            //UiKit.EnsureEventSystem();
+            //
+            //if (!Wired)
+            //{
+            //    Warn();
+            //    return;
+            //}
+            //
+            //// 버튼은 인스펙터가 아니라 여기서 묶는다 — 대상 메서드를 private으로 두려면
+            //// UnityEvent 배선이 안 된다. 프리팹에는 참조만 꽂는다.
+            //if (_discardButton != null) _discardButton.onClick.AddListener(() => Toggle(Pile.Discard));
+            //if (_deckButton != null) _deckButton.onClick.AddListener(() => Toggle(Pile.Deck));
+            //if (_backdropButton != null) _backdropButton.onClick.AddListener(Close);
+            //if (_closeButton != null) _closeButton.onClick.AddListener(Close);
+            //_popupRoot.SetActive(false);
+            //
+            //_bulletTime.Deck.OnChanged += HandlePileChanged;
+            //_bulletTime.Discard.OnChanged += HandlePileChanged;
+            //
+            //// 꼬리말이 손패 장수도 같이 보여 준다. 동료 사망으로 손패만 줄어드는 경우가 있어
+            //// 덱·버린 더미만 구독하면 그 숫자가 묵는다.
+            //_bulletTime.Hand.OnChanged += HandlePileChanged;
+            //
+            //HandlePileChanged();
         }
 
         private void OnDestroy()
@@ -269,8 +269,8 @@ namespace Prototype
         {
             if (!Wired) { Warn(); return; }
 
-            _discardCountLabel.text = $"사용됨  {_bulletTime.Discard.Count}";
-            _deckCountLabel.text = $"남은 덱  {_bulletTime.Deck.Count}";
+            //_discardCountLabel.text = $"사용됨  {_bulletTime.Discard.Count}";
+            //_deckCountLabel.text = $"남은 덱  {_bulletTime.Deck.Count}";
 
             if (_openPile != Pile.None) RefreshPopup();
         }
@@ -288,9 +288,9 @@ namespace Prototype
 
             Group(source);
 
-            _popupTitle.text = isDeck
-                ? $"남은 덱 — {_bulletTime.Deck.Count}장 ({_entries.Count}종)"
-                : $"사용된 카드 — {_bulletTime.Discard.Count}장 ({_entries.Count}종)";
+            //_popupTitle.text = isDeck
+            //    ? $"남은 덱 — {_bulletTime.Deck.Count}장 ({_entries.Count}종)"
+            //    : $"사용된 카드 — {_bulletTime.Discard.Count}장 ({_entries.Count}종)";
 
             int deckCount = _bulletTime.Deck.Count;
             int handCount = _bulletTime.Hand.Count;

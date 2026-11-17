@@ -132,43 +132,6 @@ namespace Prototype
                 default:                return "전투";
             }
         }
-
-        /// <summary>
-        /// 칸을 골랐을 때 아래 설명줄에 뜨는 글. 수치는 규칙에서 읽는다 — 글과 실제가 어긋나지 않게.
-        ///
-        /// 방 크기가 100%가 아니면 끝에 <c> · 방 크기 90%</c>를 붙인다. 비율은 칸에서 바로 읽지 않고
-        /// 전투 씬이 받는 보정(<see cref="RunMapRules.EncounterOf"/>)에서 읽는다 — 보스 칸에 비율이 박혀 있어도
-        /// 전투에서는 100%로 도는데 지도가 90%라고 말하면 안 된다.
-        /// </summary>
-        public static string Describe(MapNode node)
-        {
-            if (node == null) return "";
-
-            EncounterModifier modifier = RunMapRules.EncounterOf(node);
-            string text = DescribeKind(node);
-
-            return modifier.HasRoom ? $"{text} · 방 크기 {modifier.RoomPercent}%" : text;
-        }
-
-        private static string DescribeKind(MapNode node)
-        {
-            switch (node.Kind)
-            {
-                case MapNodeKind.Elite:
-                    return $"정예 — 강화된 적이 {EncounterModifierRules.EliteNodeEvery}기마다 1기 섞여 나온다. " +
-                           $"클리어 골드 x{GoldRules.ClearRewardPercent(MapNodeKind.Elite) / 100f:0.##} · 카드 1장 · 유물 1개";
-                case MapNodeKind.Rest:
-                    return $"휴식 — 파티 전원의 체력을 {NodeRules.RestHealRatio:0%} 회복한다.";
-                case MapNodeKind.Shop:
-                    return "상점 — 골드로 카드를 산다.";
-                case MapNodeKind.Event:
-                    return "이벤트 — 무슨 일이 일어날지 모른다.";
-                case MapNodeKind.Boss:
-                    return "보스 — 이 칸을 깨면 런이 끝난다.";
-                default:
-                    return "전투 — 적을 모두 쓰러뜨린다. 클리어하면 카드 1장.";
-            }
-        }
     }
 
     // ══ RunMapLayout ═══════════════════════════════════════════

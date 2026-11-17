@@ -86,21 +86,10 @@ namespace Prototype
         {
             UiKit.BuildCanvas(gameObject, UiLayer.BattleRestart);
 
-            BuildRestartButton();
             BuildConfirmPanel();
         }
 
-        private void BuildRestartButton()
-        {
-            restartButton = UiKit.CreateButton(transform, "Btn_Restart", "처음부터", RestartColor,
-                                                  new Vector2(ButtonWidth, ButtonHeight), 22);
 
-            UiKit.Place(restartButton, new Vector2(1f, 1f),
-                           new Vector2(-ScreenMargin, -ScreenMargin),
-                           new Vector2(ButtonWidth, ButtonHeight));
-
-            restartButton.onClick.AddListener(OnRestartClicked);
-        }
 
         /// <summary>
         /// 확인 패널. 뒤를 덮는 Dim 이미지가 레이캐스트를 먹으므로 패널이 떠 있는 동안

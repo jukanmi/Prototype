@@ -230,7 +230,7 @@ namespace Prototype
         public const float SidePadding = 24f;
 
         /// <summary>화면 하단에서 판을 띄우는 거리.</summary>
-        public const float ScreenMargin = 28f;
+        public const float ScreenMargin = 88f;
 
         /// <summary>
         /// 제목 · 힌트 줄의 폭. 판보다 넓다 — 조작 안내가 한 줄에 안 들어가면 잘려 나간다.
