@@ -196,7 +196,18 @@ namespace Prototype
 
             // 장수가 아니라 Seeded로 가른다. 테스트 모드의 0장 덱을 "아직 안 짰다"로 읽으면
             // 파티 카드 16장이 도로 부어진다.
-            List<ComboCard> cards = run.Seeded ? new List<ComboCard>(run.Cards) : partyCards;
+            // 런 보유 스킬은 이름:개수라, 개수만큼 카드를 펼쳐야 평타 자동 시전이 중복을 반영한다.
+            List<ComboCard> cards = partyCards;
+            if (run.Seeded)
+            {
+                cards = new List<ComboCard>();
+                foreach (var kv in run.SkillCounts)
+                {
+                    SkillData d = run.Resolve(kv.Key);
+                    for (int n = 0; d != null && n < kv.Value; n++)
+                        cards.Add(new ComboCard(d, CardGrantRules.WeightOf(d)));
+                }
+            }
 
             Deck.Clear();
             Discard.Clear();

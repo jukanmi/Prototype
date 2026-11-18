@@ -21,8 +21,8 @@ namespace Prototype
             StageDirector.AnyWaveCleared += RecallScene;
         }
 
-        [SerializeField, Min(0f)] private float preparationSeconds = 0.25f;
-        [SerializeField, Min(0f)] private float impactGapSeconds = 0.3f;
+        [SerializeField, Min(0f)] private float preparationSeconds = 0f;
+        [SerializeField, Min(0f)] private float impactGapSeconds = 0.2f;
         [SerializeField, Min(0f)] private float maxReactionWaitSeconds = 1f;
         private AssistManager assists;
         private BulletTimeController bulletTime;

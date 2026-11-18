@@ -389,7 +389,7 @@ namespace Prototype
             if (bt.IsActive)
             {
                 _fill.color = ActiveColor;
-                _label.text = "불릿타임 진행 중";
+                _label.text = "총공격 진행 중";
             }
             else if (cooldown > 0f)
             {
@@ -399,12 +399,12 @@ namespace Prototype
             else if (bt.IsGaugeReady)
             {
                 _fill.color = Color.Lerp(ReadyLowColor, ReadyHighColor, Pulse(Time.unscaledTime));
-                _label.text = $"불릿타임 준비 — {InputHints.BulletTime}";
+                _label.text = "총공격 준비 — 적 등장 시 자동 발동";
             }
             else
             {
                 _fill.color = ChargingColor;
-                _label.text = $"불릿타임 게이지 {ratio * 100f:0}%";
+                _label.text = $"총공격 게이지 {ratio * 100f:0}%";
             }
         }
     }

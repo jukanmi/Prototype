@@ -42,7 +42,7 @@ namespace Prototype
         Empty,
 
         /// <summary>
-        /// <b>디버그 모드</b> — 시작할 때 화면에서 직접 짠다(<see cref="DeckBuilderUI"/>).
+        /// <b>디버그 모드</b> — 시작할 때 화면에서 직접 짠다(<see cref="AssaultEditorUI"/>).
         /// 보고 싶은 카드만, 원하는 장수만 넣을 수 있다.
         /// </summary>
         Pick,

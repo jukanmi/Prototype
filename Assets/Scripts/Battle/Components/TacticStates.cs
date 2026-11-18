@@ -139,7 +139,9 @@ namespace Prototype
                 Ctx.Budget.Spend();
 
                 BattleLog.Log(LogCategory.Bullet, "<b>불릿타임 해제</b> — TimeControl.Scale = 1", Ctx);
-                Queue<ComboSlot> queue = Ctx.Cards.TakeQueue(Ctx.ResolveCaster);
+                // 총공격은 굳혀 둔 큐를, 그 외(테스트 경로)는 손패를 쓴다.
+                Queue<ComboSlot> queue = Ctx.assaultQueue ?? Ctx.Cards.TakeQueue(Ctx.ResolveCaster);
+                Ctx.assaultQueue = null;
                 Ctx.OnExit?.Invoke();
 
                 if (queue.Count > 0 && Ctx.executor != null)
@@ -152,7 +154,10 @@ namespace Prototype
             {
                 // 큐가 비어 있었으면 Executor가 시작조차 안 하므로 곧바로 복귀한다.
                 if (Ctx.executor == null || !Ctx.executor.IsRunning)
+                {
+                    Ctx.assaultCast = false;
                     Ctx.ChangePhase(Ctx.realTimeState);
+                }
             }
 
             public override bool OnBulletTimeKey()

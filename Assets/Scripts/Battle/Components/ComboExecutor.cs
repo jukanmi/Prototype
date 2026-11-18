@@ -125,7 +125,8 @@ namespace Prototype
                 {
                     ComboSlot slot = queue.Dequeue();
                     cards.Add(slot.card);
-                    requests.Add(new CastRequest(slot.caster, slot.Data, slot.target, 1f, true));
+                    requests.Add(new CastRequest(slot.caster, slot.Data, slot.target,
+                        slot.damageScale > 0f ? slot.damageScale : 1f, true, slot.targetEntity));
                 }
                 yield return Director.Resolve(requests, i => OnSlotConsumed?.Invoke(cards[i]));
                 running = null;
@@ -230,6 +231,7 @@ namespace Prototype
                 targetInfo = slot.target,
                 isBulletTime = true,
                 comboIndex = 0,
+                damageScale = slot.damageScale,
             };
 
             caster.IsCommanded = true;

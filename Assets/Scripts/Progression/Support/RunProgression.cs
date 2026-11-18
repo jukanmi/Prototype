@@ -19,7 +19,17 @@ namespace Prototype
     /// </summary>
     public class RunProgression
     {
-        private readonly List<ComboCard> cards = new List<ComboCard>();
+        /// <summary>보유 스킬. <b>스킬이름:개수</b>로만 저장한다(합성 레벨은 <see cref="SkillFusion"/>이 개수에서 뽑는다).</summary>
+        private readonly Dictionary<string, int> skillCounts = new Dictionary<string, int>();
+
+        /// <summary>이름 → 에셋. 저장 대상이 아니라 이번 세션에 본 에셋을 이름으로 되찾는 조회용이다.</summary>
+        private readonly Dictionary<string, SkillData> skillLookup = new Dictionary<string, SkillData>();
+
+        /// <summary>총공격 슬롯(스킬 이름). 빈 칸은 null. 뒤 칸이 앞으로 당겨지지 않는다.</summary>
+        private readonly string[] assaultSlots = new string[AssaultSlotCount];
+
+        /// <summary>총공격 슬롯 수.</summary>
+        public const int AssaultSlotCount = 4;
 
         /// <summary>
         /// Boot 씬을 거치지 않고 스테이지 씬만 단독으로 켰을 때 쓰는 런.
@@ -66,11 +76,132 @@ namespace Prototype
         /// </summary>
         public int Gold { get; private set; }
 
-        /// <summary>런 덱. 전투 씬이 뜰 때 이걸로 덱을 짠다.</summary>
-        public IReadOnlyList<ComboCard> Cards => cards;
+        /// <summary>
+        /// 보유 스킬의 종류별 카드 하나씩(읽기용 파생 뷰). 개수는 <see cref="CountOf"/>.
+        /// 저장소가 아니다 — 부를 때마다 새로 만든다.
+        /// </summary>
+        public IReadOnlyList<ComboCard> Cards
+        {
+            get
+            {
+                var list = new List<ComboCard>(skillCounts.Count);
+                foreach (KeyValuePair<string, int> kv in skillCounts)
+                {
+                    SkillData d = Resolve(kv.Key);
+                    if (d != null) list.Add(new ComboCard(d, CardGrantRules.WeightOf(d)));
+                }
+
+                return list;
+            }
+        }
 
         /// <summary>덱에 카드가 한 장이라도 있는가.</summary>
-        public bool HasDeck => cards.Count > 0;
+        public bool HasDeck => skillCounts.Count > 0;
+
+        /// <summary>보유 스킬 이름 → 개수.</summary>
+        public IReadOnlyDictionary<string, int> SkillCounts => skillCounts;
+
+        /// <summary>총공격 슬롯. 길이 <see cref="AssaultSlotCount"/> 고정, 빈 칸은 null.</summary>
+        public IReadOnlyList<string> AssaultSlots => assaultSlots;
+
+        public int CountOf(string skillName)
+            => skillName != null && skillCounts.TryGetValue(skillName, out int n) ? n : 0;
+
+        /// <summary>이름으로 에셋을 찾는다. 이번 세션에 본 적 없으면 <see cref="SkillCatalog"/>에서 찾는다.</summary>
+        public SkillData Resolve(string skillName)
+        {
+            if (string.IsNullOrEmpty(skillName)) return null;
+            if (skillLookup.TryGetValue(skillName, out SkillData d) && d != null) return d;
+
+            SkillCatalog catalog = SkillCatalog.Get();
+            if (catalog != null)
+                foreach (SkillData s in catalog.Skills)
+                    if (s != null && s.skillName == skillName)
+                    {
+                        skillLookup[skillName] = s;
+                        return s;
+                    }
+
+            return null;
+        }
+
+        /// <summary>스킬을 <paramref name="count"/>개 더한다(음수면 뺀다). 0 이하가 되면 지운다.</summary>
+        public void AddSkill(SkillData data, int count = 1)
+        {
+            if (data == null || string.IsNullOrEmpty(data.skillName) || count == 0) return;
+
+            skillLookup[data.skillName] = data;
+            int next = CountOf(data.skillName) + count;
+
+            if (next > 0) skillCounts[data.skillName] = next;
+            else
+            {
+                skillCounts.Remove(data.skillName);
+                ClearSlotsOf(data.skillName);
+            }
+
+            OnChanged?.Invoke();
+        }
+
+        /// <summary>한 칸을 채운다(null이면 비운다). 빈 칸을 비워도 뒤 칸은 안 당긴다.</summary>
+        public bool SetAssaultSlot(int index, string skillName)
+        {
+            if (index < 0 || index >= AssaultSlotCount) return false;
+            if (skillName != null && CountOf(skillName) <= 0) return false;
+
+            // 한 스킬(합성된 한 장)은 한 슬롯에만 들어간다. 다른 칸에 있던 건 이쪽으로 옮겨 온다.
+            if (skillName != null) ClearSlotsOf(skillName);
+
+            assaultSlots[index] = skillName;
+            OnChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>가장 앞 빈 칸에 넣는다(push_back). 가득 찼으면 -1.</summary>
+        public int PushAssaultSlot(string skillName)
+        {
+            if (CountOf(skillName) <= 0 || IsInAssaultSlot(skillName)) return -1;
+
+            for (int i = 0; i < AssaultSlotCount; i++)
+                if (assaultSlots[i] == null)
+                {
+                    assaultSlots[i] = skillName;
+                    OnChanged?.Invoke();
+                    return i;
+                }
+
+            return -1;
+        }
+
+        /// <summary>두 칸을 맞바꾼다(빈 칸 포함).</summary>
+        public void SwapAssaultSlots(int a, int b)
+        {
+            if (a < 0 || b < 0 || a >= AssaultSlotCount || b >= AssaultSlotCount || a == b) return;
+
+            (assaultSlots[a], assaultSlots[b]) = (assaultSlots[b], assaultSlots[a]);
+            OnChanged?.Invoke();
+        }
+
+        public bool IsInAssaultSlot(string skillName)
+        {
+            if (skillName == null) return false;
+            for (int i = 0; i < AssaultSlotCount; i++)
+                if (assaultSlots[i] == skillName) return true;
+
+            return false;
+        }
+
+        private void ClearSlotsOf(string skillName)
+        {
+            for (int i = 0; i < AssaultSlotCount; i++)
+                if (assaultSlots[i] == skillName) assaultSlots[i] = null;
+        }
+
+        private void ClearSkills()
+        {
+            skillCounts.Clear();
+            for (int i = 0; i < AssaultSlotCount; i++) assaultSlots[i] = null;
+        }
 
         /// <summary>
         /// 시작 덱이 이미 정해졌는가. <b><see cref="HasDeck"/>과 다르다</b> —
@@ -147,27 +278,27 @@ namespace Prototype
                 foreach (ComboCard c in source)
                 {
                     if (c == null || c.Data == null) continue;
-                    cards.Add(c.Clone());
+                    AddSkill(c.Data);
                 }
 
             OnChanged?.Invoke();
-            return cards.Count > 0;
+            return skillCounts.Count > 0;
         }
 
         /// <summary>
-        /// 덱을 통째로 갈아 끼운다. 디버그 모드(<see cref="DeckBuilderUI"/>)가 짠 덱이 들어오는 통로다.
+        /// 덱을 통째로 갈아 끼운다. 디버그 모드(<see cref="AssaultEditorUI"/>)가 짠 덱이 들어오는 통로다.
         /// <see cref="SeedDeck"/>와 달리 이미 정해진 덱도 덮는다.
         /// </summary>
         public void SetDeck(IEnumerable<ComboCard> source)
         {
-            cards.Clear();
+            ClearSkills();
             Seeded = true;
 
             if (source != null)
                 foreach (ComboCard c in source)
                 {
                     if (c == null || c.Data == null) continue;
-                    cards.Add(c.Clone());
+                    AddSkill(c.Data);
                 }
 
             OnChanged?.Invoke();
@@ -179,11 +310,10 @@ namespace Prototype
         /// </summary>
         public ComboCard Grant(in CardOffer pick)
         {
-            ComboCard added = CardGrantRules.Apply(cards, in pick);
-            if (added == null) return null;
+            if (pick.IsEmpty) return null;
 
-            OnChanged?.Invoke();
-            return added;
+            AddSkill(pick.data);
+            return new ComboCard(pick.data, CardGrantRules.WeightOf(pick.data));
         }
 
         /// <summary>
@@ -197,7 +327,18 @@ namespace Prototype
         /// </summary>
         public int PurgeRole(Role role)
         {
-            int removed = cards.RemoveAll(c => c != null && c.Data != null && c.Data.role == role);
+            int removed = 0;
+            var names = new List<string>(skillCounts.Keys);
+            foreach (string n in names)
+            {
+                SkillData d = Resolve(n);
+                if (d == null || d.role != role) continue;
+
+                removed += skillCounts[n];
+                skillCounts.Remove(n);
+                ClearSlotsOf(n);
+            }
+
             if (removed > 0) OnChanged?.Invoke();
 
             return removed;
@@ -216,7 +357,7 @@ namespace Prototype
             PendingExp = 0;
             Gold = 0;
             Seeded = false;
-            cards.Clear();
+            ClearSkills();
 
             // 빠뜨리기 쉬운 자리다 — 안 비우면 새 런이 지난 런의 시체를 물고 시작한다.
             Party.Clear();

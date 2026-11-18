@@ -39,8 +39,10 @@ namespace Prototype
             if (input == null) return;
 
             // 모달이 떠 있으면 카드 조작도 같이 닫는다. Gameplay는 컨트롤러가 직접 잠근다.
-            bool cardEdit = !input.GameplaySuspended
-                            && bulletTime != null && bulletTime.AllowsCardEdit;
+            // 총공격 편집창은 모달이라 Gameplay가 잠겨 있어도 이동키(Navigate) 맵은 열려야 한다.
+            bool cardEdit = AssaultEditorUI.IsOpen
+                            || (!input.GameplaySuspended
+                                && bulletTime != null && bulletTime.AllowsCardEdit);
             input.BulletTimeMapEnabled = cardEdit;
         }
     }

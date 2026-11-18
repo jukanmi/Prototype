@@ -40,8 +40,9 @@ namespace Prototype
                     bulletTime.CancelSelection();
                     return;
                 }
+                // 총공격은 자동 발동이다. E키는 슬롯 편집창을 연다.
                 if (input.BulletTimePressed)
-                    bulletTime.Enter();
+                    bulletTime.OpenAssaultEditor();
             }
 
         }

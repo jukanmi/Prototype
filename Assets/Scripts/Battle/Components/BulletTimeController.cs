@@ -170,6 +170,8 @@ namespace Prototype
         public void CancelAssistSequence()
         {
             pendingBasicSkill = false;
+            assaultQueue = null;
+            assaultCast = false;
             executor?.Abort();
             if (tactic != null) ChangePhase(realTimeState);
         }
@@ -208,19 +210,9 @@ namespace Prototype
         {
             // 견본 손패는 덱을 아예 거치지 않는다. 여기서 덱을 지으면
             // "16장이 아니다" 경고만 뜨고 아무도 그 카드를 뽑지 않는다.
+            // 총공격: 런 보유 스킬(이름:개수)에 파티 장착 카드를 씨 뿌리는 용도로만 쓴다.
             if (buildDeckOnStart && !Cards.UsesFixedHand)
-            {
-                if (WantsDeckPicker)
-                {
-                    // 화면에서 다 짜면 그쪽이 RebuildDeckAndHand를 부른다.
-                    // 그때까지는 덱도 손패도 비어 있다 — 어차피 조작이 잠겨 있다.
-                    DeckBuilderUI.RequestOpen(this, AvailableSkillPool());
-                    BeginTactic();
-                    return;
-                }
-
                 BuildDeck();
-            }
 
             // 덱이 0장인 채로 시작하므로 첫 Refill이 Discard 회수 → 셔플을 자동으로 부른다.
             RefillHand();
@@ -239,6 +231,7 @@ namespace Prototype
 
             CombatEvents.OnParried += HandleParried;
             CombatEvents.OnAnyBasicHitLanded += HandleBasicHitLanded;
+            CombatEvents.OnAnyHitLanded += TrackRecentTarget;
             SubscribeAllyDeaths();
         }
 
@@ -254,6 +247,8 @@ namespace Prototype
 
             CombatEvents.OnParried -= HandleParried;
             CombatEvents.OnAnyBasicHitLanded -= HandleBasicHitLanded;
+            CombatEvents.OnAnyHitLanded -= TrackRecentTarget;
+            recentTarget = null;
             UnsubscribeAllyDeaths();
         }
 
@@ -262,6 +257,7 @@ namespace Prototype
             // 게이지와 쿨타임은 실제 시간으로 흐른다. 정지 중 자가 충전을 막는다.
             budget.Tick(TimeControl.DeltaTime, frozen: IsActive);
             tactic.Tick(TimeControl.UnscaledDeltaTime);
+            TryAutoAssault();
         }
 
         private void HandleParried(Combat defender, Combat attacker) => budget?.RewardParry(defender);
@@ -273,12 +269,107 @@ namespace Prototype
         {
             if (budget == null || !budget.RewardBasicHit(attacker, victim, swing)) return;
 
-            if (Phase != TacticPhase.RealTime || Director == null || pendingBasicSkill || TimeControl.Scale <= 0f) return;
+            if (Phase != TacticPhase.RealTime || assaultCast || Director == null || pendingBasicSkill || TimeControl.Scale <= 0f) return;
             if (!HasAutomaticCardCandidate()) return;
             if (!basicProcRoller.TryRoll(UnityEngine.Random.value)) return;
 
             // 적중 콜백 안에서 상태를 바꾸면 진행 중인 평타의 히트박스 처리가 깨질 수 있다.
             pendingBasicSkill = true;
+        }
+
+        // ── 총공격 ───────────────────────────────────────
+
+        /// <summary>가장 최근에 아군이 때린 적. 총공격은 이 대상만 노린다. 죽거나 사라지면 비운다.</summary>
+        private Entity recentTarget;
+
+        private void TrackRecentTarget(Combat attacker, Combat victim)
+        {
+            if (attacker?.Owner?.Faction != Faction.Ally ||
+                victim?.Owner?.Faction != Faction.Enemy || victim.IsDead) return;
+
+            recentTarget = victim.Owner;
+        }
+
+        /// <summary>쓸 수 있는 최근 대상. 죽었거나 타게팅 불가면 null.</summary>
+        private Entity RecentTargetOrNull()
+        {
+            Entity t = recentTarget;
+            if (t == null || t.Combat == null || t.Combat.IsDead || !t.IsTargetable
+                || !t.gameObject.activeInHierarchy)
+            {
+                recentTarget = null;
+                return null;
+            }
+
+            return t;
+        }
+
+        /// <summary>총공격 큐를 굳혀 둔 채 ResolveState 진입을 기다리는 중. 진입하면 비운다.</summary>
+        private Queue<ComboSlot> assaultQueue;
+
+        /// <summary>총공격이 실행 중이다(Resolve 동안). 소비된 슬롯을 버린 더미로 안 보내는 데 쓴다.</summary>
+        private bool assaultCast;
+
+        /// <summary>
+        /// 게이지가 가득 차 있고 적이 있으면 사전 설정한 4슬롯을 순서대로 자동 발동한다.
+        /// 슬롯이 전부 비었거나 시전자가 없으면 발동하지 않는다(게이지는 그대로).
+        /// </summary>
+        private void TryAutoAssault()
+        {
+            if (Phase != TacticPhase.RealTime || assaultCast) return;
+            if (AssaultEditorUI.IsOpen || !CanEnter) return;
+            if (BattleRegistry.AliveEnemyCount() <= 0) return;
+
+            Queue<ComboSlot> queue = BuildAssaultQueue();
+            if (queue.Count == 0) return;
+
+            assaultQueue = queue;
+            assaultCast = true;
+            BattleLog.Log(LogCategory.Bullet, $"<b>총공격 발동</b> — {queue.Count}슬롯", this);
+            ChangePhase(resolveState);
+        }
+
+        /// <summary>
+        /// 런의 총공격 슬롯을 실행 큐로. 레벨(<see cref="SkillFusion"/>)은 데미지 배율로 실린다.
+        /// 시전자가 없는 슬롯은 건너뛴다.
+        /// </summary>
+        public Queue<ComboSlot> BuildAssaultQueue()
+        {
+            var q = new Queue<ComboSlot>(RunProgression.AssaultSlotCount);
+            RunProgression run = RunProgression.Current;
+            Entity focus = RecentTargetOrNull();   // 없으면 스킬 자동 조준으로 폴백
+
+            for (int i = 0; i < RunProgression.AssaultSlotCount; i++)
+            {
+                string name = run.AssaultSlots[i];
+                if (name == null) continue;
+
+                SkillData data = run.Resolve(name);
+                Ally caster = data != null ? ResolveCaster(data.role) : null;
+                if (caster == null)
+                {
+                    BattleLog.Warn(LogCategory.Combo, $"총공격 슬롯 {i} 건너뜀 — {name}: 에셋 또는 시전자 없음", this);
+                    continue;
+                }
+
+                q.Enqueue(new ComboSlot
+                {
+                    card = new ComboCard(data),
+                    caster = caster,
+                    target = caster.AutoTarget(data),
+                    damageScale = SkillFusion.DamageMulFromCount(run.CountOf(name)),
+                    targetEntity = focus,
+                });
+            }
+
+            return q;
+        }
+
+        /// <summary>총공격 슬롯 편집창을 연다(E키). 전투 중 실행 중이면 무시.</summary>
+        public void OpenAssaultEditor()
+        {
+            if (Phase != TacticPhase.RealTime || assaultCast) return;
+            AssaultEditorUI.RequestOpen();
         }
 
         private bool HasAutomaticCardCandidate()
@@ -416,6 +507,9 @@ namespace Prototype
         /// </summary>
         private void HandleSlotConsumed(ComboCard card)
         {
+            // 총공격 카드는 그 자리에서 만든 것이라 버린 더미로 돌릴 곳이 없다.
+            if (assaultCast) return;
+
             // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 실행 큐는 손패를 통째로 굳혀 두므로
             // 콤보 도중에 시전자가 죽어도 남은 슬롯이 여기까지 흘러온다 —
             // 그대로 넣으면 덱이 소진될 때 Discard가 회수되면서 죽은 동료 카드가 되살아난다.

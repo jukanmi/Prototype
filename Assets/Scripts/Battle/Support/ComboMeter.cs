@@ -132,6 +132,12 @@ namespace Prototype
         /// <summary>이 카드를 실행할 동료. 발동 직전에 카드의 직업으로 결정된다.</summary>
         public Ally caster;
 
+        /// <summary>합성 레벨이 거는 데미지 배율. 0(미설정)은 1배로 읽는다.</summary>
+        public float damageScale;
+
+        /// <summary>고정 대상. null이면 스킬의 자동 조준을 따른다.</summary>
+        public Entity targetEntity;
+
         public bool IsEmpty => card == null;
         public SkillData Data => card != null ? card.Data : null;
     }
