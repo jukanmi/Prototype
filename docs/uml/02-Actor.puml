@@ -25,7 +25,6 @@ package "1 Actor (Entities)" {
     + GroundPosition : Vector3
     + Height : float
     + Facing : Vector3
-    + SupportY : float
     + Move(dir, speed)
     + AddImpulse(dir, force)
     + AddLaunch(force)
@@ -70,13 +69,7 @@ package "1 Actor (Entities)" {
     + ConeStrike(…) : int
     + EnemiesInRadius(center, radius) : int
   }
-  class GroundRegistry <<static>> {
-    + Register(plate : IGroundPlate)
-    + HeightAt(point, fallback) : float
-    + Supports(point) : bool
-  }
   class GroundRules <<static>> {
-    + TryHeightAt(plates, point, margin, out y) : bool
     + FlatDirection(dir) : Vector3
   }
   class AttackRangePreview <<struct>> {
@@ -101,9 +94,6 @@ package "1 Actor (Entities)" {
   interface IAnimatedState {
     + Animate(animator : EntityAnimator)
   }
-  interface IGroundPlate {
-    + Rect : GroundRect
-  }
   interface IBattleVfx {
     + Cast(ground, radius, style : SkillVfx)
     + Impact(ground, height, facing, radius, style : SkillVfx)
@@ -124,9 +114,6 @@ Combat ..> BattleVfxSink : 벽 바운드
 EffectUtil ..> BattleVfxSink
 Projectile ..> EffectUtil : 폭발
 EffectUtil ..> AttackRangePreview : 같은 모양
-Physics ..> GroundRegistry : 바닥 높이
-GroundRegistry o--> "*" IGroundPlate
-GroundRegistry ..> GroundRules : 높이 질의
 AttackRangePreview ..> GroundRules : FlatDirection
 BattleVfxSink o--> IBattleVfx
 EntityAnimator ..> IAnimatedState : 있으면 맡김
@@ -135,14 +122,12 @@ package "위층 구현체" #F5F5F5 {
   class "Control" as Control_Agent <<3 Agent>>
   class "AssistReadyState\nAssistMoveState" as AssistStates <<3 Agent>>
   class "SkillState" as SkillState_Skill <<2 Skill>>
-  class "GroundPlate" as GroundPlate_Stage <<4 Stage>>
   class "BattleVfx.Sink" as Sink_Vfx <<10 Vfx>>
 }
 
 Control_Agent ..|> IControl
 AssistStates ..|> IAnimatedState
 SkillState_Skill ..|> IAnimatedState
-GroundPlate_Stage ..|> IGroundPlate
 Sink_Vfx ..|> IBattleVfx
 
 note right of BattleVfxSink

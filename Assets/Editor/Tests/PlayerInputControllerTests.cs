@@ -95,8 +95,8 @@ namespace Prototype.Tests
         [Test]
         public void Enable_LeavesBulletTimeMapsClosed()
         {
-            // 불릿타임 두 맵은 InputMapSwitcher가 페이즈를 보고 연다.
-            // 여기서 켜 두면 실시간 전투 중 J가 평타이면서 카드 집기로도 먹는다.
+            // 카드 조작 맵은 InputMapSwitcher가 총공격 편집창을 보고 연다.
+            // 여기서 켜 두면 실시간 전투 중 이동키가 편집창 이동으로도 먹는다.
             Assert.That(controller.Actions.FindActionMap(InputActionNames.BulletTime.Map).enabled, Is.False);
         }
 

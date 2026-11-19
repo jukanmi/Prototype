@@ -68,13 +68,13 @@ InputDisplayNames ..> InputBindingUtility
 package "읽는 쪽 (위층)" #F5F5F5 {
   class "PlayerPilot" as Pilot <<3 Agent>>
   class "InputMapSwitcher" as Switcher <<6 Tactic>>
-  class "ComboBoardUI" as TacticUI <<6 Tactic>>
+  class "AssaultEditorUI" as TacticUI <<6 Tactic>>
   class "RebindUI" as RebindUI <<6 Tactic>>
-  class "LevelUpSession · DeckBuilderUI" as ModalUI <<6 Tactic>>
+  class "CardRewardSession · AssaultEditorUI" as ModalUI <<6 Tactic>>
 }
 Pilot ..> PlayerInputController : Instance
 Switcher ..> PlayerInputController : 맵 여닫기
-TacticUI ..> PlayerInputController : Instance
+TacticUI ..> PlayerInputController : NavigateStep
 RebindUI ..> RebindManager
 RebindUI ..> PlayerInputController : SetSuspended
 ModalUI ..> PlayerInputController : SetSuspended

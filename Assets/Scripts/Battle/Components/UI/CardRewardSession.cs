@@ -16,7 +16,7 @@ namespace Prototype
     /// 열고 닫는 모달 패턴은 <c>RebindUI</c>를 따른다 — 씬 배선 없이 코드로만 짓고,
     /// 열려 있는 동안 <see cref="PlayerInputController.GameplaySuspended"/>로 조작을 잠근다.
     ///
-    /// <b><see cref="TimeControl.Scale"/>은 건드리지 않는다.</b> 그 값의 주인은 불릿타임이다.
+    /// <b><see cref="TimeControl.Scale"/>은 건드리지 않는다.</b> 그 값은 전투(전술 페이즈 · 스킬 컷인)가 쓴다.
     /// 이 시점엔 적이 전부 죽어 있어 멈출 것도 없다.
     /// </summary>
     public class CardRewardSession : MonoBehaviour

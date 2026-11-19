@@ -71,7 +71,7 @@ namespace Prototype.Tests
         [Test]
         public void Cancel_WhenIdle_DoesNotTouchTime()
         {
-            TimeControl.Scale = 0f;   // 불릿타임 중이라고 가정
+            TimeControl.Scale = 0f;   // 시간이 이미 멈춰 있다고 가정
 
             cutin.Cancel();
 

@@ -24,10 +24,9 @@ package "2 Skill" {
   }
   class ComboCard <<Serializable>> {
     + Data : SkillData
-    + Golden : bool
-    + DamageScale : float
-    + {static} GoldenDamageMul = 1.5
-    + Clone() / AsGolden() : ComboCard
+    + DrawWeight : float
+    + IsStarter : bool
+    + Clone() : ComboCard
   }
   class SkillContext <<struct>> {
     + data : SkillData

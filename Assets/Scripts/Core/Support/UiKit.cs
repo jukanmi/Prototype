@@ -16,8 +16,8 @@ namespace Prototype
     /// </summary>
     public static class UiLayer
     {
-        /// <summary>손패 보드. 전투 중 항상 떠 있는 바닥층.</summary>
-        public const int ComboBoard = 0;
+        /// <summary>총공격 게이지. 전투 중 항상 떠 있는 바닥층.</summary>
+        public const int Gauge = 0;
 
         /// <summary>최근 피격 적 정보.</summary>
         public const int RecentHitEnemy = 2;

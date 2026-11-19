@@ -184,7 +184,7 @@ namespace Prototype
              + BeltScroll.ScreenUp * headOffset;
 
         // 캐릭터 위치는 LateUpdate에 확정된다(BeltScrollView). 그 뒤에 읽는다.
-        // TimeControl을 보지 않으므로 불릿타임 중에도 보인다 — 조준하는 동안 상태가 보여야 한다.
+        // TimeControl을 보지 않으므로 시간이 멈춘 동안에도 보인다.
         private void LateUpdate()
         {
             int used = Draw(BattleRegistry.Enemies);
@@ -546,7 +546,7 @@ namespace Prototype
     // ══ ControlledCharacterArrow ═══════════════════════════════════════════
 
     /// <summary>
-    /// 플레이어가 현재 조작 중인 캐릭터(플레이어 또는 태그 교대된 동료) 머리 위에
+    /// 플레이어가 현재 조작 중인 캐릭터(주인공) 머리 위에
     /// 화살표(<c>▼</c>)를 띄워 난전 중에도 내 위치를 즉시 식별할 수 있게 한다.
     ///
     /// <b>그리는 일은 <see cref="MarkerLayer"/>가 한다.</b> 예전에는 이 컴포넌트가
@@ -554,7 +554,7 @@ namespace Prototype
     /// 만들게 되면서 빌보드 · 깊이 배율 · 정렬 계산이 두 곳에 생겼다. 지금은 여기가
     /// "누구 머리 위에 무엇을"만 답한다.
     ///
-    /// <see cref="BattleRegistry.Controlled"/>를 추적하며, 교대 시 새 몸으로 즉시 옮겨간다.
+    /// <see cref="BattleRegistry.Controlled"/>를 추적한다.
     /// </summary>
     public class ControlledCharacterArrow : MonoBehaviour, IMarkerSource
     {

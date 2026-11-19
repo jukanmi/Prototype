@@ -6,7 +6,7 @@ namespace Prototype.Tests
 {
     /// <summary>
     /// 로드아웃 → 슬롯 배치 규칙. 씬도 <c>Awake</c>도 없이 도는 순수 계산이라
-    /// <see cref="TagSwapRules"/> 테스트와 같은 자리에 둔다.
+    /// 다른 <c>*Rules</c> 테스트와 같은 자리에 둔다.
     /// </summary>
     public class PartyAssembleRulesTests
     {
@@ -64,7 +64,7 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 3인 파티. 빈 칸을 <b>앞으로 당기지 않는다</b> — 슬롯 순서가 곧 F키 교대 순환 순서라
+        /// 3인 파티. 빈 칸을 <b>앞으로 당기지 않는다</b> —
         /// 저작자가 2번에 둔 동료는 3번이 비어도 2번이어야 한다.
         /// </summary>
         [Test]
@@ -75,7 +75,7 @@ namespace Prototype.Tests
             PartyMemberData[] slots = PartyAssembleRules.Resolve(l, 4);
 
             Assert.That(slots[0], Is.Not.Null);
-            Assert.That(slots[1], Is.Null, "빈 칸이 앞으로 당겨졌다 — 교대 순서가 바뀐다.");
+            Assert.That(slots[1], Is.Null, "빈 칸이 앞으로 당겨졌다 — 슬롯 순서가 바뀐다.");
             Assert.That(slots[2].role, Is.EqualTo(Role.Archer));
             Assert.That(slots[3], Is.Null);
         }
@@ -120,7 +120,7 @@ namespace Prototype.Tests
         /// <summary>
         /// 이 테스트가 잡는 것이 <b>가장 조용한 버그</b>다. 직업이 어긋난 카드는
         /// 덱에 정상적으로 들어가지만 <c>ResolveCaster</c>가 시전자를 못 찾아
-        /// 손패 맨 앞에서 영영 안 나간다 — 에러도 경고도 없이 U키만 먹통이 된다.
+        /// 영영 안 나간다 — 에러도 경고도 없이 손패 자리만 차지한다.
         /// </summary>
         [Test]
         public void IsValid_RoleMismatch_IsRejected()
@@ -210,8 +210,8 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 슬롯 순서가 곧 F키 교대 순환 순서다. 중간을 빼면 뒤가 당겨져야 한다 —
-        /// 빈 칸을 남기면 "3번이 비었는데 4번으로 교대된다"가 되어 순환이 안 읽힌다.
+        /// 고른 순서가 곧 슬롯 순서다. 중간을 빼면 뒤가 당겨져야 한다 —
+        /// 고른 순서에 구멍을 남기지 않는다.
         /// </summary>
         [Test]
         public void Toggle_RemovingMiddle_CompactsOrder()
@@ -278,7 +278,7 @@ namespace Prototype.Tests
 
         /// <summary>
         /// 화면에서 짠 조합은 에셋이 아니라 메모리 인스턴스다.
-        /// 넘긴 순서가 그대로 슬롯 순서(= 교대 순서)여야 한다.
+        /// 넘긴 순서가 그대로 슬롯 순서여야 한다.
         /// </summary>
         [Test]
         public void CreateRuntime_KeepsPickOrderAndPadsRest()

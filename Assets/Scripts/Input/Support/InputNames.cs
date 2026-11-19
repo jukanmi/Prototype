@@ -28,37 +28,22 @@ namespace Prototype
             public const string Dash = "Dash";
 
             /// <summary>
-            /// 불릿타임 진입 · 실행. 기본 E, 프리셋/리바인딩에 따라 변경.
+            /// 총공격 슬롯 편집창 열기. 기본 E, 프리셋/리바인딩에 따라 변경.
             /// </summary>
             public const string BulletTime = "BulletTime";
-
-            public const string UniqueSkill = "UniqueSkill";
 
             /// <summary>
             /// 로비 오브젝트 상호작용. 기본 F. E는 불릿타임이라 쓸 수 없다 —
             /// 로비에도 허수아비가 있어 불릿타임이 살아 있다.
             /// </summary>
             public const string Interact = "Interact";
-
-            /// <summary>
-            /// 동료 교대. 실시간 전투에는 동료가 한 명만 서 있고 이 키가 다음 생존자로 돌린다.
-            ///
-            /// 지휘키가 <b>아니다</b> — 정지 중에는 안 먹어야 한다. 그래서
-            /// <c>InputRebindRules.CommanderActions</c>에 넣지 않는다. 넣으면 불릿타임 맵의
-            /// WASD와 겹친다고 잡힌다.
-            /// </summary>
-            public const string Swap = "Swap";
         }
 
         /// <summary>
-        /// 손패 카드 조작. Order 페이즈이면서 <b>조준 중이 아닐 때</b>만 켜진다.
+        /// 총공격 편집창 조작. 편집창이 열려 있을 때만 켜진다(<c>InputMapSwitcher</c>).
         ///
-        /// 액션이 <c>Navigate</c> 하나뿐이다. 집기 · 놓기까지 방향에 실어 두면
-        /// 한 키가 두 액션을 동시에 발동하는 일이 원천적으로 없고,
-        /// 리바인드도 컴포지트 하나만 바꾸면 네 방향이 전부 따라온다.
-        ///
-        /// 한 번 누르면 한 칸 가는 <b>이산</b> 입력이다 — 같은 WASD라도
-        /// 조준의 연속 이동과 성격이 달라 맵을 나눴다.
+        /// 액션이 <c>Navigate</c> 하나뿐이다. 리바인드도 컴포지트 하나만 바꾸면 네 방향이 전부 따라온다.
+        /// 한 번 누르면 한 칸 가는 <b>이산</b> 입력이다.
         /// </summary>
         public static class BulletTime
         {
@@ -100,18 +85,18 @@ namespace Prototype
         private static readonly Dictionary<string, string> Maps = new Dictionary<string, string>
         {
             { InputActionNames.Gameplay.Map, "전투" },
-            { InputActionNames.BulletTime.Map, "불릿타임 — 카드 조작" },
+            { InputActionNames.BulletTime.Map, "총공격 편집창" },
         };
 
         private static readonly Dictionary<string, string> Actions = new Dictionary<string, string>
         {
             { InputActionNames.Gameplay.Move, "이동" },
             { InputActionNames.Gameplay.Attack, "평타" },
-            { InputActionNames.Gameplay.Jump, "점프 · 불릿타임 취소" },
+            { InputActionNames.Gameplay.Jump, "점프" },
             { InputActionNames.Gameplay.Dash, "대쉬" },
-            { InputActionNames.Gameplay.BulletTime, "불릿타임 진입 · 실행" },
+            { InputActionNames.Gameplay.BulletTime, "총공격 편집창 열기" },
             { InputActionNames.Gameplay.Interact, "상호작용 (로비)" },
-            { InputActionNames.BulletTime.Navigate, "카드 선택 · 순서" },
+            { InputActionNames.BulletTime.Navigate, "칸 이동" },
         };
 
         private static readonly Dictionary<string, string> Parts = new Dictionary<string, string>
@@ -173,13 +158,6 @@ namespace Prototype
             int index = InputBindingUtility.FindBindingIndex(found, part);
             return index >= 0 ? InputDisplayNames.Key(found, index) : "?";
         }
-
-        public static string BulletTime => Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
-        public static string Jump => Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Jump);
-
-        /// <summary>손패 카드 이동 · 집기 · 놓기 키. 이동키와 같다.</summary>
-        public static string CardKey(string part)
-            => Key(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate, part);
     }
 
     // ══ InputBindingUtility ═══════════════════════════════════════════
@@ -244,8 +222,8 @@ namespace Prototype
         private static readonly string[] CompositeParts = { "up", "down", "left", "right" };
 
         /// <summary>
-        /// 손패 카드 선택(<c>BulletTime/Navigate</c>)을 이동(<c>Gameplay/Move</c>) 키에 그대로 맞춘다.
-        /// 카드 조작 키는 따로 바꾸지 않는다 — 이동키를 바꾸면 카드 선택도 같이 따라간다.
+        /// 편집창 칸 이동(<c>BulletTime/Navigate</c>)을 이동(<c>Gameplay/Move</c>) 키에 그대로 맞춘다.
+        /// 칸 이동 키는 따로 바꾸지 않는다 — 이동키를 바꾸면 같이 따라간다.
         /// 오버라이드를 적용 · 불러오는 모든 자리 뒤에 부른다.
         /// </summary>
         public static void SyncNavigateToMove(InputActionAsset actions)
@@ -266,7 +244,7 @@ namespace Prototype
 
         /// <summary>
         /// 액션을 이름으로 찾는다. 맵 이름까지 맞아야 한다 —
-        /// Gameplay/Move와 BulletTime/Aim처럼 같은 키를 쓰는 액션이 여러 맵에 있다.
+        /// Gameplay/Move와 BulletTime/Navigate처럼 같은 키를 쓰는 액션이 여러 맵에 있다.
         /// </summary>
         public static InputAction FindAction(InputActionAsset actions, string mapName, string actionName)
         {

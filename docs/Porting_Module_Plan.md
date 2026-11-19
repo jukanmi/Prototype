@@ -46,12 +46,11 @@ flowchart LR
 | StateMachine → Entities | `StateMachine.cs` 안에 `EntityState` 와 상태 14종(Idle~Dead)이 같이 있다 |
 | Entities → Vfx | `Attack`·`Combat.Impact`·`Projectile` 이 `SkillVfx`·`BattleVfx` 를 직접 호출 |
 | Entities → Skill | `SkillState`·`SkillData`·`WallFinder`·`EffectUtil` |
-| Entities → Stage | `Physics`·`Projectile` 이 `GroundRegistry` 를 문다 |
 | Entities → Control | `Control` 베이스, `AssistMoveState`·`AssistReadyState` |
 | Skill → AI/Control | `AttackRangePreview`, `EnemyControl` |
 | Deck → Battle/Progression/Party | `ComboSlot`, `ExpRules`, `PartyMemberData` |
-| Stage → Progression/FlowScene | `LevelUpSession`·`MapNode`·`GameManager` |
-| Input → Battle | `TargetSelector`, `BulletTimeController` (`InputMapSwitcher` 가 페이즈를 읽음) |
+| Stage → Progression/FlowScene | `MapNode`·`GameManager` |
+| Input → Battle | `AssaultEditorUI` (`InputMapSwitcher` 가 편집창 상태를 읽음) |
 
 > 집계는 이름 매칭이라 `Entry`·`Row`·`Phase`·`Result` 같은 중첩 타입 이름은 오탐일 수 있다.
 > 1단계에서 확인한다.
@@ -66,14 +65,14 @@ flowchart LR
 flowchart TB
   subgraph L4[App]
     App[App<br/>GameManager · SceneLoader · 씬 컨트롤러 · Audio · Camera]
-    UI[UI<br/>HUD · ComboBoardUI · DeckBuilderUI · RebindUI …]
+    UI[UI<br/>HUD · BulletTimeGaugeUI · AssaultEditorUI · RebindUI …]
   end
   subgraph L3[Meta]
-    Run[Run<br/>RunMap · RunProgression · LevelUp · CardOffer · SkillCatalog]
+    Run[Run<br/>RunMap · RunProgression · CardOffer · SkillFusion · SkillCatalog]
     Party[Party<br/>PartyMemberData · Loadout · Assembler · Catalog]
   end
   subgraph L2[Battle Systems]
-    Tactic[Tactic<br/>BulletTime · ComboExecutor · CastDirector · Deck · TargetSelector · TagSwap]
+    Tactic[Tactic<br/>BulletTime · ComboExecutor · CastDirector · Deck · PartyRoster]
     Stage[Stage<br/>Wave · Spawn · Arena · Encounter · StageDirector]
     Input[Input<br/>PlayerInputController · Rebind · Preset]
   end
@@ -97,13 +96,13 @@ flowchart TB
 | 모듈 | 지금 폴더 | 메모 |
 |---|---|---|
 | Kernel | Core(일부) · Stats · StateMachine(제네릭 부분만) | `BattleRegistry`·`Camera*`·`AudioManager`·`UiKit`·`MenuCursor` 는 내보낸다 |
-| Actor | Entities + `EntityState` 14종 | `GroundRegistry` 를 인터페이스로 받는다. Vfx 호출은 `CombatEvents` 이벤트로 바꾼다 |
+| Actor | Entities + `EntityState` 14종 | Vfx 호출은 `CombatEvents` 이벤트로 바꾼다 |
 | Skill | Skill | Vfx 는 `SkillFxKind` 만 넘기고 재생은 Vfx 가 구독 |
 | Agent | Characters + Control + AI | 셋이 서로 물려 있고 합쳐도 2,800줄. 쪼갤 이유가 없다 |
 | Vfx | Vfx | 11,900줄로 최대. **가장 마지막에 옮기거나 본게임 아트로 갈아 끼울 후보** |
 | Tactic | Battle(로직) + Deck | Deck ↔ `ComboSlot` 순환이라 한 모듈로 묶는다 |
 | Stage | Stage | 진행(Run)에는 "클리어/실패" 이벤트만 쏜다 |
-| Input | Input | `InputMapSwitcher` 는 Tactic 페이즈를 알아야 하므로 Tactic 쪽으로 옮긴다 |
+| Input | Input | `InputMapSwitcher` 는 총공격 편집창(Tactic UI)을 알아야 하므로 Tactic 쪽으로 옮긴다 |
 | Party · Run | Party · Progression(로직) | |
 | UI | Battle/Components/UI + 각 폴더의 `*UI`·`*HUD` | 본게임 UI로 **대체될 가능성 높음** — 계약만 문서화 |
 | App | FlowScene + Camera · Audio | 본게임 것으로 **대체**. 이식 대상 아님 |
@@ -173,7 +172,7 @@ U3 클래스 다이어그램은 손으로 처음부터 그리지 않는다. 0절
 
 1. **옮긴다** — 잘못된 폴더에 있는 클래스 (예: `EntityState` → Actor, `InputMapSwitcher` → Tactic)
 2. **이벤트로 뒤집는다** — 아래가 위를 호출하는 곳 (예: `Attack` → `BattleVfx` 를 `CombatEvents` 구독으로)
-3. **인터페이스를 아래층에 둔다** — 아래가 위의 데이터를 읽는 곳 (예: `GroundRegistry` → Actor의 `IGround`)
+3. **인터페이스를 아래층에 둔다** — 아래가 위의 데이터를 읽는 곳 (예: Actor의 `IBattleVfx` 를 Vfx가 구현)
 
 ### P3. 프로토타입 안에서 asmdef 분리
 
@@ -227,5 +226,4 @@ App · UI 를 본게임 것으로 연결한다. U6 계약표의 Provides/Events 
 
 - `docs/*_Refactor_Plan.md` — 폴더별 리팩토링 분석. P2 설계의 출발점
 - `클래스다이어그램.canvas` · `클래스구조.canvas` — 초기 설계도
-- `md/00~08` — 기획 다이어그램 해설
 - `Assets/Scripts/README.md` — 좌표 규약 · 입력 규칙 · 시간 제어. 본게임에도 그대로 적용되는 규칙

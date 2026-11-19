@@ -124,7 +124,7 @@ namespace Prototype
     /// <summary>
     /// 로드아웃을 슬롯에 배치하는 규칙. <see cref="PartyAssembler"/>에서 떼어 낸 순수 계산이다.
     ///
-    /// <see cref="TagSwapRules"/> · <see cref="Prototype.StageOutcomeRules"/>와 같은 이유로 분리한다 —
+    /// <see cref="Prototype.StageOutcomeRules"/>와 같은 이유로 분리한다 —
     /// EditMode 테스트는 <c>Awake</c>가 돌지 않아 씬을 세울 수 없다. 규칙만 여기 두면
     /// 씬 없이 검증되고, 슬롯을 실제로 만지는 부분은 얇은 어댑터로 남는다.
     /// </summary>
@@ -133,7 +133,7 @@ namespace Prototype
         /// <summary>
         /// 로드아웃을 슬롯 수에 맞춰 편다. 모자라면 뒤를 null로 채우고, 넘치면 자른다.
         ///
-        /// <b>빈 칸을 앞으로 당기지 않는다.</b> 슬롯 순서가 곧 교대 순환 순서(F키)라,
+        /// <b>빈 칸을 앞으로 당기지 않는다.</b> 슬롯 순서는 저작한 그대로다 —
         /// 저작자가 1번에 탱커를 두었으면 3번이 비어도 탱커는 1번이어야 한다.
         /// </summary>
         public static PartyMemberData[] Resolve(PartyLoadout loadout, int slotCount)
@@ -152,8 +152,8 @@ namespace Prototype
         ///
         /// <b>직업 불일치가 핵심</b>이다. <see cref="BulletTimeController.ResolveCaster"/>는
         /// 카드의 <c>SkillData.role</c>로 시전자를 찾는다. 마법사 동료가 궁수 카드를 들면
-        /// 그 카드는 덱에 들어가서 손패 맨 앞을 막고 <b>영영 안 나간다</b> —
-        /// 에러도 경고도 없이 U키만 먹통이 된다. 그래서 여기서 잡는다.
+        /// 그 카드는 덱에 들어가서 <b>영영 안 나간다</b> —
+        /// 에러도 경고도 없이 손패 자리만 차지한다. 그래서 여기서 잡는다.
         /// </summary>
         public static bool IsValid(PartyMemberData member, out string reason)
         {
@@ -241,8 +241,8 @@ namespace Prototype
         /// <summary>
         /// 명단에서 한 명을 넣거나 뺀다. 이미 있으면 빼고, 없으면 뒤에 붙인다.
         ///
-        /// <b>고른 순서가 곧 슬롯 순서, 즉 F키 교대 순환 순서다.</b> 중간을 빼면 뒤가 당겨진다 —
-        /// 빈 칸을 남기면 "3번이 비었는데 4번으로 교대된다"가 되어 순환이 안 읽힌다.
+        /// <b>고른 순서가 곧 슬롯 순서다.</b> 중간을 빼면 뒤가 당겨진다 —
+        /// 고른 순서에 구멍을 남기지 않는다.
         /// (<see cref="Resolve"/>가 남기는 빈 칸은 <b>뒤쪽</b>에만 생긴다.)
         ///
         /// 가득 찬 상태에서 새 사람을 누르면 <b>아무 일도 안 한다</b> — 조용히 누군가를
@@ -290,7 +290,7 @@ namespace Prototype
         /// <summary>
         /// 이 조합으로 런을 시작할 수 있는가.
         ///
-        /// <b>한 명은 있어야 한다.</b> 동료가 0명이면 덱이 0장이라 U키도 불릿타임도
+        /// <b>한 명은 있어야 한다.</b> 동료가 0명이면 덱이 0장이라 평타 적중 발동도 총공격도
         /// 아무것도 안 나간다 — 플레이어 몸으로 평타만 치는 판이 된다.
         /// 그건 버그처럼 보이지, 선택처럼 보이지 않는다.
         /// </summary>

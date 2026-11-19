@@ -210,7 +210,7 @@ namespace Prototype.Tests
 
             c.ClearDebuffs();
 
-            Assert.That(c.Physics.Suspended, Is.False, "벤치로 내려간 몸이 공중에 못 박힌 채 남으면 안 된다");
+            Assert.That(c.Physics.Suspended, Is.False, "필드에서 빠진 몸이 공중에 못 박힌 채 남으면 안 된다");
         }
 
         [Test]
@@ -266,10 +266,10 @@ namespace Prototype.Tests
             Assert.That(c.HasDebuff(Debuff.Stun), Is.False, "시체를 굳힐 이유가 없다");
         }
 
-        // ── 벤치(교대) ──────────────────────────────────
+        // ── 필드에서 빠질 때 ──────────────────────────────────
 
         [Test]
-        public void BenchedBody_LosesDebuffsButKeepsBuffs()
+        public void ReleasedBody_LosesDebuffsButKeepsBuffs()
         {
             Combat c = NewBody("Ally");
             c.Statuses.Apply(StatusKind.Shield, 10f);
@@ -278,7 +278,7 @@ namespace Prototype.Tests
             c.ClearDebuffs();   // Entity.ReleaseBody가 부르는 그 경로
 
             Assert.That(c.HasDebuff(Debuff.All), Is.False,
-                        "꺼진 몸은 Tick이 멈춘다 — 물고 내려가면 벤치에 숨어 디버프를 피하거나 영영 얼어 있다");
+                        "꺼진 몸은 Tick이 멈춘다 — 물고 빠지면 필드 밖에서 디버프를 피하거나 영영 얼어 있다");
             Assert.That(c.Statuses.Has(StatusKind.Shield), Is.True,
                         "버프는 남는다 — 필드 밖에서 보호막이 녹을 이유는 없다");
         }

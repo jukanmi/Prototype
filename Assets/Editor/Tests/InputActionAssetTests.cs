@@ -74,8 +74,8 @@ namespace Prototype.Tests
         [Test]
         public void BulletTimeMap_HasOnlyNavigate()
         {
-            // 집기(W) · 놓기(S)까지 방향에 실려 있다. 액션을 따로 두면 그 키가
-            // Navigate와 겹쳐 한 번 누른 W가 집기와 조준 진입을 함께 터뜨린다.
+            // 편집창 칸 이동(Navigate) 하나뿐이다. 액션을 더 두면 같은 키가
+            // Navigate와 겹쳐 한 번 누른 키가 두 액션을 함께 터뜨린다.
             Assert.That(Map(InputActionNames.BulletTime.Map).actions.Select(a => a.name),
                 Is.EquivalentTo(new[] { InputActionNames.BulletTime.Navigate }));
         }

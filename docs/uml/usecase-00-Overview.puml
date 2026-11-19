@@ -25,8 +25,8 @@ rectangle "Prototype" {
   package "③ 실시간 전투\n(usecase-03-Combat)" as Combat {
     usecase "이동 · 평타 · 대시 · 패리\n피격 · 상태이상" as UC_Combat
   }
-  package "④ 불릿타임 콤보\n(usecase-04-Tactic)" as Tactic {
-    usecase "불릿타임 진입 · 카드 배치\n콤보 실행" as UC_Tactic
+  package "④ 총공격\n(usecase-04-Tactic)" as Tactic {
+    usecase "총공격 슬롯 편집 · 자동 발동\n콤보 실행" as UC_Tactic
   }
   package "⑤ 스테이지 · 적\n(usecase-05-Stage)" as Stage {
     usecase "웨이브 스폰 · 적 공격\n클리어 판정 · 경험치" as UC_Stage
@@ -47,7 +47,6 @@ UC_Stage <-- GameSys
 
 note bottom of Tactic
   동료는 조작 대상이 아니다.
-  카드가 발동되면 등장해 시전하고 퇴장한다
-  (태그 교대는 삭제됨 — 커밋 6915e2fe).
+  카드가 발동되면 등장해 시전하고 퇴장한다.
 end note
 @enduml

@@ -21,11 +21,11 @@ namespace Prototype
     ///
     /// <b>실행 순서 -200을 유지한다.</b> 프리팹화로 없어진 것이 아니다:
     /// <list type="bullet">
-    /// <item><see cref="Awake"/>가 만든 몸이 <c>TagSwapController</c> · <c>BulletTimeController</c> ·
+    /// <item><see cref="Awake"/>가 만든 몸이 <c>PartyRoster</c> · <c>BulletTimeController</c> ·
     /// <c>CameraFollow</c>(0)의 <c>Awake</c>보다
     /// <b>먼저</b> 존재해야 한다. 그 넷의 <c>FindAnyObjectByType&lt;Player&gt;</c> 폴백이
     /// 살아 있는 이유이자, 그것이 안전한 이유다.</item>
-    /// <item><see cref="Start"/>의 체력 복원이 <c>TagSwapController.Start</c>(0)의
+    /// <item><see cref="Start"/>의 체력 복원이 <c>PartyRoster.Start</c>(0)의
     /// 로스터 초기화보다 먼저 끝나야 한다.</item>
     /// </list>
     /// </summary>
@@ -44,7 +44,7 @@ namespace Prototype
 
         [Header("배선")]
         [Tooltip("비우면 같은 오브젝트에서 찾는다. 만든 주인공을 여기에 밀어 넣는다.")]
-        [SerializeField] private TagSwapController swap;
+        [SerializeField] private PartyRoster roster;
 
         [Tooltip("비우면 자식에서 찾는다. 만든 주인공을 여기에 밀어 넣는다 — 덱이 파티 카드를 걷는다.")]
         [SerializeField] private BulletTimeController bulletTime;
@@ -69,7 +69,7 @@ namespace Prototype
 
         private void Awake()
         {
-            if (swap == null) swap = GetComponent<TagSwapController>();
+            if (roster == null) roster = GetComponent<PartyRoster>();
             if (bulletTime == null) bulletTime = GetComponentInChildren<BulletTimeController>(true);
             if (partyRoot == null) partyRoot = transform;
 
@@ -95,7 +95,7 @@ namespace Prototype
         /// <see cref="Energy"/>를 만들기 때문이다. 그 전에 비율을 넣으면 곧바로 프리팹의
         /// <c>maxHealth</c>로 덮인다.
         ///
-        /// 이 컴포넌트는 실행 순서 -200이라 <c>TagSwapController.Start</c>(0)보다도 먼저 돈다 —
+        /// 이 컴포넌트는 실행 순서 -200이라 <c>PartyRoster.Start</c>(0)보다도 먼저 돈다 —
         /// 첫 몸이 무대에 서기 전에 체력이 확정된다.
         /// </summary>
         private void Start()
@@ -147,8 +147,8 @@ namespace Prototype
         ///
         /// 죽은 동료를 빈 칸과 똑같이 다루는 이유는 그대로다 — 죽은 상태로 세우려면
         /// 사망 연출 · 레지스트리 · 상태머신이 한 번씩 더 돌아야 하는데, 3인 파티 경로
-        /// (<c>TagSwapRules</c>의 null 칸 건너뛰기 · <c>CollectPartyCards</c>의 skip ·
-        /// <c>AvailableRoles</c>에서 빠짐 · <c>DeckRules</c>의 목표 축소)가 이미 전부 성립한다.
+        /// (<c>CollectPartyCards</c>의 skip · <c>AvailableRoles</c>에서 빠짐 ·
+        /// <c>DeckRules</c>의 목표 축소)가 이미 전부 성립한다.
         /// </summary>
         private void BuildParty()
         {
@@ -159,7 +159,7 @@ namespace Prototype
 
             if (Hero != null) Hero.SetParty(Members);
             else BattleLog.Warn(LogCategory.State,
-                "주인공 프리팹이 없다 — 태그 로스터가 통째로 안 만들어진다. " +
+                "주인공 프리팹이 없다 — 파티 명부가 통째로 안 만들어진다. " +
                 "PartyAssembler 의 defaultPlayerPrefab 을 꽂거나 PlayerData 에 프리팹을 넣을 것.", this);
 
             CloseStage();
@@ -379,15 +379,15 @@ namespace Prototype
         /// 슬롯 시절에는 이 참조들이 <c>BattleInputBuilder</c>가 프리팹에 구워 둔 것이었다.
         /// 몸이 런타임 생성물이 되면서 그 참조가 사라졌으므로 여기가 대신 채운다 —
         /// 받는 쪽의 <c>FindAnyObjectByType</c> 폴백은 <b>안전망으로 남긴다</b>.
-        /// 파티 없이 도는 스킬 실험 씬이 그 폴백으로 살아 있다.
+        /// 파티 없이 도는 씬이 그 폴백으로 살아 있다.
         /// </summary>
         private void PushReferences()
         {
             if (Hero == null) return;
 
-            if (swap != null) swap.SetHero(Hero);
+            if (roster != null) roster.SetHero(Hero);
             else BattleLog.Warn(LogCategory.State,
-                "TagSwapController 가 없다 — 태그 로스터가 안 만들어진다.", this);
+                "PartyRoster 가 없다 — 파티 명부가 안 만들어진다.", this);
 
             if (bulletTime != null) bulletTime.SetHero(Hero);
             else BattleLog.Warn(LogCategory.State,
@@ -399,7 +399,7 @@ namespace Prototype
         /// <summary>
         /// 파티를 이 스테이지의 자리로 옮긴다.
         ///
-        /// 실제 착지는 <see cref="TagSwapController"/>가 <c>Start</c>에서 한다 —
+        /// 실제 착지는 <see cref="PartyRoster"/>가 <c>Start</c>에서 한다 —
         /// <see cref="Physics.Teleport"/>가 접지 · 관성 · 낙하속도를 함께 정리하는데
         /// 그건 <c>Physics.Awake</c>가 끝난 뒤에야 부를 수 있기 때문이다.
         ///
@@ -415,9 +415,9 @@ namespace Prototype
             foreach (Ally a in Members)
                 if (a != null) a.transform.position = ground;
 
-            if (swap != null) swap.SeedSeat(ground, facing);
+            if (roster != null) roster.SeedSeat(ground, facing);
             else BattleLog.Warn(LogCategory.State,
-                "TagSwapController 가 없어 시작 자리를 넘기지 못했다 — 파티가 원점에서 시작한다.", this);
+                "PartyRoster 가 없어 시작 자리를 넘기지 못했다 — 파티가 원점에서 시작한다.", this);
         }
 
         // ── 컨테이너 불변식 ─────────────────────────────

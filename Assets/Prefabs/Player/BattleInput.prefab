@@ -285,7 +285,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04faab1f80029e4419c893ecda3ae048, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.InputMapSwitcher
-  bulletTime: {fileID: 0}
 --- !u!114 &1992139283966176409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,7 +308,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 77d6e00fc1bef194b8a7ba4a658832e7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.TagSwapController
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyRoster
   player: {fileID: 0}
   bulletTime: {fileID: 1490962342387795252}
   cameraFollow: {fileID: 0}
@@ -343,7 +342,7 @@ MonoBehaviour:
   defaultPlayerPrefab: {fileID: 4540215255994790702, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
   defaultAllyPrefab: {fileID: 9215232113246201951, guid: ff6fb2c9411d8a242958bbd3dc8bdd52, type: 3}
   partyRoot: {fileID: 1419850568724524005}
-  swap: {fileID: 8887573751772618589}
+  roster: {fileID: 8887573751772618589}
   bulletTime: {fileID: 1490962342387795252}
   standaloneLoadout: {fileID: 11400000, guid: fba9e8aabde39ad41be2d9cede68d05e, type: 2}
 --- !u!114 &6252340255952021515
@@ -358,7 +357,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f18fc80a43b1c458ce85c4e57c2d2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.PartyHealthHUD
-  swap: {fileID: 8887573751772618589}
+  roster: {fileID: 8887573751772618589}
   show: 1
   showNumbers: 1
   panel: {fileID: 6296000880621813144}
@@ -892,10 +891,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2219754581378737675}
     m_Modifications:
-    - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
-      propertyPath: swap
-      value: 
-      objectReference: {fileID: 8887573751772618589}
     - target: {fileID: 1532985249278245213, guid: 90ba82afc3f567e449a10a1abc8dc8c6, type: 3}
       propertyPath: executor
       value: 

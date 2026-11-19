@@ -82,8 +82,7 @@ namespace Prototype
         }
 
         // 캐릭터 위치는 LateUpdate에 확정된다(BeltScrollView). 그 뒤에 읽는다.
-        // TimeControl을 보지 않으므로 불릿타임 중에도 보인다 — 조준하는 동안 남은 시간이 보여야
-        // 이 스킬을 지금 넣을지 판단할 수 있다.
+        // TimeControl을 보지 않으므로 시간이 멈춘 동안에도 남은 시간이 보인다.
         private void LateUpdate()
         {
             int used = 0;

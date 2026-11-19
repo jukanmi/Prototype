@@ -120,9 +120,6 @@ namespace Prototype
     /// <b>반경 둘이 아니라 네 변으로 든다.</b> 아레나가 이미 <c>minX</c>/<c>maxX</c>로 저작하고,
     /// 원점 중심을 가정한 <c>Mathf.Abs(x) &lt;= 반경</c> 비교는 방이 옮겨지는 순간 전부 틀린다.
     ///
-    /// <see cref="GroundRect"/>와 다르다. 저쪽은 <b>밟는 면</b>이고 이쪽은 <b>소환 가능 구역</b>이다 —
-    /// 발판이 여러 장인 방에서 둘이 같을 이유가 없다.
-    ///
     /// 인스펙터에서 뒤집어 적어도 읽을 때 정렬한다(<see cref="EncounterSite.MinX"/>와 같은 규약).
     /// <c>default</c>는 크기 0인 방이라 쓰면 안 된다 — 기준 방은 <see cref="Default"/>다.
     ///

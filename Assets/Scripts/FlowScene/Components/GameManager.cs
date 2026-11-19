@@ -61,7 +61,7 @@ namespace Prototype
         ///
         /// <b>런 도중에는 부르지 않는다.</b> 덱은 첫 스테이지에서 파티 카드로 한 번 씨를 뿌린 뒤
         /// <see cref="Prototype.RunProgression.Seeded"/>가 서서 런 덱이 이긴다 —
-        /// 도중에 파티만 갈아치우면 시전자가 없는 카드가 손패에 남아 U키가 먹통이 된다.
+        /// 도중에 파티만 갈아치우면 시전자가 없는 카드가 덱 · 손패에 남아 아무도 못 쓴다.
         /// </summary>
         public void SelectLoadout(PartyLoadout loadout)
         {
@@ -354,10 +354,10 @@ namespace Prototype
             => SceneLoader.Instance.SwapTo(load, unload, onComplete);
 
         /// <summary>
-        /// 이 프로젝트의 일시정지는 Time.timeScale 이 아니라 TimeControl.Scale 이다
-        /// (불릿타임 중 UI · 조준은 계속 돌아야 하므로). 불릿타임 도중 이탈하면
+        /// 전투 안의 시간 정지는 Time.timeScale 이 아니라 TimeControl.Scale 이다
+        /// (시간이 멈춘 동안에도 UI는 계속 돌아야 하므로). 시간이 멈춘 채 이탈하면
         /// Scale 이 0 인 채로 남아 다음 런이 멈춘 상태로 시작하므로 여기서 되돌린다.
-        /// Time.timeScale 은 외부 코드가 건드렸을 경우를 대비한 보험이다.
+        /// Time.timeScale 은 일시정지 창(PauseMenu)이 쓰는 값이라 같이 1로 되돌린다.
         /// </summary>
         private static void RestoreTime()
         {

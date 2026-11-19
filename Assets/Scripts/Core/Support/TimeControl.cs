@@ -7,7 +7,7 @@ namespace Prototype
     public enum TimeDomain { Battle, Cast }
     /// <summary>
     /// 게임플레이 전용 시간 배율. 결정 로그 ⑥ — Time.timeScale은 쓰지 않는다.
-    /// UI와 애니메이션까지 멈추면 불릿타임 중 손패 조작이 불가능하기 때문.
+    /// UI와 애니메이션까지 멈추면 시간을 멈춘 동안 도는 연출(스킬 컷인 등)까지 같이 멈추기 때문.
     /// </summary>
     public static class TimeControl
     {
@@ -45,7 +45,7 @@ namespace Prototype
 
         /// <summary>
         /// Domain Reload가 꺼져 있으면 static이 플레이 세션을 넘어 살아남는다.
-        /// 불릿타임 중에 정지하면 Scale이 0인 채로 남아 다음 플레이가 멈춘 상태로 시작한다.
+        /// 시간이 멈춘 채(컷인 중 등) 플레이를 끄면 Scale이 0인 채로 남아 다음 플레이가 멈춘 상태로 시작한다.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Reset();

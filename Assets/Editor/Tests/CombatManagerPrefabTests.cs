@@ -77,57 +77,8 @@ namespace Prototype.Tests
             => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill");
 
         [Test]
-        public void ComboBoardUI_IsWired()
-            => AssertWired<ComboBoardUI>(
-                "_canvasRoot", "_handPanelRect", "_rowRect", "_titleText", "_hintText",
-                "_arrowText", "_detailPanel", "_detailName");
-
-        /// <summary>
-        /// 카드는 <c>Hand.Size</c>(4)장 고정이라 통째로 프리팹에 들어간다.
-        /// 한 장이라도 조각이 비면 그 자리만 조용히 안 그려진다 — 손패가 세 장으로 보인다.
-        /// </summary>
-        [Test]
-        public void ComboBoardUI_EveryCardIsWired()
-        {
-            var board = Prefab().GetComponentInChildren<ComboBoardUI>(true);
-            Assert.That(board, Is.Not.Null);
-
-            var so = new SerializedObject(board);
-            SerializedProperty cards = so.FindProperty("_cards");
-
-            Assert.That(cards.arraySize, Is.EqualTo(Hand.Size),
-                $"카드 배열이 {cards.arraySize}장이다 — Hand.Size({Hand.Size})와 같아야 한다.");
-
-            string[] parts =
-            {
-                "root", "rect", "background", "inner", "art",
-                "nameLabel", "subLabel", "statusLabel", "group",
-            };
-
-            for (int i = 0; i < cards.arraySize; i++)
-            {
-                SerializedProperty card = cards.GetArrayElementAtIndex(i);
-
-                foreach (string part in parts)
-                    Assert.That(card.FindPropertyRelative(part).objectReferenceValue, Is.Not.Null,
-                        $"Card[{i}].{part} 배선이 비었다.");
-            }
-        }
-
-        /// <summary>상세 패널은 세 줄 고정이다 — 종류 · 설명 · 코스트.</summary>
-        [Test]
-        public void ComboBoardUI_DetailRowsAreWired()
-        {
-            var board = Prefab().GetComponentInChildren<ComboBoardUI>(true);
-            var so = new SerializedObject(board);
-            SerializedProperty rows = so.FindProperty("_detailRows");
-
-            Assert.That(rows.arraySize, Is.EqualTo(3), "상세 줄이 세 개가 아니다.");
-
-            for (int i = 0; i < rows.arraySize; i++)
-                Assert.That(rows.GetArrayElementAtIndex(i).objectReferenceValue, Is.Not.Null,
-                    $"_detailRows[{i}] 배선이 비었다.");
-        }
+        public void BulletTimeGaugeUI_IsWired()
+            => AssertWired<BulletTimeGaugeUI>("_canvas");
 
         /// <summary>
         /// 켜고 끄는 대상은 <b>꺼진 채로</b> 저장돼야 한다. 켜 두면 전투 시작과 동시에
@@ -136,7 +87,6 @@ namespace Prototype.Tests
         [TestCase("DeckInspectorCanvas/Popup")]
         [TestCase("RebindCanvas/Backdrop")]
         [TestCase("RebindCanvas/Backdrop/Panel/Listening")]
-        [TestCase("ComboBoardCanvas/DetailPanel")]
         public void ModalRoots_StartHidden(string path)
         {
             Transform t = Prefab().transform.Find(path);
@@ -148,7 +98,7 @@ namespace Prototype.Tests
 
         /// <summary>
         /// 클릭을 안 받는 HUD에 <c>GraphicRaycaster</c>가 붙으면 그 패널이
-        /// 아래층(손패 카드)의 클릭을 통째로 가로챈다. 증상이 UI가 아니라 조작에서 나온다.
+        /// 아래층의 클릭을 통째로 가로챈다. 증상이 UI가 아니라 조작에서 나온다.
         /// </summary>
         [TestCase("ComboDamageCanvas")]
         [TestCase("SkillCutinCanvas")]
@@ -159,14 +109,14 @@ namespace Prototype.Tests
             Assert.That(t, Is.Not.Null, $"{child} 가 없다.");
 
             Assert.That(t.GetComponent<UnityEngine.UI.GraphicRaycaster>(), Is.Null,
-                $"{child} 에 GraphicRaycaster 가 붙었다 — 손패 클릭을 가로챈다.");
+                $"{child} 에 GraphicRaycaster 가 붙었다 — 아래층 클릭을 가로챈다.");
         }
 
         /// <summary>
         /// 캔버스 겹침 순서는 <see cref="UiLayer"/>가 유일한 원본이다.
         /// 프리팹에서 손으로 바꿔 놓으면 표와 화면이 갈린다.
         /// </summary>
-        [TestCase("ComboBoardCanvas", UiLayer.ComboBoard)]
+        [TestCase("GaugeCanvas", UiLayer.Gauge)]
         [TestCase("RecentHitEnemyCanvas", UiLayer.RecentHitEnemy)]
         [TestCase("ComboDamageCanvas", UiLayer.ComboDamage)]
         [TestCase("SkillCutinCanvas", UiLayer.SkillCutin)]

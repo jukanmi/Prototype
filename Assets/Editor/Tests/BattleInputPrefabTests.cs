@@ -10,9 +10,8 @@ namespace Prototype.Tests
     /// 입력 배선을 본다. 손으로 붙이는 부분이라 컴파일러도 다른 테스트도 안 잡아 준다 —
     /// 틀리면 씬을 켜 봐야 안다.
     ///
-    /// 예전에는 이 배선이 Player 프리팹에 있었다. 태그 교대가 몸을
-    /// <c>SetActive(false)</c>로 내리면서 거기 있으면 안 되게 됐다 —
-    /// 교대하는 순간 되돌아올 키까지 함께 죽는다.
+    /// 예전에는 이 배선이 Player 프리팹에 있었다. 몸은 <c>SetActive(false)</c>로
+    /// 꺼질 수 있어서 거기 있으면 안 된다 — 몸이 꺼지는 순간 키까지 함께 죽는다.
     /// </summary>
     public class BattleInputPrefabTests
     {
@@ -104,16 +103,16 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void Host_HasCommanderAndTagSwap()
+        public void Host_HasCommanderAndRoster()
         {
             GameObject host = Load(HostPath);
 
-            // 지휘키(E · U)와 교대키(F)를 읽는 주체. 몸에 두면 교대와 함께 죽는다.
+            // 지휘키(E)를 읽는 주체. 몸에 두면 몸이 꺼질 때 함께 죽는다.
             Assert.That(host.GetComponent<BattleCommander>(), Is.Not.Null,
-                "입력 호스트에 BattleCommander 가 없다 — E · U · F 가 아무 데서도 안 읽힌다.");
+                "입력 호스트에 BattleCommander 가 없다 — E 가 아무 데서도 안 읽힌다.");
 
-            Assert.That(host.GetComponent<TagSwapController>(), Is.Not.Null,
-                "입력 호스트에 TagSwapController 가 없다 — 교대가 일어나지 않는다.");
+            Assert.That(host.GetComponent<PartyRoster>(), Is.Not.Null,
+                "입력 호스트에 PartyRoster 가 없다 — 주인공이 시작 자리에 서지 않는다.");
         }
 
         [Test]
@@ -159,7 +158,7 @@ namespace Prototype.Tests
             GameObject body = Load(PlayerPath);
 
             Assert.That(body.GetComponent<PlayerInput>(), Is.Null,
-                "Player 프리팹에 PlayerInput 이 남아 있다 — 태그로 내려가면 입력이 통째로 죽는다.");
+                "Player 프리팹에 PlayerInput 이 남아 있다 — 몸이 꺼지면 입력이 통째로 죽는다.");
             Assert.That(body.GetComponent<PlayerInputController>(), Is.Null,
                 "Player 프리팹에 PlayerInputController 가 남아 있다.");
             Assert.That(body.GetComponent<InputMapSwitcher>(), Is.Null,
@@ -167,7 +166,7 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 빙의 모델의 잔해가 남아 있으면 안 된다. 몸에 조종사가 붙어 있던 시절에는
+        /// 몸마다 컨트롤을 붙이던 시절의 잔해가 남아 있으면 안 된다. 몸에 조종사가 붙어 있던 시절에는
         /// 프리팹과 씬이 조용히 어긋났다 — 어떤 몸에는 붙고 어떤 몸에는 안 붙어도
         /// 게임이 그냥 돌아가 버렸다.
         /// </summary>

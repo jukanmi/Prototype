@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Prototype
@@ -106,50 +105,6 @@ namespace Prototype
             Discard.Add(card);
         }
 
-        // ── 실행 ─────────────────────────────────────────
-
-        /// <summary>
-        /// 손패를 통째로 실행 큐로 굳힌다. 왼쪽부터 순서대로 들어간다.
-        /// 시전자를 못 찾은 카드는 발동하지 못하므로 그대로 Discard로 보낸다.
-        /// </summary>
-        public Queue<ComboSlot> TakeQueue(Func<Role, Ally> resolveCaster)
-        {
-            var q = new Queue<ComboSlot>(Hand.Size);
-            List<ComboSlot> all = Hand.TakeAll();
-
-            for (int i = 0; i < all.Count; i++)
-            {
-                ComboSlot s = all[i];
-                SkillData data = s.Data;
-                if (data == null)
-                {
-                    // 그냥 continue하면 카드가 덱에서 증발한다. Discard로 돌려보낸다.
-                    Recycle(s.card);
-                    continue;
-                }
-
-                Ally caster = resolveCaster(data.role);
-                if (caster == null)
-                {
-                    BattleLog.Warn(LogCategory.Combo,
-                        $"{data.skillName} 건너뜀 — {data.role} 동료가 파티에 없거나 사망", logContext);
-                    Recycle(s.card);
-                    continue;
-                }
-
-                s.caster = caster;
-                s.target = caster.AutoTarget(data);
-
-                q.Enqueue(s);
-            }
-
-            BattleLog.Log(LogCategory.Combo,
-                $"실행 큐 생성 {q.Count}장 | " +
-                string.Join(" → ", Array.ConvertAll(q.ToArray(), s => s.Data != null ? s.Data.skillName : "?")), logContext);
-
-            return q;
-        }
-
         // ── 걷어내기 ─────────────────────────────────────
 
         /// <summary>
@@ -249,7 +204,7 @@ namespace Prototype
                     if (c == null) continue;
 
                     // SkillData가 없는 카드는 영영 발동할 수 없다.
-                    // 덱에 들이면 손패 맨 앞을 막아 U키가 먹통이 되므로 여기서 잘라 낸다.
+                    // 덱에 들이면 아무도 못 쓰는 카드가 손패 자리만 차지하므로 여기서 잘라 낸다.
                     if (c.Data == null)
                     {
                         empty++;

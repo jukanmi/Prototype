@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 주인공 한 명의 표. 태그 로스터 0번 슬롯이 쓴다.
+    /// 주인공 한 명의 표. 파티 명부 0번(주인공)이 쓴다.
     ///
     /// <b><see cref="PartyMemberData"/>와 담는 것이 다르다.</b> 동료는 스킬의 주체라
     /// 직업과 장착 카드 4장이 핵심이지만, 주인공은 <b>카드를 한 장도 안 낸다</b>

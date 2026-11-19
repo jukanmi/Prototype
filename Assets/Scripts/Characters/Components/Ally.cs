@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,13 +27,6 @@ namespace Prototype
 
         [Tooltip("직업당 6종 중 4장. 덱 16장의 1/4을 이룬다.")]
         [SerializeField] private List<ComboCard> equipped = new List<ComboCard>(EquipSlots);
-
-        [Tooltip("실시간 스킬이 끝나지 않을 때 강제로 Idle로 되돌리는 상한. " +
-                 "ComboExecutor의 slotTimeout과 같은 역할.")]
-        [SerializeField] private float realtimeSkillTimeout = 5f;
-
-        /// <summary>실시간으로 밀어넣은 스킬의 뒷정리 코루틴. 한 번에 하나만 돈다.</summary>
-        private Coroutine releaseRoutine;
 
         public Role Role => role;
         public Sprite Portrait => portrait;
@@ -92,8 +84,8 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 등록이 <c>Start</c>가 아니라 여기인 이유는 <see cref="TagSwapController"/>가
-        /// 벤치에 앉은 몸을 <c>SetActive(false)</c>로 내리기 때문이다. Start에 두면
+        /// 등록이 <c>Start</c>가 아니라 여기인 이유는 동료가 어시스트로 나왔다 들어갈 때마다
+        /// <c>SetActive</c>로 켜지고 꺼지기 때문이다(<see cref="AssistManager"/>). Start에 두면
         /// 꺼진 채 시작한 동료는 영영 등록되지 않는다.
         /// </summary>
         private void OnEnable()
@@ -109,8 +101,6 @@ namespace Prototype
         private void OnDisable()
         {
             BattleRegistry.Unregister(this);
-
-            releaseRoutine = null;   // SetActive(false)가 이미 죽였다. 참조만 끊는다.
             ReleaseBody();
         }
 
@@ -128,87 +118,6 @@ namespace Prototype
         public bool RemoveSkill(ComboCard card)
         {
             return equipped.Remove(card);
-        }
-
-        // ── 콤보 카드 (실시간 U키 단발) ──────────────────
-
-        /// <summary>실시간 단발 카드를 받을 수 있는 상태인지. 카드 쿨타임은 덱이 관리하므로 보지 않는다.</summary>
-        public bool CanCastCard => !Combat.IsDead && !IsBusy && !IsCommanded;
-
-        /// <summary>
-        /// 손패 카드 한 장을 즉시 발동한다.
-        /// <see cref="ComboExecutor"/>를 거치지 않고 상태머신에 바로 밀어넣는다 —
-        /// 실시간 사용은 콤보 큐가 아니라 즉발이기 때문.
-        /// </summary>
-        /// <param name="damageScale">카드가 실어 보내는 데미지 배율.</param>
-        public bool CastCard(SkillData data, in TargetInfo info, float damageScale = 1f)
-        {
-            if (data == null || !CanCastCard) return false;
-
-            // 대상은 비워 둔다. 찍은 좌표가 있으면 그쪽이 이겨야 하므로
-            // SkillState가 좌표에서 직접 뽑게 맡긴다.
-            var ctx = new SkillContext
-            {
-                data = data,
-                caster = this,
-                targetInfo = info,
-                isBulletTime = false,
-                comboIndex = -1,
-                damageScale = damageScale,
-            };
-
-            IState state = data.CreateState(in ctx);
-            BeginSkill(state);
-            BeginRelease(state);
-
-            return true;
-        }
-
-        // ── 실시간 스킬 뒷정리 ────────────────────────────
-
-        /// <summary>
-        /// <see cref="SkillState"/>는 후딜이 끝나도 <c>finished</c> 표시만 하고 <b>스스로 상태를 빠져나오지 않는다</b>.
-        /// 콤보 경로는 <see cref="ComboExecutor"/>가 끝난 뒤 Idle로 되돌려 주지만,
-        /// 실시간 경로(U키 카드)는 Executor를 거치지 않으므로 되돌릴 주체가 없다.
-        /// 그대로 두면 슈퍼아머(<c>CanBeInterrupted == false</c>)인 채로 남아
-        /// 이 동료가 영영 <see cref="Entity.IsBusy"/>가 되고, 이후 카드가 전부 "이전 동작 중"으로 거부된다.
-        /// </summary>
-        private void BeginRelease(IState state)
-        {
-            if (releaseRoutine != null) StopCoroutine(releaseRoutine);
-            releaseRoutine = StartCoroutine(ReleaseWhenFinished(state));
-        }
-
-        private IEnumerator ReleaseWhenFinished(IState state)
-        {
-            var skillState = state as SkillState;
-
-            float timeout = realtimeSkillTimeout;
-
-            float elapsed = 0f;
-
-            while (elapsed < timeout)
-            {
-                if (Combat.IsDead) break;
-                // 사망 등으로 관통당했거나 다른 상태로 넘어갔으면 이 코루틴이 할 일은 없다.
-                if (StateMachine.CurState != state) break;
-                // Executor가 지휘를 가져갔으면 되돌리는 것도 그쪽 몫이다.
-                if (IsCommanded) break;
-                if (skillState != null && skillState.IsFinished) break;
-
-                // 정지 중에는 스킬도 함께 멈춘다(Entity.Update가 dt<=0이면 Tick을 건너뛴다).
-                // 같은 시계를 써야 불릿타임 동안 타임아웃이 헛돌지 않는다.
-                elapsed += LocalDeltaTime;
-                yield return null;
-            }
-
-            if (elapsed >= timeout)
-                BattleLog.Warn(LogCategory.Combo,
-                    $"{BattleLog.Name(this)} 실시간 스킬 타임아웃 {timeout:0.#}s — 강제로 Idle", this);
-
-            if (!IsCommanded) EndSkill(state);
-
-            releaseRoutine = null;
         }
 
         /// <summary>

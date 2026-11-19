@@ -97,7 +97,7 @@ namespace Prototype.Tests
 
                 Assert.That(data.prefab.GetComponent<Player>(), Is.Not.Null,
                     $"{path} 의 prefab '{data.prefab.name}' 루트에 Player 가 없다 — " +
-                    "태그 로스터가 통째로 안 만들어진다.");
+                    "파티 명부가 통째로 안 만들어진다.");
             }
         }
 
@@ -108,8 +108,8 @@ namespace Prototype.Tests
         /// <b>그 동료만 적을 통과한다</b> — 스킬이 나가고 이펙트도 뜨는데 데미지만 없다.
         ///
         /// 런타임에는 <see cref="CombatLayers"/>가 몸마다 다시 칠하므로 이건 <b>한 겹 더</b>다.
-        /// 그래도 여기서 잡는 편이 낫다 — 프리팹을 씬에 직접 끌어다 놓고 시험하는 경로
-        /// (스킬 실험 씬)에는 조립기가 없어서 칠할 사람이 없다.
+        /// 그래도 여기서 잡는 편이 낫다 — 프리팹을 씬에 직접 끌어다 놓고 시험하는 경로에는
+        /// 조립기가 없어서 칠할 사람이 없다.
         /// </summary>
         [Test]
         public void Bodies_UseAllyLayers()

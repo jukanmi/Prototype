@@ -110,7 +110,7 @@ namespace Prototype
 
             while (t < fadeDuration)
             {
-                // 불릿타임(TimeControl.Scale = 0) 중에 이탈해도 페이드는 돌아야 한다.
+                // 시간 정지(TimeControl.Scale = 0) 중에 이탈해도 페이드는 돌아야 한다.
                 t += Time.unscaledDeltaTime;
                 fadeCanvas.alpha = Mathf.Lerp(start, target, t / fadeDuration);
                 yield return null;

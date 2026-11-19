@@ -21,6 +21,8 @@ package "5 Run (Progression)" {
       + BankExp(amount) / SettleExp() : int
       + SeedDeck(cards)
       + PurgeRole(role) : int
+      + AssaultSlots · CountOf(name) · Resolve(name)
+      + Grant(pick) : ComboCard
     }
     class PartyState {
       + HeroHpRatio : float
@@ -44,7 +46,6 @@ package "5 Run (Progression)" {
   package "규칙" as PRules {
     class ExpRules <<static>> {
       + TierCount · BaseCost · LevelGrowth
-      + GoldenDamageMul = ComboCard.GoldenDamageMul
       + CostOf(level, tier) : int
     }
     class ExpRewards <<static>> {
@@ -53,9 +54,8 @@ package "5 Run (Progression)" {
       .. Enemy.Defeated 구독 ..
     }
     class GoldRules <<static>> {
-      + CardPrice · GoldenCardPrice
+      + CardPrice · CardPriceNow()
       + StageClearReward(floor, kind) : int
-      + PriceOf(offer) : int
     }
     class NodeRules <<static>> {
       + RestHealRatio
@@ -63,21 +63,20 @@ package "5 Run (Progression)" {
     }
     class CardOffer <<struct>> {
       + data : SkillData
-      + golden : bool
-      + fuses : bool
+      + IsEmpty : bool
     }
     class CardOfferRules <<static>> {
-      + OfferCount · FuseCopies = 3
+      + OfferCount = 3
       + Build(pool, …) : List<CardOffer>
     }
     class CardGrantRules <<static>> {
       + Apply(deck, pick) : ComboCard
-      + RemoveNormalCopies(deck, data, count) : int
+      + WeightOf(data) : float
     }
     class CardOfferView {
       + OnPicked : event Action<int>
       + Build(parent, slot) / Show(offer)
-      .. 카드 그림 (레벨업 · 상점 공용) ..
+      .. 카드 그림 (보상 카드 · 상점 공용) ..
     }
     class SkillCatalog <<ScriptableObject>> {
       + Skills : IReadOnlyList<SkillData>
@@ -143,7 +142,6 @@ ExpRewards ..> "Enemy (3)" : Defeated 구독
 CardOfferRules ..> CardOffer
 CardGrantRules ..> CardOffer
 CardOfferView ..> CardOffer
-GoldRules ..> CardOffer
 SkillCatalog ..> "SkillData (2)"
 RunEventRules ..> RunEventAsset
 RunEventRules ..> RunProgression

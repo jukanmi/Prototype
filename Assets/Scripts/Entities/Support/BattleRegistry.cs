@@ -43,29 +43,18 @@ namespace Prototype
         {
             allies.Clear();
             enemies.Clear();
-            controlled = null;
         }
 
         // ── 조작 중인 몸 ────────────────────────────────
 
-        private static Entity controlled;
-
         /// <summary>
-        /// 지금 유저가 모는 몸. <b>"누가 조작 캐릭터인가"를 묻는 유일한 자리</b>다 —
-        /// 예전에는 디렉터 · 화살표가 각자 태그 컨트롤러를 찾아 묻고 폴백도 제각각이었다.
-        ///
-        /// <see cref="TagSwapController"/>가 교대할 때마다 꽂는다. 태그가 없는 씬(스킬 시험장 · 훈련장)은
-        /// 조종사가 물고 있는 몸, 그것도 없으면 필드에 선 첫 생존 아군이다.
-        ///
-        /// <b>꺼져 있을 수 있다</b> — 콤보 중에는 조작 캐릭터가 벤치에 내려가 있다.
-        /// 필드에 서 있어야 하는 쪽은 부르는 쪽이 <c>activeSelf</c>를 본다.
+        /// 지금 유저가 모는 몸. <b>"누가 조작 캐릭터인가"를 묻는 유일한 자리</b>다.
+        /// 조종사(<see cref="PlayerPilot"/>)가 물고 있는 몸, 그것도 없으면 필드에 선 첫 생존 아군이다.
         /// </summary>
         public static Entity Controlled
         {
             get
             {
-                if (controlled != null) return controlled;
-
                 Entity first = null;
                 for (int i = 0; i < allies.Count; i++)
                 {
@@ -78,9 +67,6 @@ namespace Prototype
                 return first;
             }
         }
-
-        /// <summary>조작 캐릭터를 꽂는다. <see cref="TagSwapController"/>만 부른다. null이면 폴백으로 간다.</summary>
-        public static void SetControlled(Entity body) => controlled = body;
 
         public static int AliveEnemyCount() => CountAlive(enemies);
 
@@ -96,8 +82,8 @@ namespace Prototype
         /// 지금 <b>필드에 서서 살아 있는</b> 아군 수.
         ///
         /// <b>파티가 몇 명 살아 있는가가 아니다.</b> 이 목록에는 필드에 선 몸만 들어 있고
-        /// (벤치로 내려간 동료는 <c>OnDisable</c>에서 빠진다), 교대와 콤보 시전자 전환 사이에는
-        /// <b>아무도 등록돼 있지 않은 프레임</b>이 반드시 생긴다. 그래서 이 값이 0이라고
+        /// (꺼진 동료는 <c>OnDisable</c>에서 빠진다), 시전자가 바뀌는 사이에는
+        /// <b>아무도 등록돼 있지 않은 프레임</b>이 생길 수 있다. 그래서 이 값이 0이라고
         /// 전멸이 아니다 — 전멸은 <see cref="StageOutcomeRules.PartyWiped"/>가 명부를 보고 정한다.
         ///
         /// 예전에 있던 <c>AllAlliesDead()</c>를 지운 이유가 이것이다. 그쪽은 빈 목록에 true 를

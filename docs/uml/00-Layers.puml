@@ -67,7 +67,6 @@ legend right
   1 IHittable · IDamageable ← Combat
   1 IControl ← Control
   1 IAnimatedState ← SkillState · AssistReady/MoveState
-  1 IGroundPlate ← GroundPlate
   1 IBattleVfx (+BattleVfxSink) ← BattleVfx
   2 ISkillFx · ISkillFxFactory (+SkillFxSink) ← SkillFx
   4 IStageContext (+StageContext) ← GameManager
@@ -78,9 +77,9 @@ legend right
   3 Enemy.Created → EnemyStateTint 부착
   3 Enemy.Defeated → ExpRewards 적립
   4 StageDirector.AnyWaveCleared → CastDirector 회수
-  4 StageDirector.AllWavesCleared → LevelUpSession 정산 · 열기
+  4 StageDirector.AllWavesCleared → ExpRewards 정산
   ..
   <b>등록</b>
-  0 GameplayModal.Register ← LevelUpSession · DeckBuilderUI
+  0 GameplayModal.Register ← CardRewardSession · AssaultEditorUI · PauseMenu
 endlegend
 @enduml

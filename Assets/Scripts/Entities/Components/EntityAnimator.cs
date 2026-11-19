@@ -7,7 +7,7 @@ namespace Prototype
     /// Animation Event로 판정을 켜지 않는다.
     ///
     /// 이유: Animator는 Time.timeScale을 쓰는데 이 프로젝트는 그걸 안 건드린다(결정 로그 ⑥).
-    /// 불릿타임에 <see cref="TimeControl.Scale"/>만 0이 되므로, Animator가 스스로 멈추지 않는다.
+    /// 시간 정지에는 <see cref="TimeControl.Scale"/>만 0이 되므로, Animator가 스스로 멈추지 않는다.
     /// 여기서 speed를 직접 맞춰 준다.
     /// </summary>
     [RequireComponent(typeof(Entity))]
@@ -112,7 +112,7 @@ namespace Prototype
             // 스턴에는 안 건다. 짧아서 멈춰 세우는 것보다 색과 게이지가 더 잘 읽힌다.
             float frozen = entity != null && entity.HasDebuff(Debuff.Freeze | Debuff.AirBind) ? 0f : 1f;
 
-            // 불릿타임에 같이 멈춘다. Time.timeScale은 건드리지 않는다.
+            // 시간 정지에 같이 멈춘다. Time.timeScale은 건드리지 않는다.
             animator.speed = (entity != null ? entity.LocalTimeScale : TimeControl.Scale) * stateSpeed * frozen;
         }
 

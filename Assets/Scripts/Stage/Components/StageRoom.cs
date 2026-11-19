@@ -14,7 +14,7 @@ namespace Prototype
     /// 보드에 크기를 따로 두지 않는다 — 기준 방과 실제 방이 둘 다 보드에 있으면 무엇을 읽을지 고르는 분기가 생긴다.
     ///
     /// <b>Awake에서 한 번 적용하고 판 내내 안 바꾼다.</b> 실행 순서 -300은 <see cref="PartyAssembler"/>(-200)보다 앞이다 —
-    /// 파티가 옮겨진 시작 자리에 서야 하고, <see cref="GroundPlate"/>가 프레임 캐시에 옛 바닥 크기를 담기 전이어야 한다.
+    /// 파티가 옮겨진 시작 자리에 서야 한다.
     ///
     /// <b>100%면 아무것도 건드리지 않는다.</b> 저작한 씬이 그대로 기준 방이다.
     /// </summary>
@@ -74,7 +74,7 @@ namespace Prototype
         public bool IsApplied => applied;
 
         /// <summary>
-        /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다(<see cref="GroundRegistry"/>와 같은 이유).
+        /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
         /// 안 비우면 지난 세션의 파괴된 방을 다음 세션의 디렉터가 읽는다.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

@@ -5,8 +5,8 @@ namespace Prototype
     /// <summary>
     /// 씬에 하나뿐인 <b>조종사</b>. 유저 입력을 읽어 지금 모는 몸의 의도를 채운다.
     ///
-    /// <b>몸에 안 붙는다.</b> 예전에는 몸마다 <c>PlayerControl</c>을 복제해 두고 태그 교대가
-    /// 그중 하나만 켜는 빙의 모델이었다. 그 구조에서 두 가지가 샜다:
+    /// <b>몸에 안 붙는다.</b> 예전에는 몸마다 <c>PlayerControl</c>을 복제해 두고
+    /// 그중 하나만 켜는 모델이었다. 그 구조에서 두 가지가 샜다:
     /// <list type="bullet">
     /// <item>불릿타임에 불려 나온 시전자가 컷인 도중 제 발로 걸어 다녔다 —
     /// 몸에 붙은 자율 BT가 <c>IsCommanded</c>가 잠기기 전 창에서 돌았기 때문이다.</item>
@@ -15,10 +15,10 @@ namespace Prototype
     /// </list>
     /// 조종사가 하나면 둘 다 구조적으로 불가능해진다.
     ///
-    /// 지휘키(E · U · F)는 <see cref="BattleCommander"/>가 읽는다 — 그쪽은 몸과 무관한 입력이고
+    /// 지휘키(E)는 <see cref="BattleCommander"/>가 읽는다 — 그쪽은 몸과 무관한 입력이고
     /// 이미 밖에 있었다. 이 컴포넌트는 <b>몸을 움직이는 입력</b>만 맡는다.
     ///
-    /// <see cref="BattleCommander"/> · <see cref="TagSwapController"/>와 한 오브젝트에 두면 된다.
+    /// <see cref="BattleCommander"/> · <see cref="PartyRoster"/>와 한 오브젝트에 두면 된다.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public class PlayerPilot : MonoBehaviour
@@ -28,7 +28,7 @@ namespace Prototype
 
         /// <summary>
         /// 이 몸을 몬다. 직전 몸은 자동으로 놓는다.
-        /// <see cref="TagSwapController"/>가 교대할 때마다 부른다.
+        /// <see cref="PartyRoster"/>가 전투를 시작할 때 부른다.
         /// </summary>
         public void Take(Entity body)
         {
@@ -46,11 +46,11 @@ namespace Prototype
         /// <summary>
         /// 아무도 몸을 안 넘겨줬으면 씬에서 하나 고른다.
         ///
-        /// <b>태그 컨트롤러가 없는 씬을 위한 폴백</b>이다 — 스킬 테스트 씬처럼 그냥 열어서
-        /// 돌리는 곳도 움직여야 한다. 예전에는 몸에 붙은 컨트롤을 <c>Entity.Awake</c>가
-        /// <c>FirstEnabledControl</c>로 집어 같은 일을 했다.
+        /// <b>파티 명부가 없는 씬을 위한 폴백</b>이다 — 그냥 열어서 돌리는 씬도 움직여야 한다.
+        /// 예전에는 몸에 붙은 컨트롤을 <c>Entity.Awake</c>가 <c>FirstEnabledControl</c>로 집어
+        /// 같은 일을 했다.
         ///
-        /// <see cref="TagSwapController"/>가 있는 씬에서는 그쪽이 <c>Start</c>에서
+        /// <see cref="PartyRoster"/>가 있는 씬에서는 그쪽이 <c>Start</c>에서
         /// <see cref="Take"/>를 불러 이 선택을 곧바로 덮는다.
         /// </summary>
         private void Start()
@@ -61,7 +61,7 @@ namespace Prototype
             if (fallback == null) return;
 
             BattleLog.Log(LogCategory.State,
-                $"태그 컨트롤러가 없어 {BattleLog.Name(fallback)}을(를) 직접 잡는다", this);
+                $"파티 명부가 없어 {BattleLog.Name(fallback)}을(를) 직접 잡는다", this);
             Take(fallback);
         }
 
@@ -111,7 +111,7 @@ namespace Prototype
             Entity body = Body;
             if (body == null) return;
 
-            // 벤치에 내려간 몸은 몰지 않는다. 불릿타임에 조작 캐릭터가 잠깐 숨는 구간이 그렇다.
+            // 꺼진 몸은 몰지 않는다.
             if (!body.isActiveAndEnabled) return;
 
             body.ClearCommand();

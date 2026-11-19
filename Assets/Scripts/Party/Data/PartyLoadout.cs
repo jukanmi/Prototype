@@ -7,7 +7,7 @@ namespace Prototype
     /// 이 런을 굴릴 파티 조합. Boot 씬에서 고른 결과물이자, 단독 실행의 기본값이기도 하다.
     ///
     /// 칸은 4개이고 <b>null 칸을 허용한다</b> — 3인 파티도 정상이다.
-    /// <see cref="TagSwapRules"/>가 이미 빈 칸을 건너뛰므로 교대 순환이 그대로 돈다.
+    /// 파티를 읽는 쪽(덱 짓기 · 어시스트 풀)이 이미 빈 칸을 건너뛴다.
     /// </summary>
     [CreateAssetMenu(menuName = "Prototype/Party Loadout", fileName = "Loadout_")]
     public class PartyLoadout : ScriptableObject
@@ -18,7 +18,7 @@ namespace Prototype
         [Tooltip("파티 선택 화면에 뜨는 이름.")]
         public string loadoutName = "기본 파티";
 
-        [Tooltip("태그 로스터 0번. 비우면 Player 프리팹의 고정 스펙으로 돈다.\n\n" +
+        [Tooltip("파티 명부 0번. 비우면 Player 프리팹의 고정 스펙으로 돈다.\n\n" +
                  "주인공은 카드를 안 내므로 덱 장수에 영향을 주지 않는다 — " +
                  "여기서 갈리는 것은 평타와 조작감(대시 쿨 · 선입력 창)이다.")]
         public PlayerData hero;
@@ -55,7 +55,7 @@ namespace Prototype
         /// <c>GameManager</c>가 Boot 씬에 상주하며 참조를 들고 있는 동안 살아 있고,
         /// 게임을 끄면 사라진다 — 저장은 하지 않는다.
         ///
-        /// 넘긴 순서가 그대로 슬롯 순서, 즉 <b>F키 교대 순환 순서</b>가 된다.
+        /// 넘긴 순서가 그대로 슬롯 순서가 된다.
         /// </summary>
         public static PartyLoadout CreateRuntime(IReadOnlyList<PartyMemberData> picked, string label = "편성한 파티")
         {

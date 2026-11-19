@@ -153,7 +153,7 @@ namespace Prototype
     {
         public static AttackTokenPool Pool { get; } = new AttackTokenPool();
 
-        /// <summary>지금 시각. 불릿타임에 얼면 안 되므로 스케일 안 된 시간을 쓴다.</summary>
+        /// <summary>지금 시각. 시간 정지에 얼면 안 되므로 스케일 안 된 시간을 쓴다.</summary>
         public static float Now => Time.unscaledTime;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

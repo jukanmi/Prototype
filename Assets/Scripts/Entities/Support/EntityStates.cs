@@ -351,8 +351,8 @@ namespace Prototype
     /// 타이머를 상태에도 두면 화면과 게이지가 서로 다른 숫자를 부른다.
     ///
     /// 게이팅이 이 클래스의 존재 이유다. <see cref="CanBeInterrupted"/>가 false면
-    /// <see cref="Entity.IsBusy"/>가 true가 되어 입력(PlayerPilot) · AI(EnemyControl) ·
-    /// 카드 시전(Ally.CanCastCard)이 <b>이미 있는 게이트</b>로 전부 막힌다. 그리고
+    /// <see cref="Entity.IsBusy"/>가 true가 되어 입력(PlayerPilot) · AI(EnemyControl)가
+    /// <b>이미 있는 게이트</b>로 전부 막힌다. 그리고
     /// 여기가 <c>HandleCommonCommands</c>를 부르지 않으므로 이동 · 점프 · 대시 · 평타도 같이 죽는다.
     ///
     /// 들어오고 나가는 판정은 <see cref="Combat"/>의 정합 루프 한 곳에만 있다.

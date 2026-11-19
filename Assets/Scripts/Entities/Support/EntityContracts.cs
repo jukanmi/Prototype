@@ -55,14 +55,6 @@ namespace Prototype
         float ChargeRatio { get; }
     }
 
-    // ══ IGroundPlate ════════════════════════════════════════════════
-    // 발판 하나의 계약. 높이를 묻는 GroundRegistry는 Actor 층(Physics가 씀)에 있고,
-    // 실제 발판(GroundPlate · Stage 층)이 이 인터페이스로 자신을 등록한다.
-    public interface IGroundPlate
-    {
-        GroundRect Rect { get; }
-    }
-
     // ══ IBattleVfx ══════════════════════════════════════════════════
     // 전투 연출 창구(시전 · 적중 · 벽 바운드). 아래층(Entities · Skill)은 이 인터페이스로만 연출을 요청하고,
     // 맨 위 표현층(Vfx)이 구현을 꽂는다 — BattleVfx.InstallSink.

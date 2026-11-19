@@ -223,7 +223,7 @@ public class SlashVFX : VfxBehaviour
 
     void Update()
     {
-        // 불꽃 파티클은 유니티 시계로 돈다. 본체와 같이 불릿타임에 멈추도록 게임 시계 배율을 따라감
+        // 불꽃 파티클은 유니티 시계로 돈다. 본체와 같이 시간 정지에 멈추도록 게임 시계 배율을 따라감
         if (sparkPs != null && !useUnscaledTime)
         {
             ParticleSystem.MainModule m = sparkPs.main;

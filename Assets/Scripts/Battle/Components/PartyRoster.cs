@@ -3,9 +3,14 @@ using UnityEngine;
 
 namespace Prototype
 {
-    /// <summary>Serialized scene adapter. The hero is permanently controlled; CastDirector owns assists.</summary>
+    /// <summary>
+    /// 파티 명부와 전투 시작 배선. 주인공을 시작 자리에 세우고 조작 · 카메라 · 시전 감독을 잇는다.
+    ///
+    /// 조작은 늘 주인공이고, 동료는 <see cref="CastDirector"/>가 어시스트로만 불러낸다.
+    /// <see cref="Roster"/>(주인공 + 동료)는 체력 HUD와 스테이지 패배 판정이 읽는다.
+    /// </summary>
     [RequireComponent(typeof(AssistManager), typeof(CastDirector))]
-    public class TagSwapController : MonoBehaviour
+    public class PartyRoster : MonoBehaviour
     {
         [SerializeField] private Player player;
         [SerializeField] private BulletTimeController bulletTime;
@@ -16,16 +21,23 @@ namespace Prototype
         private Vector3 seedGround;
         private Vector3 seedFacing = Vector3.right;
         private bool hasSeed;
+
+        /// <summary>주인공(0번)과 동료들. <see cref="Start"/>에서 채워진다.</summary>
         public IReadOnlyList<Entity> Roster => roster;
+
+        /// <summary>조작 중인 몸. 언제나 주인공이다.</summary>
         public Entity Current => player;
-        public int CurrentIndex => player != null ? 0 : -1;
+
+        /// <summary>살아 있는 조작 몸 수 — 주인공이 살아 있으면 1.</summary>
         public int AliveCount => player != null && !player.Combat.IsDead ? 1 : 0;
-        public Vector3 ControlledGround => player != null ? player.Physics.GroundPosition : seedGround;
-        public float CooldownRemaining => 0f;
-        public bool CanSwap => false;
-        public bool SwapNext() => false;
-        public bool EnsureActive(Entity body) => body != null && body == player;
+
+        /// <summary>만든 주인공을 꽂는다. <see cref="PartyAssembler"/>가 Awake에서 부른다.</summary>
         public void SetHero(Player hero) { if (hero != null) player = hero; }
+
+        /// <summary>
+        /// 시작 자리와 바라볼 방향. <see cref="PartyAssembler"/>가 넘기고,
+        /// 실제 착지는 <see cref="Start"/>에서 한다 — 카메라 앵커만 먼저 옮겨 둔다.
+        /// </summary>
         public void SeedSeat(Vector3 ground, Vector3 facing)
         {
             seedGround = ground;
@@ -34,6 +46,7 @@ namespace Prototype
             if (cameraAnchor == null) cameraAnchor = GetComponentInChildren<CameraAnchor>(true);
             cameraAnchor?.SnapTo(ground.x);
         }
+
         private void Awake()
         {
             if (player == null) player = FindAnyObjectByType<Player>();
@@ -42,6 +55,7 @@ namespace Prototype
             if (cameraFollow == null) cameraFollow = FindAnyObjectByType<CameraFollow>();
             if (cameraAnchor == null) cameraAnchor = GetComponentInChildren<CameraAnchor>(true);
         }
+
         private void Start()
         {
             if (player == null) return;

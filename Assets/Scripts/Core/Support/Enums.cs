@@ -92,7 +92,7 @@ namespace Prototype
         NearestAerial,
     }
 
-    /// <summary>스킬이 요구하는 조준 방식. 불릿타임 중 유저가 직접 지정한다.</summary>
+    /// <summary>스킬이 요구하는 조준 방식. 시전자가 자동으로 고른다(<see cref="Ally.AutoTarget"/>).</summary>
     public enum TargetingType
     {
         None,
@@ -117,7 +117,7 @@ namespace Prototype
         Defense,
 
         // ── 조작감 ── 유저가 모는 몸에만 의미가 있다. 캐릭터 성능이라 몸의 스탯이다 —
-        // 조종사(PlayerPilot)에 두면 전사로 대시하고 교대한 마법사가 그 쿨을 물려받는다.
+        // 조종사(PlayerPilot)가 아니라 몸에 둬서 주인공마다 다르게 준다(PlayerData).
         // 직렬화된 정수가 밀리지 않게 항상 맨 뒤에 붙인다.
 
         /// <summary>대시를 다시 쓸 수 있을 때까지의 시간(초).</summary>

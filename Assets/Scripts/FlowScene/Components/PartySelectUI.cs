@@ -12,7 +12,7 @@ namespace Prototype
     /// <see cref="BattleRestartUI"/> · <see cref="StageResultUI"/>와 같이 캔버스를 코드로 짓는다 —
     /// 씬 · 프리팹 배선이 필요 없고, MainMenu 씬을 다시 굽지 않아도 붙는다.
     ///
-    /// <b>고른 순서가 곧 슬롯 순서이고, 그게 F키 교대 순환 순서다.</b> 그래서 슬롯을 누르면
+    /// <b>고른 순서가 곧 슬롯 순서다.</b> 그래서 슬롯을 누르면
     /// 빼기만 하고 자리를 비워 두지 않는다 — 뒤가 당겨진다.
     ///
     /// 고를 때마다 <see cref="GameManager.SelectLoadout"/>에 즉시 넘긴다. [시작]을 누르는
@@ -42,7 +42,7 @@ namespace Prototype
         private static readonly Color WarnColor   = new Color(0.90f, 0.68f, 0.32f);
         private static readonly Color DimText     = new Color(0.45f, 0.46f, 0.50f);
 
-        /// <summary>지금 고른 동료. <b>구멍이 없다</b> — 순서가 곧 교대 순서다.</summary>
+        /// <summary>지금 고른 동료. <b>구멍이 없다</b> — 순서가 곧 슬롯 순서다.</summary>
         private readonly List<PartyMemberData> picked = new List<PartyMemberData>(PartyLoadout.MaxMembers);
 
         /// <summary>슬롯 위젯. 항상 <see cref="PartyLoadout.MaxMembers"/>칸.</summary>
@@ -58,7 +58,7 @@ namespace Prototype
         /// </summary>
         private readonly List<(PlayerData hero, Image bg)> heroRows = new List<(PlayerData, Image)>();
 
-        /// <summary>고른 주인공. 태그 로스터 0번이고, 카드는 안 낸다.</summary>
+        /// <summary>고른 주인공. 파티 명부 0번이고, 카드는 안 낸다.</summary>
         private PlayerData hero;
 
         private Text summary;

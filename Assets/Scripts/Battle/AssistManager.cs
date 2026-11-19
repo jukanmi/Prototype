@@ -167,20 +167,6 @@ namespace Prototype
 
             point.x = Mathf.Clamp(point.x, minX, maxX);
             point.z = Mathf.Clamp(point.z, room.MinZ + RoomMargin, room.MaxZ - RoomMargin);
-            // Search back toward the hero if the proposed point lies past a platform edge.
-            if (Hero != null && GroundRegistry.HasPlates)
-            {
-                Vector3 heroPoint = Hero.Physics.GroundPosition;
-                point.y = heroPoint.y;
-                for (int i = 0; i <= 20; i++)
-                {
-                    Vector3 candidate = Vector3.Lerp(point, heroPoint, i / 20f);
-                    if (!GroundRegistry.TryHeightAt(candidate, -0.15f, out float y)) continue;
-                    candidate.y = y;
-                    return candidate;
-                }
-                return heroPoint;
-            }
             return point;
         }
 

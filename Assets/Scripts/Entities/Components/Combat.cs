@@ -11,7 +11,7 @@ namespace Prototype
     /// <list type="bullet">
     /// <item>여기 — 체력 · 보호막 · 피격 판정 순서(<see cref="Hit"/>) · 경직 타이머 · 디버프 정합</item>
     /// <item>가드 게이지 · 브레이크 — <see cref="GuardMeter"/></item>
-    /// <item>패링 창 · 패링 무적 · 교대 무적 — <see cref="DefenseWindows"/></item>
+    /// <item>패링 창 · 패링 무적 — <see cref="DefenseWindows"/></item>
     /// <item>넉백 · 띄우기 · 벽 바운드 · 벽 스턴 — Combat.Impact.cs</item>
     /// <item>전역 알림(누가 누구를 때렸나) — <see cref="CombatEvents"/></item>
     /// </list>
@@ -58,17 +58,6 @@ namespace Prototype
         [Tooltip("반격 밀치기 거리(유닛). 0이면 제자리에서 경직만 먹는다.")]
         [SerializeField] private float parryCounterPush = 0.5f;
 
-        [Header("교대 등장")]
-        [Tooltip("교대로 필드에 설 때 받는 무적 시간. 0이면 무적 없이 그대로 선다.\n\n" +
-                 "교대는 내려간 몸의 자리를 그대로 물려받는다. 사망 교대라면 그 자리는 <b>방금 아군 " +
-                 "하나를 죽인 히트박스 한복판</b>이고, 히트박스의 중복 방지(Attack.alreadyHit)는 " +
-                 "Combat 인스턴스 기준이라 새로 선 몸은 '처음 보는 대상'으로 그대로 또 맞는다. " +
-                 "0이면 보스의 다단히트 하나에 파티가 통째로 연쇄 사망한다.\n\n" +
-                 "보스 패턴이 한 번 켜 둔 히트박스를 <b>끝까지</b> 넘겨야 한다. 지금 가장 긴 것은 " +
-                 "삼연참(active 0.6 / 3타 / 지속 0.12)으로, 마지막 타격 0.4s + 0.12s = 0.52s 다. " +
-                 "SummonInvulnTests 가 보스 표를 직접 읽어 이 값이 모자라면 실패한다.")]
-        [SerializeField] private float summonInvuln = 0.55f;
-
         [Header("가드 (보스)")]
         [Tooltip("가드 게이지 최대치. 단위는 <b>타격 횟수</b>다 — 10이면 열 대 맞고 깨진다.\n\n" +
                  "0 이하면 가드 시스템을 쓰지 않는다(잡몹 기본값). 값이 있으면 이 개체는 평소 " +
@@ -106,7 +95,7 @@ namespace Prototype
 
         /// <summary>패링 · 무적 창. 가드와 같은 이유로 첫 접근에 만든다.</summary>
         private DefenseWindows Defense => defense ?? (defense = new DefenseWindows(
-            parryWindow, parryAngle, parrySuccessInvuln, summonInvuln));
+            parryWindow, parryAngle, parrySuccessInvuln));
 
         /// <summary>공중에서 맞은 횟수. 기상(Getup) 완료 시에만 리셋된다(결정 로그 ⑦).</summary>
         private int airHitCount;
@@ -138,9 +127,6 @@ namespace Prototype
 
         /// <summary>패링 성공 직후의 무적 구간인지.</summary>
         public bool IsParryInvulnerable => Defense.IsParryInvulnerable;
-
-        /// <summary>교대로 막 선 직후의 무적 구간인지.</summary>
-        public bool IsSummonInvulnerable => Defense.IsSummonInvulnerable;
 
         // ── 가드 ────────────────────────────────────────
 
@@ -215,12 +201,6 @@ namespace Prototype
         /// <summary>패링 무적의 전체 길이.</summary>
         public float ParryInvulnDuration => Defense.ParryInvulnDuration;
 
-        /// <summary>교대 무적의 남은 시간.</summary>
-        public float SummonInvulnRemaining => Defense.SummonInvulnRemaining;
-
-        /// <summary>교대 무적의 전체 길이. 프리팹 검사가 읽는다.</summary>
-        public float SummonInvulnDuration => Defense.SummonInvulnDuration;
-
         /// <summary>공격이 실제로 적중했을 때. 흡혈 · 콤보 카운트 · 이펙트가 여기 붙는다.</summary>
         public event Action<Combat, HitData> OnHitLanded;
 
@@ -272,7 +252,7 @@ namespace Prototype
             SyncDebuffState();
 
             // 타이머가 이미 0이어도 빠져나가지 않는다. 착지로만 풀리는 상태(넉백 · 공중피격)는
-            // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 교대 복귀의 Teleport가 그렇다.
+            // 타이머가 다 닳은 뒤에 지면으로 옮겨질 수 있다 — 어시스트 등장의 Teleport가 그렇다.
             // 여기서 끊으면 복구 검사가 다시는 돌지 않아 경직이 영구히 남는다.
             if (stunTimer > 0f)
             {
@@ -286,7 +266,7 @@ namespace Prototype
             {
                 // 넉백 · 공중피격 계열은 착지로만 풀린다. 그런데 OnLand 없이 지면에 서는
                 // 경로가 둘 있다 — 띄우기 없는 넉백(애초에 뜨질 않는다)과
-                // Physics.Teleport(교대 복귀 · 불릿타임 배치). 그대로 두면 경직이 고착되므로
+                // Physics.Teleport(어시스트 등장 · 스킬 접근). 그대로 두면 경직이 고착되므로
                 // 지면에 있으면 착지와 같게 처리해 다운 흐름에 합류시킨다.
                 if (physics.PhysicsState == PhysicsState.Ground &&
                     CombatStateRules.OnGroundContact(prev) != prev)
@@ -358,7 +338,7 @@ namespace Prototype
             // 물리 정지는 상태머신을 안 거친다. 바인드는 띄워 둔 적(AerialHit 경직)에게 거는 게
             // 본래 용도인데, 아래 진입은 경직이 끝나길 기다린다 — 공중 경직은 착지로만 끝나므로
             // 상태에 묶어 두면 떨어지고 나서야 붙잡는다. 시간(Statuses)이 곧 스위치다.
-            // 사망 · 벤치로 목록이 비면 여기서 같이 풀린다(시체는 떨어져야 한다).
+            // 사망 · 퇴장으로 목록이 비면 여기서 같이 풀린다(시체는 떨어져야 한다).
             if (physics != null) physics.Suspended = !IsDead && statuses.Has(StatusKind.AirBind);
 
             Entity body = Owner;
@@ -453,21 +433,6 @@ namespace Prototype
             {
                 BattleLog.Log(LogCategory.Combat,
                     $"{name} <color=#808080>무적으로 흘림</color> ({CombatState}, OTG {hit.canOtg})", this);
-                return false;
-            }
-
-            // 교대로 막 선 몸 — 방향도 공격자도 보지 않는다. 반격도 없다(그건 패링의 보상이다).
-            //
-            // 여기서 흘리지 않으면 <b>아직 켜져 있는 그 히트박스</b>가 새 몸을 그대로 또 잡는다.
-            // 교대는 쓰러진 자리를 물려받고(TagSwapController.HandleDied), Attack.alreadyHit 은
-            // Combat 인스턴스 기준이라 새 몸이 '처음 보는 대상'이기 때문이다. 그게 보스의
-            // 다단히트 한 번에 파티가 통째로 죽던 경로다.
-            if (IsSummonInvulnerable)
-            {
-                BattleLog.Log(LogCategory.Combat,
-                    $"{name} <color=#8AE234>교대 무적</color>으로 흘림 — {BattleLog.Name(attacker)} " +
-                    $"(남은 {SummonInvulnRemaining:0.##}s)", this);
-
                 return false;
             }
 
@@ -645,24 +610,6 @@ namespace Prototype
                 $"{name} <color=#E24AFF><b>가드 브레이크</b></color> — {GuardM.BreakDuration:0.##}s 무방비", this);
         }
 
-        // ── 교대 등장 ───────────────────────────────────
-
-        /// <summary>
-        /// 교대로 필드에 섰다. <b>호출자는 <see cref="TagSwapController"/> 하나뿐</b>이어야 한다 —
-        /// 몸을 세우는 것과 지키는 것이 같은 자리에 묶여 있어야, 나중에 생긴 등장 경로가
-        /// 무적만 빠뜨린 채 몸을 세우는 일이 안 생긴다.
-        ///
-        /// 시체에는 주지 않는다. 사망 자동 교대가 도는 순간 <b>쓰러진 몸은 아직 그 자리에
-        /// 그대로 있고</b>, 시체까지 무적이 되면 이어지는 타격이 전부 흘러 다단히트가 조용히 줄어든다.
-        /// </summary>
-        public void GrantSummonInvuln()
-        {
-            if (IsDead || !Defense.GrantSummon()) return;
-
-            BattleLog.Log(LogCategory.Combat,
-                $"{name} 교대 등장 — {summonInvuln:0.##}s 무적", this);
-        }
-
         // ── 대시 패링 ───────────────────────────────────
 
         /// <summary>
@@ -763,7 +710,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 경직을 통째로 지우고 중립으로 되돌린다. <b>태그로 내려가는 몸</b>이 쓴다
+        /// 경직을 통째로 지우고 중립으로 되돌린다. <b>필드에서 빠지는 몸</b>이 쓴다
         /// (<see cref="Entity.ReleaseBody"/>).
         ///
         /// 내려가는 몸은 <c>SetActive(false)</c>로 꺼져 <see cref="Tick"/>이 멈춘다 —
@@ -794,15 +741,15 @@ namespace Prototype
         /// (<see cref="BreakGuard"/>)도 부른다. 거기서 같이 지우면 가드를 깨는 순간
         /// 방금 건 스턴이 사라져, 가장 무방비여야 할 구간이 오히려 안전해진다.
         ///
-        /// 반대로 <b>벤치</b>에서는 반드시 지워야 한다. 꺼진 몸은 <see cref="Tick"/>이 멈춰
-        /// 시간이 안 가므로, 교대로 내려가 디버프를 피하거나 영영 얼어 있는 몸이 된다.
+        /// 반대로 <b>필드에서 빠질 때</b>는 반드시 지워야 한다. 꺼진 몸은 <see cref="Tick"/>이 멈춰
+        /// 시간이 안 가므로, 빠졌다 돌아오며 디버프를 피하거나 영영 얼어 있는 몸이 된다.
         /// </summary>
         public void ClearDebuffs()
         {
             statuses.Cancel(Debuff.All);
 
             // 알림만이 아니라 정합까지 — 바인드의 물리 정지 스위치가 여기서 내려가야
-            // 벤치로 내려간 몸이 공중에 못 박힌 채 남지 않는다.
+            // 필드에서 빠진 몸이 공중에 못 박힌 채 남지 않는다.
             SyncDebuffState();
         }
 

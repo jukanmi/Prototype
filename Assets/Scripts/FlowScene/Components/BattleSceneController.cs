@@ -47,13 +47,13 @@ namespace Prototype
         /// <summary>
         /// 파티 명부. <b>패배 판정이 보는 곳</b>이고, 파티 체력바가 보는 것과 같은 목록이다.
         ///
-        /// <see cref="BattleRegistry"/>로 전멸을 판정하면 안 된다 — 거기에는 필드에 선 몸
-        /// 하나만 들어 있어서(벤치는 <c>OnDisable</c>에서 빠진다) 교대와 콤보 시전자 전환
-        /// 사이에 아무도 등록돼 있지 않은 프레임이 생기고, 그 한 프레임이 전멸로 읽혔다.
+        /// <see cref="BattleRegistry"/>로 전멸을 판정하면 안 된다 — 거기에는 필드에 선 몸만
+        /// 들어 있어서(꺼진 동료는 <c>OnDisable</c>에서 빠진다) 시전자가 바뀌는 사이에
+        /// 아무도 등록돼 있지 않은 프레임이 생기고, 그 한 프레임이 전멸로 읽혔다.
         ///
-        /// <b>없어도 된다</b> — 파티 없이 도는 스킬 실험 씬 · 훈련장은 등록 목록으로 떨어진다.
+        /// <b>없어도 된다</b> — 파티 없이 도는 훈련장은 등록 목록으로 떨어진다.
         /// </summary>
-        private TagSwapController party;
+        private PartyRoster party;
 
         /// <summary>지금 떠 있는 이 씬의 이름. 전환할 때 "무엇을 내릴지"가 된다.</summary>
         private string SceneName => gameObject.scene.name;
@@ -68,7 +68,7 @@ namespace Prototype
 
             // 로스터는 그쪽 Start 에서 만들어지므로 여기서는 참조만 잡는다 —
             // 실행 순서가 정해져 있지 않아 지금 Roster 를 읽으면 비어 있을 수 있다.
-            party = FindAnyObjectByType<TagSwapController>();
+            party = FindAnyObjectByType<PartyRoster>();
 
             // 판정이 안 도는 씬 단독 실행에서도 풀어 둔다 — 로그로 방과 문턱을 같이 확인할 수 있다.
             ResolveExitLine();
@@ -171,8 +171,8 @@ namespace Prototype
         /// <summary>
         /// 조작 중인 몸이 출구선을 넘었는가.
         ///
-        /// 교대로 내려간 동료는 <c>SetActive(false)</c> 상태라 좌표가 벤치에 있던 자리 그대로다.
-        /// 활성 여부를 같이 보지 않으면 내려간 동료의 옛 좌표로 스테이지가 넘어간다.
+        /// 꺼진 동료는 <c>SetActive(false)</c> 상태라 좌표가 마지막에 있던 자리 그대로다.
+        /// 활성 여부를 같이 보지 않으면 꺼진 동료의 옛 좌표로 스테이지가 넘어간다.
         /// </summary>
         private bool ExitReached()
         {
@@ -209,7 +209,7 @@ namespace Prototype
 
         private void HandleVictory()
         {
-            // 불릿타임 중에 마지막 적이 죽으면 Scale 이 0 인 채로 남아 출구까지 걸어갈 수가 없다.
+            // 시간이 멈춘 채(컷인 중 등) 마지막 적이 죽으면 Scale 이 0 인 채로 남아 출구까지 걸어갈 수가 없다.
             TimeControl.Reset();
 
             GameManager gm = GameManager.Instance;
@@ -321,9 +321,8 @@ namespace Prototype
         /// </summary>
         private static void CapturePartyState()
         {
-            // <b>비활성까지 본다.</b> 태그로 내려간 몸은 SetActive(false)라, 동료로 교대한 채
-            // 출구를 넘으면 주인공이 꺼져 있다. 인자 없는 FindAnyObjectByType 은 비활성
-            // GameObject 를 거르므로 그때 null 이 오고, 주인공 하나를 못 찾은 대가로
+            // <b>비활성까지 본다.</b> 인자 없는 FindAnyObjectByType 은 비활성 GameObject 를 거르므로,
+            // 주인공이 꺼져 있는 순간이면 null 이 온다. 주인공 하나를 못 찾은 대가로
             // <b>파티 다섯 명분 기록이 통째로 날아간다</b> — Capture 가 주인공을 통해
             // 동료를 훑기 때문이다. 증상은 "다음 스테이지에서 전원 만피"다.
             Player[] found = FindObjectsByType<Player>(

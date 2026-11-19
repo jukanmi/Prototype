@@ -117,7 +117,7 @@ namespace Prototype
             if (phys == null) return;
 
             // 공중 시전은 수평으로 붙고 수직으로 떨어진다 — 대상 바로 위를 잡아야 꽂는 그림이 나온다.
-            // 높이를 실은 Teleport는 태그 교대가 쓰던 경로 그대로다(Aerial 진입 · 수직속도 0).
+            // 높이를 실은 Teleport는 Aerial로 들어가고 수직속도를 0으로 둔다.
             if (data.CastsAboveTarget && TryGetAirCastSpot(out Vector3 above, out float height))
             {
                 phys.Teleport(above, height);

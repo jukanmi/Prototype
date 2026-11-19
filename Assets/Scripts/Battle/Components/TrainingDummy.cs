@@ -68,7 +68,7 @@ namespace Prototype
         private void OnDisable() => CombatEvents.OnAnyHitLanded -= HandleAnyHit;
 
         /// <summary>
-        /// 정지 중에는 아무것도 세지 않아야 한다 — 불릿타임에 머문 시간이 싸이클 길이에 들어가면
+        /// 정지 중에는 아무것도 세지 않아야 한다 — 시간이 멈춘 동안이 싸이클 길이에 들어가면
         /// DPS가 통째로 거짓이 된다. 그래서 <see cref="TimeControl.DeltaTime"/>을 쓴다.
         /// </summary>
         private void Update()

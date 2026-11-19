@@ -19,7 +19,6 @@ namespace Prototype.Tests
         {
             TimeControl.Reset();
             BattleRegistry.Clear();
-            GroundRegistry.Clear();
             hero = NewBody<Player>("Hero");
             ally = NewBody<Ally>("Assist");
             hero.SetParty(new[] { ally });
@@ -54,64 +53,6 @@ namespace Prototype.Tests
 
         private static void InvokeAwake(object instance, System.Type type)
             => type.GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(instance, null);
-
-        private BulletTimeController CreateTacticController()
-        {
-            manager.gameObject.AddComponent<ComboExecutor>();
-            var controller = manager.gameObject.AddComponent<BulletTimeController>();
-            controller.SetHero(hero);
-            InvokeAwake(controller, typeof(BulletTimeController));
-            typeof(BulletTimeController).GetField("manaCost", BindingFlags.Instance | BindingFlags.NonPublic)
-                .SetValue(controller, 10f);
-            var director = manager.gameObject.AddComponent<CastDirector>();
-            director.Configure(hero, controller);
-            controller.SetCastDirector(director);
-            controller.Tactic.Begin();
-            controller.Gauge.Recover(controller.Gauge.MaxValue);
-            return controller;
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void JumpCancel_ThawsSelectionWithoutConsumingCardsOrResources(bool order)
-        {
-            var controller = CreateTacticController();
-            var card = new ComboCard(skill);
-            controller.Hand.Add(card);
-            float mana = hero.Energies.GetEnergy(EnergyType.Mana).CurValue;
-            float gauge = controller.Gauge.CurValue;
-            Assert.That(controller.Tactic.OnBulletTimeKey(), Is.True);
-            if (order) controller.Tactic.Tick(0.01f);
-            Assert.That(TimeControl.Scale, Is.Zero);
-            Assert.That(controller.Tactic.OnCancelKey(), Is.True);
-            Assert.That(controller.Phase, Is.EqualTo(TacticPhase.RealTime));
-            Assert.That(TimeControl.Scale, Is.EqualTo(1f));
-            Assert.That(controller.Hand.GetCard(0), Is.SameAs(card));
-            Assert.That(controller.Gauge.CurValue, Is.EqualTo(gauge));
-            Assert.That(hero.Energies.GetEnergy(EnergyType.Mana).CurValue, Is.EqualTo(mana));
-            Assert.That(manager.BulletMode, Is.False);
-            Assert.That(controller.Tactic.OnCancelKey(), Is.False, "Realtime jump is a normal jump");
-        }
-
-        [Test]
-        public void OriginalBulletTimeKey_ConfirmsAndResumesTimeImmediatelyAndPaysCostOnce()
-        {
-            var controller = CreateTacticController();
-            float mana = hero.Energies.GetEnergy(EnergyType.Mana).CurValue;
-            Assert.That(controller.Tactic.OnExecuteKey(), Is.False, "Space must not enter selection");
-            Assert.That(controller.Tactic.OnBulletTimeKey(), Is.True);
-            controller.Tactic.Tick(0.01f);
-            Assert.That(controller.Phase, Is.EqualTo(TacticPhase.Order));
-            Assert.That(controller.Tactic.OnBulletTimeKey(), Is.True, "The original bullet-time key still executes the cards");
-            Assert.That(controller.Phase, Is.EqualTo(TacticPhase.Resolve));
-            Assert.That(TimeControl.Scale, Is.EqualTo(1f));
-            Assert.That(controller.Gauge.CurValue, Is.Zero);
-            Assert.That(hero.Energies.GetEnergy(EnergyType.Mana).CurValue, Is.EqualTo(mana - 10f));
-            Assert.That(controller.Tactic.OnExecuteKey(), Is.False);
-            Assert.That(controller.Tactic.OnCancelKey(), Is.False, "Jump during execution is a normal jump");
-            controller.Tactic.Tick(0.01f);
-            Assert.That(controller.Phase, Is.EqualTo(TacticPhase.RealTime));
-        }
 
         private void Pump(float seconds)
         {

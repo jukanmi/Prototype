@@ -6,11 +6,10 @@ using UnityEngine.UI;
 namespace Prototype
 {
     /// <summary>
-    /// 조작키 설정 화면. <see cref="ComboBoardUI"/> · <see cref="DeckInspectorUI"/>와 같은 방식으로
-    /// 씬/프리팹 연결 없이 코드로만 만든다 — 아무 GameObject에 이 컴포넌트만 붙이면 동작한다.
+    /// 조작키 설정 화면. 화면 조각은 CombatManager 프리팹이 쥔다.
     ///
     /// 열려 있는 동안 게임 조작을 잠근다. 안 잠그면 키 목록을 보는 내내 뒤에서
-    /// 캐릭터가 움직이고 카드가 집힌다.
+    /// 캐릭터가 움직인다.
     /// </summary>
     public class RebindUI : MonoBehaviour
     {

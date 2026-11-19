@@ -65,7 +65,7 @@ namespace Prototype
         {
             if (arrowRoot == null) return;
 
-            // 불릿타임(TimeControl.Scale = 0)이 남아 있어도 안내는 움직여야 한다.
+            // 시간 정지(TimeControl.Scale = 0)가 남아 있어도 안내는 움직여야 한다.
             float t = Mathf.Sin(Time.unscaledTime * (2f * Mathf.PI / BobPeriod));
             arrowRoot.anchoredPosition = new Vector2(arrowHomeX + t * BobDistance,
                                                      arrowRoot.anchoredPosition.y);

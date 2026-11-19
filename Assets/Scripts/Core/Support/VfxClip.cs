@@ -6,7 +6,7 @@ namespace Prototype
     /// 스프라이트 시트 이펙트 한 벌.
     ///
     /// Animator를 쓰지 않는다. <see cref="TimeControl"/>은 <c>Time.timeScale</c>을 건드리지 않으므로
-    /// (결정 로그 ⑥) Animator는 불릿타임에 혼자 재생된다. 매 프레임 <c>animator.speed</c>를
+    /// (결정 로그 ⑥) Animator는 시간이 멈춰도 혼자 재생된다. 매 프레임 <c>animator.speed</c>를
     /// 덮어쓰는 것보다, 프레임 인덱스를 직접 세는 쪽이 짧고 정확하다.
     /// 컨트롤러 · 클립 에셋도 필요 없어 시트 한 장에 에셋 한 개로 끝난다.
     /// </summary>

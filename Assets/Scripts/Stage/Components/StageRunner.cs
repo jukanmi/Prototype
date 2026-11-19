@@ -102,8 +102,8 @@ namespace Prototype
         /// <summary>
         /// 지금 조작 중인 몸의 X.
         ///
-        /// 교대로 내려간 동료는 <c>SetActive(false)</c> 상태라 좌표가 벤치에 있던 자리 그대로다.
-        /// 활성 여부를 같이 보지 않으면 내려간 동료의 옛 좌표로 구간이 바뀐다.
+        /// 꺼진 동료는 <c>SetActive(false)</c> 상태라 좌표가 마지막에 있던 자리 그대로다.
+        /// 활성 여부를 같이 보지 않으면 꺼진 동료의 옛 좌표로 구간이 바뀐다.
         /// </summary>
         private static float PlayerX()
         {

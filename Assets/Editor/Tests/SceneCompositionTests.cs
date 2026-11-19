@@ -18,10 +18,7 @@ namespace Prototype.Tests
     /// </summary>
     public class SceneCompositionTests
     {
-        /// <summary>
-        /// 검사 대상. <c>Skill_test</c>는 뺐다 — 동료 한 명으로 스킬을 실험하는 씬이라
-        /// 파티 규약을 따르지 않는 것이 정상이다.
-        /// </summary>
+        /// <summary>검사 대상.</summary>
         private static readonly string[] StageScenes =
         {
             "Assets/Scenes/Level/Stage_01.unity",

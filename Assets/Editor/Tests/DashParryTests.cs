@@ -292,7 +292,7 @@ namespace Prototype.Tests
 
             victim.BeginParryWindow();
             victim.Hit(in Poke, attacker);
-            victim.ClearHitStun();   // 태그로 내려가는 몸의 뒷정리
+            victim.ClearHitStun();   // 필드에서 빠지는 몸의 뒷정리
 
             Assert.That(victim.IsParrying, Is.False, "필드에서 뺀 몸이 창을 물고 돌아오면 안 된다");
             Assert.That(victim.IsParryInvulnerable, Is.False, "무적도 함께 닫힌다");

@@ -30,7 +30,6 @@ package "Characters/" {
     + Equipped : IReadOnlyList<ComboCard>
     + Data : PartyMemberData
     + EquipSkill(card) / RemoveSkill(card) : bool
-    + CanCastCard : bool
   }
   class Enemy {
     + {static} Created : event Action<Enemy>

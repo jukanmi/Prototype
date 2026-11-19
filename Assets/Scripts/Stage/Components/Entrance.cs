@@ -23,7 +23,7 @@ namespace Prototype
     ///
     /// <b>LateUpdate에서 자리를 덮어쓴다.</b> 같은 프레임의 Physics.FixedUpdate가
     /// 중력을 먹여 y를 끌어내리는데, 여기서 매 프레임 되돌리지 않으면 화면 밖에서
-    /// 바닥 없는 허공을 떨어지며 들어온다 — 시작점은 방 밖이라 발판이 없다.
+    /// 연출 경로에서 벗어나 떨어지며 들어온다.
     /// <see cref="BeltScrollView"/>보다 먼저 돌아야 스프라이트가 한 프레임 늦지 않는다.
     /// </summary>
     [DefaultExecutionOrder(-50)]
@@ -73,8 +73,8 @@ namespace Prototype
             onArrive = spec.onArrive;
             elapsed = 0f;
 
-            // 두 끝점의 <b>월드</b> 좌표를 여기서 확정한다. 발판 높이가 자리마다 다를 수 있어
-            // 지상 좌표만으로는 보간이 바닥을 뚫거나 뜬다. Teleport가 그 계산을 이미 갖고 있다.
+            // 두 끝점의 <b>월드</b> 좌표를 여기서 확정한다. 지상 좌표에 높이를 얹는 계산은
+            // Teleport가 이미 갖고 있다.
             physics.Teleport(landingGround, height);
             landingWorld = physics.Transform.position;
 
@@ -103,7 +103,7 @@ namespace Prototype
         /// <b>지금 즉시</b> 착지시킨다. 남은 시간을 건너뛰고 도착 처리를 그대로 밟는다 —
         /// 콜백도 부른다.
         ///
-        /// 연출이 끝나기를 기다릴 수 없는 입력이 있다. U키 카드가 그렇다:
+        /// 연출이 끝나기를 기다릴 수 없는 입력을 위한 자리다:
         /// "0.35초 뒤에 다시 누르라"는 답이 될 수 없으므로, 부르는 쪽이 여기서 앞당긴다.
         /// </summary>
         public void Finish()
@@ -203,7 +203,7 @@ namespace Prototype
     /// 화면 밖을 오가는 동안 <b>판정을 전부 끄고 배경 뒤로 숨긴다.</b> 진영을 가리지 않는다.
     ///
     /// 원래 <see cref="EnemySpawnGuard"/> 안에 적 전용으로만 있던 부분이다.
-    /// 동료도 교대 · 시전으로 화면 밖을 오가게 되면서 같은 억제가 양쪽에 필요해졌고,
+    /// 동료 등퇴장에도 쓰려고 진영을 가리지 않게 떼어 냈다 —
     /// 두 벌로 두면 <b>반드시 한쪽만 고쳐진다</b> — 그래서 여기 한 벌만 둔다.
     ///
     /// <b>끄는 이유는 양쪽에 다 있다.</b>

@@ -15,12 +15,12 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 |---|---|
 | [usecase-00-Overview.puml](usecase-00-Overview.puml) | 액터 5 + 하위 시스템 5개 개요 |
 | [usecase-01-App.puml](usecase-01-App.puml) | ① 게임 시작 · 파티 선택 · 설정 · 키 바인딩 · 재시작 |
-| [usecase-02-Run.puml](usecase-02-Run.puml) | ② 런 맵 · 상점 · 이벤트 · 휴식 · 레벨업 · 합성 · 결과 |
+| [usecase-02-Run.puml](usecase-02-Run.puml) | ② 런 맵 · 상점 · 이벤트 · 휴식 · 보상 카드 · 스킬 레벨 · 결과 |
 | [usecase-03-Combat.puml](usecase-03-Combat.puml) | ③ 이동 · 평타 · 대시 패리 · 피격 · 상태이상 · 가드 |
-| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 불릿타임 · 카드 배치 · 콤보 실행 · 어시스트 · 자동 카드 |
+| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 총공격 슬롯 편집 · 자동 발동 · 콤보 실행 · 어시스트 · 자동 카드 |
 | [usecase-05-Stage.puml](usecase-05-Stage.puml) | ⑤ 웨이브 · 적 행동 · 보스 패턴 · 클리어 · 경험치 |
 
-제외: 태그 교대(삭제됨) · 동료 고유기 ZXCV(삭제됨) · `DeckBuilderUI`(개발용) · `CastTester` · `TrainingDummy`(테스트용).
+제외: `CastTester` · `TrainingDummy`(테스트용).
 
 ## 클래스 다이어그램 — 층마다 한 장
 
@@ -56,7 +56,7 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | 4 | Stage | Stage | 방 · 웨이브 · 스폰 · 엘리트 표기 |
 | 4.5 | Party | Party | 파티 조합 데이터(`PartyLoadout` · `PartyCatalog`) |
 | 5 | Run | Progression | 런 **데이터** — 경험치 · 골드 · 지도 · 카드 제안 규칙 |
-| 6 | Tactic | Battle · Deck | 불릿타임 · 콤보 · 어시스트 · 전투 UI · 파티 조립 · 레벨업 창 |
+| 6 | Tactic | Battle · Deck | 총공격 · 콤보 · 어시스트 · 전투 UI · 파티 조립 · 보상 카드 창 |
 | 9 | App | FlowScene | 씬 흐름 · `GameManager` (`IStageContext` · `IRunHost` 구현) |
 | 10 | Presentation | Vfx | **맨 위 표현층** — 아무도 Vfx를 직접 부르지 않는다 |
 
@@ -75,20 +75,19 @@ Input을 Agent 아래로 내린 이유: 장치 입력은 게임 규칙을 몰라
 |---|---|
 | `EntityState` + 상태 14종 | StateMachine → Entities |
 | `WallFinder` | Skill → Core |
-| `BattleRegistry` · `CombatLayers` · `GroundRules`(`GroundRegistry`) · `EffectUtil` | Core · Stage · Skill → Entities |
+| `BattleRegistry` · `CombatLayers` · `GroundRules` · `EffectUtil` | Core · Stage · Skill → Entities |
 | `SkillVfx` · `VfxClip` | Vfx → Core |
 | `AttackRangePreview` | AI → Entities |
 | `SkillFxKind` | Vfx → Skill (`ISkillFx.cs`) |
-| `ComboCard` (+ `GoldenDamageMul`) | Deck · Progression → Skill |
+| `ComboCard` | Deck · Progression → Skill |
 | `PartyMemberData` · `PlayerData` | Party → Characters |
 | `AttackTokenPool` · `EnemyAttackTokens` · `SpawnEntry` | Stage → AI |
 | `EliteMarkRules` | Vfx → Stage |
 | `GameplayModal` | Progression → Core (등록식으로 바꿈) |
 | `AudioManager` | Core → FlowScene |
 | `CameraFollow` · `CameraAnchor` | Core → Stage |
-| `InputMapSwitcher` | Input → Battle (전술 페이즈를 읽는다) |
+| `InputMapSwitcher` | Input → Battle (총공격 편집창을 읽는다) |
 | `AssistControlModule` (+ `AssistReady/MoveState`) | Control → Battle (어시스트 시스템) |
-| `LevelUpSession` · `DeckBuilderUI` | Progression → Battle/Components/UI (전투 씬 UI) |
 | `PartyAssembler` | Party → Battle (전투 씬에 몸을 세운다) |
 | `RunMapRules.EncounterOf` | Stage `EncounterModifierRules.For` → Progression (`MapNode`를 읽는다) |
 
@@ -101,7 +100,6 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 | `Entities/Support/EntityContracts.cs` — `IHittable` | 1 | `Combat` | Core `HitData.cs` → `Combat` |
 | `Entities/Support/EntityContracts.cs` — `IControl` | 1 | `Control` | `Entity.Control` → Control |
 | `Entities/Support/EntityContracts.cs` — `IAnimatedState` | 1 | `SkillState` · `AssistReady/MoveState` | `EntityAnimator` → Skill · Agent 상태 |
-| `Entities/Support/EntityContracts.cs` — `IGroundPlate` | 1 | `GroundPlate` | `GroundRegistry` → Stage |
 | `Entities/Support/EntityContracts.cs` — `IBattleVfx` (+`BattleVfxSink`) | 1 | `BattleVfx.Sink` | Entities · Skill → `BattleVfx.Cast/Impact/WallBounce` |
 | `Skill/Support/ISkillFx.cs` (+`ISkillFxFactory` · `SkillFxSink`) | 2 | `SkillFx` | `SkillState` → `SkillFx` |
 | `Stage/Support/StageEncounter.cs` — `IStageContext` (+`StageContext`) | 4 | `GameManager` | `StageDirector` · `StageRoom` → `GameManager` · `MapNode` |
@@ -115,7 +113,7 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 | `Enemy.Created` | `EnemyStateTint` (Vfx) — 몸 색 컴포넌트 부착 | `Enemy.Awake`가 `AddComponent<EnemyStateTint>` |
 | `Enemy.Defeated` | `ExpRewards` (Run) — 경험치 적립 | `Enemy`가 `ExpRewards.Award` 직접 호출 |
 | `StageDirector.AnyWaveCleared` | `CastDirector` (Tactic) — 남은 시전 회수 | `CastDirector.RecallScene()` 직접 호출 |
-| `StageDirector.AllWavesCleared` | `LevelUpSession` (Tactic) — 정산 후 레벨업 창 | `ExpRewards.Settle()` · `LevelUpSession.RequestOpen()` 직접 호출 |
+| `StageDirector.AllWavesCleared` | `ExpRewards` (Run) — 경험치 정산 | `ExpRewards.Settle()` 직접 호출 |
 
 구현을 꽂거나 구독하는 자리는 전부 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` +
 `[UnityEditor.InitializeOnLoadMethod]`(에디터 전용) 두 개를 단다 — 에디트 모드(EditMode 테스트)에서도

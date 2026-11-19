@@ -81,7 +81,7 @@ namespace Prototype.Tests
             pilot.Take(body);
             pilot.Tick(0.016f);
 
-            // 정지 중 이동 · 평타가 새면 불릿타임에 카드를 놓는 동안 캐릭터가 움직인다.
+            // 정지 중 이동 · 평타가 새면 시간이 멈춘 동안(컷인 등) 캐릭터가 움직인다.
             Assert.That(body.Command, Is.EqualTo(Command.None));
             Assert.That(body.MoveDirection, Is.EqualTo(Vector3.zero));
         }
@@ -117,7 +117,7 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 벤치에 내려간 몸은 아예 안 건드린다. 불릿타임에 조작 캐릭터가 잠깐 숨는 구간이 그렇다 —
+        /// 꺼진 몸은 아예 안 건드린다 —
         /// 거기서 의도를 비우면 다시 섰을 때 걷던 관성이 끊긴다.
         /// </summary>
         [Test]
@@ -129,7 +129,7 @@ namespace Prototype.Tests
             body.gameObject.SetActive(false);
             pilot.Tick(0.016f);
 
-            Assert.That(body.MoveDirection, Is.EqualTo(Vector3.right), "벤치 몸을 건드렸다");
+            Assert.That(body.MoveDirection, Is.EqualTo(Vector3.right), "꺼진 몸을 건드렸다");
         }
 
         // ── 인계 ────────────────────────────────────────

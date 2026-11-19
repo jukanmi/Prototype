@@ -11,15 +11,14 @@ namespace Prototype
     /// <list type="bullet">
     /// <item>자원(게이지 · 쿨 · 마나 · 보상) — <see cref="TacticGauge"/></item>
     /// <item>카드 더미(덱 · 손패 · 버린 더미 · 덱 짓기 · 걷어내기) — <see cref="CardSupply"/></item>
-    /// <item>페이즈(RealTime → Freeze → Order → Resolve) — TacticStates.cs 의 private 중첩 클래스</item>
+    /// <item>페이즈(RealTime → Resolve) — TacticStates.cs 의 private 중첩 클래스</item>
     /// <item>여기 — 인스펙터 값 · 씬 배선 · 이벤트 구독, 그리고 셋을 잇는 결정</item>
     /// </list>
     ///
-    /// 손패는 <b>불릿타임과 무관하게 항상 4장이 유지된다</b>. 큐처럼 굴러가서
-    /// 실시간에는 U키로 왼쪽 한 장씩 소모하고, 불릿타임을 걸었다 풀면 왼쪽부터 전부 발동한다.
+    /// 손패는 <b>항상 4장이 유지된다</b>. 평타 적중 추첨이 여기와 덱에서 카드를 뽑는다
+    /// (<see cref="BasicAttackDrawRules"/>). 게이지가 차면 런의 총공격 슬롯 4칸이 자동으로 발동한다.
     ///
-    /// <b>Time.timeScale은 쓰지 않는다</b> — UI와 애니메이션까지 멈추면
-    /// 정작 손패를 조작할 수 없기 때문(결정 로그 ⑥).
+    /// <b>Time.timeScale은 쓰지 않는다</b> — 시간 배율은 <see cref="TimeControl"/>만 만진다(결정 로그 ⑥).
     /// </summary>
     public partial class BulletTimeController : MonoBehaviour
     {
@@ -27,14 +26,11 @@ namespace Prototype
         [SerializeField] private Player player;
         [SerializeField] private ComboExecutor executor;
 
-        [Tooltip("비워도 된다. 없으면 U키가 벤치에 앉은 동료를 불러오지 못하고 예전처럼 거부한다.")]
-        [SerializeField] private TagSwapController swap;
-
         [Header("게이지")]
         [SerializeField] private float maxGauge = 100f;
         [Tooltip("초당 자연 충전량.")]
         [SerializeField] private float gaugeRegen = 8f;
-        [Tooltip("진입에 필요한 게이지 비율.")]
+        [Tooltip("총공격에 필요한 게이지 비율.")]
         [Range(0f, 1f)][SerializeField] private float requiredRatio = 1f;
         [Tooltip("대시 패링 한 번의 게이지 보상. 위험을 감수한 대가를 전술 자원으로 돌려준다.")]
         [SerializeField] private float parryGaugeReward = 12f;
@@ -73,15 +69,9 @@ namespace Prototype
                  "4장을 넘겨도 되며, 손패 4칸이 비는 대로 이 순서를 순환한다.")]
         [SerializeField] private List<SkillData> fixedHand = new List<SkillData>();
 
-        [Header("전술 페이즈")]
-        [Tooltip("Freeze 체류 시간(비배율 초). 0이면 다음 프레임에 곧바로 Order로 넘어간다. UI 확대 연출을 넣을 자리.")]
-        [SerializeField] private float freezeDuration = 0f;
-
         /// <summary>전술 페이즈 기계. 엔티티와 같은 <see cref="StateMachine"/>, 인스턴스만 따로.</summary>
         private StateMachine tactic;
         private RealTimeState realTimeState;
-        private FreezeState freezeState;
-        private OrderState orderState;
         private ResolveState resolveState;
 
         private TacticState CurTactic => tactic?.CurState as TacticState;
@@ -110,31 +100,19 @@ namespace Prototype
 
         public TacticPhase Phase => CurTactic?.Phase ?? TacticPhase.RealTime;
 
-        /// <summary>시간이 멈춰 있는 구간(Freeze · Order).</summary>
-        public bool IsActive => Phase == TacticPhase.Freeze || Phase == TacticPhase.Order;
-
-        /// <summary>손패 순서 변경 · 조준이 열려 있는지. UI가 이 값으로 조작을 켜고 끈다.</summary>
-        public bool AllowsCardEdit => CurTactic != null && CurTactic.AllowsCardEdit;
-
-        /// <summary>불릿타임에 들어갔다(Freeze 진입).</summary>
-        public event Action OnEnter;
-
-        /// <summary>불릿타임이 풀리고 실행이 시작됐다(Resolve 진입).</summary>
-        public event Action OnExit;
-
         // ── UI가 읽는 값 ─────────────────────────────────
         // 게이지 막대가 "얼마나 찼나"만으로는 못 그린다. 어디까지 차야 쓸 수 있는지,
-        // 지금 쿨타임인지까지 보여야 유저가 E를 눌러도 되는 때를 안다.
+        // 지금 쿨타임인지까지 보여야 총공격이 언제 나갈지 안다.
 
         public Energy Gauge => budget?.Gauge;
 
-        /// <summary>진입에 필요한 게이지 비율. 막대 위 임계 눈금이 여기 선다.</summary>
+        /// <summary>총공격에 필요한 게이지 비율. 막대 위 임계 눈금이 여기 선다.</summary>
         public float RequiredRatio => requiredRatio;
 
         /// <summary>남은 쿨타임(초). 0이면 쿨타임 아님.</summary>
         public float CooldownRemaining => budget != null ? budget.CooldownRemaining : 0f;
 
-        /// <summary>게이지만 놓고 봤을 때 진입선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
+        /// <summary>게이지만 놓고 봤을 때 발동선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
         public bool IsGaugeReady => budget != null && budget.IsReady;
 
         public Deck Deck => Cards.Deck;
@@ -142,24 +120,6 @@ namespace Prototype
         public Discard Discard => Cards.Discard;
         public ComboExecutor Executor => executor;
         public CastDirector Director { get; private set; }
-
-        /// <summary>전술 키 입력 창구. 상태머신 자체는 private이라 키 입력만 연다.</summary>
-        public TacticKeys Tactic => new TacticKeys(this);
-
-        public readonly struct TacticKeys
-        {
-            private readonly BulletTimeController ctx;
-            public TacticKeys(BulletTimeController ctx) { this.ctx = ctx; }
-
-            public void Begin() => ctx.BeginTactic();
-            public void Tick(float unscaledDt) => ctx.tactic.Tick(unscaledDt);
-            public bool OnBulletTimeKey() => ctx.Enter();
-
-            /// <summary>Order에서만 먹는다. 진입과 같은 키가 곧 실행이라 같은 경로를 탄다.</summary>
-            public bool OnExecuteKey() => ctx.Phase == TacticPhase.Order && ctx.Enter();
-
-            public bool OnCancelKey() => ctx.CancelSelection();
-        }
 
         public void SetCastDirector(CastDirector director)
         {
@@ -197,12 +157,9 @@ namespace Prototype
 
             if (player == null) player = FindAnyObjectByType<Player>();
             if (executor == null) executor = GetComponentInChildren<ComboExecutor>();
-            if (swap == null) swap = FindAnyObjectByType<TagSwapController>();
 
             tactic = new StateMachine { OwnerName = "전술" };
             realTimeState = new RealTimeState(this);
-            freezeState = new FreezeState(this);
-            orderState = new OrderState(this);
             resolveState = new ResolveState(this);
         }
 
@@ -254,8 +211,8 @@ namespace Prototype
 
         private void Update()
         {
-            // 게이지와 쿨타임은 실제 시간으로 흐른다. 정지 중 자가 충전을 막는다.
-            budget.Tick(TimeControl.DeltaTime, frozen: IsActive);
+            // 게이지와 쿨타임은 전투 시간으로 흐른다 — TimeControl이 멈추면 같이 멈춘다.
+            budget.Tick(TimeControl.DeltaTime);
             tactic.Tick(TimeControl.UnscaledDeltaTime);
             TryAutoAssault();
         }
@@ -317,7 +274,7 @@ namespace Prototype
         private void TryAutoAssault()
         {
             if (Phase != TacticPhase.RealTime || assaultCast) return;
-            if (AssaultEditorUI.IsOpen || !CanEnter) return;
+            if (AssaultEditorUI.IsOpen || !CanAssault) return;
             if (BattleRegistry.AliveEnemyCount() <= 0) return;
 
             Queue<ComboSlot> queue = BuildAssaultQueue();
@@ -421,49 +378,13 @@ namespace Prototype
             return true;
         }
 
-        // ── 진입 ─────────────────────────────────────────
+        // ── 페이즈 ───────────────────────────────────────
 
-        /// <summary>E키. 실제 판정은 현재 전술 페이즈가 내린다 — Order에서는 이 키가 곧 실행이다.</summary>
-        public bool Enter() => CurTactic != null && CurTactic.OnBulletTimeKey();
-
-        public bool CanEnter
-            => !IsActive && executor != null && !executor.IsRunning
+        /// <summary>총공격을 낼 수 있는지 — 실행기가 비어 있고, 주인공이 살아 있고, 자원이 된다.</summary>
+        private bool CanAssault
+            => executor != null && !executor.IsRunning
                && (player == null || !player.Combat.IsDead)
                && budget != null && budget.Shortfall(player) == null;
-
-        /// <summary>진입이 막힌 이유. 로그 전용.</summary>
-        public string BlockReason()
-        {
-            if (IsActive) return "이미 진입 중";
-            if (executor == null) return "ComboExecutor 미연결";
-            if (executor.IsRunning) return "이전 콤보 실행 중";
-            return budget?.Shortfall(player) ?? "알 수 없음";
-        }
-
-        /// <summary>점프 키. 카드 · 게이지 · 마나를 쓰지 않고 선택을 취소한다.</summary>
-        public bool CancelSelection()
-        {
-            if (!IsActive) return false;
-            ChangePhase(realTimeState);
-            OnExit?.Invoke();
-            return true;
-        }
-
-        /// <summary>
-        /// 페이즈를 곧바로 옮긴다. <b>테스트 전용</b> — 게임 경로는 반드시 <see cref="Enter"/>를 탄다.
-        /// 코스트 · 게이지 검사를 건너뛰므로 게임 코드에서 부르면 규칙이 깨진다.
-        /// </summary>
-        internal void ForcePhase(TacticPhase phase)
-        {
-            if (tactic == null) return;
-            switch (phase)
-            {
-                case TacticPhase.Freeze: ChangePhase(freezeState); break;
-                case TacticPhase.Order: ChangePhase(orderState); break;
-                case TacticPhase.Resolve: ChangePhase(resolveState); break;
-                default: ChangePhase(realTimeState); break;
-            }
-        }
 
         /// <summary>전술 페이즈 전이. 막는 페이즈가 없으므로 무조건 전이다.</summary>
         private void ChangePhase(TacticState next) => tactic.ForceChangeState(next);
@@ -471,20 +392,7 @@ namespace Prototype
         /// <summary>Start에서 한 번. 실시간 전투로 시작한다.</summary>
         private void BeginTactic() => ChangePhase(realTimeState);
 
-        /// <summary>Freeze 진입. 시간은 <see cref="TimeControl"/>로만 멈춘다(결정 로그 ⑥).</summary>
-        private void FreezeTime()
-        {
-            Director?.BeginSelection();
-            TimeControl.Scale = 0f;
-
-            BattleLog.Log(LogCategory.Bullet,
-                $"<b>불릿타임 진입</b> — TimeControl.Scale = 0 (Time.timeScale 미사용) | 마나 {manaCost:0.#} 소모", this);
-        }
-
-        // ── 손패 조작 (불릿타임 중 UI가 호출) ─────────────
-
-        /// <summary>손패 두 칸의 순서를 바꾼다. 실행 순서가 그대로 바뀐다.</summary>
-        public bool SwapHand(int a, int b) => AllowsCardEdit && Hand.Swap(a, b);
+        // ── 손패 ─────────────────────────────────────────
 
         /// <summary>덱에서 뽑아 손패를 4장까지 채운다. 덱이 비면 Discard가 섞여 되돌아온다.</summary>
         private void RefillHand() => Cards.Refill();
@@ -510,8 +418,8 @@ namespace Prototype
             // 총공격 카드는 그 자리에서 만든 것이라 버린 더미로 돌릴 곳이 없다.
             if (assaultCast) return;
 
-            // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 실행 큐는 손패를 통째로 굳혀 두므로
-            // 콤보 도중에 시전자가 죽어도 남은 슬롯이 여기까지 흘러온다 —
+            // 이미 걷어낸 직업의 카드는 되돌리지 않는다. 평타 적중으로 나간 카드는 시전이 끝나야
+            // 여기로 오므로, 그사이 시전자가 죽으면 걷어낸 직업의 카드가 흘러온다 —
             // 그대로 넣으면 덱이 소진될 때 Discard가 회수되면서 죽은 동료 카드가 되살아난다.
             if (purgeCardsOnAllyDeath && !Cards.UsesFixedHand && IsOrphanCard(card))
             {

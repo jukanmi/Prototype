@@ -8,8 +8,8 @@ namespace Prototype
     /// 덱 상황판. 화면 좌상단에 <b>사용됨 / 남은 덱</b> 두 숫자를 띄우고,
     /// 각 숫자를 누르면 해당 더미에 든 카드를 펼쳐 보여 주는 팝업이 뜬다.
     ///
-    /// <see cref="ComboBoardUI"/>와 같은 방식으로 씬/프리팹 연결 없이 코드로만 만든다 —
-    /// BulletTimeController가 붙은 GameObject에 이 컴포넌트만 추가하면 동작한다.
+    /// 화면 조각은 CombatManager 프리팹이 쥐고, 이 컴포넌트는 BulletTimeController가 붙은
+    /// GameObject에 둔다.
     /// 전투 로직은 건드리지 않고 Deck/Discard의 공개 API 위에서만 읽는다.
     ///
     /// 남은 덱은 <b>뽑히는 순서대로 보여 주지 않는다</b>. Deck.Cards는 맨 위부터가 곧 드로우 순서라

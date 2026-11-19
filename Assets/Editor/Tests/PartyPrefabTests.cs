@@ -87,7 +87,7 @@ namespace Prototype.Tests
         /// <summary>
         /// <b>몸이 구워져 있으면 안 된다.</b> 동료마다 제 프리팹을 쓰게 되면서
         /// 여기 남은 몸은 전부 유령이 된다 — 로드아웃이 만든 진짜 파티와 나란히 서서
-        /// 동료가 다섯 명이 되고, 덱이 20장이 되고, 교대 순환에 이름 없는 칸이 낀다.
+        /// 동료가 다섯 명이 되고, 덱이 20장이 되고, 파티 명부에 이름 없는 칸이 낀다.
         /// </summary>
         [Test]
         public void Party_IsAnEmptyContainer()
@@ -128,8 +128,8 @@ namespace Prototype.Tests
                 "PartyMemberData 에 프리팹이 없는 동료가 통째로 빠진다.");
             Assert.That(so.FindProperty("partyRoot").objectReferenceValue, Is.Not.Null,
                 "PartyAssembler.partyRoot 가 비어 있다.");
-            Assert.That(so.FindProperty("swap").objectReferenceValue, Is.Not.Null,
-                "PartyAssembler.swap 이 비어 있다 — 시작 자리가 안 넘어가 파티가 원점에서 시작한다.");
+            Assert.That(so.FindProperty("roster").objectReferenceValue, Is.Not.Null,
+                "PartyAssembler.roster 가 비어 있다 — 시작 자리가 안 넘어가 파티가 원점에서 시작한다.");
             Assert.That(so.FindProperty("bulletTime").objectReferenceValue, Is.Not.Null,
                 "PartyAssembler.bulletTime 이 비어 있다 — 덱이 파티 카드를 못 걷어 손패가 빈다.");
         }
@@ -162,23 +162,6 @@ namespace Prototype.Tests
                 "BattleInput 안에 ComboExecutor 가 없다.");
         }
 
-        /// <summary>
-        /// <c>player</c> 는 이제 여기서 검사하지 않는다 — 주인공이 런타임 생성물이라
-        /// 프리팹에 꽂을 인스턴스가 없고, <see cref="PartyAssembler"/>가
-        /// <c>Awake</c>(-200)에서 <c>SetHero</c>로 밀어 넣는다.
-        /// 그 주입이 성립하는지는 <see cref="Assembler_HasEveryReferenceWired"/>가 본다.
-        /// </summary>
-        [Test]
-        public void BulletTime_KnowsSwap()
-        {
-            var bullet = Host().GetComponentInChildren<BulletTimeController>(true);
-            Assert.That(bullet, Is.Not.Null);
-
-            Assert.That(new SerializedObject(bullet).FindProperty("swap").objectReferenceValue,
-                Is.Not.Null,
-                "BulletTimeController.swap 이 비어 있다 — U키가 벤치에 앉은 동료를 못 불러온다.");
-        }
-
         // ── 카메라 앵커 ─────────────────────────────────
 
         /// <summary>
@@ -204,16 +187,16 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 배선이 비면 <see cref="TagSwapController"/>가 폴백으로 몸 트랜스폼을 직접 꽂는다.
+        /// 배선이 비면 <see cref="PartyRoster"/>가 폴백으로 몸 트랜스폼을 직접 꽂는다.
         /// 게임은 돌지만 앵커를 만든 이유가 통째로 사라지고, 아무 에러도 안 난다.
         /// </summary>
         [Test]
-        public void TagSwap_KnowsCameraAnchor()
+        public void Roster_KnowsCameraAnchor()
         {
-            var swap = Host().GetComponent<TagSwapController>();
+            var roster = Host().GetComponent<PartyRoster>();
 
-            Assert.That(new SerializedObject(swap).FindProperty("cameraAnchor").objectReferenceValue,
-                Is.Not.Null, "TagSwapController.cameraAnchor 가 비어 있다.");
+            Assert.That(new SerializedObject(roster).FindProperty("cameraAnchor").objectReferenceValue,
+                Is.Not.Null, "PartyRoster.cameraAnchor 가 비어 있다.");
         }
 
         // ── 파티 체력 HUD ───────────────────────────────

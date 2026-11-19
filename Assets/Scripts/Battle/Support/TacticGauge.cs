@@ -4,8 +4,8 @@ namespace Prototype
 {
     /// <summary>
     /// 불릿타임의 <b>자원</b> — 게이지 · 쿨타임 · 마나 코스트와, 게이지를 채워 주는 보상 규칙.
-    /// <see cref="BulletTimeController"/>가 소유한다. 진입을 <b>허락할지</b>의 자원 쪽 절반이 여기 있고,
-    /// 나머지 절반(이미 진입 중인가 · 콤보가 도는 중인가)은 컨트롤러가 본다.
+    /// <see cref="BulletTimeController"/>가 소유한다. 총공격을 <b>낼지</b>의 자원 쪽 절반이 여기 있고,
+    /// 나머지 절반(콤보가 도는 중인가 · 주인공이 살아 있나)은 컨트롤러가 본다.
     ///
     /// 값은 전부 컨트롤러의 인스펙터에서 온다 — 프리팹에 저장된 튜닝값을 옮기지 않으려고
     /// 필드는 그쪽에 두고 생성자로 넘겨받는다.
@@ -59,17 +59,14 @@ namespace Prototype
         /// <summary>남은 쿨타임(초). 0이면 쿨타임 아님.</summary>
         public float CooldownRemaining => UnityEngine.Mathf.Max(0f, cooldownTimer);
 
-        /// <summary>게이지만 놓고 봤을 때 진입선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
+        /// <summary>게이지만 놓고 봤을 때 발동선을 넘었는지. 쿨타임 · 마나는 안 본다.</summary>
         public bool IsReady => Gauge.Ratio >= cfg.RequiredRatio;
 
-        /// <summary>
-        /// 실제 시간으로 흐른다. 시간이 멈춰 있는 동안(<paramref name="frozen"/>)은 충전하지 않는다 —
-        /// 정지 중 자가 충전을 막는다.
-        /// </summary>
-        public void Tick(float unscaledDt, bool frozen)
+        /// <summary>쿨타임을 줄이고 게이지를 채운다.</summary>
+        public void Tick(float dt)
         {
-            if (cooldownTimer > 0f) cooldownTimer -= unscaledDt;
-            if (!frozen) Gauge.Recover(cfg.Regen * unscaledDt);
+            if (cooldownTimer > 0f) cooldownTimer -= dt;
+            Gauge.Recover(cfg.Regen * dt);
         }
 
         /// <summary>자원이 모자라 진입할 수 없는 이유. 진입할 수 있으면 null.</summary>
@@ -87,7 +84,7 @@ namespace Prototype
             return null;
         }
 
-        /// <summary>진입 코스트 지불. Freeze 진입 시 1회.</summary>
+        /// <summary>총공격 코스트 지불. 총공격(Resolve 진입) 시 1회.</summary>
         public void PayEntry(Player payer)
         {
             if (cfg.ManaCost > 0f && payer != null)

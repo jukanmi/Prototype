@@ -287,8 +287,7 @@ namespace Prototype
         /// true면 <b>어떤 Control도 명령을 내지 않는다</b>. <see cref="ComboExecutor"/>가
         /// 상태머신을 강탈하는 동안 켠다(결정 로그 ②).
         ///
-        /// 조종사가 아니라 여기 있는 이유는 태그 교대 때문이다. 조종사는 몸을 갈아타는데,
-        /// 지휘 플래그가 조종사에 붙어 있으면 갈아타는 순간 값이 통째로 사라진다.
+        /// 조종사가 아니라 몸에 있는 이유는 지휘받는 몸이 대개 조종사가 몰지 않는 동료(시전자)이기 때문이다.
         /// </summary>
         public bool IsCommanded { get; set; }
 
@@ -344,7 +343,7 @@ namespace Prototype
         /// <summary>
         /// 남은 의도를 통째로 비운다. 몸에서 손을 뗄 때.
         /// <see cref="Consume"/>는 이동 방향을 남기므로 여기서는 못 쓴다 —
-        /// 태그로 내려간 몸이 마지막 이동 방향을 물고 있으면 다시 섰을 때 혼자 걸어간다.
+        /// 꺼졌던 몸이 마지막 이동 방향을 물고 있으면 다시 섰을 때 혼자 걸어간다.
         ///
         /// 선입력도 같이 버린다. 안 그러면 내려간 몸이 물고 있던 입력이
         /// 다시 섰을 때 터져 아무도 안 누른 평타가 나간다.
@@ -360,7 +359,7 @@ namespace Prototype
 
         /// <summary>
         /// 선입력 창과 대시 쿨을 흘린다. <see cref="ClearCommand"/>와 달리 프레임마다 지워지지 않는다.
-        /// <b>조종 중인 몸만</b> 흐른다 — 벤치에 내려간 몸은 조종사가 안 부르므로 얼어 있다.
+        /// <b>조종 중인 몸만</b> 흐른다 — 조종사가 안 부르는 몸은 얼어 있다.
         /// </summary>
         public void TickPilotTimers(float dt)
         {
@@ -502,7 +501,7 @@ namespace Prototype
 
         /// <summary>
         /// true면 시간이 멈춰도 Control이 계속 돈다.
-        /// 불릿타임 중에도 입력을 받아야 하는 플레이어만 해당된다.
+        /// 시간이 멈춘 동안에도 입력을 받아야 하는 플레이어만 해당된다.
         /// </summary>
         protected virtual bool ControlUsesUnscaledTime => false;
 
@@ -634,8 +633,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 스킬 시전. 지금 무엇을 하든 끊고 들어간다 — 콤보 지휘(<see cref="ComboExecutor"/>)와
-        /// 즉발 카드(<see cref="Ally.CastCard"/>)가 쓴다.
+        /// 스킬 시전. 지금 무엇을 하든 끊고 들어간다 — 콤보 지휘(<see cref="ComboExecutor"/>)가 쓴다.
         /// </summary>
         public void BeginSkill(IState skill) => StateMachine.ForceChangeState(skill);
 
@@ -650,7 +648,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 무조건 Idle로. 시작 · 벤치로 내려갈 때 · 디버프가 풀릴 때(스스로는 못 나오는 상태) 쓴다.
+        /// 무조건 Idle로. 시작 · 필드에서 빠질 때 · 디버프가 풀릴 때(스스로는 못 나오는 상태) 쓴다.
         /// 시체에 부르면 되살아나므로 부르는 쪽이 사망을 본다.
         /// </summary>
         public void ForceIdle() => StateMachine.ForceChangeState(IdleState);
@@ -680,10 +678,11 @@ namespace Prototype
         /// </summary>
         public bool IsEntering { get; set; }
 
-        // ── 빙의 ────────────────────────────────────────────
+        // ── 필드에서 빠질 때 ────────────────────────────────────────────
 
         /// <summary>
-        /// 태그로 내려갈 때의 공통 뒷정리. <b>두 가지를 반드시 되돌려야 한다.</b>
+        /// 몸이 꺼질 때(<c>OnDisable</c>)의 공통 뒷정리 — 동료가 어시스트를 마치고 들어갈 때가 그렇다.
+        /// <b>아래를 반드시 되돌려야 한다.</b>
         ///
         /// <list type="number">
         /// <item><see cref="IsCommanded"/> 해제 — Executor가 켠 채로 잘리면 다시 섰을 때

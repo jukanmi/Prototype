@@ -76,8 +76,8 @@ namespace Prototype
         private void OnDisable() => CombatEvents.OnAnyDamageDealt -= HandleDamage;
 
         /// <summary>
-        /// 스케일된 dt로 굴린다. 불릿타임에 머문 시간이 콤보 길이에 들어가면
-        /// DPS가 거짓이 되고, 카드를 정렬하는 동안 콤보가 혼자 끊긴다.
+        /// 스케일된 dt로 굴린다. 시간이 멈춘 동안이 콤보 길이에 들어가면
+        /// DPS가 거짓이 되고, 멈춘 사이 콤보가 혼자 끊긴다.
         /// </summary>
         private void Update()
         {

@@ -1,5 +1,5 @@
 @startuml 09-Tactic
-' 6층 Tactic — Battle · Deck 로직: 불릿타임 상태머신 · 카드 공급 · 콤보 실행 · 시전 감독 · 어시스트.
+' 6층 Tactic — Battle · Deck 로직: 총공격 상태머신 · 카드 공급 · 콤보 실행 · 시전 감독 · 어시스트.
 ' UI는 09-Tactic-UI.puml. 위층(App)은 IStageRestarter로만 연결된다.
 title 6층 Tactic — 클래스 다이어그램 (로직)
 
@@ -9,25 +9,24 @@ skinparam classAttributeIconSize 0
 hide empty members
 
 package "6 Tactic" {
-  package "불릿타임" {
+  package "총공격" {
     class BulletTimeController <<MonoBehaviour>> {
       + Phase : TacticPhase
-      + IsActive : bool
       + Gauge : Energy
       + Executor : ComboExecutor
       + Director : CastDirector
-      + OnEnter / OnExit : event
-      + GrantCard(card, fusedFrom, fuseCount)
+      + BuildAssaultQueue() : Queue<ComboSlot>
+      + OpenAssaultEditor()
+      + GrantCard(card)
       + SetCastDirector(director)
     }
     abstract class TacticState <<private nested>> {
       + Phase : TacticPhase
       + Enter() / Tick(dt) / Exit()
-      + OnBulletTimeKey() / OnExecuteKey() : bool
     }
-    class "RealTimeState · FreezeState\nOrderState · ResolveState" as TacticStates
+    class "RealTimeState · ResolveState" as TacticStates
     enum TacticPhase {
-      RealTime · Freeze · Order · Resolve
+      RealTime · Resolve
     }
     class TacticGauge {
       .. 게이지 · 쿨타임 · 마나 코스트 ..
@@ -36,7 +35,7 @@ package "6 Tactic" {
     }
     class InputMapSwitcher <<MonoBehaviour>> {
       + Apply()
-      .. 페이즈로 카드 입력 맵 여닫기 ..
+      .. 총공격 편집창이 열리면 카드 입력 맵을 연다 ..
     }
   }
 
@@ -47,7 +46,7 @@ package "6 Tactic" {
       + Discard : Discard
       + Build(player, mode)
       + Refill()
-      + Grant(card, fusedFrom, fuseCount)
+      + Grant(card)
     }
     class CardPile {
       + Cards : IReadOnlyList<ComboCard>
@@ -68,6 +67,8 @@ package "6 Tactic" {
       + card : ComboCard
       + target : TargetInfo
       + caster : Ally
+      + damageScale : float
+      + targetEntity : Entity
     }
     class BasicAttackProcRoller {
       + CurrentChance : float
@@ -85,15 +86,11 @@ package "6 Tactic" {
     class ComboExecutor <<MonoBehaviour>> {
       + Director : CastDirector
       + Cutin : ISkillCutin
-      + Stage : ICasterStage
       + IsRunning : bool
       + OnExecuteStarted / OnExecuteFinished : event
     }
     interface ISkillCutin {
       + Play(…) : IEnumerator
-    }
-    interface ICasterStage {
-      + Enter(caster) / Exit(caster)
     }
     class CastDirector <<MonoBehaviour>> {
       + IsResolving : bool
@@ -132,9 +129,10 @@ package "6 Tactic" {
       + Hero : Player
       + Members : Ally[]
     }
-    class TagSwapController <<MonoBehaviour>> {
-      .. 호환 어댑터 — 교대 기능은 삭제됨 ..
-      + Roster · Current
+    class PartyRoster <<MonoBehaviour>> {
+      .. 파티 명부 · 전투 시작 배선 ..
+      + Roster · Current · AliveCount
+      + SetHero(hero) · SeedSeat(ground, facing)
     }
     interface IStageRestarter {
       + RestartStage()
@@ -150,7 +148,8 @@ BulletTimeController *--> CardSupply
 BulletTimeController --> ComboExecutor
 BulletTimeController --> CastDirector
 BulletTimeController ..> "RunHost (5)" : 덱 시작 방식
-InputMapSwitcher ..> BulletTimeController : Phase
+BulletTimeController ..> "RunProgression (5)" : 총공격 슬롯
+InputMapSwitcher ..> "AssaultEditorUI" : IsOpen
 
 CardSupply *--> Deck
 CardSupply *--> Hand
@@ -163,7 +162,6 @@ CardSupply ..> "RunProgression (5)" : SeedDeck
 
 ComboExecutor --> CastDirector
 ComboExecutor o--> ISkillCutin
-ComboExecutor o--> ICasterStage
 ComboExecutor ..> ComboSlot : 순서대로 실행
 CastDirector --> AssistManager
 CastDirector ..> CastRequest
@@ -178,11 +176,9 @@ AssistControlModule ..> "SkillState (2)" : 시전
 
 PartyAssembler ..> "RunHost (5)" : Loadout
 PartyAssembler ..> "PartyAssembleRules (4.5)"
+PartyAssembler --> PartyRoster : SetHero · SeedSeat
+PartyRoster ..> CastDirector : Configure
 
-note bottom of ICasterStage
-  지금 구현체가 없다 (태그 교대 삭제 후 Stage가 비어 있음).
-  이식 전에 지울지 정할 것.
-end note
 note bottom of IStageRestarter
   구현: BattleSceneController (9 App)
 end note

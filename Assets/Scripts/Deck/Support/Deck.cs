@@ -165,11 +165,9 @@ namespace Prototype
     }
 
     /// <summary>
-    /// 손패 4장. <b>큐처럼</b> 굴러간다 — 왼쪽(0번)이 다음에 나갈 카드이고,
-    /// 한 장이 빠지면 나머지가 왼쪽으로 당겨지고 오른쪽 끝이 덱에서 채워진다.
-    ///
-    /// 카드만이 아니라 조준값까지 함께 들고 있으므로(<see cref="ComboSlot"/>)
-    /// 손패 자체가 곧 콤보 실행 순서다. 별도 슬롯 보드가 필요 없다.
+    /// 손패 4장. <b>큐처럼</b> 굴러간다 — 한 장이 빠지면 나머지가 왼쪽으로 당겨지고
+    /// 오른쪽 끝이 덱에서 채워진다. 평타 적중 추첨이 여기와 덱에서 카드를 뽑는다
+    /// (<see cref="BasicAttackDrawRules"/>).
     /// </summary>
     [Serializable]
     public class Hand
@@ -181,7 +179,7 @@ namespace Prototype
         public int Count => slots.Count;
         public bool IsFull => slots.Count >= Size;
 
-        /// <summary>ComboBoardUI · ComboExecutor가 그대로 받는다.</summary>
+        /// <summary>칸 전부. 읽기 전용.</summary>
         public IReadOnlyList<ComboSlot> Slots => slots;
 
         public event Action OnChanged;
@@ -256,8 +254,7 @@ namespace Prototype
 
         /// <summary>
         /// 조건에 맞는 카드가 든 칸을 손패에서 걷어낸다. 지운 장수를 돌려준다.
-        /// 남은 칸은 왼쪽으로 당겨지므로 <b>인덱스가 밀린다</b> —
-        /// 조준 대기 중인 UI가 있으면 갱신을 받아야 한다.
+        /// 남은 칸은 왼쪽으로 당겨지므로 <b>인덱스가 밀린다</b>.
         /// </summary>
         public int RemoveAll(Predicate<ComboCard> match)
         {
@@ -266,28 +263,6 @@ namespace Prototype
             int removed = slots.RemoveAll(s => match(s.card));
             if (removed > 0) OnChanged?.Invoke();
             return removed;
-        }
-
-        /// <summary>두 칸의 순서를 바꾼다. 조준값도 카드를 따라 같이 이동한다.</summary>
-        public bool Swap(int a, int b)
-        {
-            if (a < 0 || a >= slots.Count) return false;
-            if (b < 0 || b >= slots.Count || a == b) return false;
-
-            (slots[a], slots[b]) = (slots[b], slots[a]);
-
-            BattleLog.Log(LogCategory.Combo, $"손패 순서 변경 {a} ↔ {b}");
-
-            OnChanged?.Invoke();
-            return true;
-        }
-
-        public List<ComboSlot> TakeAll()
-        {
-            var all = new List<ComboSlot>(slots);
-            slots.Clear();
-            OnChanged?.Invoke();
-            return all;
         }
     }
 

@@ -166,7 +166,7 @@ namespace Prototype
 
             // 공중에서 내리꽂은 화살은 대상을 지나 땅으로 들어간다. 바닥 밑에서 계속 날면
             // 뒤에 선 적의 발목을 땅속에서 맞힌다.
-            if (logical.y < GroundRegistry.HeightAt(logical, 0f))
+            if (logical.y < 0f)
             {
                 Despawn();
                 return;

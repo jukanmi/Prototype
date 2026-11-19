@@ -8,7 +8,7 @@ namespace Prototype.Tests
     /// 프로젝트에 있는 모든 <see cref="PartyLoadout"/> · <see cref="PartyMemberData"/> 에셋을 훑는다.
     ///
     /// 이 검사가 없으면 저작 실수가 <b>플레이 도중에만</b> 드러난다 —
-    /// 직업이 어긋난 카드는 조용히 덱에 들어가 손패 맨 앞을 막고, 증상은 "U키가 안 먹는다"다.
+    /// 직업이 어긋난 카드는 조용히 덱에 들어가 영영 안 나가고 손패 자리만 차지한다.
     /// </summary>
     public class PartyLoadoutTests
     {

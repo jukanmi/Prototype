@@ -10,7 +10,7 @@ namespace Prototype.Tests
     /// 리바인드 목록과 충돌 판정.
     ///
     /// 충돌 판정이 핵심이다. "같이 켜져 있는 맵끼리 겹치면 충돌"로 잡으면
-    /// 기본 바인딩부터 빨갛게 뜬다 — Move · Navigate · Aim이 셋 다 WASD다.
+    /// 기본 바인딩부터 빨갛게 뜬다 — Move · Navigate가 둘 다 WASD다.
     /// </summary>
     public class InputRebindRulesTests
     {
@@ -50,7 +50,7 @@ namespace Prototype.Tests
         [Test]
         public void Enumerate_SkipsMouseBindings()
         {
-            // 조준 확정의 좌클릭까지 바꾸게 하면 키보드 자리를 잘못 잡았을 때 빠져나올 길이 없다.
+            // 좌클릭까지 바꾸게 하면 키보드 자리를 잘못 잡았을 때 빠져나올 길이 없다.
             foreach ((InputAction action, int index) in InputRebindRules.Enumerate(actions))
             {
                 Assert.That(action.bindings[index].path, Does.Not.StartWith("<Mouse>"),
@@ -90,7 +90,7 @@ namespace Prototype.Tests
         [Test]
         public void GameplayMovement_DoesNotConflictWithCardMap()
         {
-            // 정지 중에는 PlayerControl이 이동을 막는다. 이게 충돌이면 기본 WASD가 곧바로 빨개진다.
+            // 카드 조작 맵은 편집창(모달)에서만 켜진다. 이게 충돌이면 기본 WASD가 곧바로 빨개진다.
             InputAction move = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Move);
             InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
 
@@ -99,13 +99,13 @@ namespace Prototype.Tests
 
         [TestCase(InputActionNames.Gameplay.BulletTime)]
         [TestCase(InputActionNames.Gameplay.Jump)]
-        public void CommanderKeys_ConflictWithCardMap(string commander)
+        public void EditorAndJumpKeys_DoNotConflictWithCardMap(string action)
         {
-            // 지휘키는 정지 중에도 산다 — 카드 조작과 진짜로 같은 프레임에 발동한다.
-            InputAction action = Action(InputActionNames.Gameplay.Map, commander);
+            // 편집창이 열려 있는 동안 Gameplay 맵은 꺼진다 — E · 점프도 칸 이동과 같은 프레임에 안 산다.
+            InputAction gameplay = Action(InputActionNames.Gameplay.Map, action);
             InputAction navigate = Action(InputActionNames.BulletTime.Map, InputActionNames.BulletTime.Navigate);
 
-            Assert.That(InputRebindRules.CanFireTogether(action, navigate), Is.True);
+            Assert.That(InputRebindRules.CanFireTogether(gameplay, navigate), Is.False);
         }
 
         // ── 기본 바인딩은 깨끗한가 ──────────────────────────
@@ -171,24 +171,13 @@ namespace Prototype.Tests
             // Isolate the cross-map rule from the independent Gameplay/Move conflict on W.
             InputAction move = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Move);
             move.ApplyBindingOverride(InputBindingUtility.FindBindingIndex(move, "up"), "<Keyboard>/upArrow");
-            // Gameplay/Attack 을 W 로 옮겨도 카드 조작(W = 집기)과는 안 부딪힌다 —
-            // 정지 중 평타는 막혀 있다.
+            // Gameplay/Attack 을 W 로 옮겨도 카드 조작 맵(W = 위)과는 안 부딪힌다 —
+            // 두 맵은 같이 켜지지 않는다.
             InputAction attack = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Attack);
             int index = InputBindingUtility.FindBindingIndex(attack, "");
 
             Assert.That(InputRebindRules.TryFindConflict(actions, attack, index, "<Keyboard>/w", out _, out _),
                 Is.False);
-        }
-
-        [Test]
-        public void TakingTheCardMapKeyForACommander_IsAConflict()
-        {
-            // 반면 지휘키를 W 로 옮기면 카드를 집으면서 불릿타임이 함께 걸린다.
-            InputAction commander = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
-            int index = InputBindingUtility.FindBindingIndex(commander, "");
-
-            Assert.That(InputRebindRules.TryFindConflict(actions, commander, index, "<Keyboard>/w", out _, out _),
-                Is.True);
         }
     }
 }

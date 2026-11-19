@@ -13,9 +13,8 @@ namespace Prototype
     /// "이번 프레임에 눌렸다"를 직접 래치해야 한다. <c>WasPressedThisFrame</c>은 프레임 내내
     /// 같은 답을 주므로 누가 몇 번을 읽든 상관없다.
     ///
-    /// <b>몸에 붙이지 않는다.</b> 태그로 내려간 몸은 <c>SetActive(false)</c>가 되므로
-    /// 입력이 거기 있으면 교대하는 순간 되돌아올 키까지 죽는다. 상시 살아 있는
-    /// 오브젝트에 <see cref="BattleCommander"/>·<c>InputMapSwitcher</c>와 함께 둔다.
+    /// <b>몸에 붙이지 않는다.</b> 몸이 꺼지면(<c>SetActive(false)</c>) 입력까지 함께 죽는다.
+    /// 상시 살아 있는 오브젝트에 <see cref="BattleCommander"/>·<c>InputMapSwitcher</c>와 함께 둔다.
     ///
     /// <see cref="PlayerInput"/>은 자산 보유·디바이스·컨트롤 스킴 관리용으로만 쓴다.
     /// 액션은 반드시 <c>playerInput.actions</c>를 거쳐 잡는다 — 직렬화한 자산을 따로 들고 있으면
@@ -41,7 +40,6 @@ namespace Prototype
         private InputAction dashAction;
         private InputAction bulletTimeAction;
         private InputAction interactAction;
-        private int consumedJumpFrame = -1;
 
 
         private NavigateLatch cardNavigate;
@@ -61,12 +59,11 @@ namespace Prototype
         public Vector2 Move => moveAction.ReadValue<Vector2>();
 
         public bool AttackPressed => Pressed(attackAction);
-        public bool JumpPressed => consumedJumpFrame != Time.frameCount && Pressed(jumpAction);
-        public void ConsumeJumpPress() => consumedJumpFrame = Time.frameCount;
+        public bool JumpPressed => Pressed(jumpAction);
         public bool DashPressed => Pressed(dashAction);
 
         /// <summary>
-        /// 기존 불릿타임키 — 진입 · 실행 요청.
+        /// 불릿타임키(기본 E) — 총공격 슬롯 편집창을 연다.
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
 
@@ -75,19 +72,19 @@ namespace Prototype
 
 
 
-        // ── BulletTime — 손패 카드 조작 ──────────────────────
+        // ── BulletTime — 총공격 편집창 조작 ──────────────────
 
         /// <summary>
         /// 이번 프레임에 <b>새로 </b>눌린 방향. 안 눌렸으면 (0, 0).
         ///
-        /// 카드 선택은 한 번 누르면 한 칸이어야 한다. 값을 그대로 읽으면 누르고 있는 동안
-        /// 매 프레임 넘어가 손패 끝까지 순식간에 지나간다. 그래서 0에서 ±1로 <b>넘어가는
+        /// 칸 선택은 한 번 누르면 한 칸이어야 한다. 값을 그대로 읽으면 누르고 있는 동안
+        /// 매 프레임 넘어가 줄 끝까지 순식간에 지나간다. 그래서 0에서 ±1로 <b>넘어가는
         /// 순간</b>만 잡는다.
         /// </summary>
         public Vector2Int NavigateStep => cardNavigate.Step;
 
         /// <summary>
-        /// 카드 조작 맵이 살아 있는가. Order 페이즈에만 켠다.
+        /// 카드 조작 맵이 살아 있는가. 총공격 편집창이 열려 있을 때만 켠다.
         /// <c>InputMapSwitcher</c>가 여닫는다.
         /// </summary>
         public bool BulletTimeMapEnabled
@@ -113,7 +110,7 @@ namespace Prototype
         /// <see cref="NavigateStep"/>과 같은 이산 규칙이다 — 누르고 있는 동안 매 프레임 넘어가면
         /// 카드 석 장짜리 줄을 순식간에 지나친다.
         ///
-        /// 손패의 WASD가 아니라 <b>화살표 · 게임패드</b>다. UI 맵은 전투 중에도 늘 켜져 있어서
+        /// 카드 조작 맵의 WASD가 아니라 <b>화살표 · 게임패드</b>다. UI 맵은 전투 중에도 늘 켜져 있어서
         /// 여기에 WASD를 물리면 이동키가 UI 포커스까지 움직인다
         /// (<c>InputActionAssetTests.UINavigate_DoesNotUseWasd</c>).
         /// </summary>
@@ -136,7 +133,7 @@ namespace Prototype
 
         /// <summary>
         /// 설정 화면 같은 모달이 떠 있는 동안 게임 조작을 잠근다.
-        /// 안 잠그면 키 설정을 보는 내내 뒤에서 캐릭터가 움직이고 카드가 집힌다.
+        /// 안 잠그면 키 설정을 보는 내내 뒤에서 캐릭터가 움직인다.
         /// UI 맵은 잠그지 않는다 — 창을 닫을 길까지 막힌다.
         /// </summary>
         public bool GameplaySuspended
@@ -152,7 +149,7 @@ namespace Prototype
                 if (gameplaySuspended) gameplayMap?.Disable();
                 else gameplayMap?.Enable();
 
-                // 불릿타임 두 맵은 InputMapSwitcher가 다음 프레임에 맞춘다.
+                // 카드 조작 맵은 InputMapSwitcher가 다음 프레임에 맞춘다.
             }
         }
 
@@ -191,8 +188,8 @@ namespace Prototype
         private void OnEnable()
         {
             // PlayerInput은 defaultActionMap 하나만 켜 준다. 나머지는 직접 켠다.
-            // 불릿타임 두 맵은 InputMapSwitcher가 페이즈를 보고 열어 준다 —
-            // 여기서 켜 두면 실시간 전투 중 J가 카드 집기로도 먹는다.
+            // 카드 조작 맵은 InputMapSwitcher가 편집창을 보고 열어 준다 —
+            // 여기서 켜 두면 실시간 전투 중 이동키가 편집창 이동으로도 먹는다.
             if (!gameplaySuspended) gameplayMap?.Enable();
             uiMap?.Enable();
         }
@@ -245,7 +242,7 @@ namespace Prototype
         /// <summary>
         /// 이번 프레임에 눌렸는가. 단, <b>마우스로 UI를 클릭한 것</b>은 세지 않는다.
         ///
-        /// 손패 카드를 집으려고 클릭했을 뿐인데 평타가 나가는 걸 막는다.
+        /// UI를 누르려고 클릭했을 뿐인데 평타가 나가는 걸 막는다.
         /// 키보드로 눌렀을 때는 커서가 어디 있든 통과시킨다 — 마우스를 UI 위에 올려 둔 채
         /// 키보드로 싸우는 것까지 막히면 안 된다. 그래서 "UI 위인가"가 아니라
         /// "<b>포인터가</b> 발동시켰고 그 포인터가 UI 위인가"로 본다.
@@ -270,7 +267,7 @@ namespace Prototype
         /// 프레임당 한 번만 계산하고 그 답을 물고 있는다 — 읽을 때마다 다시 계산하면
         /// 같은 프레임에 두 번째로 읽는 쪽이 빈손으로 돌아간다.
         ///
-        /// 손패(WASD)와 모달(화살표)이 같은 규칙을 쓰는데 액션도 맵도 다르다.
+        /// 카드 조작 맵(WASD)과 모달(화살표)이 같은 규칙을 쓰는데 액션도 맵도 다르다.
         /// 그래서 필드로 흩어 놓지 않고 액션마다 하나씩 들고 있는다.
         /// </summary>
         private class NavigateLatch
@@ -295,7 +292,7 @@ namespace Prototype
 
             /// <summary>
             /// 다음 읽기에서 기준값을 새로 잡는다. 이미 눌려 있던 키는 "새로 눌렸다"로 치지 않는다 —
-            /// 조준을 마치고 돌아오는 순간 W를 쥐고 있으면 곧바로 조준으로 되튄다.
+            /// 맵을 다시 켠 순간 W를 쥐고 있으면 곧바로 한 칸 움직인다.
             /// </summary>
             public void Resync()
             {

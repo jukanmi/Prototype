@@ -25,9 +25,6 @@ namespace Prototype
 
         /// <summary>
         /// 바닥에서 뜬 높이. 양 끝점 모두 이 높이로 잡히므로 <b>수평으로</b> 날아온다.
-        ///
-        /// 공중에서 태그 교대를 하면 새 몸도 같은 높이에서 이어받아야 한다 —
-        /// 지상 좌표만 넘기면 새 몸만 바닥에 서서 콤보가 그 자리에서 끊긴다.
         /// </summary>
         public float height;
 
@@ -126,7 +123,7 @@ namespace Prototype
         public const float MinSeconds = 0.05f;
 
         /// <summary>
-        /// 카메라가 없는 씬(테스트 · 스킬 시험장)에서 쓰는 반폭.
+        /// 카메라가 없는 씬(테스트 씬)에서 쓰는 반폭.
         /// 방 반경보다 넓어야 "밖"이 정말 밖이 된다.
         ///
         /// 기준 방을 쓴다 — 카메라가 없는 씬은 방 크기 보정을 받는 전투 칸이 아니다.
@@ -201,7 +198,7 @@ namespace Prototype
     // ══ EntranceDirector ═══════════════════════════════════════════
 
     /// <summary>
-    /// 등장 · 퇴장의 <b>유일한 창구</b>. 적 스폰도 동료 교대도 여기로 들어온다.
+    /// 등장 · 퇴장의 <b>유일한 창구</b>. 적 스폰(<see cref="EnemySpawnService"/>)이 여기로 들어온다.
     ///
     /// 창구를 하나로 두는 이유는 <see cref="EnemySpawnService"/>와 같다 —
     /// 절차가 두 벌이 되면 한쪽만 억제 배선이 빠지는 식으로 조용히 갈라지고,
@@ -284,8 +281,7 @@ namespace Prototype
 
         /// <summary>
         /// 연출 하나를 건다. 이미 돌고 있던 연출은 <b>취소하고 갈아탄다</b> —
-        /// 퇴장 중인 몸이 다시 불려 나오는 경로가 여럿이라(연속 슬롯 · 사망 자동교대 ·
-        /// 카드 즉시 사용), 겹치면 몸이 두 목표 사이에서 떤다.
+        /// 퇴장 중인 몸이 다시 불려 나올 수 있어서, 겹치면 몸이 두 목표 사이에서 떤다.
         /// </summary>
         public static EntrancePlayer Play(Entity body, in EntranceSpec spec)
         {
@@ -311,7 +307,7 @@ namespace Prototype
         /// 돌고 있는 연출을 <b>지금 끝낸다</b>. 남은 시간을 건너뛰고 착지시키며 콜백도 부른다.
         /// 없으면 아무 일도 안 한다.
         ///
-        /// 기다릴 수 없는 입력이 앞당길 때 쓴다 — U키 카드가 그렇다.
+        /// 기다릴 수 없는 입력이 앞당길 때 쓴다.
         /// </summary>
         public static void Finish(Entity body)
         {

@@ -74,7 +74,7 @@ namespace Prototype.Tests
         }
 
         /// <summary>
-        /// 교대로 내려가는 몸은 경직을 물고 가지 않는다. 꺼진 몸은 Tick이 멈추고,
+        /// 필드에서 빠지는 몸은 경직을 물고 가지 않는다. 꺼진 몸은 Tick이 멈추고,
         /// 다시 설 때 Teleport가 착지 이벤트 없이 지면에 세우기 때문이다.
         /// </summary>
         [Test]
@@ -111,7 +111,7 @@ namespace Prototype.Tests
             victim.Tick(1f);
             Assert.That(victim.CombatState, Is.EqualTo(CombatState.AerialHit));
 
-            // 교대 복귀 · 불릿타임 배치가 하는 일 — 착지 이벤트 없이 지면에 세운다.
+            // 어시스트 등장이 하는 일 — 착지 이벤트 없이 지면에 세운다.
             victim.Physics.Teleport(victim.Physics.GroundPosition);
 
             victim.Tick(0.1f);

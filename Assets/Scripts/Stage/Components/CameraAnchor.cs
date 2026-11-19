@@ -7,14 +7,12 @@ namespace Prototype
     ///
     /// <b>무엇을 고치는가.</b> 지금까지 <see cref="CameraFollow.SetTarget"/>이 몸 트랜스폼을
     /// 직접 받았고, 그 배선이 세 군데에서 각자 이뤄졌다 —
-    /// <c>ArenaSceneBuilder</c> · <see cref="CameraFollow"/>의 Awake 폴백 · <see cref="TagSwapController"/>.
+    /// <c>ArenaSceneBuilder</c> · <see cref="CameraFollow"/>의 Awake 폴백 · <see cref="PartyRoster"/>.
     /// 앵커를 두면 카메라는 앵커 하나만 알고, "누구를 비추는가"는
-    /// <see cref="TagSwapController"/> 한 곳에서만 정해진다.
+    /// <see cref="PartyRoster"/> 한 곳에서만 정해진다.
     ///
-    /// <b>튐도 같이 사라진다.</b> 태그 교대(F)는 새 몸이 <b>같은 자리</b>에 서므로 차이가 0이라
-    /// 앵커가 즉시 반응한다. 튀는 건 콤보에서 같은 시전자가 두 번 나올 때다 —
-    /// 그 몸은 이미 무대에 있어서 자리를 다시 안 잡는데(돌진으로 전진한 걸 되감지 않으려는
-    /// 의도적 설계) 카메라 대상만 그쪽으로 즉시 옮겨간다. 앵커는 그 거리를 미끄러진다.
+    /// <b>튐도 같이 사라진다.</b> 비출 대상이 바뀌어도 카메라는 앵커만 보고,
+    /// 앵커가 그 거리를 미끄러진다.
     ///
     /// <b>루트 고정 규약을 안 깬다.</b> 원점에 박히는 것은 <c>BattleInput</c> 루트와
     /// <c>Party</c> 컨테이너뿐이고, 이 앵커는 그 형제로서 자유롭게 움직인다 —
@@ -70,7 +68,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 비출 몸을 바꾼다. <see cref="TagSwapController"/>만 부른다.
+        /// 비출 몸을 바꾼다. <see cref="PartyRoster"/>만 부른다.
         /// null을 넘기면 앵커가 마지막 자리에 그대로 선다 — 카메라가 원점으로 튀지 않는다.
         /// </summary>
         public void SetFocus(Transform body)
@@ -80,7 +78,7 @@ namespace Prototype
 
         /// <summary>
         /// 보간 없이 옮긴다. 스테이지가 처음 올라올 때 한 번
-        /// (<see cref="TagSwapController.SeedSeat"/>).
+        /// (<see cref="PartyRoster.SeedSeat"/>).
         /// </summary>
         public void SnapTo(float x)
         {
@@ -96,8 +94,8 @@ namespace Prototype
         /// 여기가 늦으면 카메라가 한 프레임 묵은 자리를 보고 전환 내내 미세하게 떤다.
         /// <see cref="StageBounds"/>가 같은 이유로 같은 자리에 있다.
         ///
-        /// 시간은 <b>스케일 안 된 것</b>을 쓴다. 불릿타임 중에 시전자가 바뀌는데
-        /// 게임 시간으로 돌리면 그동안 앵커가 굳어 카메라만 멎어 보인다.
+        /// 시간은 <b>스케일 안 된 것</b>을 쓴다. 게임 시간으로 돌리면 시간이 멈춘 동안(컷인 등)
+        /// 앵커가 굳어 카메라만 멎어 보인다.
         /// </summary>
         private void LateUpdate()
         {
