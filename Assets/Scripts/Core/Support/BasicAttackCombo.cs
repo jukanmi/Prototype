@@ -50,6 +50,9 @@ namespace Prototype
         [Tooltip("이미 떠 있는 대상을 airborneHeight 위로는 올리지 않는다.")]
         public bool capAirborne;
         public float hitStunDuration;
+
+        [Tooltip("판정이 닫힐 때까지 앞으로 밀고 나가는 속도(유닛/초). 0이면 제자리. 달리기 공격 칸에서만 쓴다.")]
+        public float advanceSpeed;
     }
 
     /// <summary>캔슬 시점까지 확정한 한 타의 타이밍. 상태가 매 틱 이걸 본다.</summary>

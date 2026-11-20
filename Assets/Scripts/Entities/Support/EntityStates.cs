@@ -46,8 +46,10 @@ namespace Prototype
             {
                 case Command.Attack:
                     Entity.Consume();
-                    Entity.StateMachine.TryChangeState(
-                        Physics.PhysicsState == PhysicsState.Aerial ? Entity.AerialAttackState : (IState)Entity.AttackState);
+                    bool aerial = Physics.PhysicsState == PhysicsState.Aerial;
+                    // MoveState.Exit이 IsRunning을 지우기 전에 읽는다.
+                    Entity.RunAttack = Entity.IsRunning && !aerial;
+                    Entity.StateMachine.TryChangeState(aerial ? Entity.AerialAttackState : (IState)Entity.AttackState);
                     return true;
 
                 case Command.Jump:
@@ -109,11 +111,18 @@ namespace Prototype
                 return;
             }
 
-            Physics.Move(dir, Entity.Stats.GetValue(StatType.MoveSpeed, 6f));
+            float speed = Entity.Stats.GetValue(StatType.MoveSpeed, 6f);
+            Entity.IsRunning = Entity.WantsRun;
+            if (Entity.IsRunning) speed *= RunMultiplier;
+            Physics.Move(dir, speed);
         }
+
+        /// <summary>달리기 속도 배율. 튜닝 필요하면 StatType으로 올린다.</summary>
+        private const float RunMultiplier = 1.6f;
 
         public override void Exit()
         {
+            Entity.IsRunning = false;
             Physics.Move(Vector3.zero, 0f);
         }
     }
@@ -221,6 +230,14 @@ namespace Prototype
 
             if (!FiresOnStageStart && windupCrossed) Fire();
 
+            // 달리기 공격은 판정이 닫힐 때까지 앞으로 밀고 나간다. Dash는 속도를 매 프레임 덮어쓰므로 계속 밀어 준다.
+            float advance = stage == 0 ? Entity.RunAdvanceSpeed : 0f;
+            if (advance > 0f)
+            {
+                if (timer < t.activeEnd) Physics.Dash(Physics.Facing, advance);
+                else if (prev < t.activeEnd) Physics.Move(Vector3.zero, 0f);
+            }
+
             // 원거리 평타는 한 발 쏘고 끝. 켜고 끌 히트박스가 없고 연타 대상도 아니다 —
             // 쏘는 손맛은 캔슬이 아니라 사거리에서 온다.
             if (Entity.BasicIsRanged)
@@ -285,6 +302,7 @@ namespace Prototype
             // 선딜 도중 경직으로 끊기면 예고가 켜진 채로 굳는다.
             if (Telegraphs) Entity.SetTelegraph(false);
             Entity.BasicAttack?.End();
+            Entity.RunAttack = false;
 
             // 상태를 벗어나면 콤보는 끊긴다. 별도의 콤보 타임아웃이 필요 없는 이유가 이것이다 —
             // 피격 · 이동 · 대시로 빠지면 다음 Enter가 1타부터 다시 시작한다.

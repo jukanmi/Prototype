@@ -20,6 +20,23 @@ MonoBehaviour:
   atk: 0
   moveSpeed: 0
   basicComboStages: []
+  runAttack:
+    label: "\uB2EC\uB9AC\uAE30 \uACF5\uACA9"
+    clip: {fileID: 7400000, guid: 1ebd904042dc07a4486617c10ff68c5f, type: 2}
+    windup: 0.25
+    activeEnd: 0.35714287
+    total: 0.5
+    cancelStart: 0
+    damageMultiplier: 1.5
+    overrideReaction: 1
+    nextState: 3
+    mode: 0
+    pushDistance: 2
+    airborneHeight: 1
+    aerialAirborneHeight: 0
+    capAirborne: 0
+    hitStunDuration: 0.6
+    advanceSpeed: 10
   dashCooldown: 0
   attackBufferWindow: 0
   animatorController: {fileID: 9100000, guid: be315ff213b5a054aadf5b6f00f7cd46, type: 2}

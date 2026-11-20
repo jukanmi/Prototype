@@ -40,6 +40,9 @@ namespace Prototype
         [Tooltip("평타 단계. 비우면 프리팹의 단계를 그대로 쓴다. 채우면 통째로 갈아 끼운다.")]
         public BasicAttackStage[] basicComboStages = new BasicAttackStage[0];
 
+        [Tooltip("달리다 공격키를 누르면 1타 대신 나가는 한 대. clip이 비면 일반 1타 모션에 날리기만 얹는다.")]
+        public BasicAttackStage runAttack;
+
         [Header("조작감 — 0이면 기본값(대시 쿨 0.6 · 선입력 0.25)")]
         [Tooltip("대시를 다시 쓸 수 있을 때까지의 시간. 캐릭터마다 다른 값이다.")]
         public float dashCooldown;

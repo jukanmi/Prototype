@@ -99,6 +99,58 @@ namespace Prototype.EditorTools
                       "Player.prefab 의 3단계 슬롯에 손으로 물릴 것 — 프리팹은 이 도구가 건드리지 않는다.", c1);
         }
 
+        // 달리기 공격 — 캔버스 4448x3592. 발 디딤 자리가 캔버스 중앙이 아니라 x≈1700px이다
+        // (칼은 오른쪽으로 크게 뻗는다). 기준 프레임은 00번(attack1_1과 같은 서 있는 자세, 몸 높이 ≈2580px).
+        private const float DashAttackReferenceHeightPx = 2580f;
+        private const float DashAttackFootXPx = 1700f;
+        private const float DashAttackFps = 28f;
+        private const int DashAttackFrames = 13;
+
+        [MenuItem("Prototype/평타 - Player 달리기 공격 클립 굽기 (dashAttack 폴더)")]
+        public static void BuildDashAttack()
+        {
+            var paths = new string[DashAttackFrames];
+            for (int i = 0; i < paths.Length; i++)
+                paths[i] = $"{SourceFolder}/dashAttack/warrior_attack_{i:00}.png";
+
+            if (!FixSpriteImport(paths, DashAttackReferenceHeightPx / TargetWorldHeight, out string error, DashAttackFootXPx))
+            {
+                Debug.LogError($"[PlayerArtBuilder] dashAttack 임포트 보정 실패 — {error}");
+                return;
+            }
+
+            AnimationClip clip = BuildFrameClip(paths, "Player_DashAttack", DashAttackFps, loop: false);
+            if (clip == null) return;
+
+            var data = AssetDatabase.LoadAssetAtPath<ScriptableObject>(HeroDataPath);
+            if (data == null) { Debug.LogError($"[PlayerArtBuilder] {HeroDataPath} 를 못 찾았다."); return; }
+
+            // 타격은 13프레임 중 7~9번(칼이 앞으로 뻗는 구간)에 맞춘다.
+            // 클립 길이는 프레임 경계로 올림되어 (프레임 수 + 1) / fps 다. 맞춰야 재생 배율이 1이 된다.
+            float total = (DashAttackFrames + 1) / DashAttackFps;
+            var so = new SerializedObject(data);
+            SerializedProperty r = so.FindProperty("runAttack");
+            r.FindPropertyRelative("label").stringValue = "달리기 공격";
+            r.FindPropertyRelative("clip").objectReferenceValue = clip;
+            r.FindPropertyRelative("windup").floatValue = 7f / DashAttackFps;
+            r.FindPropertyRelative("activeEnd").floatValue = 10f / DashAttackFps;
+            r.FindPropertyRelative("total").floatValue = total;
+            r.FindPropertyRelative("damageMultiplier").floatValue = 1.5f;
+            r.FindPropertyRelative("overrideReaction").boolValue = true;
+            r.FindPropertyRelative("nextState").enumValueIndex = (int)CombatState.Knockback;
+            r.FindPropertyRelative("mode").enumValueIndex = (int)KnockbackMode.Fixed;
+            r.FindPropertyRelative("pushDistance").floatValue = 2f;
+            r.FindPropertyRelative("airborneHeight").floatValue = 1f;
+            r.FindPropertyRelative("hitStunDuration").floatValue = 0.6f;
+            r.FindPropertyRelative("advanceSpeed").floatValue = 10f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(data);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"[PlayerArtBuilder] Player_DashAttack({DashAttackFrames}장) 을 굽고 Hero_Player.runAttack 에 물렸다.", clip);
+        }
+
         private const string ControllerPath = AnimFolder + "/PlayerAnimator.controller";
         private const string HeroDataPath = "Assets/Data/Resources/Party/Hero_Player.asset";
 
@@ -322,7 +374,7 @@ namespace Prototype.EditorTools
         /// 안 남는다 — 스프라이트 에디터가 실제로 쓰는 <see cref="ISpriteEditorDataProvider"/>로
         /// 가야 반영된다.
         /// </summary>
-        private static bool FixSpriteImport(string[] paths, float pixelsPerUnit, out string error)
+        private static bool FixSpriteImport(string[] paths, float pixelsPerUnit, out string error, float? footXPx = null)
         {
             error = null;
             int? canvasW = null, canvasH = null;
@@ -347,6 +399,25 @@ namespace Prototype.EditorTools
             {
                 var importer = AssetImporter.GetAtPath(path) as TextureImporter;
                 if (importer == null) { error = $"{path}: TextureImporter가 아니다"; return false; }
+
+                // 발 위치를 직접 준 낱장(달리기 공격)은 트림하지 않는다. 칼끝처럼 떨어진 조각이 있는
+                // 프레임은 자동 트림이 한 섬만 잡아 칼이 잘린다. 텍스처 메모리는 PNG 전체 크기로 잡히니
+                // 트림해도 이득이 없다 — 캔버스 전체를 한 장짜리 스프라이트로 두고 피벗만 준다.
+                if (footXPx.HasValue)
+                {
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    importer.maxTextureSize = 8192;
+                    importer.GetSourceTextureWidthAndHeight(out int fw, out _);
+                    var settings = new TextureImporterSettings();
+                    importer.ReadTextureSettings(settings);
+                    settings.spriteAlignment = (int)SpriteAlignment.Custom;
+                    settings.spriteMeshType = SpriteMeshType.FullRect;
+                    importer.SetTextureSettings(settings);
+                    importer.spritePivot = new Vector2(footXPx.Value / fw, 0f);
+                    importer.spritePixelsPerUnit = pixelsPerUnit;
+                    importer.SaveAndReimport();
+                    continue;
+                }
 
                 // 원본을 그대로 담을 만큼 올린다. 8192가 Unity가 허용하는 상한이다.
                 importer.GetSourceTextureWidthAndHeight(out int srcW, out int srcH);
@@ -374,9 +445,22 @@ namespace Prototype.EditorTools
                         if (rects[i].rect.width * rects[i].rect.height > rects[biggest].rect.width * rects[biggest].rect.height)
                             biggest = i;
 
+                    // 먼지 점은 버리되 큰 섬(칼끝처럼 떨어진 몸 일부)은 같이 감싼다.
+                    // 가장 큰 것만 남기면 휘두르는 프레임에서 칼이 잘려 나간다.
+                    SpriteRect merged = rects[biggest];
+                    Rect union = merged.rect;
+                    float bigArea = union.width * union.height;
+                    for (int i = 0; i < rects.Length; i++)
+                    {
+                        if (rects[i].rect.width * rects[i].rect.height < bigArea * 0.05f) continue;
+                        Rect q = rects[i].rect;
+                        union = Rect.MinMaxRect(Mathf.Min(union.xMin, q.xMin), Mathf.Min(union.yMin, q.yMin),
+                                                Mathf.Max(union.xMax, q.xMax), Mathf.Max(union.yMax, q.yMax));
+                    }
+                    merged.rect = union;
                     Debug.LogWarning($"[PlayerArtBuilder] {path}: 알파 섬이 {rects.Length}개 잡혔다 — " +
-                                      $"가장 큰 것만 쓴다. 원본 프레임을 확인해 볼 것.");
-                    rects = new[] { rects[biggest] };
+                                      "큰 섬은 합치고 먼지는 버린다.");
+                    rects = new[] { merged };
                 }
 
                 SpriteRect r = rects[0];
@@ -390,7 +474,7 @@ namespace Prototype.EditorTools
                 // 늘었다 줄었다 하는데, 기본 피벗(0.5 = "그 프레임 자체 폭의 중앙")은
                 // 매번 다른 지점을 가리켜 서 있는 채로 좌우로 미끄러진다. 세로와 같은 원리로
                 // 캔버스 가로 중앙(srcW/2)을 기준 삼는다 — 몸이 캔버스 한가운데 그려졌다고 본다.
-                float pivotX = (srcW / 2f - r.rect.x) / r.rect.width;
+                float pivotX = ((footXPx ?? srcW / 2f) - r.rect.x) / r.rect.width;
 
                 r.alignment = SpriteAlignment.Custom;
                 r.pivot = new Vector2(pivotX, pivotY);

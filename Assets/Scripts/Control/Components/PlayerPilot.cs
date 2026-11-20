@@ -176,6 +176,33 @@ namespace Prototype
             }
 
             body.Drive(command, direction);
+            body.WantsRun = UpdateRun(move.x);
+        }
+
+        // ── 달리기: 같은 좌우 방향키를 두 번 따닥 → 키를 쥐고 있는 동안 달린다 ──
+        private const float DoubleTapWindow = 0.25f;
+
+        private int prevDx;
+        private int lastTapDx;
+        private float lastTapTime = -1f;
+        private int runDx;
+
+        private bool UpdateRun(float x)
+        {
+            int dx = x > 0.5f ? 1 : x < -0.5f ? -1 : 0;
+
+            if (dx != prevDx && dx != 0)
+            {
+                float now = Time.unscaledTime;
+                if (dx == lastTapDx && now - lastTapTime <= DoubleTapWindow) runDx = dx;
+                lastTapDx = dx;
+                lastTapTime = now;
+            }
+
+            // 방향을 놓거나 반대로 틀면 달리기 끝.
+            if (dx != runDx) runDx = 0;
+            prevDx = dx;
+            return runDx != 0;
         }
     }
 }

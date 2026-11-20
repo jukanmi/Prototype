@@ -54,7 +54,11 @@ namespace Prototype
         {
             // 연타 단계는 base.Awake보다 먼저 꽂는다. BuildStates가 AttackState를 만들면서
             // 단계 수를 읽고, EntityAnimator가 그 위에 오버라이드를 씌운다.
-            if (data != null) ConfigureBasicCombo(data.basicComboStages);
+            if (data != null)
+            {
+                ConfigureBasicCombo(data.basicComboStages);
+                ConfigureRunAttack(in data.runAttack);
+            }
 
             base.Awake();
             ApplyData(data);

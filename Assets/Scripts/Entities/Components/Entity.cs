@@ -107,8 +107,48 @@ namespace Prototype
 
             HitData h = AttackProfile.Build(stats, stage);
             h.basicSwing = ++basicSwingSerial;
+
+            // 달리다 친 1타는 적을 날려 버린다. 모션 · 타이밍은 평타 그대로, 반응만 덮는다.
+            if (UsesRunStage(stage))
+            {
+                h = BasicComboRules.BuildStageHit(in h, in runStage);
+            }
+            else if (RunAttack && stage == 0 && !BasicIsRanged)
+            {
+                h.nextState = CombatState.Knockback;
+                h.mode = KnockbackMode.Fixed;
+                h.fixedDir = Vector3.forward;
+                h.pushDistance = RunAttackPush;
+                h.airborneHeight = RunAttackLift;
+                h.hitStunDuration = Mathf.Max(h.hitStunDuration, 0.6f);
+            }
+
             return h;
         }
+
+        /// <summary>달리는 중인가. <see cref="MoveState"/>가 매 틱 기록하고 나갈 때 지운다.</summary>
+        public bool IsRunning { get; set; }
+
+        private BasicAttackStage runStage;
+        private bool hasRunStage;
+
+        /// <summary>달리기 공격 전용 모션 · 타이밍 · 반응. clip이 비었으면 무시한다(<see cref="PlayerData.runAttack"/>).</summary>
+        public void ConfigureRunAttack(in BasicAttackStage stage)
+        {
+            runStage = stage;
+            hasRunStage = stage.clip != null && stage.total > 0f;
+        }
+
+        /// <summary>달리기 공격 1타가 도는 동안의 전진 속도. 아니면 0.</summary>
+        public float RunAdvanceSpeed => UsesRunStage(0) ? runStage.advanceSpeed : 0f;
+
+        private bool UsesRunStage(int stage) => hasRunStage && RunAttack && stage == 0 && !BasicIsRanged;
+
+        /// <summary>지금 도는 평타가 달리기 공격인가. 공격 상태가 끝나면 지워진다.</summary>
+        public bool RunAttack { get; set; }
+
+        private const float RunAttackPush = 2f;
+        private const float RunAttackLift = 1f;
 
         /// <summary>
         /// 평타 번호표. 전역으로 올린다 — 몸마다 따로 세면 두 동료의 번호가 겹친다.
@@ -126,11 +166,15 @@ namespace Prototype
 
         /// <summary>이 단계에 재생할 클립. 비워 뒀으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
         public AnimationClip GetBasicStageClip(int stage)
-            => AttackProfile != null ? AttackProfile.ClipFor(stage) : null;
+        {
+            if (UsesRunStage(stage)) return runStage.clip;
+            return AttackProfile != null ? AttackProfile.ClipFor(stage) : null;
+        }
 
         /// <summary>단계 타이밍. 0으로 비워 둔 값은 기본 평타 값으로 접어서 돌려준다.</summary>
         public BasicAttackTiming GetBasicStageTiming(int stage)
         {
+            if (UsesRunStage(stage)) return BasicComboRules.ResolveTiming(in runStage);
             if (AttackProfile != null) return AttackProfile.TimingFor(stage);
 
             BasicAttackStage none = default;
@@ -330,6 +374,9 @@ namespace Prototype
             MoveDirection = moveDirection;
         }
 
+        /// <summary>달리기 의도. 조종사가 더블탭을 읽어 채우고, 프레임마다 <see cref="ClearCommand"/>가 지운다.</summary>
+        public bool WantsRun { get; set; }
+
         /// <summary>명령만 지운다. <b>이동 방향은 남긴다</b> — 걷는 도중에 명령만 소비되는 경우가 있다.</summary>
         public void Consume() => Command = Command.None;
 
@@ -338,6 +385,7 @@ namespace Prototype
         {
             Command = Command.None;
             MoveDirection = Vector3.zero;
+            WantsRun = false;
         }
 
         /// <summary>
