@@ -113,7 +113,7 @@ package "Core/" as pkgCore {
     + Register(isOpen : Func<bool>)
     + IsOpen : bool
     + ConsumeCancel()
-    .. 여는 쪽(CardRewardSession · AssaultEditorUI · PauseMenu)이 등록 ..
+    .. 여는 쪽(DialogueWindow · AssaultEditorUI · PauseMenu)이 등록 ..
   }
   enum "Enums.cs" as Enums {
     CombatState

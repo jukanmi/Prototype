@@ -184,6 +184,23 @@ namespace Prototype.Tests
             controller.GameplaySuspended = false;
         }
 
+        [Test]
+        public void Menu_WhileSuspended_ReadsWithoutThrowing_AndIsIdle()
+        {
+            // 창이 떠 있는 동안(조작 잠금) 메뉴 커서 · 결정을 읽는다. 상호작용 키는 Gameplay 맵이
+            // 꺼진 채로 바인딩된 키를 직접 본다 — 꺼진 액션에서 키 목록을 못 얻으면 여기서 터진다.
+            controller.GameplaySuspended = true;
+            controller.BulletTimeMapEnabled = true;
+            controller.ResyncMenu();
+
+            Assert.That(controller.MenuStep, Is.EqualTo(Vector2Int.zero));
+            Assert.That(controller.InteractKeyPressed, Is.False);
+            Assert.That(controller.MenuConfirmPressed, Is.False);
+
+            controller.BulletTimeMapEnabled = false;
+            controller.GameplaySuspended = false;
+        }
+
 
     }
 }

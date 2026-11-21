@@ -228,7 +228,7 @@ namespace Prototype
 
         /// <summary>
         /// 한 칸을 지목해 빼낸다. 오른쪽 칸들이 왼쪽으로 당겨지므로 <b>인덱스가 밀린다</b>.
-        /// 레벨업으로 받은 카드를 손패에 바로 꽂을 때, 밀려날 칸을 빼내는 데 쓴다.
+        /// 보상으로 받은 카드를 손패에 바로 꽂을 때, 밀려날 칸을 빼내는 데 쓴다.
         /// </summary>
         public ComboSlot RemoveAt(int idx)
         {

@@ -187,6 +187,24 @@ namespace Prototype
             return enemy;
         }
 
+        /// <summary>
+        /// 데이터 하나를 그 자리에 바로 세운다 — 화면 밖 비행 · 벽 · 땅속 연출 없이.
+        /// 비전투 칸에서 NPC가 적으로 돌아서는 자리(<c>NodeSceneController</c>)가 쓴다.
+        /// 선 뒤 <paramref name="holdSeconds"/> 동안 서 있다가 AI가 깨어난다.
+        /// </summary>
+        public Enemy SpawnAt(EnemyData data, Vector3 point, float holdSeconds)
+        {
+            if (data == null)
+            {
+                Debug.LogError($"[EnemySpawnService] {name}: 세울 EnemyData가 없다.", this);
+                return null;
+            }
+
+            Enemy enemy = Create(data, false, point);
+            if (enemy != null) Enter(enemy, point, holdSeconds);
+            return enemy;
+        }
+
         // ── 공통 ────────────────────────────────────────
 
         private Enemy Create(EnemyRole role, bool elite, Vector3 spawnPoint)
@@ -201,6 +219,11 @@ namespace Prototype
                 return null;
             }
 
+            return Create(data, elite, spawnPoint);
+        }
+
+        private Enemy Create(EnemyData data, bool elite, Vector3 spawnPoint)
+        {
             if (data.prefab == null)
             {
                 Debug.LogError($"[EnemySpawnService] {name}: EnemyData '{data.name}'에 prefab이 없다. " +

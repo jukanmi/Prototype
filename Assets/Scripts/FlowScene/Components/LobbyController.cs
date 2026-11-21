@@ -1,13 +1,14 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Prototype
 {
     /// <summary>
     /// 마을(Lobby 씬)의 흐름. 런과 런 사이에 머무는 곳이다 — 주인공이 걸어다니고,
-    /// <see cref="LobbyInteractable"/> 근처에서 상호작용 키를 누르면 그 기능이 열린다.
+    /// 마을 오브젝트(<see cref="Interactable"/>)가 인스펙터에서 이 컴포넌트의 공개 메서드
+    /// (<see cref="Depart"/> · <see cref="OpenParty"/> · <see cref="OpenSettings"/> · <see cref="OpenAltar"/> ·
+    /// <see cref="OpenRecords"/>)를 부른다. 어느 오브젝트가 무엇을 여는지는 씬이 정한다.
     ///
     /// 씬은 <c>Stage_Training</c>을 복제해 몸 · 카메라 · 허수아비를 물려받았고
     /// <see cref="BattleSceneController"/>만 뺐다 — 승패 판정이 없는 방이다.
@@ -26,15 +27,12 @@ namespace Prototype
         private PauseMenu pause;
         private GameObject window;
 
-        private Text prompt;
         private Text currency;
         private Text notice;
         private Coroutine noticeRoutine;
 
-        private InputAction interactAction;
         private bool leaving;
         private bool suspendedByMe;
-        private bool wasSuspended;
 
         private string SceneName => gameObject.scene.name;
 
@@ -81,59 +79,26 @@ namespace Prototype
         {
             if (leaving) return;
 
-            PlayerInputController input = PlayerInputController.Instance;
-            MetaProgression meta = MetaProgression.Current;
-            currency.text = $"기억 조각 {meta.Currency}";
+            currency.text = $"기억 조각 {MetaProgression.Current.Currency}";
 
             bool ownOpen = window != null || party.IsOpen;
             SetSuspended(ownOpen);
 
-            if (ownOpen)
+            // 창이 떠 있으면 ESC는 창을 닫는다. 창이 없을 때 ESC로 일시정지를 여는 것은 PauseMenu 가 직접 한다.
+            PlayerInputController input = PlayerInputController.Instance;
+            if (ownOpen && input != null && input.CancelPressed && !GameplayModal.CancelConsumedThisFrame)
             {
-                wasSuspended = true;
-                prompt.text = "";
-                if (input != null && input.CancelPressed && !GameplayModal.CancelConsumedThisFrame)
-                {
-                    CloseWindows();
-                    GameplayModal.ConsumeCancel();
-                }
-                return;
-            }
-
-            // 남의 창(일시정지 · 조작키 · 레벨업)이 떠 있거나 방금 닫혔다 — 안내도 상호작용도 쉰다.
-            // ESC로 일시정지를 여는 것은 PauseMenu 가 직접 한다.
-            bool suspended = input == null || input.GameplaySuspended;
-            bool blocked = suspended || wasSuspended || GameplayModal.IsOpen;
-            wasSuspended = suspended;
-
-            if (blocked) { prompt.text = ""; return; }
-
-            Entity body = BattleRegistry.Controlled;
-            LobbyInteractable near = body != null ? LobbyInteractable.Nearest(body.transform.position) : null;
-            prompt.text = near != null ? $"{KeyName()}  {near.Label}" : "";
-
-            if (near != null && input.InteractPressed)
-                Activate(near.Station);
-        }
-
-        // ── 오브젝트 ────────────────────────────────────
-
-        private void Activate(LobbyStation station)
-        {
-            switch (station)
-            {
-                case LobbyStation.Depart:   Depart(); break;
-                case LobbyStation.Party:    party.Show(); break;
-                case LobbyStation.Settings: pause.Open(); break;
-                case LobbyStation.Altar:    OpenAltar(); break;
-                case LobbyStation.Records:  OpenRecords(); break;
+                CloseWindows();
+                GameplayModal.ConsumeCancel();
             }
         }
+
+        // ── 마을 오브젝트가 부르는 것 (Interactable.onInteract) ──
 
         /// <summary>
         /// 미궁 입구. MainMenu 의 옛 [시작]을 그대로 옮겼다 — 파티 검사 → 지도 굴림 → 지도 씬.
         /// </summary>
-        private void Depart()
+        public void Depart()
         {
             GameManager gm = GameManager.Instance;
             if (gm == null) { ShowNotice("Boot 씬에서 시작해야 출발할 수 있다"); return; }
@@ -153,6 +118,12 @@ namespace Prototype
             Leave(SceneNames.RunMap);
         }
 
+        /// <summary>용병 게시판 — 편성 · 고용.</summary>
+        public void OpenParty() => party.Show();
+
+        /// <summary>마법사 — 설정. ESC 일시정지와 같은 창이다.</summary>
+        public void OpenSettings() => pause.Open();
+
         private void ToTitle()
         {
             if (SceneLoader.Instance == null || SceneLoader.Instance.IsBusy) return;
@@ -166,7 +137,6 @@ namespace Prototype
         private void Leave(string scene)
         {
             leaving = true;
-            prompt.text = "";
 
             BattleSceneController.ClearSceneStatics();
             SceneLoader.Instance.SwapTo(scene, SceneName, () => AudioManager.Instance?.PlayMenuBgm());
@@ -190,7 +160,8 @@ namespace Prototype
 
         // ── 유산 제단 ───────────────────────────────────
 
-        private void OpenAltar()
+        /// <summary>유산 제단 — 기억 조각으로 영구 강화.</summary>
+        public void OpenAltar()
         {
             RectTransform panel = OpenWindow("유산 제단", new Vector2(760f, 560f));
             MetaProgression meta = MetaProgression.Current;
@@ -237,7 +208,8 @@ namespace Prototype
 
         // ── 기록판 ──────────────────────────────────────
 
-        private void OpenRecords()
+        /// <summary>기록판 — 런 수 · 최고 층.</summary>
+        public void OpenRecords()
         {
             RectTransform panel = OpenWindow("기록판", new Vector2(560f, 420f));
             MetaProgression meta = MetaProgression.Current;
@@ -273,16 +245,12 @@ namespace Prototype
             return t;
         }
 
-        /// <summary>키 안내 · 보유 재화 · 알림. 클릭을 안 받는 HUD다.</summary>
+        /// <summary>보유 재화 · 알림. 클릭을 안 받는 HUD다. 키 안내는 각 오브젝트가 머리 위에 띄운다.</summary>
         private void BuildHud()
         {
             var hud = new GameObject("LobbyHud", typeof(RectTransform));
             hud.transform.SetParent(transform, false);
             UiKit.BuildCanvas(hud, UiLayer.PartyHealth, match: 1f, raycaster: false);
-
-            prompt = UiKit.NewText(hud.transform, "Prompt", 30, Color.white, FontStyle.Bold);
-            prompt.alignment = TextAnchor.MiddleCenter;
-            UiKit.Place(prompt, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(800f, 50f));
 
             currency = UiKit.NewText(hud.transform, "Currency", 26, HudColor, FontStyle.Bold);
             currency.alignment = TextAnchor.MiddleRight;
@@ -306,21 +274,6 @@ namespace Prototype
             yield return new WaitForSecondsRealtime(NoticeSeconds);
             notice.text = "";
             noticeRoutine = null;
-        }
-
-        /// <summary>지금 상호작용 키 이름. 리바인드로 바뀔 수 있어 매번 묻는다.</summary>
-        private string KeyName()
-        {
-            if (interactAction == null)
-            {
-                InputActionAsset actions = PlayerInputController.Instance != null ? PlayerInputController.Instance.Actions : null;
-                interactAction = InputBindingUtility.FindAction(actions, InputActionNames.Gameplay.Map,
-                                                                InputActionNames.Gameplay.Interact);
-                if (interactAction == null) return "F";
-            }
-
-            int index = InputBindingUtility.FindBindingIndex(interactAction, null);
-            return index >= 0 ? $"[{InputDisplayNames.Key(interactAction, index)}]" : "[F]";
         }
     }
 }

@@ -26,6 +26,12 @@ namespace Prototype
         private bool isExiting;
         private bool isRestarting;
 
+        /// <summary>
+        /// 이긴 뒤 출구가 열렸는가. 이긴 순간 출구선 너머에 서 있었으면 한 번 안쪽으로 들어와야 열린다 —
+        /// 바닥에 떨어진 보상(<see cref="ClearLoot"/>)을 보기도 전에 칸이 넘어가지 않게.
+        /// </summary>
+        private bool exitArmed;
+
         /// <summary>승패 기능이 도는가. GameManager 가 있어야 켜진다.</summary>
         private bool flowEnabled;
 
@@ -114,8 +120,8 @@ namespace Prototype
 
         private void TickOutcome()
         {
-            // 전면 UI(레벨업 · 덱 편집)가 떠 있는 동안은 판정을 멈춘다. 마지막 라운드를
-            // 정리하는 중이라 그대로 두면 카드를 고르는 위로 클리어 화면이 겹쳐 뜬다.
+            // 전면 UI(일시정지 · 총공격 편집)가 떠 있는 동안은 판정을 멈춘다 —
+            // 그 위로 클리어 화면이 겹쳐 뜨거나, 창을 보는 사이 칸이 넘어가면 안 된다.
             if (GameplayModal.IsOpen) return;
 
             if (outcome == StageOutcome.Undecided)
@@ -125,8 +131,16 @@ namespace Prototype
             }
 
             // 이긴 뒤에는 출구만 본다. 진 뒤에는 버튼이 다음 행동을 정한다.
-            if (outcome == StageOutcome.Victory && GameManager.Instance.HasNextNode && ExitReached())
-                ReturnToMap();
+            if (outcome != StageOutcome.Victory || !GameManager.Instance.HasNextNode) return;
+
+            bool atExit = ExitReached();
+            if (!exitArmed)
+            {
+                exitArmed = !atExit;
+                return;
+            }
+
+            if (atExit) ReturnToMap();
         }
 
         private void Judge()
@@ -214,56 +228,56 @@ namespace Prototype
 
             GameManager gm = GameManager.Instance;
 
-            // 판정이 난 순간 한 번 준다. 이 함수는 결과가 정해질 때 한 번만 불리고, 진 판에서
-            // 재시작해 이기면 그때 처음 받는다 — 같은 스테이지로 두 번 받는 경로가 없다.
-            // 층이 깊을수록 많이 받고, 정예 칸이면 배율이 붙는다. 같은 씬이라도 뒤층 · 정예에서 깨면 더 받는다.
             // 들어가 있는 칸이 없으면(지도를 안 거친 씬 — BeginStage가 이미 경고했다) 일반 전투로 친다.
             MapNodeKind kind = gm.CurrentNode != null ? gm.CurrentNode.Kind : MapNodeKind.Battle;
-            int gold = GoldRules.StageClearReward(gm.FloorNumber, kind);
-            RunProgression.Current.AddGold(gold);
 
-            Debug.Log($"[Battle] {gm.FloorNumber}층 {kind} 클리어 — 골드 +{gold} (누적 {RunProgression.Current.Gold})");
-
-            string rewards = GrantClearRewards(kind);
+            Debug.Log($"[Battle] {gm.FloorNumber}층 {kind} 클리어");
 
             if (gm.HasNextNode)
             {
-                // 안내만 띄우고 조작은 막지 않는다. 걸어가야 넘어가는 방식이다.
-                // 배율은 보여 준다 — 정예를 고른 값을 받았다는 것이 화면에서 확인돼야 다음에도 고른다.
-                // 안내 칸은 폭 260이라 짧게 쓴다. ×는 기본 폰트에 글리프가 있다는 보장이 없어 x로 쓴다
-                // (CardOfferView의 "데미지 x1.5"와 같은 이유).
-                int percent = GoldRules.ClearRewardPercent(kind);
-                string bonus = percent != 100 ? $" (정예 x{percent / 100f:0.##})" : "";
-                resultUI?.ShowExitArrow($"골드 +{gold}{bonus}{rewards} · 지도로");
+                DropLoot(gm.FloorNumber, kind);
+
+                // 안내만 띄우고 조작은 막지 않는다. 걸어가야 넘어가는 방식이다. 안내 칸은 폭 260이라 짧게 쓴다.
+                // 정예는 배율 · 유물을 보여 준다 — 정예를 고른 값을 받았다는 것이 화면에서 확인돼야 다음에도 고른다.
+                // ×는 기본 폰트에 글리프가 있다는 보장이 없어 x로 쓴다(CardOfferView의 "데미지 x1.5"와 같은 이유).
+                bool elite = kind == MapNodeKind.Elite;
+                string relic = ClearRewardRules.GrantsRelic(kind) ? " · 유물 1개" : "";
+                string label = elite
+                    ? $"금화 x{GoldRules.ClearRewardPercent(kind) / 100f:0.##}{relic} · 지도로"
+                    : "보상을 줍고 지도로";
+
+                resultUI?.ShowExitArrow(label, elite ? "정예 클리어" : "스테이지 클리어");
                 return;
             }
 
+            // 마지막 칸(보스)은 런이 끝난다 — 주워 갈 다음이 없으니 보상도 안 떨어진다.
             restartUI?.SetVisible(false);
             resultUI?.ShowAllClear(ExitToLobby);
         }
 
         /// <summary>
-        /// 클리어 보상 물건을 준다. 카드는 <b>고르는 창</b>(<see cref="CardRewardSession"/>)을 열고,
-        /// 유물은 Mock이라 로그와 안내 문구뿐이다. 판정은 결과가 정해질 때 한 번만 부르므로
-        /// 창도 한 칸에 한 번만 뜬다. 안내 문구 조각을 돌려준다.
+        /// 클리어 보상을 바닥에 놓는다 — 금화 하나(그 칸의 클리어 골드)와 상자 하나(<see cref="ClearLoot"/>).
+        /// 적을 잡을 때는 아무것도 안 들어온다. 판정은 결과가 정해질 때 한 번만 부르므로 한 칸에 한 번만 떨어지고,
+        /// 진 판에서 재시작해 이기면 그때 처음 떨어진다.
+        ///
+        /// 층이 깊을수록 금화가 크고, 정예 칸이면 배율이 붙고 상자가 빨갛다. 유물은 Mock이라 로그와 안내 문구뿐이다.
         /// </summary>
-        private static string GrantClearRewards(MapNodeKind kind)
+        private void DropLoot(int floor, MapNodeKind kind)
         {
-            string text = "";
+            int gold = GoldRules.StageClearReward(floor, kind);
 
-            if (ClearRewardRules.GrantsCard(kind))
-            {
-                CardRewardSession.RequestOpen();
-                text += " · 카드 1장";
-            }
+            StageRoom room = StageRoom.Find();
+            RoomRect rect = room != null ? room.Room : RoomRect.Default;
+
+            Entity body = BattleRegistry.Controlled;
+            Vector3 at = body != null
+                ? BeltScroll.ToGround(body.transform.position)
+                : new Vector3(rect.CenterX, 0f, rect.CenterZ);
+
+            ClearLoot.Drop(at, rect, exitLine, gold, ClearRewardRules.GrantsCard(kind), kind == MapNodeKind.Elite);
 
             if (ClearRewardRules.GrantsRelic(kind))
-            {
-                text += " · 유물 1개";
                 Debug.Log("[Battle] 클리어 보상 유물 1개 (Mock — 효과 없음)");
-            }
-
-            return text;
         }
 
         private void HandleDefeat()

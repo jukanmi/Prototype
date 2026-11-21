@@ -77,8 +77,10 @@ namespace Prototype
         /// 오른쪽 벽으로 가라는 안내. <b>화면을 막지 않는다</b> —
         /// 여기서 Dim 을 깔면 걸어갈 수가 없다.
         /// </summary>
-        public void ShowExitArrow(string nextStageLabel)
+        public void ShowExitArrow(string nextStageLabel, string title = "스테이지 클리어")
         {
+            HideExitArrow();   // 다시 띄우면 둘이 겹친다
+
             var root = new GameObject("ExitGuide", typeof(RectTransform));
             root.transform.SetParent(transform, false);
 
@@ -90,8 +92,11 @@ namespace Prototype
 
             BuildArrow(arrowRoot);
 
-            Text title = UiKit.CreateText(arrowRoot, "Title", "스테이지 클리어", 30, VictoryColor);
-            UiKit.Place(title, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), new Vector2(260f, 40f));
+            if (!string.IsNullOrEmpty(title))
+            {
+                Text titleText = UiKit.CreateText(arrowRoot, "Title", title, 30, VictoryColor);
+                UiKit.Place(titleText, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), new Vector2(260f, 40f));
+            }
 
             Text guide = UiKit.CreateText(arrowRoot, "Guide", "오른쪽 벽으로 이동", 22, Color.white);
             UiKit.Place(guide, new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(260f, 32f));
@@ -101,6 +106,13 @@ namespace Prototype
                 Text next = UiKit.CreateText(arrowRoot, "Next", nextStageLabel, 17, NoteColor);
                 UiKit.Place(next, new Vector2(0.5f, 0.5f), new Vector2(0f, -102f), new Vector2(260f, 28f));
             }
+        }
+
+        /// <summary>출구 안내를 걷는다. 비전투 칸에서 싸움이 벌어지면 이길 때까지 출구가 닫힌다.</summary>
+        public void HideExitArrow()
+        {
+            if (arrowRoot != null) Destroy(arrowRoot.gameObject);
+            arrowRoot = null;
         }
 
         /// <summary>

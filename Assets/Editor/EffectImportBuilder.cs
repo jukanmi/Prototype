@@ -105,6 +105,11 @@ namespace Prototype.EditorTools
             new ClipSpec { clipName = "VFX_WZ_융기",         sheet = "Part 11/529", row = RowCyan, fps = 24f, fadeOut = 0.25f, sortingOffset = 50 },
             new ClipSpec { clipName = "VFX_WZ_중력장",       sheet = "Part 4/186",  row = RowCyan, fps = 20f, fadeOut = 0.4f,  sortingOffset = 50 },
             new ClipSpec { clipName = "VFX_WZ_충격파",       sheet = "Part 10/475", row = RowCyan, fps = 26f, fadeOut = 0.3f,  sortingOffset = 50 },
+
+            // ── 비전투 칸 모닥불 (LoopingSprite) ────────────────────────────
+            // 제자리에서 끝없이 돈다. 불꽃 기둥 + 바닥 불을 겹쳐 모닥불로 보이게 한다.
+            new ClipSpec { clipName = "VFX_Campfire",      sheet = "Part 10/464", row = RowOrange, fps = 10f, sortingOffset = 0 },
+            new ClipSpec { clipName = "VFX_Campfire_Base", sheet = "Part 10/467", row = RowOrange, fps = 10f, sortingOffset = 0 },
         };
 
         /// <summary>스킬 에셋 이름 → (타격 클립, 시전 클립).</summary>

@@ -305,16 +305,6 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void AddExp_Accumulates()
-        {
-            gm.StartNewRun();
-            gm.AddExp(30);
-            gm.AddExp(12);
-
-            Assert.That(gm.TotalExp, Is.EqualTo(42));
-        }
-
-        [Test]
         public void SelectLoadout_DuringRun_IsIgnored()
         {
             var picked = ScriptableObject.CreateInstance<PartyLoadout>();

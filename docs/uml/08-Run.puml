@@ -1,5 +1,5 @@
 @startuml 08-Run
-' 5층 Run — 런 데이터: 경험치 · 골드 · 덱 · 파티 상태 · 지도 · 카드 제안 규칙.
+' 5층 Run — 런 데이터: 골드 · 덱 · 파티 상태 · 지도 · 카드 제안 규칙.
 ' 런의 주인(GameManager · 9 App)은 IRunHost로만 보인다.
 title 5층 Run (Progression) — 클래스 다이어그램
 
@@ -44,15 +44,6 @@ package "5 Run (Progression)" {
   }
 
   package "규칙" as PRules {
-    class ExpRules <<static>> {
-      + TierCount · BaseCost · LevelGrowth
-      + CostOf(level, tier) : int
-    }
-    class ExpRewards <<static>> {
-      + Award(enemy)
-      + Settle()
-      .. Enemy.Defeated 구독 ..
-    }
     class GoldRules <<static>> {
       + CardPrice · CardPriceNow()
       + StageClearReward(floor, kind) : int
@@ -137,8 +128,6 @@ RunProgression ..> RunHost : Current
 RunHost o--> IRunHost
 IRunHost ..> DeckStartupMode
 IRunHost ..> "PartyLoadout (4.5)"
-ExpRewards ..> RunProgression : BankExp · SettleExp
-ExpRewards ..> "Enemy (3)" : Defeated 구독
 CardOfferRules ..> CardOffer
 CardGrantRules ..> CardOffer
 CardOfferView ..> CardOffer
