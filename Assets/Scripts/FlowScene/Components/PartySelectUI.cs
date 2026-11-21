@@ -9,7 +9,7 @@ namespace Prototype
     /// 잠긴 동료는 눌러서 기억 조각으로 고용한다(<see cref="MetaProgression.TryHire"/>).
     /// <see cref="Show"/>로 열고 [닫기]로 닫는다 — 처음 열 때 짓는다.
     ///
-    /// <see cref="BattleRestartUI"/> · <see cref="StageResultUI"/>와 같이 캔버스를 코드로 짓는다 —
+    /// <see cref="PauseMenu"/> · <see cref="StageResultUI"/>와 같이 캔버스를 코드로 짓는다 —
     /// 씬 · 프리팹 배선이 필요 없고, MainMenu 씬을 다시 굽지 않아도 붙는다.
     ///
     /// <b>고른 순서가 곧 슬롯 순서다.</b> 그래서 슬롯을 누르면
@@ -32,15 +32,15 @@ namespace Prototype
         private const float SlotSize = 88f;
         private const float RowHeight = 46f;
 
-        private static readonly Color PanelColor  = new Color(0.10f, 0.10f, 0.12f, 0.94f);
-        private static readonly Color SlotEmpty   = new Color(0.16f, 0.17f, 0.20f);
-        private static readonly Color RowPlain    = new Color(0.19f, 0.20f, 0.24f);
-        private static readonly Color RowPicked   = new Color(0.24f, 0.48f, 0.72f);
-        private static readonly Color RowBlocked  = new Color(0.15f, 0.15f, 0.17f);
-        private static readonly Color TitleColor  = new Color(0.88f, 0.90f, 0.94f);
-        private static readonly Color NoteColor   = new Color(0.66f, 0.68f, 0.72f);
-        private static readonly Color WarnColor   = new Color(0.90f, 0.68f, 0.32f);
-        private static readonly Color DimText     = new Color(0.45f, 0.46f, 0.50f);
+        private static readonly Color PanelColor  = UiTheme.Ink.WithAlpha(0.97f);
+        private static readonly Color SlotEmpty   = UiTheme.InkDeep;
+        private static readonly Color RowPlain    = UiTheme.Raised;
+        private static readonly Color RowPicked   = UiTheme.Focus.Shade(0.4f);
+        private static readonly Color RowBlocked  = UiTheme.InkDeep;
+        private static readonly Color TitleColor  = UiTheme.Gold;
+        private static readonly Color NoteColor   = UiTheme.TextSub;
+        private static readonly Color WarnColor   = UiTheme.Hp;
+        private static readonly Color DimText     = UiTheme.TextOff;
 
         /// <summary>지금 고른 동료. <b>구멍이 없다</b> — 순서가 곧 슬롯 순서다.</summary>
         private readonly List<PartyMemberData> picked = new List<PartyMemberData>(PartyLoadout.MaxMembers);
@@ -156,7 +156,9 @@ namespace Prototype
             UiKit.BuildCanvas(gameObject, UiLayer.PartySelect);
 
             // 화면 오른쪽에 세로로 붙인다. 메인화면 버튼은 가운데라 겹치지 않는다.
-            Image panel = UiKit.NewImage(transform, "Panel", PanelColor, raycast: true);
+            // 자리는 옆판이지만 재질은 공용 창(UiKit.Modal)과 같다 — 테두리 판 · 금색 제목 · 열림 애니메이션.
+            Image panel = UiKit.FramedPlate(transform, "Panel", PanelColor, raycast: true);
+            panel.gameObject.AddComponent<UiOpenAnim>();
             RectTransform p = panel.rectTransform;
             p.anchorMin = new Vector2(1f, 0f);
             p.anchorMax = new Vector2(1f, 1f);
@@ -172,8 +174,9 @@ namespace Prototype
             title.text = "파티 편성";
             title.alignment = TextAnchor.MiddleLeft;
 
-            Button close = UiKit.CreateButton(p, "Btn_Close", "닫기", RowPlain, new Vector2(80f, 32f), 16);
-            UiKit.Place(close, new Vector2(1f, 1f), new Vector2(-Pad, -Pad), new Vector2(80f, 32f));
+            var closeSize = new Vector2(88f, UiTheme.ButtonHeight.Small - 4f);
+            Button close = UiKit.NewButton(p, "Btn_Close", "닫기", ButtonKind.Ghost, closeSize);
+            UiKit.Place(close, new Vector2(1f, 1f), new Vector2(-Pad, -Pad), closeSize);
             close.onClick.AddListener(Hide);
 
             Text hint = UiKit.NewText(p, "Hint", 14, DimText, FontStyle.Normal);
@@ -237,7 +240,7 @@ namespace Prototype
                 r.anchoredPosition = new Vector2(i * (w + Gap), 0f);
                 r.sizeDelta = new Vector2(w, RowHeight);
 
-                Text label = UiKit.NewText(r, "Label", 17, Color.white, FontStyle.Normal);
+                Text label = UiKit.NewText(r, "Label", 17, UiTheme.TextMain, FontStyle.Normal);
                 UiKit.Stretch(label.rectTransform, 6f);
                 label.alignment = TextAnchor.MiddleCenter;
                 label.text = h.Label;
@@ -275,7 +278,7 @@ namespace Prototype
                 order.rectTransform.sizeDelta = new Vector2(0f, 16f);
                 order.text = (i + 1).ToString();
 
-                Text name = UiKit.NewText(r, "Name", 17, Color.white, FontStyle.Bold);
+                Text name = UiKit.NewText(r, "Name", 17, UiTheme.TextMain, FontStyle.Bold);
                 UiKit.Stretch(name.rectTransform, 4f);
                 name.alignment = TextAnchor.MiddleCenter;
 
@@ -299,7 +302,7 @@ namespace Prototype
         /// </summary>
         private void BuildRoster(RectTransform panel, IReadOnlyList<PartyMemberData> roster, float top)
         {
-            Image viewport = UiKit.NewImage(panel, "Viewport", new Color(0f, 0f, 0f, 0.25f), raycast: true);
+            Image viewport = UiKit.NewImage(panel, "Viewport", UiTheme.InkDeep.WithAlpha(0.5f), raycast: true);
             RectTransform v = viewport.rectTransform;
             v.anchorMin = new Vector2(0f, 0f);
             v.anchorMax = new Vector2(1f, 1f);
@@ -348,7 +351,7 @@ namespace Prototype
                 b.sizeDelta = new Vector2(6f, 0f);
                 b.anchoredPosition = Vector2.zero;
 
-                Text mark = UiKit.NewText(r, "Mark", 18, Color.white, FontStyle.Bold);
+                Text mark = UiKit.NewText(r, "Mark", 18, UiTheme.TextMain, FontStyle.Bold);
                 mark.rectTransform.anchorMin = new Vector2(0f, 0f);
                 mark.rectTransform.anchorMax = new Vector2(0f, 1f);
                 mark.rectTransform.pivot = new Vector2(0f, 0.5f);
@@ -356,7 +359,7 @@ namespace Prototype
                 mark.rectTransform.sizeDelta = new Vector2(26f, 0f);
                 mark.alignment = TextAnchor.MiddleLeft;
 
-                Text label = UiKit.NewText(r, "Label", 18, Color.white, FontStyle.Normal);
+                Text label = UiKit.NewText(r, "Label", 18, UiTheme.TextMain, FontStyle.Normal);
                 UiKit.Stretch(label.rectTransform, 10f);
                 label.rectTransform.offsetMin = new Vector2(44f, 0f);
                 label.alignment = TextAnchor.MiddleLeft;
@@ -448,7 +451,7 @@ namespace Prototype
                 bg.color = m != null ? SkillCutinUI.RoleColor(m.role) : SlotEmpty;
                 name.text = m != null ? m.Label : "";
                 role.text = m != null ? RoleNames.Of(m.role) : "비어 있음";
-                role.color = m != null ? new Color(1f, 1f, 1f, 0.75f) : DimText;
+                role.color = m != null ? UiTheme.TextSub : DimText;
             }
 
             bool full = picked.Count >= PartyLoadout.MaxMembers;

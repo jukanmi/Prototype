@@ -43,11 +43,11 @@ namespace Prototype
 
         private InputAction interact;
 
-        private static readonly Color BackdropColor = new Color(0.05f, 0.06f, 0.08f, 1f);
-        private static readonly Color FocusColor = new Color(1f, 0.86f, 0.45f);
-        private static readonly Color HeaderColor = new Color(1f, 0.86f, 0.45f);
-        private static readonly Color InfoColor = new Color(0.85f, 0.87f, 0.90f);
-        private static readonly Color FloorLabelColor = new Color(0.55f, 0.58f, 0.62f);
+        private static readonly Color BackdropColor = UiTheme.Ink.WithAlpha(1f);
+        private static readonly Color FocusColor = UiTheme.Focus;
+        private static readonly Color HeaderColor = UiTheme.Gold;
+        private static readonly Color InfoColor = UiTheme.TextMain;
+        private static readonly Color FloorLabelColor = UiTheme.TextSub;
 
         private const float EdgeThickness = 6f;
         private const float FocusPad = 8f;
@@ -75,6 +75,9 @@ namespace Prototype
             UiKit.EnsureEventSystem();
             BuildFrame();
             SetUpInteractKey();
+
+            // 런 바 — 골드 · 층 · 덱은 이 띠가 보인다. 지도 머리글은 미리보기 표시만 남는다.
+            RunBarUI.Create(this, RunBarUI.Mode.Overlay);
 
             GameManager gm = GameManager.Instance;
 
@@ -180,10 +183,11 @@ namespace Prototype
             UiKit.Stretch(backdrop.rectTransform);
             frame = backdrop.rectTransform;
 
-            header = UiKit.NewText(frame, "Header", 34, HeaderColor, FontStyle.Bold);
-            UiKit.Place(header, new Vector2(0.5f, 1f), new Vector2(0f, -56f), new Vector2(1200f, 50f));
+            // 런 바(RunBarUI.Height) 밑으로 내린다.
+            header = UiKit.NewText(frame, "Header", UiTheme.Size.Heading, HeaderColor, FontStyle.Bold);
+            UiKit.Place(header, new Vector2(0.5f, 1f), new Vector2(0f, -(RunBarUI.Height + 36f)), new Vector2(1200f, 44f));
 
-            info = UiKit.NewText(frame, "Info", 26, InfoColor, FontStyle.Normal);
+            info = UiKit.NewText(frame, "Info", UiTheme.Size.Heading, InfoColor, FontStyle.Normal);
             UiKit.Place(info, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(1500f, 44f));
         }
 
@@ -251,10 +255,8 @@ namespace Prototype
 
         private void DrawHeader(RunMap map)
         {
-            string gold = $"골드 {RunProgression.Current.Gold}";
-            string tag = preview ? $"   (미리보기 · 시드 {map.Seed})" : "";
-
-            header.text = $"{gold}{tag}";
+            // 골드는 런 바가 보인다. 여기는 미리보기일 때만 쓴다.
+            header.text = preview ? $"미리보기 · 시드 {map.Seed}" : "";
         }
 
 
@@ -288,13 +290,18 @@ namespace Prototype
             Sprite icon = IconOf(node.Kind);
             string sub = node.HasScene && icon == null ? $"\n<size=15>{node.Scene}</size>" : "";
             Button b = UiKit.CreateButton(mapRoot, $"Node_{node.Id}", RunMapViewRules.KindLabel(node.Kind) + sub,
-                                          NodeColor(node.Kind, state), RunMapLayout.NodeSize, 28);
+                                          NodeColor(node.Kind, state), RunMapLayout.NodeSize, UiTheme.Size.Heading);
             UiKit.Place(b, new Vector2(0.5f, 0.5f), RunMapLayout.PositionOf(map, node), RunMapLayout.NodeSize);
+
+            // 테두리가 상태를 말한다 — 갈 수 있는 칸은 청록, 지나온 칸은 금(기획서 5.4).
+            UiFocusRim rim = b.GetComponent<UiFocusRim>();
+            if (rim != null) rim.Rest = RimColor(state);
+            UiKit.AddRim(b.GetComponent<Image>(), RimColor(state));
 
             // 색은 상태가 이미 정했다. 버튼 틴트가 한 번 더 어둡게 하면 잠긴 칸과 먼 칸이 구분이 안 된다.
             ColorBlock colors = b.colors;
             colors.disabledColor = Color.white;
-            colors.highlightedColor = new Color(1f, 1f, 1f, 1f);
+            colors.highlightedColor = Color.white;
             colors.selectedColor = Color.white;
             b.colors = colors;
 
@@ -302,7 +309,7 @@ namespace Prototype
             if (label != null)
             {
                 label.supportRichText = true;
-                label.color = state == MapNodeState.Closed ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
+                label.color = state == MapNodeState.Closed ? UiTheme.TextOff : UiTheme.TextMain;
 
                 if (icon != null)
                 {
@@ -311,9 +318,9 @@ namespace Prototype
                     labelRect.anchorMin = Vector2.zero;
                     labelRect.anchorMax = new Vector2(1f, 0.3f);
                     labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-                    label.fontSize = 22;
+                    label.fontSize = UiTheme.Size.Body;
 
-                    Color tint = state == MapNodeState.Closed ? new Color(1f, 1f, 1f, 0.35f) : Color.white;
+                    Color tint = state == MapNodeState.Closed ? Color.white.WithAlpha(0.35f) : Color.white;
                     Image img = UiKit.NewImage(b.transform, "Icon", tint);
                     img.sprite = icon;
                     img.preserveAspect = true;
@@ -363,9 +370,10 @@ namespace Prototype
         private void DrawCornerButton()
         {
             string label = preview ? "다시 굴리기" : "마을로";
-            Button b = UiKit.CreateButton(mapRoot, "Btn_Corner", label, new Color(0.30f, 0.32f, 0.36f),
-                                          new Vector2(220f, 56f), 22);
-            UiKit.Place(b, new Vector2(0f, 1f), new Vector2(150f, -56f), new Vector2(220f, 56f));
+            var size = new Vector2(220f, UiTheme.ButtonHeight.Medium);
+            Button b = UiKit.NewButton(mapRoot, "Btn_Corner", label, ButtonKind.Ghost, size);
+            // 런 바 밑, 화면 왼쪽 여백에 맞춘다.
+            UiKit.Place(b, new Vector2(0f, 1f), new Vector2(UiTheme.Space.Edge + size.x / 2f, -(RunBarUI.Height + 44f)), size);
             b.navigation = new Navigation { mode = Navigation.Mode.None };
 
             if (preview) b.onClick.AddListener(() => StartPreview(Environment.TickCount));
@@ -450,12 +458,12 @@ namespace Prototype
         {
             switch (kind)
             {
-                case MapNodeKind.Elite: return new Color(0.62f, 0.20f, 0.34f);
-                case MapNodeKind.Rest:  return new Color(0.22f, 0.48f, 0.32f);
-                case MapNodeKind.Shop:  return new Color(0.62f, 0.50f, 0.18f);
-                case MapNodeKind.Event: return new Color(0.30f, 0.34f, 0.62f);
-                case MapNodeKind.Boss:  return new Color(0.52f, 0.10f, 0.10f);
-                default:                return new Color(0.50f, 0.28f, 0.24f);
+                case MapNodeKind.Elite: return UiTheme.Map.Elite;
+                case MapNodeKind.Rest:  return UiTheme.Map.Rest;
+                case MapNodeKind.Shop:  return UiTheme.Map.Shop;
+                case MapNodeKind.Event: return UiTheme.Map.Event;
+                case MapNodeKind.Boss:  return UiTheme.Map.Boss;
+                default:                return UiTheme.Map.Battle;
             }
         }
 
@@ -470,11 +478,24 @@ namespace Prototype
                     return c;
                 case MapNodeState.Current:
                 case MapNodeState.Visited:
-                    return Color.Lerp(c, new Color(0.35f, 0.35f, 0.35f), 0.55f);
+                    return Color.Lerp(c, UiTheme.TextOff, 0.55f);
                 case MapNodeState.Ahead:
-                    return new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f, 1f);
+                    return c.Shade(0.55f).WithAlpha(1f);
                 default:
-                    return new Color(c.r * 0.3f, c.g * 0.3f, c.b * 0.3f, 0.6f);
+                    return c.Shade(0.3f).WithAlpha(0.6f);
+            }
+        }
+
+        /// <summary>칸 테두리 색. 포커스(커서)는 따로 청록 띠가 뒤에서 내민다.</summary>
+        public static Color RimColor(MapNodeState state)
+        {
+            switch (state)
+            {
+                case MapNodeState.Selectable: return UiTheme.Focus.WithAlpha(0.7f);
+                case MapNodeState.Current:
+                case MapNodeState.Visited:    return UiTheme.Gold.WithAlpha(0.8f);
+                case MapNodeState.Pending:    return UiTheme.Rim;
+                default:                      return UiTheme.Rim.WithAlpha(0.2f);
             }
         }
 
@@ -482,10 +503,10 @@ namespace Prototype
         {
             switch (state)
             {
-                case MapEdgeState.Taken: return new Color(1f, 0.86f, 0.45f, 1f);
-                case MapEdgeState.Open:  return new Color(0.92f, 0.94f, 0.96f, 0.95f);
-                case MapEdgeState.Ahead: return new Color(0.55f, 0.58f, 0.62f, 0.55f);
-                default:                 return new Color(0.35f, 0.37f, 0.40f, 0.25f);
+                case MapEdgeState.Taken: return UiTheme.Gold;
+                case MapEdgeState.Open:  return UiTheme.TextMain.WithAlpha(0.95f);
+                case MapEdgeState.Ahead: return UiTheme.TextSub.WithAlpha(0.55f);
+                default:                 return UiTheme.TextOff.WithAlpha(0.25f);
             }
         }
     }

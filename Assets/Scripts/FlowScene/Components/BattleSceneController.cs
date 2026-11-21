@@ -40,7 +40,6 @@ namespace Prototype
 
         private StageOutcome outcome = StageOutcome.Undecided;
 
-        private BattleRestartUI restartUI;
         private StageResultUI resultUI;
 
         /// <summary>
@@ -66,9 +65,11 @@ namespace Prototype
 
         private void Start()
         {
-            // 초기화 UI 는 씬 단독 실행에서도 필요하다. GameManager 체크보다 먼저 띄운다.
-            restartUI = BattleRestartUI.Create(this);
-            PauseMenu.Create(this, "마을로", ExitToLobby);
+            // 일시정지 창은 씬 단독 실행에서도 필요하다(그 안의 [처음부터]도). GameManager 체크보다 먼저 띄운다.
+            // 런 재시작([처음부터])은 창 안에 있다. 우측 상단 [ESC 일시정지] 안내는 런 바의 [ESC] 설정이 흡수했다.
+            PauseMenu.Create(this, "마을로", ExitToLobby, onRestart: RestartStage);
+            // 런 바 — 지도 · 칸과 같은 상단 띠. 일시정지 창보다 뒤에 지어야 [ESC] 설정이 붙는다.
+            RunBarUI.Create(this, RunBarUI.Mode.Battle);
 
             progress = FindAnyObjectByType<StageProgressSource>();
 
@@ -251,7 +252,6 @@ namespace Prototype
             }
 
             // 마지막 칸(보스)은 런이 끝난다 — 주워 갈 다음이 없으니 보상도 안 떨어진다.
-            restartUI?.SetVisible(false);
             resultUI?.ShowAllClear(ExitToLobby);
         }
 
@@ -288,7 +288,6 @@ namespace Prototype
 
             Debug.Log($"[Battle] {GameManager.Instance.FloorNumber}층 패배");
 
-            restartUI?.SetVisible(false);
             resultUI?.ShowDefeat(RetryStage, ExitToLobby);
         }
 
@@ -364,7 +363,7 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 런을 처음부터 다시 시작한다. <see cref="BattleRestartUI"/> 의 확인 버튼이 부른다.
+        /// 런을 처음부터 다시 시작한다. 일시정지 창(<see cref="PauseMenu"/>)의 [처음부터] 확인이 부른다.
         ///
         /// 오브젝트를 하나씩 초기값으로 되돌리는 대신 씬을 통째로 내렸다 다시 올린다 —
         /// 리셋 누락이 원천적으로 생길 수 없는 방식이고, 이 프로젝트는 이미 ESC 이탈에서

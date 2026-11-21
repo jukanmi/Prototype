@@ -42,7 +42,7 @@ namespace Prototype
         /// <summary>Skill 슬롯에 이 스킬의 클립을 꽂고, 스킬 총 길이에 맞춰 재생한다.</summary>
         public void Animate(EntityAnimator animator)
         {
-            if (data != null) animator.SetSkillClip(data.animation);
+            if (data != null) animator.SetSkillClip(data.animation, data);
             animator.PlayState("Skill", data != null ? data.TotalDuration : 0f);
         }
 

@@ -63,6 +63,9 @@ namespace Prototype
 
         private void Awake()
         {
+            // 프리팹에 박힌 글자에도 글꼴 · 외곽선 규격을 입힌다(UiTheme).
+            UiKit.Dress(this);
+            ApplyTheme();
             meter.Window = comboWindow;
             meter.LingerDuration = lingerDuration;
 
@@ -140,6 +143,21 @@ namespace Prototype
             detailLabel.text = meter.IsRunning
                 ? $"{meter.Duration:0.0}s"
                 : $"{meter.Duration:0.00}s · DPS {meter.Dps:0}";
+        }
+
+        /// <summary>
+        /// 색 규격(기획서 5.2) — 큰 타수만 금색, 누적 피해는 본문 색, 보조 줄은 흐리게.
+        /// 크기 · 자리는 프리팹이 쥔다. 에디트모드 테스트가 Awake 없이 부를 수 있게 공개한다.
+        /// </summary>
+        public void ApplyTheme()
+        {
+            if (hitsLabel != null) hitsLabel.color = UiTheme.Gold;
+            if (damageLabel != null) damageLabel.color = UiTheme.TextMain;
+            if (detailLabel != null) detailLabel.color = UiTheme.TextSub;
+
+            // "타" 같은 접미사는 타수와 한 덩어리로 읽혀야 한다.
+            foreach (Text t in GetComponentsInChildren<Text>(true))
+                if (t.name == "HitsSuffix") t.color = UiTheme.Gold;
         }
 
         /// <summary>인스펙터에서 음수를 넣어도 판정이 뒤집히지 않게 막는다.</summary>

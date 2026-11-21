@@ -67,7 +67,20 @@ namespace Prototype.Tests
 
         [Test]
         public void RecentHitEnemyHUD_IsWired()
-            => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill");
+            => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill", "healthTrail");
+
+        /// <summary>
+        /// 적 막대 원본은 꺼진 채로 둔다. 켜 두면 아무 적도 안 가리키는 막대가
+        /// 화면 가운데 하나 떠 있다(Awake가 끄긴 하지만, 그 전 한 프레임에 보인다).
+        /// </summary>
+        [Test]
+        public void RecentHitEnemyTemplate_StartsHidden()
+        {
+            var hud = Prefab().GetComponentInChildren<RecentHitEnemyHUD>(true);
+            var panel = (GameObject)new SerializedObject(hud).FindProperty("panel").objectReferenceValue;
+
+            Assert.That(panel.activeSelf, Is.False, "적 체력 막대 원본이 켜진 채로 저장됐다.");
+        }
 
         [Test]
         public void BulletTimeGaugeUI_IsWired()

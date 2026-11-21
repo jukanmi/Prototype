@@ -103,6 +103,17 @@ namespace Prototype
     /// <summary>
     /// 카드 선택지 <b>한 장</b>의 그림. <c>BulletTimeGaugeWidget</c>과 같은 꼴로,
     /// MonoBehaviour가 아니라 <see cref="Build"/>로 지어지고 참조만 들고 있는 위젯이다.
+    ///
+    /// 카드 한 장의 규격 그림(기획서 4항 <c>CardView</c>, 6단계):
+    /// <code>
+    /// ┌──────────────┐ ← 종류 띠(직업 색)
+    /// │    아트      │
+    /// ├──────────────┤
+    /// │  이름(금)    │ Heading
+    /// │ 직업 · 형태  │ Caption
+    /// │  설명        │ Caption, {kw:…} 강조
+    /// └──────────────┘ ← 놋쇠 테두리, 포커스 땐 청록 띠가 뒤에서 내민다
+    /// </code>
     /// </summary>
     public class CardOfferView
     {
@@ -115,16 +126,27 @@ namespace Prototype
         /// <summary>아트가 카드 안에서 물러나는 여백.</summary>
         private const float ArtInset = 12f;
 
-        private static readonly Color FrameColor = new Color(0.08f, 0.09f, 0.11f);
-        private static readonly Color CardColor = new Color(0.22f, 0.26f, 0.30f);
-        private static readonly Color NameColor = Color.white;
-        private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.80f);
+        /// <summary>종류 띠 두께.</summary>
+        public const float RoleBandHeight = 8f;
+
+        private static readonly Color FrameColor = UiTheme.Ink;
+        private static readonly Color CardColor = UiTheme.Raised;
+        private static readonly Color NameColor = UiTheme.Gold;
+        private static readonly Color SubColor = UiTheme.TextSub;
+        private static readonly Color DescColor = UiTheme.TextMain;
 
         private Image frame;
         private Image art;
+        private Image roleBand;
         private Text nameLabel;
         private Text subLabel;
+        private Text descLabel;
         private Button button;
+
+        // 테스트가 읽는다.
+        public Text NameLabel => nameLabel;
+        public Text DescLabel => descLabel;
+        public Image RoleBand => roleBand;
 
         public RectTransform Root { get; private set; }
 
@@ -153,13 +175,27 @@ namespace Prototype
 
             Image bodyImage = bodyGo.GetComponent<Image>();
             bodyImage.raycastTarget = true;
+            UiKit.AddRim(bodyImage, UiTheme.Rim);
 
             button = bodyGo.AddComponent<Button>();
             button.targetGraphic = bodyImage;
             button.onClick.AddListener(() => OnPicked?.Invoke(index));
 
+            BuildRoleBand(body);
             BuildArt(body);
             BuildLabels(body);
+        }
+
+        /// <summary>맨 위 종류 띠 — 직업 색. 레퍼런스 카드의 종류 리본 자리.</summary>
+        private void BuildRoleBand(RectTransform body)
+        {
+            roleBand = UiKit.NewImage(body, "RoleBand", UiTheme.TextOff);
+            var rect = roleBand.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = new Vector2(0f, RoleBandHeight);
+            rect.anchoredPosition = Vector2.zero;
         }
 
         /// <summary>아트는 카드 위쪽 절반을 채운다. 아이콘이 없는 스킬은 그냥 비워 둔다.</summary>
@@ -167,7 +203,7 @@ namespace Prototype
         {
             GameObject go = UiKit.CreateImage(body, "Art", Color.white);
             var rect = (RectTransform)go.transform;
-            rect.anchorMin = new Vector2(0f, 0.38f);
+            rect.anchorMin = new Vector2(0f, 0.46f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.offsetMin = new Vector2(ArtInset, ArtInset);
             rect.offsetMax = new Vector2(-ArtInset, -ArtInset);
@@ -180,11 +216,17 @@ namespace Prototype
 
         private void BuildLabels(RectTransform body)
         {
-            nameLabel = UiKit.CreateText(body, "Name", "", 24, NameColor);
-            UiKit.Band(nameLabel, new Vector2(0f, 0.26f), new Vector2(1f, 0.38f), 8f);
+            nameLabel = UiKit.NewText(body, "Name", UiTheme.Size.Heading, NameColor, FontStyle.Bold);
+            UiKit.Band(nameLabel, new Vector2(0f, 0.36f), new Vector2(1f, 0.46f), 8f);
 
-            subLabel = UiKit.CreateText(body, "Sub", "", 16, SubColor);
-            UiKit.Band(subLabel, new Vector2(0f, 0.16f), new Vector2(1f, 0.26f), 8f);
+            subLabel = UiKit.CreateText(body, "Sub", "", UiTheme.Size.Caption, SubColor);
+            UiKit.Band(subLabel, new Vector2(0f, 0.29f), new Vector2(1f, 0.36f), 8f);
+
+            descLabel = UiKit.CreateText(body, "Desc", "", UiTheme.Size.Caption, DescColor);
+            descLabel.alignment = TextAnchor.UpperCenter;
+            descLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descLabel.verticalOverflow = VerticalWrapMode.Truncate;
+            UiKit.Band(descLabel, new Vector2(0f, 0.03f), new Vector2(1f, 0.28f), 14f);
         }
 
         public void Show(in CardOffer offer)
@@ -198,6 +240,8 @@ namespace Prototype
 
             nameLabel.text = data != null ? data.skillName : "(빈 카드)";
             subLabel.text = data != null ? $"{data.role} · {data.attackType}" : "";
+            descLabel.text = data != null ? UiText.Format(data.description) : "";
+            roleBand.color = data != null ? SkillCutinUI.RoleColor(data.role) : UiTheme.TextOff;
         }
 
         public void Hide()

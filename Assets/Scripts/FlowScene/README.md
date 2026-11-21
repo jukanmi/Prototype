@@ -54,7 +54,6 @@ ESC 일시정지 [마을로]  → 런 종료 → Lobby
 | 파일 | 역할 |
 |---|---|
 | `Stage/Support/StageOutcomeRules.cs` | 승패 판정 규칙 |
-| `Battle/Components/UI/BattleRestartUI.cs` | 전투 우상단 [처음부터] |
 | `Battle/Components/UI/StageResultUI.cs` | 스테이지 종료 화면 (출구 화살표 / 전부 클리어 / 패배) |
 | `Core/Support/UiKit.cs` | 코드로 캔버스 짓는 공용 조각 + `UiLayer` 정렬 순서표 |
 

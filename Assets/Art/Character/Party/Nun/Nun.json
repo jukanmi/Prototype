@@ -1,0 +1,254 @@
+{
+ "skeleton": {
+  "hash": "",
+  "spine": "3.8.99",
+  "x": -670.0,
+  "y": 0,
+  "width": 1340,
+  "height": 2572,
+  "images": "./images/",
+  "audio": ""
+ },
+ "bones": [
+  {
+   "name": "root"
+  }
+ ],
+ "slots": [
+  {
+   "name": "Hair_back",
+   "bone": "root",
+   "attachment": "Hair_back"
+  },
+  {
+   "name": "UpperLeg_L",
+   "bone": "root",
+   "attachment": "UpperLeg_L"
+  },
+  {
+   "name": "LowerLeg_L",
+   "bone": "root",
+   "attachment": "LowerLeg_L"
+  },
+  {
+   "name": "UpperArm_L",
+   "bone": "root",
+   "attachment": "UpperArm_L"
+  },
+  {
+   "name": "Hand_L",
+   "bone": "root",
+   "attachment": "Hand_L_Open"
+  },
+  {
+   "name": "LowerArm_L",
+   "bone": "root",
+   "attachment": "LowerArm_L"
+  },
+  {
+   "name": "Body",
+   "bone": "root",
+   "attachment": "Body"
+  },
+  {
+   "name": "UpperLeg_R",
+   "bone": "root",
+   "attachment": "UpperLeg_R"
+  },
+  {
+   "name": "LowerLeg_R",
+   "bone": "root",
+   "attachment": "LowerLeg_R"
+  },
+  {
+   "name": "Skirt",
+   "bone": "root",
+   "attachment": "Skirt"
+  },
+  {
+   "name": "Hair_Braid",
+   "bone": "root",
+   "attachment": "Hair_Braid"
+  },
+  {
+   "name": "Head",
+   "bone": "root",
+   "attachment": "Head"
+  },
+  {
+   "name": "Face",
+   "bone": "root",
+   "attachment": "Face"
+  },
+  {
+   "name": "Hair_Front",
+   "bone": "root",
+   "attachment": "Hair_Front"
+  },
+  {
+   "name": "Hand_R",
+   "bone": "root",
+   "attachment": "Hand_R"
+  },
+  {
+   "name": "UpperArm_R",
+   "bone": "root",
+   "attachment": "UpperArm_R"
+  },
+  {
+   "name": "LowerArm_R",
+   "bone": "root",
+   "attachment": "LowerArm_R"
+  }
+ ],
+ "skins": [
+  {
+   "name": "default",
+   "attachments": {
+    "Hair_back": {
+     "Hair_back": {
+      "x": -10.5,
+      "y": 2247.5,
+      "width": 455,
+      "height": 475
+     }
+    },
+    "UpperLeg_L": {
+     "UpperLeg_L": {
+      "x": 133.5,
+      "y": 1051.5,
+      "width": 219,
+      "height": 709
+     }
+    },
+    "LowerLeg_L": {
+     "LowerLeg_L": {
+      "x": 323.0,
+      "y": 461.0,
+      "width": 418,
+      "height": 712
+     }
+    },
+    "UpperArm_L": {
+     "UpperArm_L": {
+      "x": 165.0,
+      "y": 1738.0,
+      "width": 134,
+      "height": 452
+     }
+    },
+    "Hand_L": {
+     "Hand_L_Fist": {
+      "x": 333.5,
+      "y": 1234.5,
+      "width": 135,
+      "height": 161
+     },
+     "Hand_L_Open": {
+      "x": 359.0,
+      "y": 1196.0,
+      "width": 170,
+      "height": 220
+     }
+    },
+    "LowerArm_L": {
+     "LowerArm_L": {
+      "x": 241.0,
+      "y": 1425.5,
+      "width": 256,
+      "height": 365
+     }
+    },
+    "Body": {
+     "Body": {
+      "x": -10.0,
+      "y": 1692.0,
+      "width": 484,
+      "height": 898
+     }
+    },
+    "UpperLeg_R": {
+     "UpperLeg_R": {
+      "x": -145.5,
+      "y": 1066.0,
+      "width": 275,
+      "height": 688
+     }
+    },
+    "LowerLeg_R": {
+     "LowerLeg_R": {
+      "x": -318.5,
+      "y": 498.0,
+      "width": 375,
+      "height": 746
+     }
+    },
+    "Skirt": {
+     "Skirt": {
+      "x": -21.5,
+      "y": 986.5,
+      "width": 927,
+      "height": 975
+     }
+    },
+    "Hair_Braid": {
+     "Hair_Braid": {
+      "x": -62.5,
+      "y": 1691.0,
+      "width": 149,
+      "height": 724
+     }
+    },
+    "Head": {
+     "Head": {
+      "x": 18.5,
+      "y": 2241.0,
+      "width": 351,
+      "height": 406
+     }
+    },
+    "Face": {
+     "Face": {
+      "x": 60.0,
+      "y": 2183.5,
+      "width": 252,
+      "height": 215
+     }
+    },
+    "Hair_Front": {
+     "Hair_Front": {
+      "x": 56.0,
+      "y": 2204.5,
+      "width": 382,
+      "height": 491
+     }
+    },
+    "Hand_R": {
+     "Hand_R": {
+      "x": -374.5,
+      "y": 1214.0,
+      "width": 131,
+      "height": 184
+     }
+    },
+    "UpperArm_R": {
+     "UpperArm_R": {
+      "x": -253.0,
+      "y": 1746.0,
+      "width": 182,
+      "height": 468
+     }
+    },
+    "LowerArm_R": {
+     "LowerArm_R": {
+      "x": -361.5,
+      "y": 1430.5,
+      "width": 207,
+      "height": 387
+     }
+    }
+   }
+  }
+ ],
+ "animations": {}
+}

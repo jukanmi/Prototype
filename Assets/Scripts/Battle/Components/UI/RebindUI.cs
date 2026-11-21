@@ -29,13 +29,13 @@ namespace Prototype
         // ── 색 ───────────────────────────────────────────
         // 줄 · 프리셋 버튼 · 상태 문구에만 쓴다. 창 · 버튼 색은 프리팹으로 옮겼다.
 
-        private static readonly Color HeaderColor = new Color(0.18f, 0.20f, 0.25f);
-        private static readonly Color RowColor = new Color(0.17f, 0.19f, 0.23f);
-        private static readonly Color ChangeColor = new Color(0.26f, 0.34f, 0.42f);
-        private static readonly Color PresetColor = new Color(0.24f, 0.36f, 0.30f);
-        private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color WarnColor = new Color(1f, 0.5f, 0.45f);
-        private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
+        private static readonly Color HeaderColor = UiTheme.Ink;
+        private static readonly Color RowColor = UiTheme.Raised;
+        private static readonly Color ChangeColor = UiTheme.ButtonNormal;
+        private static readonly Color PresetColor = UiTheme.ButtonPrimary;
+        private static readonly Color HintColor = UiTheme.Gold;
+        private static readonly Color WarnColor = UiTheme.Hp;
+        private static readonly Color SubColor = UiTheme.TextSub;
 
         [Tooltip("설정 화면에 버튼으로 뜨는 키 세팅들. 비워 두면 프리셋 줄이 안 나온다.")]
         [SerializeField] private KeyBindingPreset[] presets;
@@ -114,6 +114,9 @@ namespace Prototype
             if (_closeButton != null) _closeButton.onClick.AddListener(Close);
 
             BuildPresetButtons();
+
+            // 프리팹 창을 공용 창(UiKit.Modal)과 같은 재질로 입힌다 — 바탕막 · 테두리 판 · 금색 제목 · 버튼 호버.
+            UiKit.DressModal(_panelRoot);
 
             _panelRoot.SetActive(false);
             _listeningRoot.SetActive(false);
@@ -359,7 +362,7 @@ namespace Prototype
             label.GetComponent<RectTransform>().anchoredPosition =
                 new Vector2(-RowWidth / 2f + LabelWidth / 2f + 12f, 0f);
 
-            Text key = BuildText(go.transform, "Key", KeyWidth, RowHeight, 14, Color.white, FontStyle.Bold);
+            Text key = BuildText(go.transform, "Key", KeyWidth, RowHeight, 14, UiTheme.TextMain, FontStyle.Bold);
             key.text = InputDisplayNames.Key(action, bindingIndex);
             key.GetComponent<RectTransform>().anchoredPosition = new Vector2(40f, 0f);
 
@@ -394,7 +397,7 @@ namespace Prototype
             go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
             go.GetComponent<Image>().color = color;
 
-            Text text = BuildText(go.transform, "Label", width, height, 14, Color.white, FontStyle.Bold);
+            Text text = BuildText(go.transform, "Label", width, height, 14, UiTheme.TextMain, FontStyle.Bold);
             var textRect = text.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -402,7 +405,9 @@ namespace Prototype
             textRect.offsetMax = Vector2.zero;
             text.text = label;
 
-            return go.GetComponent<Button>();
+            Button button = go.GetComponent<Button>();
+            UiKit.DressButton(button);   // 줄의 [변경]도 다른 창 버튼과 같은 호버 · 눌림
+            return button;
         }
 
         private static Text BuildText(Transform parent, string name, float width, float height,
@@ -413,12 +418,13 @@ namespace Prototype
             go.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
 
             var t = go.GetComponent<Text>();
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.font = UiKit.Font;
             t.fontSize = fontSize;
             t.fontStyle = style;
             t.alignment = TextAnchor.MiddleCenter;
             t.color = color;
             t.raycastTarget = false;
+            UiKit.AddOutline(t);
             return t;
         }
     }

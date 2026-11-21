@@ -132,6 +132,28 @@ namespace Prototype.Tests
             Assert.That(hud.HealthFillRatio, Is.EqualTo(0.5f).Within(0.01f));
         }
 
+        /// <summary>막대 밑에 "현재/최대"가 따라 붙는다(UI 통일 기획서 5.2).</summary>
+        [Test]
+        public void Numbers_FollowTargetHealth()
+        {
+            Combat attacker = NewAlly();
+            Combat target = NewEnemy();
+
+            attacker.Attack(target, in Poke);
+
+            Assert.That(hud.CurrentNumbers,
+                        Is.EqualTo(RecentHitEnemyHUD.FormatNumbers(target.Health.CurValue, target.Health.MaxValue)));
+        }
+
+        [TestCase(27.3f, 165f, "28/165")]
+        [TestCase(0.4f, 100f, "1/100")]
+        [TestCase(0f, 100f, "0/100")]
+        [TestCase(-3f, 100f, "0/100")]
+        public void FormatNumbers_RoundsUp_AndClampsAtZero(float cur, float max, string expected)
+        {
+            Assert.That(RecentHitEnemyHUD.FormatNumbers(cur, max), Is.EqualTo(expected));
+        }
+
         [Test]
         public void AfterVisibleDuration_Hides()
         {
@@ -161,6 +183,67 @@ namespace Prototype.Tests
             Assert.That(target.IsDead, Is.True);
             Assert.That(hud.IsVisible, Is.False);
             Assert.That(hud.CurrentTarget, Is.Null);
+        }
+
+        // ── 적마다 따로 ───────────────────────────────────
+
+        /// <summary>광역기로 둘을 맞히면 막대도 둘이다 — 나중에 맞은 쪽이 먼저 것을 지우지 않는다.</summary>
+        [Test]
+        public void TwoEnemiesHit_EachGetsOwnBar()
+        {
+            Combat attacker = NewAlly();
+            Combat first = NewEnemy();
+            Combat second = NewEnemy();
+
+            attacker.Attack(first, in Poke);
+            attacker.Attack(second, in Poke);
+
+            Assert.That(hud.VisibleCount, Is.EqualTo(2));
+            Assert.That(hud.IsShowing(first), Is.True);
+            Assert.That(hud.IsShowing(second), Is.True);
+        }
+
+        [Test]
+        public void OneOfTwoDies_OnlyItsBarHides()
+        {
+            Combat attacker = NewAlly();
+            Combat dying = NewEnemy();
+            Combat other = NewEnemy();
+
+            attacker.Attack(dying, in Poke);
+            attacker.Attack(other, in Poke);
+
+            dying.TakeDamage(new DamageData(9999f));
+
+            Assert.That(hud.IsShowing(dying), Is.False);
+            Assert.That(hud.IsShowing(other), Is.True);
+            Assert.That(hud.CurrentTarget, Is.SameAs(other));
+        }
+
+        /// <summary>같은 적을 연타해도 막대는 하나다 — 맞을 때마다 새로 복제하면 겹겹이 쌓인다.</summary>
+        [Test]
+        public void SameEnemyHitTwice_KeepsOneBar()
+        {
+            Combat attacker = NewAlly();
+            Combat target = NewEnemy();
+
+            attacker.Attack(target, in Poke);
+            attacker.Attack(target, in Poke);
+
+            Assert.That(hud.VisibleCount, Is.EqualTo(1));
+        }
+
+        /// <summary>안 맞은 적에게는 막대가 없다 — 맞아야 켜진다.</summary>
+        [Test]
+        public void UntouchedEnemy_HasNoBar()
+        {
+            Combat attacker = NewAlly();
+            Combat hit = NewEnemy();
+            Combat idle = NewEnemy();
+
+            attacker.Attack(hit, in Poke);
+
+            Assert.That(hud.IsShowing(idle), Is.False);
         }
 
         // ── 헬퍼 ─────────────────────────────────────────

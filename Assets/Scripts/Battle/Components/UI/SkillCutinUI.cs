@@ -154,6 +154,8 @@ namespace Prototype
 
         private void Awake()
         {
+            // 프리팹에 박힌 글자에도 글꼴 · 외곽선 규격을 입힌다(UiTheme).
+            UiKit.Dress(this);
             // 프리팹은 그림이 보이는 채로 저장돼 있다(그래야 에디터에서 배치를 본다).
             SetVisible(false);
         }

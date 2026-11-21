@@ -13,11 +13,12 @@ namespace Prototype
     /// </summary>
     public class BulletTimeGaugeWidget
     {
-        public const float Width = 420f;
-        public const float Height = 22f;
+        // 초상화 옆, 체력바 바로 밑에 테두리를 맞대고 붙는다. 체력보다 얇고 짧다(HudLayout).
+        public const float Width = HudLayout.GaugeWidth;
+        public const float Height = HudLayout.GaugeHeight;
 
-        /// <summary>트랙 안쪽 여백. 이만큼이 테두리로 남는다.</summary>
-        public const float Inset = 2f;
+        /// <summary>트랙 안쪽 여백. 이만큼이 테두리로 남는다 — 체력바 테두리와 같은 두께.</summary>
+        public const float Inset = HudLayout.Border;
 
         public const float TickWidth = 2f;
 
@@ -27,19 +28,19 @@ namespace Prototype
         /// <summary>채움이 실제로 그려지는 폭. 테두리를 뺀 값이다.</summary>
         public static float InnerWidth => Width - Inset * 2f;
 
-        private static readonly Color TrackColor = new Color(0.07f, 0.08f, 0.10f, 0.92f);
-        private static readonly Color BorderColor = new Color(0.35f, 0.40f, 0.46f, 0.9f);
-        private static readonly Color ChargingColor = new Color(0.16f, 0.45f, 0.55f);
-        private static readonly Color ReadyLowColor = new Color(0.10f, 0.62f, 0.75f);
-        private static readonly Color ReadyHighColor = new Color(0.45f, 0.95f, 1f);
-        private static readonly Color ActiveColor = new Color(0.30f, 0.85f, 1f);
-        private static readonly Color CooldownColor = new Color(0.62f, 0.34f, 0.14f);
-        private static readonly Color TickColor = new Color(1f, 0.82f, 0.4f, 0.85f);
-        private static readonly Color LabelColor = new Color(0.92f, 0.95f, 1f);
+        private static readonly Color TrackColor = UiTheme.InkDeep;
+        // 위의 체력 막대와 같은 검은 테두리 — 한 묶음으로 읽히게.
+        private static readonly Color BorderColor = UiTheme.OutlineColor.WithAlpha(0.95f);
+        private static readonly Color ChargingColor = UiTheme.Gauge.Shade(0.55f);
+        private static readonly Color ReadyLowColor = UiTheme.Gauge;
+        private static readonly Color ReadyHighColor = UiTheme.Gauge.Shade(1.35f);
+        private static readonly Color ActiveColor = UiTheme.Gauge.Shade(1.5f);
+        private static readonly Color CooldownColor = UiTheme.TextOff;
+        private static readonly Color TickColor = UiTheme.Gold.WithAlpha(0.85f);
+        private static readonly Color LabelColor = UiTheme.TextMain;
 
         private RectTransform _root;
-        private RectTransform _fillRect;
-        private Image _fill;
+        private SlantedBar _fill;
         private RectTransform _tickRect;
         private Text _label;
 
@@ -84,22 +85,22 @@ namespace Prototype
 
         // ── 빌드 ─────────────────────────────────────────
 
+        /// <summary>
+        /// 테두리 · 홈 · 채움이 전부 같은 각으로 꺾인 <see cref="SlantedBar"/>다 — 위의 체력바와 한 모양이다.
+        /// 채움은 폭을 줄이지 않고 <see cref="SlantedBar.Fill"/>로 자른다. 폭을 줄이면 꺾인 끝이 함께 움직인다.
+        /// </summary>
         public void Build(Transform parent)
         {
-            Image border = UiKit.NewImage(parent, "GaugeBar", BorderColor);
+            SlantedBar border = NewBar(parent, "GaugeBar", BorderColor);
             _root = border.rectTransform;
             _root.sizeDelta = new Vector2(Width, Height);
 
-            Image track = UiKit.NewImage(_root, "Track", TrackColor);
-            UiKit.Stretch(track.rectTransform, 1f);
+            SlantedBar track = NewBar(_root, "Track", TrackColor);
+            UiKit.Stretch(track.rectTransform, Inset);
 
-            _fill = UiKit.NewImage(_root, "Fill", ChargingColor);
-            _fillRect = _fill.rectTransform;
-            _fillRect.anchorMin = new Vector2(0f, 0f);
-            _fillRect.anchorMax = new Vector2(0f, 1f);
-            _fillRect.pivot = new Vector2(0f, 0.5f);
-            _fillRect.anchoredPosition = new Vector2(Inset, 0f);
-            _fillRect.sizeDelta = new Vector2(0f, -Inset * 2f);
+            _fill = NewBar(_root, "Fill", ChargingColor);
+            UiKit.Stretch(_fill.rectTransform, Inset);
+            _fill.Fill = 0f;
 
             Image tick = UiKit.NewImage(_root, "Tick", TickColor);
             _tickRect = tick.rectTransform;
@@ -110,6 +111,21 @@ namespace Prototype
 
             _label = UiKit.NewText(_root, "Label", 13, LabelColor, FontStyle.Bold);
             UiKit.Stretch(_label.rectTransform);
+            // 꺾인 끝만큼 오른쪽을 비워 글자가 곧은 구간 가운데 오게 한다.
+            _label.rectTransform.offsetMax = new Vector2(-Height * HudLayout.SlantRatio, 0f);
+            // 외곽선은 NewText 가 기본으로 붙인다 — 준비 완료 때 밝게 맥동하는 채움 위에서도 읽힌다.
+        }
+
+        private static SlantedBar NewBar(Transform parent, string name, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(SlantedBar));
+            go.transform.SetParent(parent, false);
+
+            SlantedBar bar = go.GetComponent<SlantedBar>();
+            bar.color = color;
+            bar.raycastTarget = false;
+            bar.SlantRatio = HudLayout.SlantRatio;
+            return bar;
         }
 
         // ── 갱신 ─────────────────────────────────────────
@@ -124,7 +140,7 @@ namespace Prototype
             // 다 찼는데 막대 끝이 미세하게 비어 보이면 준비된 줄 모른다. 근처면 붙여 준다.
             if (Mathf.Abs(_shown - ratio) < 0.002f) _shown = ratio;
 
-            _fillRect.sizeDelta = new Vector2(FillWidth(_shown, InnerWidth), -Inset * 2f);
+            _fill.Fill = _shown;
 
             float required = bt.RequiredRatio;
             bool showTick = ShowsTick(required);

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.PlayerData
   heroId: Player
   displayName: Player
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: 8697ed94123d4284b8400441d19d8f1c, type: 3}
   prefab: {fileID: 8689976968062280079, guid: 55a1a8cdc70a56046b881d889cdeeafb, type: 3}
   hp: 0
   atk: 0

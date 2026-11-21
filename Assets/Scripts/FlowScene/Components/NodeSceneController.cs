@@ -104,6 +104,9 @@ namespace Prototype
             if (GameManager.Instance == null)
                 Debug.LogWarning("[Node] GameManager 없음. 씬 단독 실행 — 나가면 이 씬을 다시 연다.");
 
+            // 런 바 — 지도 · 전투와 같은 상단 띠.
+            RunBarUI.Create(this, RunBarUI.Mode.Overlay);
+
             party = FindAnyObjectByType<PartyRoster>();
             resultUI = StageResultUI.Create(this);
             ShowExit();
