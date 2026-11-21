@@ -61,12 +61,16 @@ namespace Prototype
         public const string RunMap = "RunMap";
 
         /// <summary>
-        /// 비전투 칸. 씬에는 <see cref="Prototype.NodeSceneController"/> 하나뿐이고,
-        /// 들어오자마자 창을 띄운다. 파일은 <c>Assets/Scenes/Node/</c> 아래에 있다.
+        /// 비전투 칸. 지휘자는 <see cref="Prototype.NodeSceneController"/>다. 전부 마을처럼 걸어다니는 방이고,
+        /// 전투처럼 오른쪽 벽으로 걸어가면 끝난다. 파일은 <c>Assets/Scenes/Node/</c> 아래에 있다.
+        ///
+        /// 이벤트 칸은 전투 칸처럼 내용물이 여러 벌이다 — 선택지(<see cref="NodeEvent"/>) ·
+        /// NPC와 싸움(<see cref="NodeEventFight"/>) · 모닥불(<see cref="NodeEventCamp"/>, 옛 휴식 칸).
         /// </summary>
-        public const string NodeRest  = "Node_Rest";
-        public const string NodeShop  = "Node_Shop";
-        public const string NodeEvent = "Node_Event";
+        public const string NodeShop       = "Node_Shop";
+        public const string NodeEvent      = "Node_Event";
+        public const string NodeEventFight = "Node_Event_Fight";
+        public const string NodeEventCamp  = "Node_Event_Camp";
 
         /// <summary>본편 스테이지를 번호(1~5)로 얻는다. 범위 밖은 양끝으로 물린다.</summary>
         public static string Stage(int number)

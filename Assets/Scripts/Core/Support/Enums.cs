@@ -215,4 +215,20 @@ namespace Prototype
             }
         }
     }
+
+    /// <summary>스킬 성격의 화면 표기. <see cref="RoleNames"/>와 같은 이유로 한 곳에 둔다.</summary>
+    public static class AttackTypeNames
+    {
+        public static string Of(AttackType type)
+        {
+            switch (type)
+            {
+                case AttackType.Gather:   return "모으기";
+                case AttackType.Launcher: return "띄우기";
+                case AttackType.Strike:   return "공격기";
+                case AttackType.Push:     return "밀치기";
+                default:                  return type.ToString();
+            }
+        }
+    }
 }

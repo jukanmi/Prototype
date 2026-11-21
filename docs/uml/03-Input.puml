@@ -16,6 +16,9 @@ package "1.5 Input" {
     + AttackPressed / JumpPressed / DashPressed : bool
     + BulletTimePressed : bool
     + NavigateStep : Vector2Int
+    + InteractPressed / InteractKeyPressed : bool
+    + MenuStep : Vector2Int
+    + MenuConfirmPressed : bool
     + GameplaySuspended : bool
     + ConsumeJumpPress()
     + {static} SetSuspended(value : bool)
@@ -70,12 +73,12 @@ package "읽는 쪽 (위층)" #F5F5F5 {
   class "InputMapSwitcher" as Switcher <<6 Tactic>>
   class "AssaultEditorUI" as TacticUI <<6 Tactic>>
   class "RebindUI" as RebindUI <<6 Tactic>>
-  class "CardRewardSession · AssaultEditorUI" as ModalUI <<6 Tactic>>
+  class "DialogueWindow · KeyMenu (상점 · 선택지)" as ModalUI <<9 App>>
 }
 Pilot ..> PlayerInputController : Instance
 Switcher ..> PlayerInputController : 맵 여닫기
 TacticUI ..> PlayerInputController : NavigateStep
 RebindUI ..> RebindManager
 RebindUI ..> PlayerInputController : SetSuspended
-ModalUI ..> PlayerInputController : SetSuspended
+ModalUI ..> PlayerInputController : SetSuspended · MenuStep · MenuConfirmPressed
 @enduml

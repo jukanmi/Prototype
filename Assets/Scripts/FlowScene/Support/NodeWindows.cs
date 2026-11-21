@@ -1,6 +1,6 @@
-// 비전투 칸의 창 — 휴식 · 상점 · 이벤트.
-// 전부 코드로 짓는다. 그림이 생기기 전까지 이 창들이 곧 그 칸의 화면이다.
-// 판단(값 · 고를 수 있는가)은 GoldRules · NodeRules · RunEventRules에 있고 여기는 그리기만 한다.
+// 비전투 칸 · 마을의 창 — 공용 조각과 상점 창.
+// 전부 코드로 짓는다. 판단(값 · 살 수 있는가)은 GoldRules · NodeRules에 있고 여기는 그리기만 한다.
+// 이벤트 · 모닥불은 창이 아니라 화면 아래 대화창(DialogueWindow)에서 이어진다.
 
 using System;
 using System.Collections.Generic;
@@ -41,7 +41,7 @@ namespace Prototype
             return rect;
         }
 
-        /// <summary>패널 아래쪽 가운데 버튼 하나. [나가기] · [계속]이 쓴다.</summary>
+        /// <summary>패널 아래쪽 가운데 버튼 하나. [닫기] 등이 쓴다.</summary>
         public static Button BottomButton(RectTransform panel, string label, Color color, Action onClick)
         {
             Button b = UiKit.CreateButton(panel, "Btn_" + label, label, color, ExitSize, 26);
@@ -51,8 +51,8 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 키보드로도 누를 수 있게 첫 칸을 잡아 둔다. 이 씬에는 전투 입력(<c>PlayerInputController</c>)이
-        /// 없어서, EventSystem의 방향키 · 제출 입력이 유일한 키보드 통로다.
+        /// 키보드로도 누를 수 있게 이 칸을 잡아 둔다(EventSystem 선택). 마을 창 · 일시정지가 쓴다.
+        /// 상점 · 선택지는 따로 커서(<see cref="KeyMenu"/>)를 쓴다.
         /// </summary>
         public static void Focus(Selectable target)
         {
@@ -62,35 +62,13 @@ namespace Prototype
 
         /// <summary>
         /// 이 파티가 쓸 수 있는 카드 전부. 죽은 동료의 직업은 빠진다.
-        /// 단독 실행이면 편성을 몰라 거르지 않는다(레벨업 화면의 폴백과 같다).
+        /// 단독 실행이면 편성을 몰라 거르지 않는다.
         /// </summary>
         public static List<SkillData> CardPool(IReadOnlyList<PartyMemberData> roster)
         {
             RunProgression run = RunProgression.Current;
             List<Role> roles = roster != null ? NodeRules.AvailableRoles(roster, run.Party) : null;
             return SkillCatalog.Pool(roles, run.Cards);
-        }
-
-        public static Text Line(RectTransform panel, string name, string content, int size, Color color,
-                                Vector2 position, float width)
-        {
-            Text t = UiKit.CreateText(panel, name, content, size, color);
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            UiKit.Place(t, new Vector2(0.5f, 0.5f), position, new Vector2(width, size * 4f));
-            return t;
-        }
-
-        // ── 휴식 ────────────────────────────────────────
-
-        /// <summary>회복은 이미 끝난 뒤다. 결과만 적고 [계속]을 낸다.</summary>
-        public static void Rest(Transform root, float healRatio, Action onContinue)
-        {
-            RectTransform panel = Panel(root, "휴식", new Vector2(760f, 420f));
-
-            Line(panel, "Body", $"모닥불 앞에서 숨을 고른다.\n파티 전원의 체력이 {healRatio:0%} 회복됐다.",
-                 28, BodyColor, new Vector2(0f, 30f), 640f);
-
-            Focus(BottomButton(panel, "계속", ButtonColor, onContinue));
         }
     }
 
@@ -100,34 +78,45 @@ namespace Prototype
     /// 카드 세 장을 골드로 사는 창. 들어올 때 한 번 뽑고, 산 칸은 "구매함"으로 잠긴다.
     /// 카드 선택 그림(<see cref="CardOfferView"/>)을 그대로 쓴다 — 같은 카드가
     /// 두 화면에서 다르게 생기면 같은 물건으로 안 읽힌다.
+    ///
+    /// 키보드로 고른다(<see cref="KeyMenu"/>) — 좌우로 카드, 아래로 [닫기], F · Enter로 산다.
+    /// 보고 있는 카드는 금색 테두리가 깜빡이고 조금 커진다. 마우스 클릭도 그대로 된다.
     /// </summary>
     public class ShopWindow
     {
         private const float Gap = 40f;
 
-        private readonly IReadOnlyList<PartyMemberData> roster;
+        /// <summary>보고 있는 카드의 확대 배율. 테두리와 함께 "이 카드"를 가리킨다.</summary>
+        private const float FocusScale = 1.06f;
+
         private readonly List<CardOffer> offers;
         private readonly CardOfferView[] views;
         private readonly Text[] prices;
         private readonly bool[] sold;
         private readonly Text gold;
         private readonly Text notice;
+        private readonly KeyMenu menu;
 
         private static RunProgression Run => RunProgression.Current;
 
-        public ShopWindow(Transform root, IReadOnlyList<PartyMemberData> roster, Action onLeave)
+        /// <param name="onClose">[닫기]. 창만 닫는다 — 칸은 오른쪽 벽으로 걸어가야 끝난다.</param>
+        public ShopWindow(Transform root, IReadOnlyList<PartyMemberData> roster, Action onClose)
         {
-            this.roster = roster;
-
             RectTransform panel = NodeWindows.Panel(root, "상점", new Vector2(1180f, 760f));
+            menu = new KeyMenu(panel);
 
             gold = UiKit.CreateText(panel, "Gold", "", 28, NodeWindows.TitleColor);
             UiKit.Place(gold, new Vector2(1f, 1f), new Vector2(-130f, -50f), new Vector2(220f, 40f));
 
+            string key = InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Interact);
+            Text keys = UiKit.CreateText(panel, "Keys", $"방향키 · WASD  고르기     [{key}]  사기     ESC  닫기",
+                                         20, NodeWindows.SubColor);
+            UiKit.Place(keys, new Vector2(0.5f, 1f), new Vector2(0f, -98f), new Vector2(1000f, 28f));
+
             notice = UiKit.CreateText(panel, "Notice", "", 22, NodeWindows.WarnColor);
             UiKit.Place(notice, new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(900f, 36f));
 
-            offers = CardOfferRules.Build(Pool(), () => UnityEngine.Random.value);
+            offers = CardOfferRules.Build(NodeWindows.CardPool(roster), () => UnityEngine.Random.value);
             views = new CardOfferView[offers.Count];
             prices = new Text[offers.Count];
             sold = new bool[offers.Count];
@@ -137,37 +126,47 @@ namespace Prototype
 
             for (int i = 0; i < offers.Count; i++)
             {
+                int captured = i;
+
                 var view = new CardOfferView();
                 view.Build(panel, i);
-                UiKit.Place(view.Root, new Vector2(0.5f, 0.5f), new Vector2(left + step * i, 60f), view.Root.sizeDelta);
+                UiKit.Place(view.Root, new Vector2(0.5f, 0.5f), new Vector2(left + step * i, 50f), view.Root.sizeDelta);
                 view.Show(offers[i]);
                 view.OnPicked += Buy;
                 views[i] = view;
 
                 prices[i] = UiKit.CreateText(panel, $"Price_{i}", "", 26, Color.white);
                 UiKit.Place(prices[i], new Vector2(0.5f, 0.5f),
-                            new Vector2(left + step * i, 60f - CardOfferView.Height * 0.5f - 36f),
+                            new Vector2(left + step * i, 50f - CardOfferView.Height * 0.5f - 36f),
                             new Vector2(CardOfferView.Width, 36f));
+
+                menu.Add(view.Root, 0, () => CanBuy(captured), () => Buy(captured));
             }
 
             if (offers.Count == 0) notice.text = "살 수 있는 카드가 없다.";
 
-            Button exit = NodeWindows.BottomButton(panel, "나가기", NodeWindows.ExitColor, onLeave);
+            Button exit = NodeWindows.BottomButton(panel, "닫기", NodeWindows.ExitColor, onClose);
+            menu.Add((RectTransform)exit.transform, 1, null, onClose);
+
+            menu.Moved += (from, to) =>
+            {
+                Scale(from, 1f);
+                Scale(to, FocusScale);
+            };
+
             Refresh();
-
-            // 살 수 있는 첫 카드에 커서를 둔다. 하나도 못 사면 [나가기]다.
-            Selectable first = exit;
-            for (int i = 0; i < views.Length; i++)
-                if (Run.Gold >= GoldRules.CardPriceNow())
-                {
-                    first = views[i].Root.GetComponentInChildren<Button>();
-                    break;
-                }
-
-            NodeWindows.Focus(first);
+            KeyMenuHost.Attach(root.gameObject, menu);
         }
 
-        private List<SkillData> Pool() => NodeWindows.CardPool(roster);
+        private bool CanBuy(int index)
+            => index >= 0 && index < offers.Count && !sold[index] && Run.Gold >= GoldRules.CardPriceNow();
+
+        /// <summary>카드만 키운다. [닫기]는 테두리만으로 충분하다.</summary>
+        private void Scale(int index, float scale)
+        {
+            if (index < 0 || index >= views.Length) return;
+            views[index].Root.localScale = new Vector3(scale, scale, 1f);
+        }
 
         private void Buy(int index)
         {
@@ -201,84 +200,9 @@ namespace Prototype
                 prices[i].text = sold[i] ? "구매함" : $"{price} 골드";
                 prices[i].color = sold[i] ? NodeWindows.SubColor : affordable ? Color.white : NodeWindows.WarnColor;
             }
+
+            // 방금 산 카드는 잠겼다 — 커서가 그 위에 남지 않게 다음 칸으로 옮긴다.
+            menu.Refresh();
         }
-    }
-
-    // ══ EventWindow ═══════════════════════════════════════════
-
-    /// <summary>
-    /// 글 한 토막과 선택지 버튼. 하나를 고르면 결과를 적고 [계속]만 남는다 —
-    /// 되돌리거나 두 번 고를 수 없다.
-    /// </summary>
-    public class EventWindow
-    {
-        private static readonly Vector2 ChoiceSize = new Vector2(760f, 64f);
-
-        private readonly IReadOnlyList<PartyMemberData> roster;
-        private readonly Action onLeave;
-        private readonly RectTransform panel;
-        private readonly List<Button> choiceButtons = new List<Button>();
-        private readonly Text body;
-
-        private static RunProgression Run => RunProgression.Current;
-
-        public EventWindow(Transform root, RunEventAsset asset, IReadOnlyList<PartyMemberData> roster, Action onLeave)
-        {
-            this.roster = roster;
-            this.onLeave = onLeave;
-
-            panel = NodeWindows.Panel(root, asset != null ? asset.title : "이벤트", new Vector2(1000f, 700f));
-
-            Text gold = UiKit.CreateText(panel, "Gold", $"골드 {Run.Gold}", 26, NodeWindows.TitleColor);
-            UiKit.Place(gold, new Vector2(1f, 1f), new Vector2(-120f, -50f), new Vector2(200f, 40f));
-
-            body = NodeWindows.Line(panel, "Body", asset != null ? asset.body : "(이벤트가 비어 있다)",
-                                    26, NodeWindows.BodyColor, new Vector2(0f, 170f), 860f);
-
-            if (asset == null || asset.ChoiceCount == 0)
-            {
-                ShowContinue();
-                return;
-            }
-
-            for (int i = 0; i < asset.choices.Length; i++)
-            {
-                RunEventChoice choice = asset.choices[i];
-                bool can = RunEventRules.CanChoose(in choice, Run.Gold);
-
-                string label = can ? choice.label : $"{choice.label}  (골드 {-choice.goldDelta} 필요)";
-                Button b = UiKit.CreateButton(panel, $"Choice_{i}", label, NodeWindows.ButtonColor, ChoiceSize, 24);
-                UiKit.Place(b, new Vector2(0.5f, 0.5f), new Vector2(0f, 20f - i * (ChoiceSize.y + 18f)), ChoiceSize);
-                b.interactable = can;
-                b.onClick.AddListener(() => Choose(choice));
-
-                choiceButtons.Add(b);
-            }
-
-            foreach (Button b in choiceButtons)
-                if (b.interactable) { NodeWindows.Focus(b); return; }
-
-            // 하나도 못 고르면 갇힌다. 저작 검사(NodeSceneWiringTests)가 막지만 씬 밖 애셋까지는 못 본다.
-            ShowContinue();
-        }
-
-        private void Choose(RunEventChoice choice)
-        {
-            if (!RunEventRules.Apply(in choice, Run, roster, NodeWindows.CardPool(roster),
-                                     () => UnityEngine.Random.value, out ComboCard card))
-                return;
-
-            foreach (Button b in choiceButtons) b.gameObject.SetActive(false);
-
-            string outcome = string.IsNullOrWhiteSpace(choice.outcome) ? "" : choice.outcome + "\n\n";
-            string cardLine = card != null ? $"\n{card.Data.skillName} 카드를 얻었다." : "";
-            body.text = $"{outcome}{RunEventRules.Summary(in choice)}{cardLine}";
-
-            Debug.Log($"[Event] 선택 — {choice.label} · {RunEventRules.Summary(in choice)} (골드 {Run.Gold})");
-            ShowContinue();
-        }
-
-        private void ShowContinue()
-            => NodeWindows.Focus(NodeWindows.BottomButton(panel, "계속", NodeWindows.ButtonColor, onLeave));
     }
 }

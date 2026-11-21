@@ -12,15 +12,8 @@ namespace Prototype
         /// <summary>적 몸이 생겼다(Awake). 표현층(EnemyStateTint)이 몸 색 컴포넌트를 붙인다.</summary>
         public static event Action<Enemy> Created;
 
-        /// <summary>적이 쓰러졌다. 진행층(ExpRewards)이 경험치를 적립한다.</summary>
-        public static event Action<Enemy> Defeated;
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics()
-        {
-            Created = null;
-            Defeated = null;
-        }
+        private static void ResetStatics() => Created = null;
 
         [SerializeField] private EnemyData data;
 
@@ -48,15 +41,7 @@ namespace Prototype
         {
             base.Start();
             BattleRegistry.RegisterEnemy(this);
-
-            // 경험치는 적이 스스로 단다. 적은 라운드 중에 계속 소환되므로 바깥에서
-            // 구독자를 관리하면 "언제 붙이고 언제 떼는가"가 통째로 새 문제가 된다.
-            // 오브젝트와 함께 죽는 구독이라 해제할 자리도 필요 없다.
-            Combat.OnDead += AwardExp;
         }
-
-        /// <summary>보상 계산은 진행층(ExpRewards)이 한다. 여기는 신호만 넘긴다.</summary>
-        private void AwardExp() => Defeated?.Invoke(this);
 
         /// <summary>
         /// 수치 테이블을 실제 컴포넌트에 밀어 넣는다. Awake가 부르고,

@@ -18,7 +18,7 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | [usecase-02-Run.puml](usecase-02-Run.puml) | ② 런 맵 · 상점 · 이벤트 · 휴식 · 보상 카드 · 스킬 레벨 · 결과 |
 | [usecase-03-Combat.puml](usecase-03-Combat.puml) | ③ 이동 · 평타 · 대시 패리 · 피격 · 상태이상 · 가드 |
 | [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 총공격 슬롯 편집 · 자동 발동 · 콤보 실행 · 어시스트 · 자동 카드 |
-| [usecase-05-Stage.puml](usecase-05-Stage.puml) | ⑤ 웨이브 · 적 행동 · 보스 패턴 · 클리어 · 경험치 |
+| [usecase-05-Stage.puml](usecase-05-Stage.puml) | ⑤ 웨이브 · 적 행동 · 보스 패턴 · 클리어 · 보상 |
 
 제외: `CastTester` · `TrainingDummy`(테스트용).
 
@@ -55,9 +55,9 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | 3 | Agent | Characters · Control · AI | 몸의 종류(Player/Ally/Enemy) · 조작 · 적 AI · 공격 토큰 |
 | 4 | Stage | Stage | 방 · 웨이브 · 스폰 · 엘리트 표기 |
 | 4.5 | Party | Party | 파티 조합 데이터(`PartyLoadout` · `PartyCatalog`) |
-| 5 | Run | Progression | 런 **데이터** — 경험치 · 골드 · 지도 · 카드 제안 규칙 |
-| 6 | Tactic | Battle · Deck | 총공격 · 콤보 · 어시스트 · 전투 UI · 파티 조립 · 보상 카드 창 |
-| 9 | App | FlowScene | 씬 흐름 · `GameManager` (`IStageContext` · `IRunHost` 구현) |
+| 5 | Run | Progression | 런 **데이터** — 골드 · 지도 · 카드 제안 규칙 |
+| 6 | Tactic | Battle · Deck | 총공격 · 콤보 · 어시스트 · 전투 UI · 파티 조립 |
+| 9 | App | FlowScene | 씬 흐름 · `GameManager` (`IStageContext` · `IRunHost` 구현) · 대화 · 상호작용 · 클리어 보상 |
 | 10 | Presentation | Vfx | **맨 위 표현층** — 아무도 Vfx를 직접 부르지 않는다 |
 
 Vfx를 맨 위에 둔 이유: 본게임에서 연출을 갈아 끼울 때 Vfx 폴더만 바꾸면 되게 하려고.
@@ -111,9 +111,7 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 | 이벤트 | 구독 | 전에는 |
 |---|---|---|
 | `Enemy.Created` | `EnemyStateTint` (Vfx) — 몸 색 컴포넌트 부착 | `Enemy.Awake`가 `AddComponent<EnemyStateTint>` |
-| `Enemy.Defeated` | `ExpRewards` (Run) — 경험치 적립 | `Enemy`가 `ExpRewards.Award` 직접 호출 |
 | `StageDirector.AnyWaveCleared` | `CastDirector` (Tactic) — 남은 시전 회수 | `CastDirector.RecallScene()` 직접 호출 |
-| `StageDirector.AllWavesCleared` | `ExpRewards` (Run) — 경험치 정산 | `ExpRewards.Settle()` 직접 호출 |
 
 구현을 꽂거나 구독하는 자리는 전부 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` +
 `[UnityEditor.InitializeOnLoadMethod]`(에디터 전용) 두 개를 단다 — 에디트 모드(EditMode 테스트)에서도

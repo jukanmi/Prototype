@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace Prototype
 {
@@ -67,8 +68,54 @@ namespace Prototype
         /// </summary>
         public bool BulletTimePressed => Pressed(bulletTimeAction);
 
-        /// <summary>로비 오브젝트 상호작용(기본 F).</summary>
+        /// <summary>상호작용 지점(Interactable) — 기본 F.</summary>
         public bool InteractPressed => Pressed(interactAction);
+
+        /// <summary>
+        /// 상호작용 키가 이번 프레임에 눌렸는가 — <b>조작이 잠겨 있어도</b> 본다.
+        ///
+        /// 창(대화 · 상점 · 선택지)이 떠 있으면 Gameplay 맵이 꺼져 <see cref="InteractPressed"/>는 늘 거짓이다.
+        /// 창 안에서도 "F로 고른다"가 되어야 해서 액션 대신 그 액션에 물린 <b>키</b>를 직접 본다 —
+        /// 바인딩을 따라가므로 리바인드한 키도 그대로 먹는다.
+        /// </summary>
+        public bool InteractKeyPressed
+        {
+            get
+            {
+                foreach (InputControl control in interactAction.controls)
+                    if (control is ButtonControl button && button.wasPressedThisFrame) return true;
+
+                return false;
+            }
+        }
+
+        // ── 메뉴 (창 안의 칸 고르기) ─────────────────────────
+
+        /// <summary>메뉴에서 지금 칸을 고른다 — Enter 또는 상호작용 키(F).</summary>
+        public bool MenuConfirmPressed => UiSubmitPressed || InteractKeyPressed;
+
+        /// <summary>
+        /// 메뉴 커서가 이번 프레임에 옮겨 갈 방향 — 화살표와 이동키(WASD) 둘 다.
+        ///
+        /// 이동키 쪽은 카드 조작 맵을 빌린다. 그 맵은 창이 떠 있는 동안만 열리므로(<c>InputMapSwitcher</c>)
+        /// 걸어 다닐 때는 WASD가 메뉴를 건드리지 않는다. 두 쪽이 같은 프레임에 서면 화살표가 이긴다.
+        /// </summary>
+        public Vector2Int MenuStep
+        {
+            get
+            {
+                Vector2Int arrows = uiNavigate.Step;
+                Vector2Int keys = BulletTimeMapEnabled ? cardNavigate.Step : Vector2Int.zero;
+                return new Vector2Int(arrows.x != 0 ? arrows.x : keys.x, arrows.y != 0 ? arrows.y : keys.y);
+            }
+        }
+
+        /// <summary>메뉴가 막 열렸다. 쥐고 있던 방향키 · 이동키를 첫 스텝으로 치지 않는다.</summary>
+        public void ResyncMenu()
+        {
+            uiNavigate?.Resync();
+            cardNavigate?.Resync();
+        }
 
 
 

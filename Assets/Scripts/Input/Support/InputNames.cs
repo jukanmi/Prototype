@@ -33,7 +33,7 @@ namespace Prototype
             public const string BulletTime = "BulletTime";
 
             /// <summary>
-            /// 로비 오브젝트 상호작용. 기본 F. E는 불릿타임이라 쓸 수 없다 —
+            /// 상호작용 지점(Interactable · NPC). 기본 F. E는 불릿타임이라 쓸 수 없다 —
             /// 로비에도 허수아비가 있어 불릿타임이 살아 있다.
             /// </summary>
             public const string Interact = "Interact";
@@ -95,7 +95,7 @@ namespace Prototype
             { InputActionNames.Gameplay.Jump, "점프" },
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "총공격 편집창 열기" },
-            { InputActionNames.Gameplay.Interact, "상호작용 (로비)" },
+            { InputActionNames.Gameplay.Interact, "상호작용" },
             { InputActionNames.BulletTime.Navigate, "칸 이동" },
         };
 

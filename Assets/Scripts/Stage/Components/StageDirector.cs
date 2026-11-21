@@ -24,15 +24,8 @@ namespace Prototype
         /// <summary>웨이브 하나를 소탕했다. 전술층(CastDirector)이 남은 시전을 회수한다.</summary>
         public static event Action AnyWaveCleared;
 
-        /// <summary>방의 웨이브를 전부 소탕했다. 진행층(ExpRewards)이 경험치를 정산한다.</summary>
-        public static event Action AllWavesCleared;
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStaticEvents()
-        {
-            AnyWaveCleared = null;
-            AllWavesCleared = null;
-        }
+        private static void ResetStaticEvents() => AnyWaveCleared = null;
 
         [Tooltip("1~5. 로그와 주제 문구에만 쓴다. 어떤 웨이브가 도는지는 씬의 보드가 정한다.")]
         [SerializeField] private int stageNumber = 1;
@@ -242,7 +235,7 @@ namespace Prototype
         {
             if (!started || finished) return;
 
-            // 전면 UI(레벨업 · 덱 편집)가 떠 있는 동안은 웨이브 간격을 세지 않는다.
+            // 전면 UI(일시정지 · 덱 편집)가 떠 있는 동안은 웨이브 간격을 세지 않는다.
             // 안 세우면 카드를 고르는 사이에 다음 웨이브가 등 뒤에서 쏟아진다.
             if (GameplayModal.IsOpen) return;
 
@@ -572,12 +565,8 @@ namespace Prototype
 
             if (waveIndex + 1 >= WaveCount)
             {
-                // 정산 · 레벨업은 방의 스폰이 <b>전부</b> 끝난 뒤 한 번만 한다 —
-                // 웨이브 중간에 필드가 비었다고 정산하면 다음 웨이브가 남았는데 창이 뜬다.
-                // 세션이 "쓸 수 있는 경험치"를 보고 열리므로 정산이 먼저다.
-                // 승리 판정은 세션이 닫힐 때까지 기다린다.
-                AllWavesCleared?.Invoke();
-
+                // 승리 판정(BattleSceneController)은 이 값과 남은 적 수를 함께 본다 —
+                // 웨이브 중간에 필드가 비었다고 이기면 다음 웨이브가 남았는데 보상이 떨어진다.
                 finished = true;
                 Debug.Log("[StageDirector] 모든 웨이브 소탕 완료");
                 return;

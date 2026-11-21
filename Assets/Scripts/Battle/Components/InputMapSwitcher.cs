@@ -3,8 +3,12 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 카드 조작 맵(<c>BulletTime</c>)을 총공격 편집창(<see cref="AssaultEditorUI"/>)이 열려 있는 동안만 연다.
-    /// 편집창은 이 맵의 <c>Navigate</c>로 포커스를 옮긴다. 이벤트가 아니라 매 프레임 상태를 본다.
+    /// 카드 조작 맵(<c>BulletTime</c>)을 총공격 편집창(<see cref="AssaultEditorUI"/>)이 열려 있거나
+    /// 창이 떠 조작이 잠긴 동안만 연다. 이벤트가 아니라 매 프레임 상태를 본다.
+    ///
+    /// 편집창은 이 맵의 <c>Navigate</c>로 포커스를 옮기고, 다른 창(대화 선택지 · 상점)은
+    /// <see cref="PlayerInputController.MenuStep"/>으로 WASD 커서를 읽는다. 걷는 동안에는 닫혀 있다 —
+    /// 열려 있으면 이동키가 편집창 칸 이동으로도 먹는다.
     /// </summary>
     [RequireComponent(typeof(PlayerInputController))]
     public class InputMapSwitcher : MonoBehaviour
@@ -25,8 +29,8 @@ namespace Prototype
         {
             if (input == null) return;
 
-            // 편집창은 모달이라 Gameplay가 잠겨 있어도 이동키(Navigate) 맵은 열려야 한다.
-            input.BulletTimeMapEnabled = AssaultEditorUI.IsOpen;
+            // 창은 모달이라 Gameplay가 잠겨 있어도 이동키(Navigate) 맵은 열려야 커서를 WASD로 옮긴다.
+            input.BulletTimeMapEnabled = AssaultEditorUI.IsOpen || input.GameplaySuspended;
         }
     }
 }

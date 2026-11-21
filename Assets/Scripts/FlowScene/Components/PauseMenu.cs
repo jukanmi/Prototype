@@ -13,7 +13,7 @@ namespace Prototype
     /// <see cref="TimeControl"/>만 쓰지만(결정 로그 ⑥), 일시정지는 화면 전체가 멈추는 게 맞다.
     /// UI 클릭 · 입력은 timeScale 과 상관없이 돈다.
     ///
-    /// 남의 창(레벨업 · 덱 편집 · 마을 창 · 조작키)이 떠 있거나 방금 닫힌 프레임에는 열리지 않는다 —
+    /// 남의 창(대화 · 상점 · 덱 편집 · 마을 창 · 조작키)이 떠 있거나 방금 닫힌 프레임에는 열리지 않는다 —
     /// 그 ESC는 그 창의 것이다.
     /// </summary>
     public class PauseMenu : MonoBehaviour

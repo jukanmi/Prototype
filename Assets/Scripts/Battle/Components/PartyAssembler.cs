@@ -98,7 +98,13 @@ namespace Prototype
         /// 이 컴포넌트는 실행 순서 -200이라 <c>PartyRoster.Start</c>(0)보다도 먼저 돈다 —
         /// 첫 몸이 무대에 서기 전에 체력이 확정된다.
         /// </summary>
-        private void Start()
+        private void Start() => RestoreFromRecord();
+
+        /// <summary>
+        /// 런 기록(<see cref="PartyState"/>)의 체력을 지금 선 몸에 맞춘다. <see cref="Start"/>가 한 번 부르고,
+        /// 몸이 선 채로 기록을 바꾸는 비전투 칸(모닥불 · 이벤트)이 바꾼 뒤에 다시 부른다 — 화면의 체력바가 따라온다.
+        /// </summary>
+        public void RestoreFromRecord()
         {
             PartyState state = RunProgression.Current.Party;
 
@@ -130,8 +136,8 @@ namespace Prototype
         private static void RestoreHealth(Entity body, float ratio)
         {
             if (body == null || body.Combat == null || body.Combat.Health == null) return;
-            if (ratio >= 1f) return;   // 기록이 없거나 만피다. 건드릴 것이 없다.
 
+            // 만피(1)도 넣는다 — 다시 맞출 때(RestoreFromRecord) 회복이 만피까지 올라가야 한다. 갓 선 몸에는 그대로다.
             body.Combat.Health.SetRatio(ratio);
         }
 

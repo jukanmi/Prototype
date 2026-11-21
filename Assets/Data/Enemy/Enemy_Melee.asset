@@ -29,6 +29,4 @@ MonoBehaviour:
   projectileSpeed: 0
   projectileRange: 0
   projectilePierce: 0
-  exp: 10
-  gold: 5
   prefab: {fileID: 2237326508346302774, guid: 35ced5feeaf4bce49b41290f4280f17e, type: 3}

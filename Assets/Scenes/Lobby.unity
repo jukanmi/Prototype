@@ -633,9 +633,14 @@ MonoBehaviour:
   deadZoneHalfWidth: 1.5
   minX: 0
   maxX: 0
-  shakeAmplitude: 0.3
-  shakeDuration: 0.25
-  shakeCooldown: 0.5
+  basicShake:
+    amplitude: 0.08
+    duration: 0.1
+    cooldown: 0.15
+  skillShake:
+    amplitude: 0.3
+    duration: 0.25
+    cooldown: 0.5
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -978,6 +983,132 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 13, y: 4, z: 0.5}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &937680858
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3572346084441602960, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_SortingOrder
+      value: -199
+      objectReference: {fileID: 0}
+    - target: {fileID: 4573506378757142131, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6145137433148996099, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_SortingOrder
+      value: -200
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631662371215184987, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: lines.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631662371215184987, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: 'lines.Array.data[0]'
+      value: "\uAE30\uC5B5 \uC870\uAC01\uC73C\uB85C \uC601\uAD6C \uAC15\uD654\uB97C
+        \uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+      objectReference: {fileID: 0}
+    - target: {fileID: 6734300126761519738, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_Name
+      value: Altar NPC
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: label
+      value: "\uC720\uC0B0 \uC81C\uB2E8"
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: radius
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 2000000102}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OpenAltar
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: Prototype.LobbyController, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 7260849076060109630, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: onInteract.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 7635194681133861568, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: facingRoot
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8163877768535530770, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8695398512408841438, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 6631662371215184987, guid: 76d51418dce94105953f234ad847eb38, type: 3}
+      propertyPath: facing.x
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 76d51418dce94105953f234ad847eb38, type: 3}
 --- !u!1 &1121415244
 GameObject:
   m_ObjectHideFlags: 0
@@ -1178,7 +1309,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.36, y: 1, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 891502961}
@@ -1277,10 +1408,24 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
-  station: 0
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Interactable
   label: "\uBBF8\uAD81 \uC785\uAD6C"
   radius: 1.3
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2000000102}
+        m_TargetAssemblyTypeName: Prototype.LobbyController, Assembly-CSharp
+        m_MethodName: Depart
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2000000300
 GameObject:
   m_ObjectHideFlags: 0
@@ -1324,57 +1469,24 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
-  station: 1
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Interactable
   label: "\uC6A9\uBCD1 \uAC8C\uC2DC\uD310"
   radius: 1.2
---- !u!1 &2000000400
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2000000401}
-  - component: {fileID: 2000000402}
-  m_Layer: 0
-  m_Name: Station_Altar
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2000000401
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2000000400}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.8, y: 0, z: 2.2}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2000000402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2000000400}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
-  station: 3
-  label: "\uC720\uC0B0 \uC81C\uB2E8"
-  radius: 1.2
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2000000102}
+        m_TargetAssemblyTypeName: Prototype.LobbyController, Assembly-CSharp
+        m_MethodName: OpenParty
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2000000500
 GameObject:
   m_ObjectHideFlags: 0
@@ -1418,10 +1530,24 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
-  station: 2
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Interactable
   label: "\uB9C8\uBC95\uC0AC"
   radius: 1.2
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2000000102}
+        m_TargetAssemblyTypeName: Prototype.LobbyController, Assembly-CSharp
+        m_MethodName: OpenSettings
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2000000600
 GameObject:
   m_ObjectHideFlags: 0
@@ -1465,10 +1591,24 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f392bbf21dd442cc909333e746fe688a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Prototype.LobbyInteractable
-  station: 4
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.Interactable
   label: "\uAE30\uB85D\uD310"
   radius: 1.2
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2000000102}
+        m_TargetAssemblyTypeName: Prototype.LobbyController, Assembly-CSharp
+        m_MethodName: OpenRecords
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1482,6 +1622,6 @@ SceneRoots:
   - {fileID: 2000000101}
   - {fileID: 2000000201}
   - {fileID: 2000000301}
-  - {fileID: 2000000401}
   - {fileID: 2000000501}
   - {fileID: 2000000601}
+  - {fileID: 937680858}

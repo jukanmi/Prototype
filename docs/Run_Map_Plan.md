@@ -26,8 +26,8 @@
 | `BattleSceneController` 승리 · 출구 | `HasNextStage`면 다음 씬 | `HasNextNode`면 지도로, 마지막 층이면 전체 클리어 |
 | `StageDirector` | 보드의 조우를 저작 그대로 | **칸 종류의 보정값을 받아** 소환 순간에만 적용 |
 | `PartyState` | 체력 비율 · 생사 기록 | `ChangeHp(delta, roster)` — 몸 없는 씬에서 체력 증감 **(완료)** |
-| `RunProgression` | 경험치 · 레벨 · 런 덱 | **골드**(`Gold` · `AddGold` · `TrySpendGold`) **(완료)** |
-| 씬 `Node_Rest` · `Node_Shop` · `Node_Event` | 없음 | 비전투 칸. `NodeSceneController` 하나가 들어오자마자 창을 띄운다 **(완료)** |
+| `RunProgression` | 경험치 · 레벨 · 런 덱 | **골드**(`Gold` · `AddGold` · `TrySpendGold`) **(완료)**. 경험치는 없앴다 — 적을 잡아도 아무것도 안 들어온다 |
+| 씬 `Node_Shop` · `Node_Event` · `Node_Event_Fight` · `Node_Event_Camp` | 없음 | 비전투 칸. 걸어다니는 방이고 NPC · 모닥불이 창을 연다. 오른쪽 벽으로 나간다. 옛 `Node_Rest`는 이벤트 `Node_Event_Camp`가 됐다 **(완료)** |
 | 씬 `RunMap` | 없음 | **새로 만든다.** Boot 위에 Additive로 뜨는 지도 화면 |
 
 한 줄로: **지도는 "다음에 어느 씬을 어떤 보정으로 여는가"만 정한다. 씬 안의 내용은 그 씬이 정한다** —
@@ -128,8 +128,8 @@ RunMapRecipe (ScriptableObject)
 | --- | --- | --- |
 | 0 | 1 | Stage_01 (Battle) — 입문은 고정 |
 | 1 | 2 | Stage_02 (Battle, 아레나) · Stage_03 (Battle) |
-| 2 | 2~3 | Stage_03 (Battle) · Stage_04 (Battle) · Stage_01 (Elite) · Node_Event (Event) |
-| 3 | 2 | Node_Rest (Rest) · Node_Shop (Shop) · Stage_04 (Elite) · Stage_03 (Elite) |
+| 2 | 2~3 | Stage_03 (Battle) · Stage_04 (Battle) · Stage_01 (Elite) · Node_Event · Node_Event_Fight · Node_Event_Camp (Event) |
+| 3 | 2 | Node_Event · Node_Event_Fight · Node_Event_Camp (Event) · Node_Shop (Shop) · Stage_04 (Elite) · Stage_03 (Elite) |
 | 4 | 1 | Stage_05 (Boss) |
 
 보스 직전 층에 휴식 · 상점을 모은다. 골드가 가장 많이 쌓인 때이고, 보스 앞에서 체력을 채울지
@@ -191,11 +191,11 @@ public static class EncounterModifierRules
 
 - `SceneLoader.SwapTo`가 이미 "전투 씬 내리기 → 새 씬 올리기 → 활성 씬 지정 → 페이드"를 한다. 지도를 씬으로 두면 **전환 코드가 한 줄도 안 는다.**
 - Boot에 UI를 두면 전투 씬 위에 겹치는 순간이 생기고, `BattleRegistry` · `TimeControl` 정리 순서를 새로 따져야 한다.
-- 씬 칸이 빈 휴식 칸은 지도에서 바로 회복하고 끝낸다(2.1). 씬이 있는 휴식 칸은 `Node_Rest`로 간다 — 둘 다 `PartyState.ChangeHp` 하나를 부른다.
+- 씬 칸이 빈 휴식 칸은 지도에서 바로 회복하고 끝낸다(2.1). 씬이 있던 휴식 칸은 이벤트 칸의 모닥불(`Node_Event_Camp` · `NodeSceneController.Rest`)이 됐다 — 둘 다 `PartyState.ChangeHp` 하나를 부른다.
 
 ### 2.7 비전투 칸은 "들어오자마자 창" 씬이고, 골드는 스테이지 클리어 때 들어온다 — 0단계에서 완료
 
-**씬.** `Node_Rest` · `Node_Shop` · `Node_Event`에는 카메라와 `NodeSceneController` 하나뿐이다.
+**씬.** 처음에는 카메라와 `NodeSceneController` 하나뿐이었다. 지금은 마을과 같은 걸어다니는 방이다(`docs/Lobby_Plan.md`).
 그림이 아직 없어서 `Start`에서 창을 코드로 짓는다(`NodeWindows.cs`). 그림이 생기면 씬에 배경을 깔고
 창은 그대로 그 위에 뜬다 — 흐름은 안 바뀐다.
 
@@ -211,10 +211,10 @@ public static class EncounterModifierRules
 - **상점 · 이벤트 카드는 죽은 동료의 직업을 뺀다**(`NodeRules.AvailableRoles`). 전투 씬은 몸을 보고 거르지만 여기엔 몸이 없어 편성 + 사망 기록으로 같은 답을 낸다.
 - 체력을 깎는 이벤트도 **산 몸을 0으로 떨어뜨리지 않는다.** 이벤트가 동료를 죽이는 통로가 되면 안 된다.
 
-**골드.** `RunProgression.Gold` — 경험치와 **따로** 둔다. 한 주머니면 상점에서 산 만큼 레벨업 황금 확률이 줄어드는 교환이 생긴다.
+**골드.** `RunProgression.Gold`. 전투 칸을 깨면 바닥에 금화가 떨어지고, **주워야** 들어온다(`ClearLoot`). 적을 잡을 때는 안 들어온다.
 
 ```
-클리어 보상(n, 칸) = (40 + 10 × (n − 1)) × 배율     n = 층 번호, BattleSceneController.HandleVictory 에서 한 번
+클리어 보상(n, 칸) = (40 + 10 × (n − 1)) × 배율     n = 층 번호, 이기면 금화 하나로 떨어진다(HandleVictory → ClearLoot)
 배율               = 정예 150% · 나머지 100%          (6항에서 정예 칸의 대가로 정했다)
 카드 값            = 일반 50 · 황금 100
 ```
@@ -238,7 +238,7 @@ public static class EncounterModifierRules
 - 코드: `RunProgression.Gold` · `GoldRules` · `NodeRules` · `PartyState.ChangeHp` · `RunEventAsset`(+ `RunEventChoice` · `RunEventRules`) ·
   `NodeSceneController`(+ `NodeSceneKind`) · `NodeWindows`(휴식 · `ShopWindow` · `EventWindow`) · `SceneNames.Node*` · `UiLayer.NodeWindow` ·
   `BattleSceneController.HandleVictory`의 골드 지급.
-- 씬: `Assets/Scenes/Node/Node_Rest|Shop|Event.unity` — Build Settings 등록.
+- 씬: `Assets/Scenes/Node/Node_Shop|Event|Event_Fight|Event_Camp.unity` — Build Settings 등록.
 - 데이터: `Assets/Data/Events/Event_Camp|Merchant|Spring.asset` — 이벤트 씬 후보로 꽂힘.
 - 테스트: `NodeRulesTests`(골드 수치 · 지출 · 직업 거르기 · 몸 없는 체력 · 이벤트 적용),
   `NodeSceneWiringTests`(빌드 목록 · 씬마다 컨트롤러 하나와 종류 · 리스너 하나 · 이벤트 후보가 고를 수 있는 상태).
@@ -435,11 +435,11 @@ public static class EncounterModifierRules
 
 0단계(지금 흐름에서 `stageScenes`에 끼워서, 또는 씬 단독 실행)
 
-- [ ] 스테이지 클리어 안내에 "골드 +40"이 뜨고, 2층은 +50이다
-- [ ] 정예 칸 클리어 안내는 `골드 +90 (정예 x1.5) · 지도로`(3층 기준)이고, 글자가 안내 칸 밖으로 잘리지 않는다
+- [ ] 스테이지를 깨면 금화 · 상자가 떨어지고, 금화를 주우면 "+40 골드"가 뜬다(2층은 +50)
+- [ ] 정예 칸 클리어 안내는 `정예 클리어` · `금화 x1.5 · 유물 1개 · 지도로`이고, 금화를 주우면 +90(3층 기준), 상자는 빨갛다
 - [ ] 지도에서 정예 칸에 커서를 두면 설명줄 끝에 `클리어 골드 x1.5`가 보인다
 - [ ] 상점: 카드 세 장이 가운데 한 줄로 서고, 값 글자가 카드 아래에 겹치지 않게 붙는다. 모자라면 값이 붉고 카드가 안 눌린다
-- [ ] 상점: 사면 골드가 줄고 그 칸이 "구매함"이 된다. 다음 전투 손패 · 덱 상황판에 산 카드가 들어 있다
+- [ ] 상점: 사면 골드가 줄고 그 칸이 "구매함"이 된다. 다음 전투에서 산 카드가 나온다
 - [ ] 이벤트: 글이 패널 안에서 줄바꿈되고, 선택지 버튼과 겹치지 않는다. 골드가 모자란 선택지는 흐리고 "(골드 N 필요)"가 붙는다
 - [ ] 이벤트: 고르면 선택지가 사라지고 결과 글 + [계속]만 남는다
 - [ ] 휴식: 체력이 깎인 채 들어갔다 나오면 다음 전투 체력바가 30%p 올라 있다. 죽은 동료는 여전히 없다
@@ -478,8 +478,8 @@ public static class EncounterModifierRules
 
 - **2층에서 아레나(Stage_02)를 건너뛸 수 있게 둘 것인가.** 2.2 표대로면 Stage_03을 고른 플레이어는
   "벽에서 나오는 적"을 보스 층에서 처음 본다. 막으려면 1층을 Stage_02 고정으로 두고 갈림길을 2층부터 연다.
-- ~~**정예 칸의 대가.**~~ **정했다 — 클리어 골드 150%.** 판정 한 곳에서 한 번 주는 값이라 경험치 배율보다 건드릴 곳이 적다.
+- ~~**정예 칸의 대가.**~~ **정했다 — 클리어 골드 150%.** 판정 한 곳에서 한 번 떨어뜨리는 금화라 건드릴 곳이 적다.
   - 3층 정예 90 vs 일반 60 — 차이가 카드 반 장 값(25) 이상이어야 "골라 볼 만한 칸"이다. `EliteBonus_IsWorthAtLeastHalfACard`가 지킨다.
   - 배율은 정수 백분율(`EliteClearRewardPercent`). 기본 보상이 10 단위라 소수 없이 떨어진다 — 바꿔서 잘림이 생기면 테스트가 잡는다.
-  - 받는 순간이 보인다: 클리어 안내 `골드 +90 (정예 x1.5) · 지도로`. 고르기 전에도 보인다: 지도 설명줄 `… 클리어 골드 x1.5`.
+  - 받는 순간이 보인다: 클리어 안내 `금화 x1.5 · 유물 1개 · 지도로`, 주우면 `+90 골드`. 고르기 전에도 보인다: 지도 설명줄 `… 클리어 골드 x1.5`.
   - `×` 대신 `x` — 기본 폰트에 글리프가 있다는 보장이 없다(`CardOfferView`의 "데미지 x1.5"와 같은 이유).

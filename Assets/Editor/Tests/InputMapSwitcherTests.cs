@@ -94,5 +94,19 @@ namespace Prototype.Tests
 
             Assert.That(CardMapEnabled, Is.False);
         }
+
+        [Test]
+        public void GameplaySuspended_OpensCardMap_ForMenuCursor()
+        {
+            // 창(대화 선택지 · 상점)이 떠 조작이 잠기면 WASD로 커서를 옮긴다 — 맵이 열려야 한다.
+            controller.GameplaySuspended = true;
+            switcher.Apply();
+            Assert.That(CardMapEnabled, Is.True);
+
+            // 창이 닫히면 다시 닫힌다. 안 닫히면 걷는 키가 칸 이동으로도 먹는다.
+            controller.GameplaySuspended = false;
+            switcher.Apply();
+            Assert.That(CardMapEnabled, Is.False);
+        }
     }
 }

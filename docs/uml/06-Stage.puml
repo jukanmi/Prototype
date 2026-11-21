@@ -17,7 +17,6 @@ package "4 Stage" {
     }
     class StageDirector {
       + {static} AnyWaveCleared : event Action
-      + {static} AllWavesCleared : event Action
       .. 웨이브 진행 · 증원 · 소탕 판정 ..
     }
     class StageWaveBoard <<MonoBehaviour>> {
@@ -169,7 +168,6 @@ CameraAnchor ..> CameraFrameRules
 
 note right of StageDirector
   AnyWaveCleared → CastDirector(6)가 남은 시전 회수
-  AllWavesCleared → ExpRewards(5)가 경험치 정산
 end note
 note bottom of IStageContext
   구현: GameManager (9 App).

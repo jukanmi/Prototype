@@ -31,8 +31,8 @@ namespace Prototype
         /// <summary>파티 체력 HUD.</summary>
         public const int PartyHealth = 15;
 
-        /// <summary>덱 상황판 팝업. 손패 · 피격 HUD를 덮는다.</summary>
-        public const int DeckInspector = 20;
+        /// <summary>바닥 보상(스킬 두루마리)에 다가가면 뜨는 설명. HUD는 덮고 창 밑에 깔린다.</summary>
+        public const int LootTooltip = 20;
 
         /// <summary>메인화면 파티 편성.</summary>
         public const int PartySelect = 50;
@@ -59,9 +59,6 @@ namespace Prototype
         /// 지금은 문제가 안 되지만, 한쪽이라도 상시 표시로 바뀌면 여기가 사고 지점이다.
         /// </summary>
         public const int Rebind = 200;
-
-        /// <summary>레벨 업 선택. 결과 화면 · 조작키보다 위.</summary>
-        public const int LevelUp = 210;
 
         /// <summary>덱 편성.</summary>
         public const int DeckBuilder = 220;
