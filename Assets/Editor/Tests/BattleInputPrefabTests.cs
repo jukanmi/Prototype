@@ -48,11 +48,7 @@ namespace Prototype.Tests
                     $"PartyHealthHUD.{field} 배선이 비었다 — 파티 체력 줄이 안 뜬다.");
         }
 
-        [TestCase("Band")]
-        [TestCase("Name")]
-        [TestCase("BarBack")]
-        [TestCase("BarBack/Fill")]
-        [TestCase("Numbers")]
+        [TestCaseSource(typeof(PartyHealthHUD), nameof(PartyHealthHUD.PartPaths))]
         public void PartyHealthRowTemplate_HasEveryPart(string path)
         {
             var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
@@ -62,6 +58,139 @@ namespace Prototype.Tests
             Assert.That(template, Is.Not.Null, "rowTemplate 이 비었다.");
             Assert.That(template.Find(path), Is.Not.Null,
                 $"RowTemplate/{path} 가 없다 — NewRow 가 이 이름으로 찾는다.");
+        }
+
+        /// <summary>좌측 하단 HUD다 — 패널이 왼쪽 아래 모서리에 붙어 있어야 한다.</summary>
+        [Test]
+        public void PartyHealthPanel_AnchorsBottomLeft()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var panel = (RectTransform)new SerializedObject(hud)
+                .FindProperty("panel").objectReferenceValue;
+
+            Assert.That(panel.anchorMin, Is.EqualTo(Vector2.zero), "패널 앵커가 좌하단이 아니다.");
+            Assert.That(panel.anchorMax, Is.EqualTo(Vector2.zero), "패널 앵커가 좌하단이 아니다.");
+        }
+
+        /// <summary>
+        /// 초상화 옆 체력바 바로 밑에 총공격 게이지가 붙는다. 게이지는 코드가 <see cref="HudLayout"/>대로 앉히고,
+        /// 체력 줄은 프리팹 값이라 — 둘이 갈리면 게이지가 체력바와 어긋나거나 판 사이에 틈이 벌어진다.
+        /// </summary>
+        [Test]
+        public void PartyHealthPanel_SharesHudOrigin()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var panel = (RectTransform)new SerializedObject(hud)
+                .FindProperty("panel").objectReferenceValue;
+
+            Assert.That(panel.pivot, Is.EqualTo(Vector2.zero), "패널 피벗이 좌하단이 아니다.");
+            Assert.That(panel.anchoredPosition,
+                Is.EqualTo(new Vector2(HudLayout.MarginX, HudLayout.MarginBottom)),
+                "체력 패널 원점이 HudLayout 과 다르다 — 게이지와 어긋난다.");
+        }
+
+        /// <summary>
+        /// 체력바는 HudLayout 자리에 선다. 게이지는 코드가 같은 표로 앉히므로,
+        /// 여기가 어긋나면 두 막대의 왼쪽 끝이 갈리거나 맞닿는 테두리가 벌어진다.
+        /// </summary>
+        [Test]
+        public void PartyHealthBar_MatchesHudLayout()
+        {
+            var bar = (RectTransform)Template().Find(PartyHealthHUD.PathBarBack);
+
+            Assert.That(bar.anchoredPosition.x, Is.EqualTo(HudLayout.BarX).Within(0.01f), "체력바 x 가 게이지와 다르다.");
+            Assert.That(bar.anchoredPosition.y, Is.EqualTo(HudLayout.HpY).Within(0.01f), "체력바 높이가 표와 다르다.");
+            Assert.That(bar.sizeDelta, Is.EqualTo(new Vector2(HudLayout.HpWidth, HudLayout.HpHeight)),
+                "체력바 크기가 표와 다르다.");
+        }
+
+        /// <summary>
+        /// 게이지는 체력바 밑에 <b>테두리를 맞대고</b> 붙는다 — 사이가 뜨면 따로 노는 두 막대로 읽힌다.
+        /// 게이지 윗변이 체력 테두리 두께만큼 겹쳐 올라가야 검은 줄이 한 겹이다.
+        /// </summary>
+        [Test]
+        public void Gauge_TouchesHealthBarFromBelow()
+        {
+            float gaugeTop = HudLayout.GaugeY + HudLayout.GaugeHeight;
+
+            Assert.That(gaugeTop, Is.EqualTo(HudLayout.HpY + HudLayout.Border).Within(0.01f),
+                "게이지 윗변이 체력바 테두리와 안 맞는다 — 틈이 나거나 두 줄로 겹친다.");
+            Assert.That(HudLayout.GaugeHeight, Is.LessThan(HudLayout.HpHeight), "게이지가 체력바보다 얇아야 한다.");
+            Assert.That(HudLayout.GaugeWidth, Is.LessThan(HudLayout.HpWidth), "게이지가 체력바보다 짧아야 계단이 된다.");
+        }
+
+        /// <summary>막대 조각은 전부 같은 각으로 꺾인 SlantedBar 다 — 하나라도 사각 Image 면 끝이 어긋난다.</summary>
+        [TestCase(PartyHealthHUD.PathBarBack)]
+        [TestCase(PartyHealthHUD.PathTrack)]
+        [TestCase(PartyHealthHUD.PathTrail)]
+        [TestCase(PartyHealthHUD.PathFill)]
+        public void PartyHealthBarParts_AreSlanted(string path)
+        {
+            var bar = Template().Find(path).GetComponent<SlantedBar>();
+            Assert.That(bar, Is.Not.Null, $"{path} 가 SlantedBar 가 아니다.");
+            Assert.That(bar.SlantRatio, Is.EqualTo(HudLayout.SlantRatio).Within(0.001f), $"{path} 의 꺾임 각이 다르다.");
+        }
+
+        /// <summary>이름 · 바탕판은 뺐다. 남아 있으면 초상화 옆에 빈 판이나 글자가 다시 뜬다.</summary>
+        [TestCase("Name")]
+        [TestCase("Plate")]
+        public void PartyHealthRow_HasNo(string child)
+        {
+            Assert.That(Template().Find(child), Is.Null, $"RowTemplate/{child} 가 남아 있다.");
+        }
+
+        /// <summary>체력바 왼쪽 끝은 초상화 틀 오른쪽 변에 딱 붙는다 — 틈도 겹침도 없다.</summary>
+        [Test]
+        public void PartyHealthBar_TouchesFrameRightEdge()
+        {
+            var frame = (RectTransform)Template().Find(PartyHealthHUD.PathFrame);
+            var bar = (RectTransform)Template().Find(PartyHealthHUD.PathBarBack);
+
+            float frameRight = frame.anchoredPosition.x + frame.sizeDelta.x;
+            Assert.That(frame.sizeDelta, Is.EqualTo(new Vector2(HudLayout.FrameSize, HudLayout.FrameSize)), "틀 크기가 표와 다르다.");
+            Assert.That(bar.anchoredPosition.x, Is.EqualTo(frameRight).Within(0.01f), "체력바가 틀에 딱 붙지 않았다.");
+        }
+
+        /// <summary>
+        /// 얼굴은 틀 위로 삐져나오고 아래는 틀 안에서 잘린다 — 자르는 상자(RectMask2D)가
+        /// 위로만 <see cref="HudLayout.PortraitOverflow"/>만큼 열려 있어야 한다.
+        /// </summary>
+        [Test]
+        public void Portrait_PopsOutAboveFrame()
+        {
+            var clip = (RectTransform)Template().Find(PartyHealthHUD.PathClip);
+            Assert.That(clip.GetComponent<UnityEngine.UI.RectMask2D>(), Is.Not.Null, "얼굴을 자르는 RectMask2D 가 없다.");
+
+            Assert.That(clip.offsetMax.y, Is.EqualTo(HudLayout.PortraitOverflow).Within(0.01f), "위쪽이 틀 밖으로 열려 있지 않다.");
+            Assert.That(clip.offsetMin.y, Is.EqualTo(HudLayout.FrameBorder).Within(0.01f), "아래쪽이 틀 안쪽에서 잘리지 않는다.");
+
+            var face = (RectTransform)Template().Find(PartyHealthHUD.PathFace);
+            Assert.That(face.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(face.anchorMax, Is.EqualTo(Vector2.one), "얼굴이 자르는 상자를 꽉 채우지 않는다.");
+        }
+
+        /// <summary>틀이 줄의 맨 앞이어야 삐져나온 머리가 체력바 테두리에 가리지 않는다.</summary>
+        [Test]
+        public void Frame_IsDrawnLast()
+        {
+            RectTransform row = Template();
+            Assert.That(row.Find(PartyHealthHUD.PathFrame).GetSiblingIndex(), Is.EqualTo(row.childCount - 1));
+        }
+
+        /// <summary>체력바는 단색이다 — 채움 위에 하이라이트 같은 덧칠 조각이 없어야 한다.</summary>
+        [Test]
+        public void PartyHealthFill_IsSolid()
+        {
+            Transform fill = Template().Find(PartyHealthHUD.PathFill);
+            Assert.That(fill.childCount, Is.Zero, "체력바 채움 위에 덧칠 조각이 남아 있다 — 단색이 아니다.");
+        }
+
+        private static RectTransform Template()
+        {
+            var hud = Load(HostPath).GetComponentInChildren<PartyHealthHUD>(true);
+            var template = (RectTransform)new SerializedObject(hud).FindProperty("rowTemplate").objectReferenceValue;
+            Assert.That(template, Is.Not.Null, "rowTemplate 이 비었다.");
+            return template;
         }
 
         /// <summary>원본은 꺼진 채로 둔다. 켜 두면 아무도 없는 빈 줄이 하나 남는다.</summary>

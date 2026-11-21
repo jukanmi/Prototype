@@ -14,14 +14,14 @@ namespace Prototype
 
     public static class NodeWindows
     {
-        public static readonly Color BackdropColor = new Color(0.04f, 0.05f, 0.07f, 1f);
-        public static readonly Color PanelColor = new Color(0.11f, 0.12f, 0.15f, 0.98f);
-        public static readonly Color TitleColor = new Color(1f, 0.86f, 0.45f);
-        public static readonly Color BodyColor = new Color(0.85f, 0.87f, 0.90f);
-        public static readonly Color SubColor = new Color(0.72f, 0.76f, 0.80f);
-        public static readonly Color ButtonColor = new Color(0.24f, 0.30f, 0.38f);
-        public static readonly Color ExitColor = new Color(0.30f, 0.32f, 0.36f);
-        public static readonly Color WarnColor = new Color(1f, 0.55f, 0.45f);
+        public static readonly Color BackdropColor = UiTheme.Ink.WithAlpha(1f);
+        public static readonly Color PanelColor = UiTheme.Ink.WithAlpha(0.97f);
+        public static readonly Color TitleColor = UiTheme.Gold;
+        public static readonly Color BodyColor = UiTheme.TextMain;
+        public static readonly Color SubColor = UiTheme.TextSub;
+        public static readonly Color ButtonColor = UiTheme.ButtonNormal;
+        public static readonly Color ExitColor = UiKit.ButtonFill(ButtonKind.Ghost);
+        public static readonly Color WarnColor = UiTheme.Hp;
 
         public static readonly Vector2 ExitSize = new Vector2(240f, 64f);
 
@@ -144,7 +144,7 @@ namespace Prototype
                 view.OnPicked += Buy;
                 views[i] = view;
 
-                prices[i] = UiKit.CreateText(panel, $"Price_{i}", "", 26, Color.white);
+                prices[i] = UiKit.CreateText(panel, $"Price_{i}", "", 26, UiTheme.TextMain);
                 UiKit.Place(prices[i], new Vector2(0.5f, 0.5f),
                             new Vector2(left + step * i, 60f - CardOfferView.Height * 0.5f - 36f),
                             new Vector2(CardOfferView.Width, 36f));
@@ -199,7 +199,7 @@ namespace Prototype
 
                 views[i].SetInteractable(!sold[i] && affordable);
                 prices[i].text = sold[i] ? "구매함" : $"{price} 골드";
-                prices[i].color = sold[i] ? NodeWindows.SubColor : affordable ? Color.white : NodeWindows.WarnColor;
+                prices[i].color = sold[i] ? NodeWindows.SubColor : affordable ? UiTheme.TextMain : NodeWindows.WarnColor;
             }
         }
     }

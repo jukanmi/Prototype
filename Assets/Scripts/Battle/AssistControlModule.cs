@@ -208,7 +208,7 @@ namespace Prototype
         {
             if (PreparedSkill != null && PreparedSkill.animation != null)
             {
-                animator.SetSkillClip(PreparedSkill.animation);
+                animator.SetSkillClip(PreparedSkill.animation, PreparedSkill);
                 animator.HoldSkillPose();
             }
             else animator.PlayState("Idle");

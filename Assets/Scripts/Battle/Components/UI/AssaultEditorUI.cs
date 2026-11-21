@@ -40,17 +40,13 @@ namespace Prototype
 
         // ── 색 ───────────────────────────────────────────
 
-        private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.85f);
-        private static readonly Color PanelColor = new Color(0.11f, 0.12f, 0.15f, 0.99f);
-        private static readonly Color ViewportColor = new Color(0f, 0f, 0f, 0.25f);
-        private static readonly Color CellColor = new Color(0.22f, 0.26f, 0.30f);
-        private static readonly Color EmptyColor = new Color(0.14f, 0.16f, 0.19f);
-        private static readonly Color FrameColor = new Color(0.08f, 0.09f, 0.11f);
-        private static readonly Color FocusColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color TitleColor = new Color(1f, 0.86f, 0.45f);
-        private static readonly Color SubColor = new Color(0.75f, 0.78f, 0.82f);
-        private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color CloseColor = new Color(0.24f, 0.42f, 0.30f);
+        private static readonly Color ViewportColor = UiTheme.InkDeep.WithAlpha(0.5f);
+        private static readonly Color CellColor = UiTheme.Raised;
+        private static readonly Color EmptyColor = UiTheme.InkDeep;
+        private static readonly Color FrameColor = UiTheme.Ink;
+        private static readonly Color FocusColor = UiTheme.Focus;
+        private static readonly Color SubColor = UiTheme.TextSub;
+        private static readonly Color HintColor = UiTheme.Gold;
 
         // ── 씬에 하나 ────────────────────────────────────
 
@@ -439,18 +435,12 @@ namespace Prototype
 
         private void BuildUI()
         {
-            root = UiKit.CreateImage(transform, "AssaultEditorRoot", BackdropColor);
-            UiKit.Stretch((RectTransform)root.transform);
-            root.GetComponent<Image>().raycastTarget = true;
+            // 골격은 공용 창(UiKit.Modal) — 바탕막 · 테두리 판 · 금색 제목 · 버튼 줄.
+            // 슬롯 · 목록은 판 위쪽 기준 좌표(SlotTop · ViewportTop)로 깔려 있어 본문(Body)이 아니라 판에 바로 얹는다.
+            UiKit.ModalParts m = UiKit.Modal(transform, "총공격 슬롯 편집", new Vector2(PanelWidth, PanelHeight));
+            root = m.Backdrop.gameObject;
             rootRect = (RectTransform)root.transform;
-
-            GameObject panel = UiKit.CreateImage(root.transform, "Panel", PanelColor);
-            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero,
-                new Vector2(PanelWidth, PanelHeight));
-            Transform p = panel.transform;
-
-            Text title = UiKit.CreateText(p, "Title", "총공격 슬롯 편집", 38, TitleColor);
-            UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 48f));
+            Transform p = m.Panel.transform;
 
             Text hint = UiKit.CreateText(p, "Hint",
                 "드래그 · 클릭 = 추가 / 슬롯 클릭 = 비우기   |   이동키로 선택 · 맨 윗줄에서 ↑ = 슬롯 줄 · Enter = 추가/비우기 · ESC = 닫기",
@@ -473,12 +463,12 @@ namespace Prototype
             emptyText = UiKit.CreateText(p, "Empty", "보유한 스킬이 없다", 24, SubColor);
             UiKit.Place(emptyText, new Vector2(0.5f, 1f), new Vector2(0f, ViewportTop - 120f), new Vector2(700f, 40f));
 
-            Button close = UiKit.CreateButton(p, "Close", "닫기", CloseColor, new Vector2(240f, 58f), 24);
+            Button close = UiKit.NewButton(m.Buttons, "Close", "닫기", ButtonKind.Ghost,
+                                           new Vector2(240f, UiTheme.ButtonHeight.Medium));
             close.onClick.AddListener(Close);
-            UiKit.Place(close, new Vector2(0.5f, 0f), new Vector2(0f, 46f), new Vector2(240f, 58f));
 
             // 드래그 중 포인터를 따라다니는 이름표. 이벤트를 막지 않는다.
-            ghost = UiKit.CreateText(root.transform, "Ghost", "", 26, Color.white);
+            ghost = UiKit.CreateText(root.transform, "Ghost", "", 26, UiTheme.TextMain);
             ghost.raycastTarget = false;
             var gr = (RectTransform)ghost.transform;
             gr.anchorMin = gr.anchorMax = gr.pivot = new Vector2(0.5f, 0.5f);
@@ -507,13 +497,13 @@ namespace Prototype
             content.anchoredPosition = Vector2.zero;
 
             // 오른쪽 슬라이더 — 스킬이 많아도 끌어서 훑을 수 있다.
-            GameObject barGo = UiKit.CreateImage(parent, "Scrollbar", new Color(0f, 0f, 0f, 0.4f));
+            GameObject barGo = UiKit.CreateImage(parent, "Scrollbar", UiTheme.InkDeep);
             var barRect = (RectTransform)barGo.transform;
             barRect.anchorMin = barRect.anchorMax = barRect.pivot = new Vector2(0.5f, 1f);
             barRect.sizeDelta = new Vector2(ScrollbarWidth, ViewportHeight);
             barRect.anchoredPosition = new Vector2(viewWidth * 0.5f, ViewportTop);
 
-            GameObject handleGo = UiKit.CreateImage(barRect, "Handle", new Color(0.75f, 0.78f, 0.82f, 0.9f));
+            GameObject handleGo = UiKit.CreateImage(barRect, "Handle", UiTheme.TextSub.WithAlpha(0.9f));
             var handleRect = (RectTransform)handleGo.transform;
             handleRect.anchorMin = Vector2.zero;
             handleRect.anchorMax = Vector2.one;
@@ -570,7 +560,7 @@ namespace Prototype
             view.art.raycastTarget = false;
             artGo.SetActive(false);
 
-            view.name = UiKit.CreateText(body, "Name", "", 16, Color.white);
+            view.name = UiKit.CreateText(body, "Name", "", 16, UiTheme.TextMain);
             UiKit.Band(view.name, new Vector2(0f, 0.24f), new Vector2(1f, 0.40f), 4f);
             view.name.horizontalOverflow = HorizontalWrapMode.Wrap;
             view.name.raycastTarget = false;

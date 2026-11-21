@@ -16,18 +16,18 @@ namespace Prototype
     ///
     /// 캔버스를 코드로 만들므로 씬·프리팹 배선이 필요 없다.
     /// <see cref="BattleSceneController"/>의 자식으로 붙어 씬과 함께 언로드된다.
+    ///
+    /// 전부 클리어 · 패배 창의 골격은 <see cref="UiKit.Modal"/>이다(기획서 5.3) — 제목은 <see cref="UiTheme.Size.Display"/>.
     /// </summary>
     public class StageResultUI : MonoBehaviour
     {
+        public static readonly Vector2 PanelSize = new Vector2(620f, 300f);
+        public static readonly Vector2 ButtonSize = new Vector2(240f, UiTheme.ButtonHeight.Medium);
 
-        private static readonly Color DimColor     = new Color(0f, 0f, 0f, 0.72f);
-        private static readonly Color PanelColor   = new Color(0.10f, 0.10f, 0.12f, 0.97f);
-        private static readonly Color RetryColor   = new Color(0.62f, 0.42f, 0.16f);
-        private static readonly Color MenuColor    = new Color(0.25f, 0.27f, 0.32f);
-        private static readonly Color ArrowColor   = new Color(1f, 0.85f, 0.35f);
-        private static readonly Color DefeatColor  = new Color(0.85f, 0.35f, 0.35f);
-        private static readonly Color VictoryColor = new Color(0.95f, 0.85f, 0.45f);
-        private static readonly Color NoteColor    = new Color(0.75f, 0.75f, 0.78f);
+        private static readonly Color ArrowColor   = UiTheme.Gold;
+        private static readonly Color DefeatColor  = UiTheme.Hp;
+        private static readonly Color VictoryColor = UiTheme.Gold;
+        private static readonly Color NoteColor    = UiTheme.TextSub;
 
         // ── 화살표 모양 ──
         private const float ArrowShaftWidth = 96f;
@@ -90,22 +90,22 @@ namespace Prototype
 
             BuildArrow(arrowRoot);
 
-            Text title = UiKit.CreateText(arrowRoot, "Title", "스테이지 클리어", 30, VictoryColor);
+            Text title = UiKit.CreateText(arrowRoot, "Title", "스테이지 클리어", UiTheme.Size.Heading, VictoryColor);
             UiKit.Place(title, new Vector2(0.5f, 0.5f), new Vector2(0f, 78f), new Vector2(260f, 40f));
 
-            Text guide = UiKit.CreateText(arrowRoot, "Guide", "오른쪽 벽으로 이동", 22, Color.white);
+            Text guide = UiKit.CreateText(arrowRoot, "Guide", "오른쪽 벽으로 이동", UiTheme.Size.Body, UiTheme.TextMain);
             UiKit.Place(guide, new Vector2(0.5f, 0.5f), new Vector2(0f, -72f), new Vector2(260f, 32f));
 
             if (!string.IsNullOrEmpty(nextStageLabel))
             {
-                Text next = UiKit.CreateText(arrowRoot, "Next", nextStageLabel, 17, NoteColor);
+                Text next = UiKit.CreateText(arrowRoot, "Next", nextStageLabel, UiTheme.Size.Caption, NoteColor);
                 UiKit.Place(next, new Vector2(0.5f, 0.5f), new Vector2(0f, -102f), new Vector2(260f, 28f));
             }
         }
 
         /// <summary>
         /// 화살표를 글자로 찍지 않고 사각형 셋으로 짓는다.
-        /// LegacyRuntime 폰트에 화살표 글리프가 있다는 보장이 없어서, 없으면 두부(□)가 뜬다.
+        /// 글꼴에 화살표 글리프가 있다는 보장이 없어서, 없으면 두부(□)가 뜬다.
         /// </summary>
         private static void BuildArrow(RectTransform parent)
         {
@@ -135,13 +135,11 @@ namespace Prototype
         {
             onMenu = menu;
 
-            Transform panel = BuildPanel("모든 스테이지 클리어", VictoryColor,
-                                         "보스를 쓰러뜨렸다.", 200f);
+            UiKit.ModalParts m = BuildPanel("모든 스테이지 클리어", VictoryColor, "보스를 쓰러뜨렸다.");
 
-            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "마을로", MenuColor,
-                                                      new Vector2(200f, 56f), 22);
-            UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(200f, 56f));
+            Button menuButton = UiKit.NewButton(m.Buttons, "Btn_Menu", "마을로", ButtonKind.Primary, ButtonSize);
             menuButton.onClick.AddListener(HandleMenu);
+            NodeWindows.Focus(menuButton);
         }
 
         // ── 패배 ────────────────────────────────────────
@@ -151,40 +149,33 @@ namespace Prototype
             onRetry = retry;
             onMenu = menu;
 
-            Transform panel = BuildPanel("패배", DefeatColor,
-                                         "아군이 모두 쓰러졌다.", 240f);
+            UiKit.ModalParts m = BuildPanel("패배", DefeatColor, "아군이 모두 쓰러졌다.");
 
-            Button retryButton = UiKit.CreateButton(panel, "Btn_Retry", "이 스테이지 재시작", RetryColor,
-                                                       new Vector2(230f, 56f), 21);
-            UiKit.Place(retryButton, new Vector2(0.5f, 0f), new Vector2(-124f, 44f), new Vector2(230f, 56f));
+            Button retryButton = UiKit.NewButton(m.Buttons, "Btn_Retry", "이 스테이지 재시작", ButtonKind.Danger, ButtonSize);
             retryButton.onClick.AddListener(HandleRetry);
 
-            Button menuButton = UiKit.CreateButton(panel, "Btn_Menu", "마을로", MenuColor,
-                                                      new Vector2(200f, 56f), 22);
-            UiKit.Place(menuButton, new Vector2(0.5f, 0f), new Vector2(124f, 44f), new Vector2(200f, 56f));
+            Button menuButton = UiKit.NewButton(m.Buttons, "Btn_Menu", "마을로", ButtonKind.Primary, ButtonSize);
             menuButton.onClick.AddListener(HandleMenu);
+            NodeWindows.Focus(menuButton);
         }
 
         // ── 공용 ────────────────────────────────────────
 
         /// <summary>
-        /// 뒤를 덮는 Dim 이 레이캐스트를 먹으므로, 패널이 떠 있는 동안 아래 UI 클릭이 새지 않는다.
+        /// 공용 창 골격. 바탕막이 레이캐스트를 먹으므로, 창이 떠 있는 동안 아래 UI 클릭이 새지 않는다.
+        /// 제목은 결과의 색(승리 금 · 패배 빨강)을 띠고 한 단계 크게 — 이 화면만의 큰 글씨다.
         /// </summary>
-        private Transform BuildPanel(string title, Color titleColor, string note, float height)
+        private UiKit.ModalParts BuildPanel(string title, Color titleColor, string note)
         {
-            GameObject dim = UiKit.CreateImage(transform, "Dim", DimColor);
-            UiKit.Stretch((RectTransform)dim.transform);
+            UiKit.ModalParts m = UiKit.Modal(transform, title, PanelSize);
+            m.Title.color = titleColor;
+            m.Title.fontSize = UiTheme.Size.Display;
 
-            GameObject panel = UiKit.CreateImage(dim.transform, "Panel", PanelColor);
-            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, height));
+            Text noteText = UiKit.NewText(m.Body, "Note", UiTheme.Size.Body, NoteColor, FontStyle.Normal);
+            noteText.text = note;
+            UiKit.Stretch(noteText.rectTransform);
 
-            Text titleText = UiKit.CreateText(panel.transform, "Title", title, 34, titleColor);
-            UiKit.Place(titleText, new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(520f, 52f));
-
-            Text noteText = UiKit.CreateText(panel.transform, "Note", note, 18, NoteColor);
-            UiKit.Place(noteText, new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(520f, 30f));
-
-            return panel.transform;
+            return m;
         }
 
         /// <summary>

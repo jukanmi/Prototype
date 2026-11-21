@@ -20,6 +20,16 @@ namespace Prototype
         [Tooltip("상태 전환 시 섞는 시간(초). 0이면 즉시 끊어 바꾼다.")]
         [SerializeField] private float crossFade = 0.05f;
 
+        [System.Serializable]
+        private struct SkillMotion
+        {
+            public SkillData skill;
+            public AnimationClip clip;
+        }
+
+        // Character-local motions keep shared skill assets usable by other rigs.
+        [SerializeField] private SkillMotion[] skillMotions;
+
         /// <summary>평타 연타가 클립을 갈아끼우는 자리. Animator 상태 이름이다.</summary>
         private const string AttackState = "Attack";
 
@@ -278,13 +288,22 @@ namespace Prototype
             => animator.HasState(0, Animator.StringToHash(stateName));
 
         /// <summary>
-        /// 스킬 클립을 Skill 슬롯에 꽂는다. <c>data.animation</c>이 비어 있으면(null)
-        /// 오버라이드를 무조건 null로 덮어써 슬롯을 원래 클립(<see cref="SkillSlotClip"/>, 즉
-        /// 기본 플레이스홀더)로 되돌린다 — 이전 스킬의 클립이 남아있으면 안 된다.
+        /// 캐릭터 전용 모션이 있으면 먼저 쓰고, 없으면 공유 스킬 클립을 Skill 슬롯에 꽂는다.
+        /// 둘 다 없거나 스킬 없이 null을 넘기면 원래 클립(<see cref="SkillSlotClip"/>)으로
+        /// 되돌린다 — 이전 스킬의 클립이 남아있으면 안 된다.
         /// </summary>
-        public void SetSkillClip(AnimationClip clip)
+        public void SetSkillClip(AnimationClip clip, SkillData skill = null)
         {
             if (overrides == null) return;
+            if (skill != null && skillMotions != null)
+            {
+                foreach (var motion in skillMotions)
+                {
+                    if (motion.skill != skill) continue;
+                    clip = motion.clip;
+                    break;
+                }
+            }
             if (currentSkillClip == clip) return;
 
             currentSkillClip = clip;

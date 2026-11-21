@@ -20,7 +20,7 @@ namespace Prototype
     {
         private const float NoticeSeconds = 4f;
 
-        private static readonly Color HudColor = new Color(1f, 0.86f, 0.45f);
+        private static readonly Color HudColor = UiTheme.Gold;
 
         private PartySelectUI party;
         private PauseMenu pause;
@@ -30,6 +30,17 @@ namespace Prototype
         private Text currency;
         private Text notice;
         private Coroutine noticeRoutine;
+
+        // ── 등장 연출 ──
+        /// <summary>땅속에서 출발하는 깊이. 몸 하나보다 조금 더 — 화면 아래에서 올라오는 게 보여야 한다.</summary>
+        private const float RiseDepth = 2.5f;
+        private const float RiseSeconds = 0.8f;
+
+        /// <summary>다음에 열리는 마을에서 등장 연출을 틀 것인가. <see cref="RequestRiseIntro"/>가 켜고 Awake가 소비한다.</summary>
+        private static bool riseRequested;
+
+        private bool riseThisVisit;
+        private bool arriving;
 
         private InputAction interactAction;
         private bool leaving;
@@ -46,7 +57,16 @@ namespace Prototype
         private void Awake()
         {
             RunProgression.Current.Reset();
+
+            riseThisVisit = riseRequested;
+            riseRequested = false;
         }
+
+        /// <summary>
+        /// 다음 마을 진입 때 주인공이 발밑에서 솟아오르게 한다. 타이틀의 [시작]이 부른다 —
+        /// 런을 마치고 돌아올 때는 안 부르므로 그 자리에 그냥 서 있다.
+        /// </summary>
+        public static void RequestRiseIntro() => riseRequested = true;
 
         private void Start()
         {
@@ -68,6 +88,54 @@ namespace Prototype
             {
                 ShowNotice($"기억 조각 +{meta.LastSettlement}");
                 meta.ClearLastSettlement();
+            }
+
+            if (riseThisVisit) StartCoroutine(RiseIntro());
+        }
+
+        /// <summary>
+        /// 주인공이 발밑 땅속에서 솟아오른다. 적의 땅속 등장(<see cref="EntranceDirector.PlanBurrow"/>)과
+        /// 같은 구동기를 쓰고, 배경 뒤로 숨기지 않는다는 것만 다르다 — 화면 아래에서 올라오는 게 보여야 한다.
+        ///
+        /// <b>화면이 다 열린 뒤에 튼다.</b> 씬 전환 페이드(0.3초) 동안 틀면 대부분이 검은 화면에 묻힌다.
+        /// 그동안은 몸을 배경 뒤에 숨기고 조작을 잠가 둔다 — 서 있다가 꺼지며 올라오면 어색하다.
+        /// </summary>
+        private IEnumerator RiseIntro()
+        {
+            arriving = true;
+
+            // PartyRoster.Start 가 몸을 시작 자리로 텔레포트하고 조종을 넘긴다. 그 뒤여야 한다.
+            yield return null;
+
+            Entity body = BattleRegistry.Controlled;
+            if (body == null) body = FindAnyObjectByType<Player>();
+            if (body == null || body.Physics == null) { arriving = false; yield break; }
+
+            EntranceGuard hold = EntranceGuard.Arm(body);   // 페이드가 걷힐 때까지 숨긴다
+            body.IsEntering = true;
+
+            while (SceneLoader.Instance != null && SceneLoader.Instance.IsBusy) yield return null;
+
+            if (body == null) { arriving = false; yield break; }
+
+            PartySpawnPoint.Resolve(out _, out Vector3 facing);
+
+            EntranceSpec spec = EntranceDirector.PlanBurrow(body.Physics.GroundPosition, RiseSeconds);
+            spec.startDepth = RiseDepth;
+            spec.facing = facing;
+            spec.onArrive = () => arriving = false;
+
+            EntranceDirector.Play(body, in spec);
+
+            // 판정은 끈 채로 두되(땅속에서 바닥 콜라이더에 걸리지 않게) 그림은 처음부터 보인다.
+            hold.Reveal();
+            hold.Release();
+
+            // 연출이 못 걸렸으면(Physics 없음 등) 잠금을 직접 푼다.
+            if (!EntranceDirector.IsPlaying(body))
+            {
+                body.IsEntering = false;
+                arriving = false;
             }
         }
 
@@ -103,7 +171,7 @@ namespace Prototype
             // 남의 창(일시정지 · 조작키 · 레벨업)이 떠 있거나 방금 닫혔다 — 안내도 상호작용도 쉰다.
             // ESC로 일시정지를 여는 것은 PauseMenu 가 직접 한다.
             bool suspended = input == null || input.GameplaySuspended;
-            bool blocked = suspended || wasSuspended || GameplayModal.IsOpen;
+            bool blocked = suspended || wasSuspended || GameplayModal.IsOpen || arriving;
             wasSuspended = suspended;
 
             if (blocked) { prompt.text = ""; return; }
@@ -280,7 +348,7 @@ namespace Prototype
             hud.transform.SetParent(transform, false);
             UiKit.BuildCanvas(hud, UiLayer.PartyHealth, match: 1f, raycaster: false);
 
-            prompt = UiKit.NewText(hud.transform, "Prompt", 30, Color.white, FontStyle.Bold);
+            prompt = UiKit.NewText(hud.transform, "Prompt", 30, UiTheme.TextMain, FontStyle.Bold);
             prompt.alignment = TextAnchor.MiddleCenter;
             UiKit.Place(prompt, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(800f, 50f));
 

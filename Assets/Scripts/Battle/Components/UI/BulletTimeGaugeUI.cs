@@ -3,15 +3,20 @@ using UnityEngine;
 namespace Prototype
 {
     /// <summary>
-    /// 화면 아래 가운데의 총공격 게이지. 막대는 <see cref="BulletTimeGaugeWidget"/>이 코드로 짓고,
+    /// 화면 <b>좌측 하단</b>, 주인공 초상화 옆 · 체력바 바로 밑의 총공격 게이지. 자리는 <see cref="HudLayout"/>이 정한다.
+    /// 막대는 <see cref="BulletTimeGaugeWidget"/>이 코드로 짓고,
     /// 여기서는 그 막대를 프리팹의 캔버스에 앉혀 매 프레임 먹인다.
     /// <see cref="BulletTimeController"/>가 붙은 GameObject에 둔다.
     /// </summary>
     [RequireComponent(typeof(BulletTimeController))]
     public class BulletTimeGaugeUI : MonoBehaviour
     {
-        /// <summary>화면 아래에서 막대 중심까지의 높이(캔버스 단위).</summary>
-        public const float BottomOffset = 167f;
+        /// <summary>
+        /// 막대가 앉는 자리 — 화면 왼쪽 아래 기준, 막대의 왼쪽 아래 꼭짓점.
+        /// 체력바와 같은 x에서 시작하고, 윗변이 체력바 테두리에 맞닿는다.
+        /// </summary>
+        public static Vector2 Position
+            => new Vector2(HudLayout.MarginX + HudLayout.BarX, HudLayout.MarginBottom + HudLayout.GaugeY);
 
         [Tooltip("막대를 그릴 캔버스.")]
         [SerializeField] private RectTransform _canvas;
@@ -37,10 +42,8 @@ namespace Prototype
             _gauge.Build(_canvas);
 
             RectTransform bar = _gauge.Root;
-            bar.anchorMin = new Vector2(0.5f, 0f);
-            bar.anchorMax = new Vector2(0.5f, 0f);
-            bar.pivot = new Vector2(0.5f, 0.5f);
-            bar.anchoredPosition = new Vector2(0f, BottomOffset);
+            bar.anchorMin = bar.anchorMax = bar.pivot = Vector2.zero;
+            bar.anchoredPosition = Position;
         }
 
         // UI는 비배율 시간으로 돈다 — TimeControl.Scale과 무관하게 막대는 움직여야 한다.

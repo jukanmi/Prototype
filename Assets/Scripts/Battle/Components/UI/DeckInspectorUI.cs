@@ -33,10 +33,10 @@ namespace Prototype
         // ── 색 ───────────────────────────────────────────
         // 칸에만 쓴다. 바 · 팝업 · 버튼 색은 프리팹으로 옮겼다.
 
-        private static readonly Color EntryColor = new Color(0.22f, 0.26f, 0.3f);
-        private static readonly Color EmptyEntryColor = new Color(0.4f, 0.18f, 0.18f);
-        private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color SubColor = new Color(0.72f, 0.76f, 0.8f);
+        private static readonly Color EntryColor = UiTheme.Raised;
+        private static readonly Color EmptyEntryColor = UiTheme.ButtonDanger;
+        private static readonly Color HintColor = UiTheme.Gold;
+        private static readonly Color SubColor = UiTheme.TextSub;
 
         /// <summary>어느 더미를 펼쳐 보고 있는지.</summary>
         private enum Pile
@@ -112,7 +112,8 @@ namespace Prototype
 
         private void Start()
         {
-            // UI 끔 — 상황판 배선(버튼 · 구독 · 첫 갱신)을 전부 막는다. 되살리려면 이 주석을 푼다.
+            // UI 끔 — 상황판 배선(버튼 · 구독 · 첫 갱신)을 전부 막는다. 되살리려면 이 주석을 풀고
+            // CombatManager 프리팹의 DeckInspectorCanvas/CounterBar 도 다시 켠다.
             //UiKit.EnsureEventSystem();
             //
             //if (!Wired)
@@ -200,7 +201,7 @@ namespace Prototype
             if (!hasArt)
             {
                 Text nameLabel = BuildAnchoredText(go.transform, "Name",
-                    new Vector2(0f, 0.5f), new Vector2(1f, 0.78f), 13, Color.white, FontStyle.Bold);
+                    new Vector2(0f, 0.5f), new Vector2(1f, 0.78f), 13, UiTheme.TextMain, FontStyle.Bold);
                 nameLabel.text = data != null ? data.skillName : "(빈 카드)";
 
                 Text subLabel = BuildAnchoredText(go.transform, "Sub",
@@ -235,7 +236,7 @@ namespace Prototype
 
         private static Text Decorate(Text t, int fontSize, Color color, FontStyle style)
         {
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.font = UiKit.Font;
             t.fontSize = fontSize;
             t.fontStyle = style;
             t.alignment = TextAnchor.MiddleCenter;
@@ -243,6 +244,7 @@ namespace Prototype
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Truncate;
             t.raycastTarget = false;
+            UiKit.AddOutline(t);
             return t;
         }
 

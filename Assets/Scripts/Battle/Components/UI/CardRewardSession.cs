@@ -18,20 +18,22 @@ namespace Prototype
     ///
     /// <b><see cref="TimeControl.Scale"/>은 건드리지 않는다.</b> 그 값은 전투(전술 페이즈 · 스킬 컷인)가 쓴다.
     /// 이 시점엔 적이 전부 죽어 있어 멈출 것도 없다.
+    ///
+    /// 골격은 <see cref="UiKit.Modal"/>이다(기획서 5.3). 카드 칸의 포커스는 청록 띠, [받지 않고 나가기]의 포커스는
+    /// 버튼 자신의 테두리(<see cref="UiFocusRim.Forced"/>) — 둘 다 <see cref="UiTheme.Focus"/> 한 색이다.
     /// </summary>
     public class CardRewardSession : MonoBehaviour
     {
-        private static readonly Color BackdropColor = new Color(0f, 0f, 0f, 0.78f);
-        private static readonly Color PanelColor = new Color(0.11f, 0.12f, 0.15f, 0.98f);
-        private static readonly Color ExitColor = new Color(0.30f, 0.32f, 0.36f);
-        private static readonly Color TitleColor = new Color(1f, 0.86f, 0.45f);
-        private static readonly Color SubColor = new Color(0.75f, 0.78f, 0.82f);
-        private static readonly Color HintColor = new Color(1f, 0.82f, 0.4f);
-        private static readonly Color FocusColor = new Color(1f, 0.86f, 0.45f);
+        private static readonly Color SubColor = UiTheme.TextSub;
+        private static readonly Color HintColor = UiTheme.Gold;
+        private static readonly Color FocusColor = UiTheme.Focus;
 
         private const float PanelWidth = 1120f;
         private const float PanelHeight = 700f;
         private const float OfferGap = 40f;
+
+        /// <summary>카드 줄의 세로 자리(본문 가운데 기준). 밑에 안내 두 줄이 들어간다.</summary>
+        private const float OfferCenterY = 40f;
 
         /// <summary>포커스 테두리가 칸 밖으로 내미는 두께.</summary>
         private const float FocusPad = 7f;
@@ -80,6 +82,7 @@ namespace Prototype
         private GameObject focus;
         private Text hint;
         private Button exitButton;
+        private UiFocusRim exitRim;
 
         private readonly CardOfferView[] offerViews = new CardOfferView[CardOfferRules.OfferCount];
         private List<CardOffer> offers = new List<CardOffer>();
@@ -161,7 +164,7 @@ namespace Prototype
             }
 
             exitButton.interactable = true;
-            Layout(offerViews, offers.Count, CardOfferView.Width, OfferGap, 20f);
+            Layout(offerViews, offers.Count, CardOfferView.Width, OfferGap, OfferCenterY);
 
             // 자리를 잡은 뒤에 테두리를 얹는다 — Layout 전에는 칸의 anchoredPosition이 아직 0이다.
             cursor = 0;
@@ -249,9 +252,11 @@ namespace Prototype
 
         private void RefreshFocus()
         {
-            RectTransform target = exitFocused
-                ? (RectTransform)exitButton.transform
-                : cursor >= 0 && cursor < offers.Count ? offerViews[cursor].Root : null;
+            exitRim.Forced = exitFocused;
+
+            RectTransform target = !exitFocused && cursor >= 0 && cursor < offers.Count
+                ? offerViews[cursor].Root
+                : null;
 
             if (target == null)
             {
@@ -261,7 +266,7 @@ namespace Prototype
 
             focus.SetActive(true);
 
-            // 판의 첫 자식이라 칸보다 <b>뒤에</b> 그려지므로 내민 만큼만 띠로 보인다.
+            // 본문의 첫 자식이라 칸보다 <b>뒤에</b> 그려지므로 내민 만큼만 띠로 보인다.
             var rect = (RectTransform)focus.transform;
             rect.anchorMin = target.anchorMin;
             rect.anchorMax = target.anchorMax;
@@ -296,44 +301,37 @@ namespace Prototype
 
         private void BuildUI()
         {
-            root = UiKit.CreateImage(transform, "CardRewardRoot", BackdropColor);
-            UiKit.Stretch((RectTransform)root.transform);
+            // 바탕막이 뒤쪽 UI(손패 등)로 클릭이 새지 않게 막는다.
+            UiKit.ModalParts m = UiKit.Modal(transform, "스킬 카드 획득", new Vector2(PanelWidth, PanelHeight));
+            root = m.Backdrop.gameObject;
+            RectTransform body = m.Body;
 
-            // 뒤쪽 UI(손패 등)로 클릭이 새지 않게 막는다.
-            root.GetComponent<Image>().raycastTarget = true;
-
-            GameObject panel = UiKit.CreateImage(root.transform, "Panel", PanelColor);
-            UiKit.Place(panel.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PanelWidth, PanelHeight));
-
-            // 포커스 테두리 한 장. <b>판의 첫 자식</b>이라야 칸보다 뒤에 그려진다.
-            focus = UiKit.CreateImage(panel.transform, "Focus", FocusColor);
+            // 포커스 띠 한 장. <b>본문의 첫 자식</b>이라야 칸보다 뒤에 그려진다.
+            focus = UiKit.CreateImage(body, "Focus", FocusColor);
             focus.GetComponent<Image>().raycastTarget = false;
             focus.transform.SetAsFirstSibling();
             focus.SetActive(false);
-
-            Text title = UiKit.CreateText(panel.transform, "Title", "스킬 카드 획득", 40, TitleColor);
-            UiKit.Place(title, new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(900f, 54f));
 
             for (int i = 0; i < offerViews.Length; i++)
             {
                 int captured = i;
 
                 offerViews[i] = new CardOfferView();
-                offerViews[i].Build(panel.transform, i);
+                offerViews[i].Build(body, i);
                 offerViews[i].OnPicked += _ => PickCard(captured);
             }
 
-            hint = UiKit.CreateText(panel.transform, "Hint", "", 20, HintColor);
-            UiKit.Place(hint, new Vector2(0.5f, 0f), new Vector2(0f, 142f), new Vector2(1000f, 32f));
+            hint = UiKit.CreateText(body, "Hint", "", UiTheme.Size.Body, HintColor);
+            UiKit.Place(hint, new Vector2(0.5f, 0.5f), new Vector2(0f, -186f), new Vector2(1000f, 32f));
 
-            exitButton = UiKit.CreateButton(panel.transform, "Exit", "받지 않고 나가기", ExitColor,
-                new Vector2(280f, 58f), 24);
+            Text keys = UiKit.CreateText(body, "Keys",
+                "좌우 방향키  카드    아래 방향키  나가기    Enter  결정    ESC  나가기", UiTheme.Size.Caption, SubColor);
+            UiKit.Place(keys, new Vector2(0.5f, 0.5f), new Vector2(0f, -226f), new Vector2(900f, 26f));
+
+            exitButton = UiKit.NewButton(m.Buttons, "Exit", "받지 않고 나가기", ButtonKind.Ghost,
+                                         new Vector2(280f, UiTheme.ButtonHeight.Medium));
             exitButton.onClick.AddListener(Close);
-            UiKit.Place(exitButton, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(280f, 58f));
-
-            Text keys = UiKit.CreateText(panel.transform, "Keys",
-                "좌우 방향키  카드    아래 방향키  나가기    Enter  결정    ESC  나가기", 18, SubColor);
-            UiKit.Place(keys, new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(900f, 26f));
+            exitRim = exitButton.GetComponent<UiFocusRim>();
         }
 
         /// <summary>가운데를 기준으로 n칸을 가로로 늘어놓는다.</summary>

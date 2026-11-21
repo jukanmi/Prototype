@@ -68,14 +68,14 @@ namespace Prototype
 
             // 폰트 · 재질을 안 꽂으면 TextMesh 는 아무것도 안 그린다. UiKit 과 같은 내장 폰트를 쓴다.
             var text = go.AddComponent<TextMesh>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = UiTheme.Font;
             go.GetComponent<MeshRenderer>().sharedMaterial = text.font.material;
             text.text = $"[{Label}]";
             text.anchor = TextAnchor.LowerCenter;
             text.alignment = TextAlignment.Center;
             text.characterSize = 0.08f;
             text.fontSize = 48;
-            text.color = new Color(1f, 0.86f, 0.45f);
+            text.color = UiTheme.Gold;
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace Prototype
 
         private void OnDrawGizmos()
         {
-            Gizmos.color = new Color(1f, 0.86f, 0.45f, 0.6f);
+            Gizmos.color = UiTheme.Gold.WithAlpha(0.6f);
             Gizmos.DrawWireSphere(transform.position, radius);
         }
     }

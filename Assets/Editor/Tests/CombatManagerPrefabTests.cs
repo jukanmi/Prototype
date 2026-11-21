@@ -74,7 +74,32 @@ namespace Prototype.Tests
 
         [Test]
         public void RecentHitEnemyHUD_IsWired()
-            => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill");
+            => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill", "healthTrail");
+
+        /// <summary>
+        /// 좌상단 덱 숫자 바(사용됨 / 남은 덱)는 꺼 둔다. 상황판 기능 자체가
+        /// <c>DeckInspectorUI.Start</c>에서 주석으로 꺼져 있어, 바만 켜지면 눌러도 아무 일 없는 빈 버튼이 남는다.
+        /// </summary>
+        [Test]
+        public void DeckCounterBar_IsHidden()
+        {
+            Transform bar = Prefab().transform.Find("DeckInspectorCanvas/CounterBar");
+            Assert.That(bar, Is.Not.Null, "DeckInspectorCanvas/CounterBar 가 없다.");
+            Assert.That(bar.gameObject.activeSelf, Is.False, "좌상단 덱 숫자 바가 켜져 있다.");
+        }
+
+        /// <summary>
+        /// 적 막대 원본은 꺼진 채로 둔다. 켜 두면 아무 적도 안 가리키는 막대가
+        /// 화면 가운데 하나 떠 있다(Awake가 끄긴 하지만, 그 전 한 프레임에 보인다).
+        /// </summary>
+        [Test]
+        public void RecentHitEnemyTemplate_StartsHidden()
+        {
+            var hud = Prefab().GetComponentInChildren<RecentHitEnemyHUD>(true);
+            var panel = (GameObject)new SerializedObject(hud).FindProperty("panel").objectReferenceValue;
+
+            Assert.That(panel.activeSelf, Is.False, "적 체력 막대 원본이 켜진 채로 저장됐다.");
+        }
 
         [Test]
         public void BulletTimeGaugeUI_IsWired()

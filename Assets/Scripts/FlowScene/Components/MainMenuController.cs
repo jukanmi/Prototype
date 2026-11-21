@@ -36,6 +36,9 @@ namespace Prototype
             if (SceneLoader.Instance == null) return;
             if (SceneLoader.Instance.IsBusy) return;   // 연타 방지
 
+            // 타이틀에서 들어갈 때만 주인공이 발밑에서 솟아오른다. 런을 끝내고 돌아올 때는 그냥 서 있다.
+            LobbyController.RequestRiseIntro();
+
             SceneLoader.Instance.SwapTo(
                 loadScene:   SceneNames.Lobby,
                 unloadScene: SceneNames.MainMenu,
