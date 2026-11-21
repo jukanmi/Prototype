@@ -134,7 +134,7 @@ namespace Prototype
         /// 카드는 <b>Discard에 적재</b>하고 덱은 0장으로 둔다 — 첫 드로우가 회수 · 셔플을 겸한다.
         ///
         /// <b>런 덱이 있으면 그것이 이긴다.</b> 파티 장착 카드는 런의 첫 씨앗일 뿐이고,
-        /// 그 뒤로는 레벨업으로 얻은 카드까지 든 <see cref="RunProgression.Cards"/>가 진짜 덱이다.
+        /// 그 뒤로는 보상으로 얻은 카드까지 든 <see cref="RunProgression.Cards"/>가 진짜 덱이다.
         /// 여기서 매번 파티로 새로 짜면 스테이지를 넘어가는 순간 얻은 카드가 전부 사라진다.
         /// </summary>
         public void Build(Player player, DeckStartupMode mode)
@@ -145,7 +145,7 @@ namespace Prototype
             List<ComboCard> partyCards = CollectPartyCards(player, ref empty);
 
             // 첫 씬에서 한 번만 씨를 뿌리고, 그 뒤로는 런 덱을 그대로 읽는다.
-            // 테스트 모드는 그 씨앗을 <b>비운다</b> — 0장으로 시작해 레벨업으로만 카드가 들어온다.
+            // 테스트 모드는 그 씨앗을 <b>비운다</b> — 0장으로 시작해 보상 상자로만 카드가 들어온다.
             RunProgression run = RunProgression.Current;
             run.SeedDeck(mode == DeckStartupMode.Empty ? null : partyCards);
 
@@ -179,7 +179,7 @@ namespace Prototype
                     $"<b>SkillData가 비어 있는 카드 {empty}장을 덱에서 제외했다.</b> " +
                     "Ally 인스펙터의 Equipped 항목에 스킬 에셋을 지정할 것.", logContext);
 
-            // 장수는 <b>파티 장착분</b>으로 따진다. 런 덱은 레벨업으로 늘고 합성으로 줄어드는 게
+            // 장수는 <b>파티 장착분</b>으로 따진다. 런 덱은 보상으로 늘고 합성으로 줄어드는 게
             // 정상이라 여기서 세면 성장할 때마다 거짓 경고가 뜬다.
             //
             // 목표는 상수 16이 아니라 <b>지금 인원 × 4</b>다. 3인 파티는 12장이 정상이고,

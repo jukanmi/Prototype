@@ -22,16 +22,10 @@ package "6 Tactic — UI" {
     + {static} RequestOpen()
     .. 총공격 4슬롯 편집(E키) · GameplayModal에 등록 ..
   }
-  class CardRewardSession <<MonoBehaviour>> {
-    + {static} IsOpen : bool
-    + {static} RequestOpen()
-    .. 칸을 깨면 카드 세 장 중 하나 · GameplayModal에 등록 ..
-  }
   class SkillCutinUI <<MonoBehaviour>> {
     + Duration : float
     + SlideIn · Hold · SlideOut
   }
-  class DeckInspectorUI <<MonoBehaviour>>
   class PartyHealthHUD <<MonoBehaviour>>
   class RecentHitEnemyHUD <<MonoBehaviour>> {
     + CurrentTarget : Combat
@@ -67,9 +61,6 @@ BulletTimeGaugeUI *--> BulletTimeGaugeWidget
 AssaultEditorUI ..> "RunProgression (5)" : AssaultSlots
 AssaultEditorUI ..> "SkillFusion (5)" : 레벨 표시
 AssaultEditorUI ..> "PlayerInputController (1.5)" : Navigate
-CardRewardSession ..> "BulletTimeController" : GrantCard
-CardRewardSession ..> "CardOfferRules · CardOfferView (5)"
-CardRewardSession ..> "RunProgression (5)" : Grant
 PartyHealthHUD ..> "PartyRoster" : Roster
 SkillCutinUI ..|> "ISkillCutin"
 ComboDamageHUD *--> ComboMeter

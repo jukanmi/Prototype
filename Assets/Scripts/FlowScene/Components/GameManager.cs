@@ -33,7 +33,7 @@ namespace Prototype
         [Header("디버그 — 시작 덱")]
         [Tooltip("런의 첫 전투에서 시작 덱을 어떻게 정할지. 두 번째 전투부터는 런 덱이 이어진다.\n\n" +
                  "· Party — 파티 장착 카드 16장. 게임의 실제 시작이다.\n" +
-                 "· Empty — 테스트 모드. 0장으로 시작해 레벨업으로만 카드가 들어온다.\n" +
+                 "· Empty — 테스트 모드. 0장으로 시작해 보상 상자로만 카드가 들어온다.\n" +
                  "· Pick  — 디버그 모드. 시작할 때 화면에서 카드를 직접 골라 짠다.\n\n" +
                  "런 단위 설정이라 여기가 스테이지 씬의 BulletTimeController 설정을 이긴다 — " +
                  "스테이지마다 시작 덱 규칙이 다르면 말이 안 되기 때문이다.")]
@@ -97,8 +97,8 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 경험치 · 레벨 · 런 덱 · 골드. 씬 오브젝트가 아니라 여기가 들고 있어야
-        /// 스테이지를 넘어가도 레벨업으로 얻은 카드가 살아남는다.
+        /// 런 덱 · 골드 · 파티 상태. 씬 오브젝트가 아니라 여기가 들고 있어야
+        /// 스테이지를 넘어가도 보상으로 얻은 카드가 살아남는다.
         /// </summary>
         public RunProgression Run { get; } = new RunProgression();
 
@@ -107,11 +107,6 @@ namespace Prototype
         /// 런이 끝날 때(<see cref="SettleRun"/>)와 로비에서 살 때만 쓴다.
         /// </summary>
         public MetaProgression Meta { get; } = new MetaProgression();
-
-        /// <summary>런 누적 경험치. <see cref="Run"/>이 진짜 주인이고 이건 읽는 창구다.</summary>
-        public int TotalExp => Run.Exp;
-
-        public void AddExp(int amount) => Run.AddExp(amount);
 
         private void Awake()
         {

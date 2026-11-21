@@ -37,14 +37,20 @@ MonoBehaviour:
     candidates:
     - scene: Stage_03
       kind: 0
-      weight: 2
+      weight: 6
     - scene: Stage_04
       kind: 0
-      weight: 2
+      weight: 6
     - scene: Stage_01
       kind: 1
-      weight: 1
+      weight: 3
     - scene: Node_Event
+      kind: 4
+      weight: 1
+    - scene: Node_Event_Fight
+      kind: 4
+      weight: 1
+    - scene: Node_Event_Camp
       kind: 4
       weight: 1
     roomPercentMin: 90
@@ -52,18 +58,24 @@ MonoBehaviour:
   - minNodes: 2
     maxNodes: 2
     candidates:
-    - scene: Node_Rest
-      kind: 2
+    - scene: Node_Event
+      kind: 4
+      weight: 1
+    - scene: Node_Event_Fight
+      kind: 4
+      weight: 1
+    - scene: Node_Event_Camp
+      kind: 4
       weight: 1
     - scene: Node_Shop
       kind: 3
-      weight: 1
+      weight: 3
     - scene: Stage_04
       kind: 1
-      weight: 1
+      weight: 3
     - scene: Stage_03
       kind: 1
-      weight: 1
+      weight: 3
     roomPercentMin: 80
     roomPercentMax: 100
   - minNodes: 1

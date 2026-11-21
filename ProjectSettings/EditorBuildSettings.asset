@@ -42,7 +42,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Level/Stage_Training.unity
     guid: 253d946f308b937408c843ffa59a727e
   - enabled: 1
-    path: Assets/Scenes/Node/Node_Rest.unity
+    path: Assets/Scenes/Node/Node_Event_Camp.unity
     guid: 8a0ffee3d3a170243bec809617b9080c
   - enabled: 1
     path: Assets/Scenes/Node/Node_Shop.unity
@@ -50,6 +50,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Node/Node_Event.unity
     guid: 61ba077df7b592d4ab90b7faa20ee41c
+  - enabled: 1
+    path: Assets/Scenes/Node/Node_Event_Fight.unity
+    guid: 6205ca44e66a472989541075c85e3ba5
   - enabled: 1
     path: Assets/Scenes/RunMap.unity
     guid: 8ad2ba39f04e3084f98ee6c3b32b88c0

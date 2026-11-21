@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f091ed66ce612d540b990bd7047de5a4, type: 3}
+  m_Name: VFX_Campfire_Base
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.VfxClip
+  frames:
+  - {fileID: 650145790, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -1107100687, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: 2142262692, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: 1574024166, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -625553233, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: 1456304543, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -365297863, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -1876413593, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -526627491, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: 581073484, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  - {fileID: -1035412352, guid: 075b8754e4c07944f87cf609b5f7bc7d, type: 3}
+  fps: 10
+  loops: 1
+  fitRadius: 0
+  scale: 1
+  heightOffset: 0
+  sortingOffset: 0
+  rotateToFacing: 0
+  flipToFacing: 0
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  useSkillColor: 0
+  fadeOut: 0

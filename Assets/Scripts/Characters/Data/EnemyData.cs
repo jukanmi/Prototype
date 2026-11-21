@@ -45,10 +45,6 @@ namespace Prototype
         public float projectileRange = 9f;
         public int projectilePierce = 0;
 
-        [Header("보상")]
-        public int exp = 10;
-        public int gold = 5;
-
         public GameObject prefab;
     }
 }

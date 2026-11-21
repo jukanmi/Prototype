@@ -75,11 +75,9 @@ legend right
   ..
   <b>이벤트 (아래층이 쏘고 위층이 구독)</b>
   3 Enemy.Created → EnemyStateTint 부착
-  3 Enemy.Defeated → ExpRewards 적립
   4 StageDirector.AnyWaveCleared → CastDirector 회수
-  4 StageDirector.AllWavesCleared → ExpRewards 정산
   ..
   <b>등록</b>
-  0 GameplayModal.Register ← CardRewardSession · AssaultEditorUI · PauseMenu
+  0 GameplayModal.Register ← DialogueWindow · AssaultEditorUI · PauseMenu
 endlegend
 @enduml

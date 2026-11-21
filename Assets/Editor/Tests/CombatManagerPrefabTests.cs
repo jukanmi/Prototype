@@ -55,13 +55,6 @@ namespace Prototype.Tests
             => AssertWired<ComboDamageHUD>("panel", "group", "hitsLabel", "damageLabel", "detailLabel");
 
         [Test]
-        public void DeckInspectorUI_IsWired()
-            => AssertWired<DeckInspectorUI>(
-                "_discardCountLabel", "_deckCountLabel", "_discardButton", "_deckButton",
-                "_popupRoot", "_backdropButton", "_closeButton", "_popupTitle", "_popupFooter",
-                "_popupContent", "_scrollRoot", "_emptyLabel");
-
-        [Test]
         public void RebindUI_IsWired()
             => AssertWired<RebindUI>(
                 "_openButton", "_panelRoot", "_content", "_statusText",
@@ -75,18 +68,6 @@ namespace Prototype.Tests
         [Test]
         public void RecentHitEnemyHUD_IsWired()
             => AssertWired<RecentHitEnemyHUD>("panel", "nameLabel", "healthFill", "healthTrail");
-
-        /// <summary>
-        /// 좌상단 덱 숫자 바(사용됨 / 남은 덱)는 꺼 둔다. 상황판 기능 자체가
-        /// <c>DeckInspectorUI.Start</c>에서 주석으로 꺼져 있어, 바만 켜지면 눌러도 아무 일 없는 빈 버튼이 남는다.
-        /// </summary>
-        [Test]
-        public void DeckCounterBar_IsHidden()
-        {
-            Transform bar = Prefab().transform.Find("DeckInspectorCanvas/CounterBar");
-            Assert.That(bar, Is.Not.Null, "DeckInspectorCanvas/CounterBar 가 없다.");
-            Assert.That(bar.gameObject.activeSelf, Is.False, "좌상단 덱 숫자 바가 켜져 있다.");
-        }
 
         /// <summary>
         /// 적 막대 원본은 꺼진 채로 둔다. 켜 두면 아무 적도 안 가리키는 막대가
@@ -107,9 +88,8 @@ namespace Prototype.Tests
 
         /// <summary>
         /// 켜고 끄는 대상은 <b>꺼진 채로</b> 저장돼야 한다. 켜 두면 전투 시작과 동시에
-        /// 덱 팝업 · 설정 창이 화면을 덮은 채로 판이 시작된다.
+        /// 설정 창이 화면을 덮은 채로 판이 시작된다.
         /// </summary>
-        [TestCase("DeckInspectorCanvas/Popup")]
         [TestCase("RebindCanvas/Backdrop")]
         [TestCase("RebindCanvas/Backdrop/Panel/Listening")]
         public void ModalRoots_StartHidden(string path)
@@ -145,7 +125,6 @@ namespace Prototype.Tests
         [TestCase("RecentHitEnemyCanvas", UiLayer.RecentHitEnemy)]
         [TestCase("ComboDamageCanvas", UiLayer.ComboDamage)]
         [TestCase("SkillCutinCanvas", UiLayer.SkillCutin)]
-        [TestCase("DeckInspectorCanvas", UiLayer.DeckInspector)]
         [TestCase("RebindCanvas", UiLayer.Rebind)]
         public void CanvasOrder_MatchesUiLayer(string child, int expected)
         {

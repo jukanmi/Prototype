@@ -1,4 +1,4 @@
-// 런 진행 — 경험치 규칙 · 보상 표 · 파티 상태 · 런 전체 진행.
+// 런 진행 — 골드 · 런 덱 · 보상 표 · 파티 상태.
 // 런 하나가 굴러가는 동안의 지속 데이터를 한자리에 둔다.
 
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace Prototype
     /// <see cref="UnityEngine.MonoBehaviour"/>가 아니다. 씬 오브젝트를 절대 참조하지 않는
     /// <c>GameManager</c>가 소유하므로, 스테이지 씬이 언로드돼도 여기 든 카드는 살아남는다.
     /// 이게 없으면 <c>BulletTimeController.BuildDeckFromParty</c>가 씬마다 덱을 새로 짜면서
-    /// 레벨업으로 얻은 카드를 통째로 지운다.
+    /// 보상으로 얻은 카드를 통째로 지운다.
     /// </summary>
     public class RunProgression
     {
@@ -34,7 +34,7 @@ namespace Prototype
         /// <summary>
         /// Boot 씬을 거치지 않고 스테이지 씬만 단독으로 켰을 때 쓰는 런.
         ///
-        /// <c>GameManager</c>가 없다고 경험치 · 레벨업이 통째로 죽으면 스테이지 하나만 띄워
+        /// <c>GameManager</c>가 없다고 골드 · 보상이 통째로 죽으면 스테이지 하나만 띄워
         /// 감각을 보는 흐름에서 이 시스템을 아예 확인할 수 없다. 대신 씬을 넘어가지 못하므로
         /// 이 런은 그 판에서 끝난다.
         /// </summary>
@@ -60,19 +60,8 @@ namespace Prototype
         private static void ResetStatics() => standalone = null;
 
         /// <summary>
-        /// 런 누적 경험치. 적 처치로 쌓이기만 한다 — 아직 쓰는 곳이 없다(스킬 카드 획득과 무관).
-        /// 사용처는 추후 붙인다.
-        /// </summary>
-        public int Exp { get; private set; }
-
-        /// <summary>
-        /// 웨이브 도중 처치로 쌓인, 아직 정산 전인 경험치. <see cref="Exp"/>에는 안 들어간다.
-        /// </summary>
-        public int PendingExp { get; private set; }
-
-        /// <summary>
-        /// 런 골드. 스테이지를 클리어할 때 들어오고(<see cref="GoldRules.StageClearReward"/>)
-        /// 상점 · 이벤트 칸에서 나간다.
+        /// 런 골드. 전투 칸을 깨면 떨어지는 금화를 주워 들어오고(<see cref="GoldRules.StageClearReward"/>)
+        /// 상점 · 이벤트 칸에서 나간다. 적을 잡을 때는 안 들어온다.
         /// </summary>
         public int Gold { get; private set; }
 
@@ -213,30 +202,6 @@ namespace Prototype
         /// <summary>골드 · 덱 중 무엇이든 바뀌면 발화. UI가 이걸 보고 다시 그린다.</summary>
         public event Action OnChanged;
 
-        // ── 경험치 ──────────────────────────────────────
-
-        public void AddExp(int amount)
-        {
-            if (amount <= 0) return;
-
-            Exp += amount;
-            OnChanged?.Invoke();
-        }
-
-        public void BankExp(int amount)
-        {
-            if (amount > 0) PendingExp += amount;
-        }
-
-        /// <summary>보류분을 한 번에 <see cref="Exp"/>로 옮기고 옮긴 양을 돌려준다.</summary>
-        public int SettleExp()
-        {
-            int settled = PendingExp;
-            PendingExp = 0;
-            AddExp(settled);
-            return settled;
-        }
-
         // ── 골드 ────────────────────────────────────────
 
         public void AddGold(int amount)
@@ -265,7 +230,7 @@ namespace Prototype
 
         /// <summary>
         /// 시작 덱의 씨를 뿌린다. <b>런에 한 번뿐이다</b> — 두 번째 스테이지에서 다시 뿌리면
-        /// 레벨업으로 얻은 카드가 지워진다. <paramref name="source"/>가 비어 있어도
+        /// 보상으로 얻은 카드가 지워진다. <paramref name="source"/>가 비어 있어도
         /// "정해졌다"는 사실은 남는다(테스트 모드의 0장 덱).
         /// </summary>
         public bool SeedDeck(IEnumerable<ComboCard> source)
@@ -353,8 +318,6 @@ namespace Prototype
         /// <summary>새 런. <c>GameManager.StartNewRun</c>이 부른다.</summary>
         public void Reset()
         {
-            Exp = 0;
-            PendingExp = 0;
             Gold = 0;
             Seeded = false;
             ClearSkills();
@@ -363,54 +326,6 @@ namespace Prototype
             Party.Clear();
 
             OnChanged?.Invoke();
-        }
-    }
-
-    // ══ ExpRewards ═══════════════════════════════════════════
-
-    /// <summary>
-    /// 적이 죽었을 때 경험치를 적립하고, 방의 웨이브를 다 깼을 때 정산한다.
-    /// 경험치는 쌓이기만 한다 — 레벨업 · 카드 획득과 이어지지 않는다.
-    /// </summary>
-    public static class ExpRewards
-    {
-#if UNITY_EDITOR
-        [UnityEditor.InitializeOnLoadMethod]
-#endif
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Install()
-        {
-            Enemy.Defeated -= Award;
-            Enemy.Defeated += Award;
-
-            StageDirector.AllWavesCleared -= Settle;
-            StageDirector.AllWavesCleared += Settle;
-        }
-
-        /// <summary>적 한 기의 사망 보상. <see cref="EnemyData.exp"/>가 0인 개체(훈련장 더미)는 그냥 넘어간다.</summary>
-        public static void Award(Enemy enemy)
-        {
-            if (enemy == null || enemy.Data == null) return;
-
-            int amount = enemy.Data.exp;
-            if (amount <= 0) return;
-
-            RunProgression run = RunProgression.Current;
-            run.BankExp(amount);
-
-            BattleLog.Log(LogCategory.State,
-                $"{enemy.name} 처치 — 경험치 +{amount} 적립 (정산 대기 {run.PendingExp})", enemy);
-        }
-
-        /// <summary>웨이브가 끝났을 때 쌓인 경험치를 한꺼번에 넣는다.</summary>
-        public static void Settle()
-        {
-            RunProgression run = RunProgression.Current;
-
-            int amount = run.SettleExp();
-            if (amount <= 0) return;
-
-            BattleLog.Log(LogCategory.State, $"웨이브 정산 — 경험치 +{amount} (누적 {run.Exp})");
         }
     }
 
@@ -426,7 +341,7 @@ namespace Prototype
     /// </code>
     ///
     /// 1층 보상으로 카드 한 장을 못 산다. 두 판을 모아야 한 장이다 —
-    /// 매 판 한 장씩 사지면 상점이 레벨업 화면의 복사본이 된다.
+    /// 매 판 한 장씩 사지면 상점이 보상 상자의 복사본이 된다.
     ///
     /// <b>정예 칸의 대가가 배율이다.</b> 더 어렵기만 하면 아무도 안 고른다. 150%면 3층 정예(90)가
     /// 일반 전투(60)보다 카드 반 장 값을 더 준다 — "상점 앞에서 정예를 골라 한 장 더 산다"가 실제 선택이 된다.
@@ -470,7 +385,7 @@ namespace Prototype
 
     /// <summary>
     /// 전투 칸을 깼을 때 받는 <b>물건</b>. 골드(<see cref="GoldRules"/>)와 별개다.
-    /// 일반 전투 · 정예는 카드 한 장을 반드시 받고, 정예는 유물 한 개를 더 받는다.
+    /// 일반 전투 · 정예는 상자 하나(스킬 셋 중 한 장)를 받고, 정예는 유물 한 개를 더 받는다.
     /// 유물은 아직 Mock이다 — 받았다는 사실만 알리고 효과는 없다.
     /// </summary>
     public static class ClearRewardRules

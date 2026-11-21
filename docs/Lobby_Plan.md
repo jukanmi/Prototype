@@ -120,7 +120,7 @@ MetaProgression (GameManager가 소유, RunProgression과 같은 자리)
 
 ## 2. 로비 오브젝트
 
-공통 부품은 **`LobbyInteractable` 하나**다: 플레이어가 반경 안에 들어오면 키 안내("E 편성")가 뜨고,
+공통 부품은 **`Interactable` 하나**다(처음 이름은 `LobbyInteractable` — 상점 · 이벤트 칸에도 쓰게 되며 바꿨다): 플레이어가 반경 안에 들어오면 키 안내("E 편성")가 뜨고,
 `Interact`를 누르면 `UnityEvent`(또는 자식 컴포넌트의 메서드)를 부른다. 창이 떠 있는 동안은 `GameplayModal`을 연다 —
 전투 씬과 같은 규칙으로 이동 · ESC가 창에 먼저 간다.
 
@@ -134,7 +134,7 @@ MetaProgression (GameManager가 소유, RunProgression과 같은 자리)
 | 기록판 | 런 수 · 최고 층 | 새로 — 텍스트 한 장 | 4 (작다) |
 | ~~카드 서가~~ | 동료별 카드 도감 | `DeckInspectorUI`는 전투 중 런 덱 전용이라 공개 진입점이 없다 | **뺀다.** 필요해지면 따로 |
 
-이름(마법사 · 유산 제단)은 story에 맞춘 가칭이다. 코드 이름은 기능으로 짓는다(`SettingsTerminal`이 아니라 그냥 `LobbyInteractable`에 `PauseMenu.Open` 연결).
+이름(마법사 · 유산 제단)은 story에 맞춘 가칭이다. 코드 이름은 기능으로 짓는다(`SettingsTerminal`이 아니라 그냥 `Interactable`의 `onInteract`에 `LobbyController.OpenSettings` 연결).
 
 ---
 
