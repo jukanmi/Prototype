@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb811218524748478d93baa1bee40f1, type: 3}
+  m_Name: Enemy_Duelist
+  m_EditorClassIdentifier: Assembly-CSharp::Prototype.EnemyData
+  enemyId: Enemy_Duelist
+  enemyName: "\uAC80\uAC1D"
+  hp: 40
+  atk: 5
+  brain: {fileID: 11400000, guid: 1c69808f3f8ad9f43abb9ff92dfe6970, type: 2}
+  moveSpeed: 2
+  attackRange: 0.8
+  attackInterval: 4
+  retargetInterval: 0.5
+  leashRange: 14
+  preferredMinRange: 0
+  specialRange: 2
+  specialInterval: 6
+  basicProjectile: {fileID: 0}
+  projectileSpeed: 0
+  projectileRange: 0
+  projectilePierce: 0
+  prefab: {fileID: 2237326508346302774, guid: b0b56f002cec4c908b72a6758dd7a09f, type: 3}

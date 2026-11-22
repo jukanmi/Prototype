@@ -15,8 +15,12 @@ namespace Prototype
     /// <item>여기 — 인스펙터 값 · 씬 배선 · 이벤트 구독, 그리고 셋을 잇는 결정</item>
     /// </list>
     ///
-    /// 손패는 <b>항상 4장이 유지된다</b>. 평타 적중 추첨이 여기와 덱에서 카드를 뽑는다
-    /// (<see cref="BasicAttackDrawRules"/>). 게이지가 차면 런의 총공격 슬롯 4칸이 자동으로 발동한다.
+    /// 손패는 <b>항상 4장이 유지된다</b>. 평타 적중 추첨이 여기와 덱에서 카드를 <b>한 장</b> 뽑아 쓴다
+    /// (<see cref="BasicAttackDrawRules"/>) — 동료 하나가 나와 스킬 하나를 쓰는 것이고, 총공격이 아니다.
+    ///
+    /// <b>총공격은 게이지가 차 있을 때 총공격키(기본 Space)를 눌러야만 나간다</b>(<see cref="TryFireAssault"/>).
+    /// 런의 총공격 슬롯 4칸이 왼쪽부터 차례로 발동한다. 게이지가 차거나 적이 나타나는 것만으로는 안 나간다.
+    /// 편성(<see cref="OpenAssaultEditor"/>)은 칸 안에서 싸움이 없을 때만 바꾼다(<see cref="AssaultEditGate"/>).
     ///
     /// <b>Time.timeScale은 쓰지 않는다</b> — 시간 배율은 <see cref="TimeControl"/>만 만진다(결정 로그 ⑥).
     /// </summary>
@@ -102,7 +106,7 @@ namespace Prototype
 
         // ── UI가 읽는 값 ─────────────────────────────────
         // 게이지 막대가 "얼마나 찼나"만으로는 못 그린다. 어디까지 차야 쓸 수 있는지,
-        // 지금 쿨타임인지까지 보여야 총공격이 언제 나갈지 안다.
+        // 지금 쿨타임인지까지 보여야 총공격키를 언제 눌러도 되는지 안다.
 
         public Energy Gauge => budget?.Gauge;
 
@@ -212,9 +216,9 @@ namespace Prototype
         private void Update()
         {
             // 게이지와 쿨타임은 전투 시간으로 흐른다 — TimeControl이 멈추면 같이 멈춘다.
+            // 총공격은 여기서 내지 않는다. 키를 눌렀을 때만 나간다(TryFireAssault).
             budget.Tick(TimeControl.DeltaTime);
             tactic.Tick(TimeControl.UnscaledDeltaTime);
-            TryAutoAssault();
         }
 
         private void HandleParried(Combat defender, Combat attacker) => budget?.RewardParry(defender);
@@ -268,22 +272,42 @@ namespace Prototype
         private bool assaultCast;
 
         /// <summary>
-        /// 게이지가 가득 차 있고 적이 있으면 사전 설정한 4슬롯을 순서대로 자동 발동한다.
-        /// 슬롯이 전부 비었거나 시전자가 없으면 발동하지 않는다(게이지는 그대로).
+        /// 총공격키(기본 Space)를 눌렀다. 낼 수 있으면 런의 총공격 슬롯 4칸을 왼쪽부터 차례로 발동하고,
+        /// 못 내면 그 이유를 돌려준다(<see cref="AssaultRules"/>). 못 냈을 때 게이지는 그대로다.
+        ///
+        /// <b>총공격이 나가는 길은 이것 하나다.</b> 예전에는 매 프레임 스스로 검사해서(<c>TryAutoAssault</c>)
+        /// 게이지가 차는 순간 · 다음 방의 적이 나타나는 순간 · 편집창을 닫는 순간에 저절로 나갔다.
         /// </summary>
-        private void TryAutoAssault()
+        public AssaultBlock TryFireAssault()
         {
-            if (Phase != TacticPhase.RealTime || assaultCast) return;
-            if (AssaultEditorUI.IsOpen || !CanAssault) return;
-            if (BattleRegistry.AliveEnemyCount() <= 0) return;
+            string shortfall = budget != null ? budget.Shortfall(player) : "자원 없음";
 
-            Queue<ComboSlot> queue = BuildAssaultQueue();
-            if (queue.Count == 0) return;
+            AssaultBlock block = AssaultRules.CheckFire(
+                running: Phase != TacticPhase.RealTime || assaultCast || executor == null || executor.IsRunning,
+                heroDown: player != null && player.Combat.IsDead,
+                resourcesReady: shortfall == null,
+                aliveEnemies: BattleRegistry.AliveEnemyCount());
+
+            // 슬롯은 나머지가 다 될 때만 지어 본다 — 시전자를 못 찾은 슬롯이 누를 때마다 경고를 남긴다.
+            Queue<ComboSlot> queue = null;
+            if (block == AssaultBlock.None)
+            {
+                queue = BuildAssaultQueue();
+                block = AssaultRules.CheckQueue(queue.Count);
+            }
+
+            if (block != AssaultBlock.None)
+            {
+                string detail = block == AssaultBlock.Charging ? $" ({shortfall})" : "";
+                BattleLog.Log(LogCategory.Bullet, $"총공격 안 나감 — {AssaultRules.Describe(block)}{detail}", this);
+                return block;
+            }
 
             assaultQueue = queue;
             assaultCast = true;
             BattleLog.Log(LogCategory.Bullet, $"<b>총공격 발동</b> — {queue.Count}슬롯", this);
             ChangePhase(resolveState);
+            return AssaultBlock.None;
         }
 
         /// <summary>
@@ -322,7 +346,10 @@ namespace Prototype
             return q;
         }
 
-        /// <summary>총공격 슬롯 편집창을 연다(E키). 전투 중 실행 중이면 무시.</summary>
+        /// <summary>
+        /// 총공격 슬롯 편집창을 연다(E키). 총공격이 도는 중이면 무시한다.
+        /// "칸 안 · 싸움 밖"은 편집창이 직접 본다(<see cref="AssaultEditorUI.CanOpen"/>) — 런 바의 슬롯 버튼도 같은 문을 지난다.
+        /// </summary>
         public void OpenAssaultEditor()
         {
             if (Phase != TacticPhase.RealTime || assaultCast) return;
@@ -379,12 +406,6 @@ namespace Prototype
         }
 
         // ── 페이즈 ───────────────────────────────────────
-
-        /// <summary>총공격을 낼 수 있는지 — 실행기가 비어 있고, 주인공이 살아 있고, 자원이 된다.</summary>
-        private bool CanAssault
-            => executor != null && !executor.IsRunning
-               && (player == null || !player.Combat.IsDead)
-               && budget != null && budget.Shortfall(player) == null;
 
         /// <summary>전술 페이즈 전이. 막는 페이즈가 없으므로 무조건 전이다.</summary>
         private void ChangePhase(TacticState next) => tactic.ForceChangeState(next);

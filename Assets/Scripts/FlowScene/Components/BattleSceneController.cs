@@ -14,13 +14,20 @@ namespace Prototype
     /// 그래서 <b>GameManager 없이 스테이지 씬만 단독으로 Play 하면 승패 기능이 아예 돌지 않는다.</b>
     /// 배치와 전투 감각만 확인하는 용도다.
     /// </summary>
-    public class BattleSceneController : MonoBehaviour, IStageRestarter
+    public class BattleSceneController : MonoBehaviour, IStageRestarter, IAssaultEditGate
     {
-        [Tooltip("StageRoom 이 없는 씬에서 쓸 출구선 X. 방이 있으면 실제 방의 오른쪽 벽에서 푼 값이 이긴다 " +
-                 "— 방 크기 보정이 벽을 옮기므로 여기 적은 고정값은 그 방에서 맞지 않는다.")]
-        [SerializeField] private float exitX = 5f;
+        [Tooltip("조우 목록도 StageRoom 도 없는 씬(SampleScene · 훈련장)에서 쓸 출구선 X.\n\n" +
+                 "있으면 스테이지가 끝나는 방(마지막 조우의 자리 · 방)의 오른쪽 벽에서 푼 값이 이긴다 — " +
+                 "방 크기 보정이 벽을 옮기고, 방이 여럿이면 마지막 방이 저 멀리 있으므로 고정값은 맞지 않는다.")]
+        [SerializeField] private float exitX = StageOutcomeRules.ExitLine(RoomRect.Default.MaxX);
 
-        /// <summary>이번 판의 출구선. <see cref="ResolveExitLine"/>이 방에서 푼다.</summary>
+        /// <summary>
+        /// 이번 판이 끝나는 방의 바닥. 클리어 보상이 여기 떨어지고 출구선이 이 방의 오른쪽 벽에서 풀린다.
+        /// <see cref="ResolveFinalArea"/>가 정한다.
+        /// </summary>
+        private RoomRect finalArea;
+
+        /// <summary>이번 판의 출구선. 끝나는 방(<see cref="finalArea"/>)의 오른쪽 벽에서 푼다.</summary>
         private float exitLine;
 
         private bool isExiting;
@@ -63,6 +70,36 @@ namespace Prototype
         /// <summary>지금 떠 있는 이 씬의 이름. 전환할 때 "무엇을 내릴지"가 된다.</summary>
         private string SceneName => gameObject.scene.name;
 
+        // ── 총공격 편성 문 ───────────────────────────────
+
+        /// <summary>
+        /// 총공격 편성을 바꿔도 되는가(<see cref="IAssaultEditGate"/>). <b>싸움 밖에서만</b> — 이긴 뒤, 또는 방 사이 통로.
+        /// 규칙은 <see cref="AssaultRules.BattleNodeAllowsEdit"/>, 여기는 지금 상태를 넣기만 한다.
+        ///
+        /// 런이 여기서 끝나는 칸(보스)은 이겨도 "모든 스테이지 클리어" 창만 남으므로 열지 않는다.
+        /// </summary>
+        public bool AssaultEditable
+            => AssaultRules.BattleNodeAllowsEdit(FightOutcome, betweenRooms: progress != null && progress.AwaitingEntry,
+                                                 leaving: isExiting || isRestarting || RunEndsHere);
+
+        /// <summary>
+        /// 이 칸의 승패. 판정이 도는 런에서는 판정 결과 그대로다.
+        /// 판정이 안 도는 씬 단독 실행은 같은 규칙(<see cref="StageOutcomeRules.Evaluate(int, bool, bool)"/>)을 지금 필드에 대어 본다 —
+        /// 적을 다 잡고 더 나올 적이 없으면 이긴 것으로 친다.
+        /// </summary>
+        private StageOutcome FightOutcome
+            => flowEnabled
+                ? outcome
+                : StageOutcomeRules.Evaluate(BattleRegistry.AliveEnemyCount(), PartyWiped(),
+                                             progress != null && progress.ThreatsRemaining);
+
+        /// <summary>이 칸이 런의 마지막이다 — 이기면 다음 칸이 없다.</summary>
+        private bool RunEndsHere => flowEnabled && GameManager.Instance != null && !GameManager.Instance.HasNextNode;
+
+        private void OnEnable() => AssaultEditGate.Register(this);
+
+        private void OnDisable() => AssaultEditGate.Unregister(this);
+
         private void Start()
         {
             // 일시정지 창은 씬 단독 실행에서도 필요하다(그 안의 [처음부터]도). GameManager 체크보다 먼저 띄운다.
@@ -77,8 +114,8 @@ namespace Prototype
             // 실행 순서가 정해져 있지 않아 지금 Roster 를 읽으면 비어 있을 수 있다.
             party = FindAnyObjectByType<PartyRoster>();
 
-            // 판정이 안 도는 씬 단독 실행에서도 풀어 둔다 — 로그로 방과 문턱을 같이 확인할 수 있다.
-            ResolveExitLine();
+            // 판정이 안 도는 씬 단독 실행에서도 풀어 둔다 — 로그로 끝나는 방과 문턱을 같이 확인할 수 있다.
+            ResolveFinalArea();
 
             // 씬 단독 실행 대응 — Boot 씬 없이 배틀 씬만 Play 했을 때
             if (GameManager.Instance == null)
@@ -201,25 +238,42 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 이번 판의 출구선을 정한다. <b>방이 있으면 방이 이긴다</b> —
-        /// <see cref="StageRoom"/>이 지도 칸의 비율대로 오른쪽 벽을 옮기므로,
-        /// 저작해 둔 고정값은 100% 방에서만 맞는다. 80% 방이면 문턱이 벽보다 밖에 남아
-        /// <b>이겨도 다음 스테이지로 못 넘어간다.</b>
+        /// 이번 판이 끝나는 방과 그 출구선을 정한다. 묻는 순서는 셋이다.
+        /// <list type="number">
+        /// <item>조우 목록(<see cref="StageProgressSource.TryGetFinalArea"/>) — 방이 여럿이면 <b>마지막 방</b>.
+        /// 아레나 · 통로 스테이지와 웨이브 방이 전부 이 길로 온다.</item>
+        /// <item>씬의 방(<see cref="StageRoom"/>) — 조우 목록 없이 방만 있는 씬.</item>
+        /// <item>저작값(<see cref="exitX"/>) — 둘 다 없는 씬(SampleScene · 훈련장).</item>
+        /// </list>
         ///
-        /// 방이 없는 씬(SampleScene · 훈련장)은 저작값 그대로다.
-        /// <see cref="StageRoom"/>은 실행 순서 -300이라 이 Start 보다 먼저 방을 적용해 둔다.
+        /// <b>"씬의 방 하나"를 가정하면 안 된다.</b> 통로로 이어진 아레나 스테이지는 방이 없어 기준 방(x −6~6)으로
+        /// 떨어지는데, 그러면 보상이 첫 방 좌표에 떨어지고 출구선(x 5)이 첫 방 안이라 마지막 방에서는 이미 넘은 것으로
+        /// 쳐져 <b>출구가 영영 안 열린다.</b> 방 크기 보정도 벽을 옮기므로 고정값은 100% 방에서만 맞는다.
+        ///
+        /// <see cref="StageRoom"/>(-300)과 디렉터의 Awake가 이 Start보다 먼저 돌아 방 · 목록이 준비돼 있다.
         /// </summary>
-        private void ResolveExitLine()
+        private void ResolveFinalArea()
         {
-            exitLine = exitX;
-
+            string source;
             StageRoom room = StageRoom.Find();
-            if (room == null) return;
 
-            exitLine = StageOutcomeRules.ExitLine(room.Room.MaxX);
+            if (progress != null && progress.TryGetFinalArea(out finalArea))
+            {
+                source = "마지막 조우";
+            }
+            else if (room != null)
+            {
+                finalArea = room.Room;
+                source = $"방 {room.Percent}%";
+            }
+            else
+            {
+                finalArea = StageOutcomeRules.AuthoredArea(exitX);
+                source = "저작값";
+            }
 
-            if (room.Percent != RoomRules.FullPercent)
-                Debug.Log($"[Battle] 출구선 x = {exitLine} (방 {room.Percent}%, 오른쪽 벽 x = {room.Room.MaxX})", this);
+            exitLine = StageOutcomeRules.ExitLine(finalArea.MaxX);
+            Debug.Log($"[Battle] 끝나는 방 {finalArea} ({source}) — 출구선 x = {exitLine}", this);
         }
 
         private void HandleVictory()
@@ -260,21 +314,19 @@ namespace Prototype
         /// 적을 잡을 때는 아무것도 안 들어온다. 판정은 결과가 정해질 때 한 번만 부르므로 한 칸에 한 번만 떨어지고,
         /// 진 판에서 재시작해 이기면 그때 처음 떨어진다.
         ///
+        /// <b>끝나는 방(<see cref="finalArea"/>) 안에 떨어진다.</b> 방이 여럿이면 마지막 방이다 — 중간 방을 깰 때는
+        /// 이기지 않으므로(<see cref="StageProgressSource.ThreatsRemaining"/>) 여기까지 안 온다.
+        ///
         /// 층이 깊을수록 금화가 크고, 정예 칸이면 배율이 붙고 상자가 빨갛다. 유물은 Mock이라 로그와 안내 문구뿐이다.
         /// </summary>
         private void DropLoot(int floor, MapNodeKind kind)
         {
             int gold = GoldRules.StageClearReward(floor, kind);
 
-            StageRoom room = StageRoom.Find();
-            RoomRect rect = room != null ? room.Room : RoomRect.Default;
+            // 끝나는 방 한가운데 — 마지막으로 서 있던 자리에 떨어지면 벽 · 출구 쪽에 몰려 글이 겹치거나 가린다.
+            Vector3 at = new Vector3(finalArea.CenterX, 0f, finalArea.CenterZ);
 
-            Entity body = BattleRegistry.Controlled;
-            Vector3 at = body != null
-                ? BeltScroll.ToGround(body.transform.position)
-                : new Vector3(rect.CenterX, 0f, rect.CenterZ);
-
-            ClearLoot.Drop(at, rect, exitLine, gold, ClearRewardRules.GrantsCard(kind), kind == MapNodeKind.Elite);
+            ClearLoot.Drop(at, finalArea, exitLine, gold, ClearRewardRules.GrantsCard(kind), kind == MapNodeKind.Elite);
 
             if (ClearRewardRules.GrantsRelic(kind))
                 Debug.Log("[Battle] 클리어 보상 유물 1개 (Mock — 효과 없음)");

@@ -127,7 +127,7 @@ namespace Prototype
         /// 방 반경보다 넓어야 "밖"이 정말 밖이 된다.
         ///
         /// 기준 방을 쓴다 — 카메라가 없는 씬은 방 크기 보정을 받는 전투 칸이 아니다.
-        /// 125% 방(반폭 7.5)도 넘으므로 여유 2는 그대로 둔다.
+        /// 기준 방 반폭(9)에 여유 2를 더해 옆벽 밖에서 출발한다.
         /// </summary>
         public static readonly float FallbackHalfWidth = RoomRect.Default.HalfX + 2f;
 

@@ -43,11 +43,14 @@ namespace Prototype.Tests
             Assert.That(OffOrigin.HalfZ, Is.EqualTo(3f).Within(Eps));
         }
 
-        /// <summary>기준 방은 지금 씬의 벽 규격 그대로다. 바뀌면 씬 다섯 개의 벽이 다 틀린 자리에 선다.</summary>
+        /// <summary>
+        /// 기준 방은 지금 씬의 벽 규격 그대로다. 바뀌면 씬마다 벽이 다 틀린 자리에 선다.
+        /// 가로 18은 화면(직교 5 · 16:9, 반폭 8.9)을 채우는 폭이다 — 좁으면 방 밖이 양옆으로 보인다.
+        /// </summary>
         [Test]
-        public void Default_IsSixByThree_AtOrigin()
+        public void Default_IsNineByThree_AtOrigin()
         {
-            AssertRoom(RoomRect.Default, -6f, 6f, -3f, 3f);
+            AssertRoom(RoomRect.Default, -9f, 9f, -3f, 3f);
         }
 
         // ── 비율 값 ─────────────────────────────────────
@@ -123,8 +126,45 @@ namespace Prototype.Tests
         [Test]
         public void Scale_Default_AtBounds()
         {
-            AssertRoom(RoomRules.Scale(RoomRect.Default, 80), -4.8f, 4.8f, -2.4f, 2.4f);
-            AssertRoom(RoomRules.Scale(RoomRect.Default, 125), -7.5f, 7.5f, -3.75f, 3.75f);
+            AssertRoom(RoomRules.Scale(RoomRect.Default, 80), -7.2f, 7.2f, -2.4f, 2.4f);
+            AssertRoom(RoomRules.Scale(RoomRect.Default, 125), -11.25f, 11.25f, -3.75f, 3.75f);
+        }
+
+        /// <summary>가로는 화면 반폭 밑으로 안 준다 — 작은 방의 압박은 깊이가 맡는다. 좁으면 양옆으로 방 밖이 보였다.</summary>
+        [Test]
+        public void Scale_WithScreenFloor_KeepsWidth_ShrinksDepth()
+        {
+            float screenHalf = CameraFrameRules.HalfWidth(5f, 16f / 9f);
+            RoomRect small = RoomRules.Scale(RoomRect.Default, 80, screenHalf);
+
+            Assert.That(small.HalfX, Is.EqualTo(screenHalf).Within(Eps));
+            Assert.That(small.HalfZ, Is.EqualTo(RoomRect.Default.HalfZ * 0.8f).Within(Eps));
+            Assert.That(small.CenterX, Is.EqualTo(RoomRect.Default.CenterX).Within(Eps));
+        }
+
+        [Test]
+        public void Scale_WithScreenFloor_LeavesWiderRoomsAlone()
+        {
+            AssertRoom(RoomRules.Scale(RoomRect.Default, 125, CameraFrameRules.HalfWidth(5f, 16f / 9f)),
+                       -11.25f, 11.25f, -3.75f, 3.75f);
+        }
+
+        /// <summary>가로 · 깊이 비율이 다르면 그림도 축마다 따로 는다. 세운 그림의 높이는 그대로다.</summary>
+        [Test]
+        public void StretchScale_BetweenRooms_UsesEachAxisRatio()
+        {
+            var from = new RoomRect(-9f, 9f, -3f, 3f);
+            var to = new RoomRect(-9f, 9f, -2.4f, 2.4f);   // 가로는 그대로, 깊이만 80%
+
+            // 눕힌 바닥 — 로컬 x가 월드 x, 로컬 y가 월드 z.
+            Vector3 floor = RoomRules.StretchScale(new Vector3(18f, 6f, 1f), Quaternion.Euler(90f, 0f, 0f), from, to);
+            Assert.That(floor.x, Is.EqualTo(18f).Within(Eps));
+            Assert.That(floor.y, Is.EqualTo(4.8f).Within(Eps));
+
+            // 세운 뒷벽 그림 — 폭은 가로 비율, 높이는 그대로.
+            Vector3 back = RoomRules.StretchScale(new Vector3(18f, 4f, 1f), Quaternion.identity, from, to);
+            Assert.That(back.x, Is.EqualTo(18f).Within(Eps));
+            Assert.That(back.y, Is.EqualTo(4f).Within(Eps));
         }
 
         // ── MovePoint ───────────────────────────────────
@@ -178,8 +218,8 @@ namespace Prototype.Tests
         // ── WallFor ─────────────────────────────────────
 
         /// <summary>
-        /// 기준 방에서 지금 씬의 벽 규격이 그대로 나온다(Stage_01: 옆벽 x ±6.25 · size (0.5, 4, 6),
-        /// 앞뒤 벽 z ±3.25 · size (13, 4, 0.5)). 이게 맞아야 100% 방에서 벽이 한 치도 안 움직인다.
+        /// 기준 방에서 지금 씬의 벽 규격이 그대로 나온다(Stage_01: 옆벽 x ±9.25 · size (0.5, 4, 6),
+        /// 앞뒤 벽 z ±3.25 · size (19, 4, 0.5)). 이게 맞아야 100% 방에서 벽이 한 치도 안 움직인다.
         /// </summary>
         [Test]
         public void WallFor_Default_MatchesStage01Walls()
@@ -189,13 +229,13 @@ namespace Prototype.Tests
             WallPose near = RoomRules.WallFor(RoomSide.Near, RoomRect.Default, 0.5f);
             WallPose far = RoomRules.WallFor(RoomSide.Far, RoomRect.Default, 0.5f);
 
-            Assert.That(left.Center.x, Is.EqualTo(-6.25f).Within(Eps));
-            Assert.That(right.Center.x, Is.EqualTo(6.25f).Within(Eps));
+            Assert.That(left.Center.x, Is.EqualTo(-9.25f).Within(Eps));
+            Assert.That(right.Center.x, Is.EqualTo(9.25f).Within(Eps));
             Assert.That(near.Center.z, Is.EqualTo(-3.25f).Within(Eps));
             Assert.That(far.Center.z, Is.EqualTo(3.25f).Within(Eps));
 
             Assert.That(left.ColliderSize(4f), Is.EqualTo(new Vector3(0.5f, 4f, 6f)));
-            Assert.That(near.ColliderSize(4f), Is.EqualTo(new Vector3(13f, 4f, 0.5f)));
+            Assert.That(near.ColliderSize(4f), Is.EqualTo(new Vector3(19f, 4f, 0.5f)));
         }
 
         /// <summary>어느 크기 · 어느 자리의 방이든 벽의 <b>안쪽 면</b>이 방 변에 온다.</summary>
@@ -233,7 +273,7 @@ namespace Prototype.Tests
             WallPose left = RoomRules.WallFor(RoomSide.Left, RoomRect.Default, -1f);
 
             Assert.That(left.Thickness, Is.Zero);
-            Assert.That(left.Center.x, Is.EqualTo(-6f).Within(Eps));
+            Assert.That(left.Center.x, Is.EqualTo(-9f).Within(Eps));
         }
 
         // ── StretchScale ────────────────────────────────
@@ -315,11 +355,15 @@ namespace Prototype.Tests
             Assert.That(RoomRules.Fits(deep), Is.False);
         }
 
+        /// <summary>
+        /// 가로는 넓어도 된다 — 카메라가 방 안에서 따라가고 방 밖은 안 비춘다(CameraFollow).
+        /// 예전에는 옆벽 둘이 다 화면 안이어야 했고, 그래서 방이 화면 안에 작게 떠 양옆 바깥이 보였다.
+        /// </summary>
         [Test]
-        public void Fits_TooWide_FailsCamera()
+        public void Fits_Wide_StillFitsCamera()
         {
-            var wide = new RoomRect(-9f, 9f, -3f, 3f);
-            Assert.That(RoomRules.FitsCamera(wide), Is.False);
+            var wide = new RoomRect(-12f, 12f, -3f, 3f);
+            Assert.That(RoomRules.FitsCamera(wide), Is.True);
         }
 
         /// <summary>반깊이 2면 소환 가능 깊이 ±1.4 — 마법사가 플레이어 줄을 1.5만큼 피할 자리가 없다.</summary>

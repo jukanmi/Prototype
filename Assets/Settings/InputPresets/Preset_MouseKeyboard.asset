@@ -62,3 +62,7 @@ MonoBehaviour:
     action: BulletTime
     part: 
     path: <Keyboard>/e
+  - map: Gameplay
+    action: Assault
+    part: 
+    path: <Keyboard>/q

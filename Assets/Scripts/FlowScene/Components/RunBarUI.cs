@@ -15,7 +15,8 @@ namespace Prototype
     ///
     /// <list type="bullet">
     /// <item><b>체력</b>은 전투에서 숨긴다(결정 D2) — 전투 중 체력의 주인은 좌하단 HUD다.</item>
-    /// <item><b>총공격 슬롯</b>은 전투에서만 눌린다(편집창 <see cref="AssaultEditorUI"/>가 전투 덱에 붙는다).</item>
+    /// <item><b>총공격 슬롯</b>은 편성할 수 있을 때만 눌린다 — 칸 안에서 싸움이 없을 때(<see cref="AssaultEditorUI.CanOpen"/>).
+    /// 전투 칸은 이긴 뒤 · 방 사이 통로, 상점 · 이벤트 칸은 싸움이 안 벌어진 동안, 마을은 늘. 지도에서는 늘 읽기 전용이다.</item>
     /// <item><b>[ESC] 설정</b>은 씬에 일시정지 창이 있을 때만 — 우측 상단 [ESC 일시정지] 안내를 이걸로 흡수했다.</item>
     /// <item><b>[스킬 목록]</b>은 어느 씬에서나 눌린다 — 보유 스킬 창(<see cref="SkillListUI"/>)을 연다. 예전 "덱 N" 자리다.</item>
     /// </list>
@@ -27,7 +28,7 @@ namespace Prototype
     {
         public enum Mode
         {
-            /// <summary>전투 — HUD 바닥층, 체력 숨김, 슬롯 눌림.</summary>
+            /// <summary>전투 — HUD 바닥층, 체력 숨김, 우하단 총공격 키 안내.</summary>
             Battle,
             /// <summary>지도 · 칸 — 전면 창 위에 얹힌다, 체력 보임.</summary>
             Overlay,
@@ -50,7 +51,7 @@ namespace Prototype
         private Button[] slotButtons = new Button[RunProgression.AssaultSlotCount];
         private Button settings;
 
-        /// <summary>전투 우하단 [키] 총공격 안내. 키 이름이 바뀌면(리바인드) 다시 짓는다.</summary>
+        /// <summary>전투 우하단 [키] 총공격 안내 — 총공격을 <b>내는</b> 키(기본 Space)다. 키 이름이 바뀌면(리바인드) 다시 짓는다.</summary>
         private RectTransform assaultHint;
         private string assaultKey;
 
@@ -102,7 +103,7 @@ namespace Prototype
             // 가로로 넓은 모니터에서 띠가 양 끝까지 늘어나되 높이는 안 커지게 세로 기준(1).
             UiKit.BuildCanvas(gameObject, order, match: 1f, raycaster: true);
 
-            Image plate = UiKit.NewImage(transform, "Plate", UiTheme.Ink.WithAlpha(0.92f));
+            Image plate = UiKit.NewImage(transform, "Plate", UiTheme.BarPlate);
             RectTransform p = plate.rectTransform;
             p.anchorMin = new Vector2(0f, 1f);
             p.anchorMax = new Vector2(1f, 1f);
@@ -208,7 +209,7 @@ namespace Prototype
             b.targetGraphic = well;
             b.navigation = new Navigation { mode = Navigation.Mode.None };
             UiKit.DressButton(b);
-            b.interactable = mode == Mode.Battle;
+            b.interactable = AssaultEditorUI.CanOpen;   // Refresh가 계속 맞춘다
             b.onClick.AddListener(AssaultEditorUI.RequestOpen);
             slotButtons[index] = b;
         }
@@ -244,6 +245,11 @@ namespace Prototype
             // 런 밖(씬 단독 실행)엔 층이 없다 — 계단 아이콘만 덩그러니 남지 않게 통째로 숨긴다.
             floor.transform.parent.gameObject.SetActive(floor.text.Length > 0);
 
+            // 슬롯은 편성할 수 있을 때만 눌린다. 키(E)와 같은 문이라 둘이 다른 답을 하지 않는다.
+            bool editable = AssaultEditorUI.CanOpen;
+            foreach (Button b in slotButtons)
+                if (b != null) b.interactable = editable;
+
             IReadOnlyList<string> slots = run.AssaultSlots;
             for (int i = 0; i < slotIcons.Length; i++)
             {
@@ -267,7 +273,8 @@ namespace Prototype
         {
             if (PlayerInputController.Instance == null) return;
 
-            string key = InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
+            // 편집창 키(BulletTime · E)가 아니라 총공격을 내는 키다 — 전투 중에 눌러야 하는 건 이쪽이다.
+            string key = InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Assault);
             SetAssaultHint(key);
         }
 

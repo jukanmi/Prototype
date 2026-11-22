@@ -62,6 +62,67 @@ namespace Prototype.Tests
             Assert.That(run.Cards.Count, Is.EqualTo(2), "덱이 두 배로 불어나면 안 된다");
         }
 
+        /// <summary>시작 스킬은 처음부터 총공격 슬롯에 앞에서부터 들어간다. 같은 스킬은 한 칸, 다섯째부터는 안 들어간다.</summary>
+        [Test]
+        public void SeedDeck_SlotsTheStartingSkills()
+        {
+            var run = new RunProgression();
+            var names = new[] { "가", "나", "다", "라", "마" };
+            var seed = new List<ComboCard> { Card() };   // "회전강타" 둘 — 한 칸만
+            foreach (string n in names)
+            {
+                var s = ScriptableObject.CreateInstance<SkillData>();
+                s.skillName = n;
+                assets.Add(s);
+                seed.Add(new ComboCard(s));
+            }
+            seed.Add(Card());
+
+            run.SeedDeck(seed);
+
+            Assert.That(run.AssaultSlots, Is.EqualTo(new[] { skill.skillName, "가", "나", "다" }));
+        }
+
+        /// <summary>
+        /// 마을에서 동료를 바꿨다 — 뺀 동료의 스킬은 보유 스킬 · 총공격 칸에서 사라지고, 남은 스킬은 바꿔 둔 칸을 지키고,
+        /// 새 동료의 스킬은 앞쪽 빈 칸에 들어간다.
+        /// </summary>
+        [Test]
+        public void ReseedDeck_DropsRemovedSkills_KeepsOrder_AddsNewOnes()
+        {
+            var run = new RunProgression();
+            SkillData a = Skill("가"), b = Skill("나"), c = Skill("다");
+
+            run.SeedDeck(new List<ComboCard> { new ComboCard(a), new ComboCard(b) });
+            run.SwapAssaultSlots(0, 1);   // 마을에서 순서를 바꿨다 — 나, 가
+
+            run.ReseedDeck(new List<ComboCard> { new ComboCard(b), new ComboCard(c) });   // 가를 빼고 다를 넣었다
+
+            Assert.That(run.AssaultSlots, Is.EqualTo(new[] { "나", "다", null, null }));
+            Assert.That(run.CountOf("가"), Is.Zero, "뺀 동료의 스킬이 남았다");
+            Assert.That(run.CountOf("다"), Is.EqualTo(1));
+        }
+
+        /// <summary>씨를 아직 안 뿌렸으면 다시 뿌릴 것도 없다 — 첫 판이 정식으로 뿌린다.</summary>
+        [Test]
+        public void ReseedDeck_BeforeSeeding_DoesNothing()
+        {
+            var run = new RunProgression();
+
+            run.ReseedDeck(new List<ComboCard> { Card() });
+
+            Assert.That(run.Seeded, Is.False);
+            Assert.That(run.Cards, Is.Empty);
+        }
+
+        private SkillData Skill(string name)
+        {
+            var s = ScriptableObject.CreateInstance<SkillData>();
+            s.skillName = name;
+            assets.Add(s);
+            return s;
+        }
+
         /// <summary>테스트 모드의 0장 덱. 장수로 "아직 안 짰다"를 판단하면 파티 카드가 도로 부어진다.</summary>
         [Test]
         public void SeedDeck_WithNothing_StillCountsAsSeeded()

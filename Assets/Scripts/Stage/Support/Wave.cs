@@ -142,10 +142,14 @@ namespace Prototype
         }
 
         /// <summary>
-        /// 기준 방 — 100%일 때의 웨이브 방. 씬의 벽(반폭 6 · 반깊이 3)이 이 값으로 서 있다.
-        /// 방 크기의 숫자가 코드에 남는 곳은 여기 한 군데다.
+        /// 기준 방 — 100%일 때의 방. 씬의 벽(반폭 9 · 반깊이 3)이 이 값으로 서 있고, 새로 붙이는
+        /// <see cref="StageRoom"/>도 이 값으로 시작한다. 방 크기의 숫자가 코드에 남는 곳은 여기 한 군데다.
+        ///
+        /// <b>가로가 화면을 채운다.</b> 고정 카메라(직교 5 · 16:9)의 화면 반폭은 8.9 — 반폭 9면 옆벽이 화면 가장자리
+        /// 바로 밖이라 방 바깥(빈 공간 · 벽 너머에서 걸어 들어오는 적)이 안 보인다. 예전 반폭 6은 화면 안에
+        /// 작게 떠서 양옆으로 바깥이 보였다.
         /// </summary>
-        public static readonly RoomRect Default = new RoomRect(-6f, 6f, -3f, 3f);
+        public static readonly RoomRect Default = new RoomRect(-9f, 9f, -3f, 3f);
 
         public float MinX => Mathf.Min(minX, maxX);
         public float MaxX => Mathf.Max(minX, maxX);
@@ -237,12 +241,6 @@ namespace Prototype
         public const int Step = 5;
 
         /// <summary>
-        /// 고정 카메라(직교 5 · 16:9)가 옆벽을 화면 안에 담는 최대 반폭. 화면 반폭 8.9에서 벽 두께를 뺐다.
-        /// <b>계산 추정이다</b> — 씬에서 확인하고 조인다.
-        /// </summary>
-        public const float MaxHalfX = 8.4f;
-
-        /// <summary>
         /// 뒷벽(높이 4)이 잘리지 않는 최대 반깊이. 기울기 50° · lift 0.5에서
         /// <c>0.766·z + 0.643·4 − 0.5 ≤ 5</c>. <b>계산 추정이다.</b>
         /// </summary>
@@ -285,6 +283,18 @@ namespace Prototype
             float hz = room.HalfZ * k;
 
             return new RoomRect(room.CenterX - hx, room.CenterX + hx, room.CenterZ - hz, room.CenterZ + hz);
+        }
+
+        /// <summary>
+        /// <see cref="Scale(in RoomRect, int)"/>과 같되 반폭이 <paramref name="minHalfX"/>(화면 반폭) 밑으로 줄지 않는다.
+        /// 방이 화면보다 좁아지면 양옆으로 방 밖이 보인다 — 작은 방의 압박은 깊이(Z)가 맡는다.
+        /// </summary>
+        public static RoomRect Scale(in RoomRect room, int percent, float minHalfX)
+        {
+            RoomRect scaled = Scale(room, percent);
+            float hx = Mathf.Max(scaled.HalfX, minHalfX);
+
+            return new RoomRect(room.CenterX - hx, room.CenterX + hx, scaled.MinZ, scaled.MaxZ);
         }
 
         /// <summary>
@@ -345,18 +355,35 @@ namespace Prototype
         public static Vector3 StretchScale(Vector3 localScale, Quaternion rotation, int percent)
         {
             float k = Normalize(percent) / (float)FullPercent;
-
-            return new Vector3(
-                localScale.x * AxisFactor(rotation * Vector3.right, k),
-                localScale.y * AxisFactor(rotation * Vector3.up, k),
-                localScale.z * AxisFactor(rotation * Vector3.forward, k));
+            return StretchScale(localScale, rotation, k, k);
         }
 
-        /// <summary>월드 방향이 바닥에 비친 길이(0~1)만큼 1에서 <paramref name="k"/>로 옮긴 배율.</summary>
-        private static float AxisFactor(Vector3 worldAxis, float k)
+        /// <summary>
+        /// <paramref name="from"/> 방에서 <paramref name="to"/> 방으로 갈 때의 새 배율. 가로 · 깊이 비율이 다를 수 있다
+        /// (가로는 화면 폭 밑으로 안 준다 — <see cref="Scale(in RoomRect, int, float)"/>).
+        /// </summary>
+        public static Vector3 StretchScale(Vector3 localScale, Quaternion rotation, in RoomRect from, in RoomRect to)
+            => StretchScale(localScale, rotation,
+                            from.HalfX > Eps ? to.HalfX / from.HalfX : 1f,
+                            from.HalfZ > Eps ? to.HalfZ / from.HalfZ : 1f);
+
+        private static Vector3 StretchScale(Vector3 localScale, Quaternion rotation, float kx, float kz)
+            => new Vector3(
+                localScale.x * AxisFactor(rotation * Vector3.right, kx, kz),
+                localScale.y * AxisFactor(rotation * Vector3.up, kx, kz),
+                localScale.z * AxisFactor(rotation * Vector3.forward, kx, kz));
+
+        /// <summary>
+        /// 월드 방향이 바닥에 비친 길이(0~1)만큼 1에서 그 방향의 비율로 옮긴 배율.
+        /// 비율은 바닥에 비친 X · Z 성분만큼 <paramref name="kx"/> · <paramref name="kz"/>를 섞는다 — 둘이 같으면 그 값이다.
+        /// </summary>
+        private static float AxisFactor(Vector3 worldAxis, float kx, float kz)
         {
-            float flat = Mathf.Clamp01(new Vector2(worldAxis.x, worldAxis.z).magnitude);
-            return Mathf.Lerp(1f, k, flat);
+            float ax = Mathf.Abs(worldAxis.x), az = Mathf.Abs(worldAxis.z);
+            float flat = Mathf.Clamp01(new Vector2(ax, az).magnitude);
+            if (flat <= Eps) return 1f;
+
+            return Mathf.Lerp(1f, (kx * ax + kz * az) / (ax + az), flat);
         }
 
         /// <summary>
@@ -369,12 +396,17 @@ namespace Prototype
         public static bool IsLargeEnough(in RoomRect room)
             => room.HalfZ - WaveSpawnPlanner.DepthInset >= WaveSpawnPlanner.RangedLaneGap - Eps;
 
-        /// <summary>고정 카메라 화면 안에 네 벽이 다 담기는가.</summary>
-        public static bool FitsCamera(in RoomRect room)
-            => room.HalfX <= MaxHalfX + Eps && room.HalfZ <= MaxHalfZ + Eps;
+        /// <summary>
+        /// 고정된 세로 화면 안에 방 깊이가 담기는가 — 뒷벽 윗부분이 안 잘리는가.
+        ///
+        /// <b>가로는 안 본다.</b> 방은 화면 가로를 채우는 것이 기준이고(<see cref="RoomRect.Default"/>),
+        /// 화면보다 넓으면 카메라가 방 안에서 따라가며 방 밖은 비추지 않는다(<c>CameraFollow</c>).
+        /// 예전에는 "옆벽 둘이 다 화면 안"을 요구했는데, 그러면 방이 화면 안에 작게 떠서 양옆 바깥이 보였다.
+        /// </summary>
+        public static bool FitsCamera(in RoomRect room) => room.HalfZ <= MaxHalfZ + Eps;
 
         /// <summary>
-        /// 이 방을 실제로 쓸 수 있는가 — 충분히 크고 화면 안이다.
+        /// 이 방을 실제로 쓸 수 있는가 — 충분히 크고 깊이가 화면 안이다.
         /// 기준 방이 <see cref="RoomRect.Default"/>와 다른 씬에서 <c>기준 × 범위</c>를 다시 볼 때 쓴다(계획서 8단계).
         /// </summary>
         public static bool Fits(in RoomRect room) => IsLargeEnough(room) && FitsCamera(room);
@@ -422,7 +454,8 @@ namespace Prototype
 
         // ── ② 역할별 정착 지점 — 벽에서 반폭의 몇 할 안쪽인가 ──
         //
-        // 기준 방(반폭 6)에서 벽으로부터 2.8 · 1.8 · 1.2였던 값을 비율로 옮겼다. 그래서 100% 방의 답은 그대로다.
+        // 옛 기준 방(반폭 6)에서 벽으로부터 2.8 · 1.8 · 1.2였던 값을 비율로 옮겼다. 방이 넓어지면 진형도 같은 비율로 벌어진다
+        // (지금 기준 방 반폭 9에서는 4.2 · 2.7 · 1.8).
         // 고정 거리로 두면 좁은 방에서 좌우 전사 두 무리가 나오자마자 플레이어를 낀다 —
         // 방이 좁아진 것이 아니라 진형이 바뀐 것이 된다(계획서 3.1).
 

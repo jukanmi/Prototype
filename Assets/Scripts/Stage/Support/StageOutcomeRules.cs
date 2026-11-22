@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Prototype
 {
     /// <summary>스테이지의 결말.</summary>
@@ -97,6 +99,20 @@ namespace Prototype
         /// 반대로 125% 방(벽 x = 7.5)에서는 아직 한참 남았는데 2.5나 일찍 열린다.
         /// </summary>
         public static float ExitLine(float roomMaxX) => roomMaxX - ExitInset;
+
+        /// <summary>
+        /// 조우 목록도 방(<see cref="StageRoom"/>)도 없는 씬(SampleScene · 훈련장)이 끝나는 바닥.
+        /// 저작한 출구선 <paramref name="exitX"/>가 <see cref="ExitLine"/>로 그대로 나오도록 오른쪽 벽을 세우고,
+        /// 나머지 변은 기준 방(<see cref="RoomRect.Default"/>)을 쓴다.
+        /// </summary>
+        public static RoomRect AuthoredArea(float exitX)
+        {
+            RoomRect basis = RoomRect.Default;
+            float right = exitX + ExitInset;
+
+            // 출구선이 기준 방 왼쪽 벽보다 왼쪽이어도 방이 뒤집히지 않게 왼쪽 벽을 같이 민다.
+            return new RoomRect(Mathf.Min(basis.MinX, right - ExitInset * 2f), right, basis.MinZ, basis.MaxZ);
+        }
 
         /// <summary>
         /// 우측 출구에 닿았는가. 방 오른쪽 벽 앞에 서면 다음 스테이지로 넘어간다.

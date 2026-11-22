@@ -780,3 +780,4 @@ MonoBehaviour:
     aerialAirborneHeight: 0
     capAirborne: 0
     hitStunDuration: 0.5
+    advanceSpeed: 3.5

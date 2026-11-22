@@ -31,10 +31,26 @@ namespace Prototype.Tests
             "Assets/Scenes/Level/Stage_Mini.unity",
             "Assets/Scenes/Level/Stage_Training.unity",
             "Assets/Scenes/SampleScene.unity",
+
+            // 걸어다니는 비전투 방 — 조우는 없지만 카메라 경계와 출구선을 방에서 읽는다.
+            "Assets/Scenes/Lobby.unity",
+            "Assets/Scenes/Node/Node_Shop.unity",
+            "Assets/Scenes/Node/Node_Event.unity",
+            "Assets/Scenes/Node/Node_Event_Fight.unity",
+            "Assets/Scenes/Node/Node_Event_Camp.unity",
         };
 
-        /// <summary>방이 필요한 스테이지. 늘거나 줄면 이 숫자와 아래 확인을 같이 고친다.</summary>
+        /// <summary>방에서 도는 조우가 있는 스테이지. 늘거나 줄면 이 숫자와 아래 확인을 같이 고친다.</summary>
         private const int ExpectedRoomStages = 3;
+
+        /// <summary>StageRoom 이 있는 씬 — 방 조우 스테이지 셋 + 마을 + 비전투 칸 넷.</summary>
+        private const int ExpectedRooms = 8;
+
+        /// <summary>
+        /// 기준 화면 비율. 게임 뷰 · 빌드 해상도가 16:9다(UI 기준 해상도 1920×1080과 같다).
+        /// 방이 이 화면 가로를 못 채우면 양옆으로 방 밖이 보인다.
+        /// </summary>
+        private const float ScreenAspect = 16f / 9f;
 
         private string reopen;
 
@@ -156,6 +172,27 @@ namespace Prototype.Tests
             }
         }
 
+        /// <summary>
+        /// 기준 방이 화면 가로를 채운다. 좁으면 카메라가 가운데에 서고 양옆으로 방 밖 —
+        /// 빈 공간과 벽 너머에서 걸어 들어오는 적 — 이 그대로 보인다(고친 증상이다).
+        /// </summary>
+        [Test]
+        public void BaseRoom_FillsTheScreenWidth()
+        {
+            foreach (Wired w in WiredRooms())
+            {
+                Camera cam = Camera.main;
+                Assert.That(cam, Is.Not.Null, $"{w.Path}: MainCamera 태그가 붙은 카메라가 없다");
+                Assert.That(cam.orthographic, Is.True, $"{w.Path}: 카메라가 직교가 아니다");
+
+                float screen = CameraFrameRules.HalfWidth(cam.orthographicSize, ScreenAspect) * 2f;
+                float room = w.Room.BaseRoom.MaxX - w.Room.BaseRoom.MinX;
+
+                Assert.That(room, Is.GreaterThanOrEqualTo(screen),
+                    $"{w.Path}: 기준 방 가로 {room} 이(가) 화면 가로 {screen:0.##} 보다 좁다 — 양옆으로 방 밖이 보인다");
+            }
+        }
+
         // ── 따라 움직이는 것 ────────────────────────────
 
         /// <summary>
@@ -243,7 +280,7 @@ namespace Prototype.Tests
                 yield return new Wired(path, room);
             }
 
-            Assert.That(found, Is.EqualTo(ExpectedRoomStages), "StageRoom 이 있는 스테이지 수가 예상과 다르다");
+            Assert.That(found, Is.EqualTo(ExpectedRooms), "StageRoom 이 있는 씬 수가 예상과 다르다");
         }
 
         /// <summary>

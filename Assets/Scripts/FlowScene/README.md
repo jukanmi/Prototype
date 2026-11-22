@@ -15,6 +15,7 @@ Lobby [출발]           → 지도 굴림(GameManager.StartNewRun) → RunMap
 Lobby [타이틀로]       → MainMenu
 RunMap 칸 선택         → 그 칸의 씬(Stage_* · Node_*). 휴식만 있는 칸은 씬 없이 그 자리에서 처리
 전투 승리             → 바닥에 금화 · 상자(ClearLoot). 줍고 출구 → RunMap   (보스 층이면 런 종료 → Lobby)
+                         방이 여럿이면 중간 방은 문만 열리고, 보상 · 출구는 마지막 방에 선다
 전투 패배 [재시작]     → 같은 칸을 처음부터
 전투 [처음부터]        → 런을 버리고 새 지도 → RunMap
 Node_* 오른쪽 벽       → RunMap   (전투처럼 걸어 나간다. 싸움 이벤트에서 지면 [재시작] · [마을로])
@@ -34,19 +35,19 @@ ESC 일시정지 [마을로]  → 런 종료 → Lobby
 |---|---|
 | `Support/SceneNames.cs` | 씬 이름 상수. `Battle` = `"SampleScene"` |
 | `Components/SceneLoader.cs` | 씬의 **존재 자체**. Additive 로드/언로드 + 페이드 + `IsBusy` 잠금 |
-| `Components/GameManager.cs` | 런 단위 데이터와 런 지도 위의 진행. 씬 오브젝트는 절대 참조하지 않는다 |
+| `Components/GameManager.cs` | 런 단위 데이터와 런 지도 위의 진행. 씬 오브젝트는 절대 참조하지 않는다. 마을에서 편성이 바뀌면 시작 덱을 다시 뿌린다(`RunProgression.ReseedDeck`) |
 | `Components/AudioManager.cs` | BGM/SFX 골격. 클립이 비어도 예외 없이 넘어간다 |
 | `Components/BootStrapper.cs` | Boot 씬에서 최초 1회 MainMenu 를 띄운다 |
 | `Components/MainMenuController.cs` | 타이틀 버튼. [시작]은 마을로 간다 |
-| `Components/LobbyController.cs` | 마을 흐름. 마을 오브젝트가 부르는 공개 메서드(출발 · 편성 · 설정 · 제단 · 기록판) |
+| `Components/LobbyController.cs` | 마을 흐름. 마을 오브젝트가 부르는 공개 메서드(출발 · 편성 · 설정 · 제단 · 기록판). 총공격 편성 문(`IAssaultEditGate`)을 늘 연다 |
 | `Components/Interactable.cs` | 씬에 놓는 상호작용 지점(다가가서 F). 결과는 인스펙터의 `onInteract`로 고른다. 씬 컨트롤러가 찾아다니지 않는다. 누가 불렀는지는 `Current` |
 | `Components/Npc.cs` · `DialogueWindow.cs` | Interactable에 붙이는 대사와 화면 아래 대화창(위에 NPC 그림). 대사를 끝까지 읽으면 `onInteract`가 이어진다. `Ask`는 같은 창에 선택지를 띄운다 |
 | `Support/KeyMenu.cs` · `Components/KeyMenuHost.cs` | 창 안의 키보드 커서 — 방향키 · WASD 이동, F · Enter 결정, 금색 테두리. 상점 · 이벤트 선택지가 쓴다 |
 | `Support/ClearLoot.cs` · `Components/LootPickup.cs` · `SkillTooltip.cs` · `Data/LootArt.cs` | 전투 칸 클리어 보상. 바닥에 금화(골드) · 상자가 떨어지고, 상자를 열면 스킬 두루마리 셋 중 하나를 줍는다. 두루마리에 다가가면 설명 창 |
 | `Components/PartySelectUI.cs` | 마을 게시판의 파티 편성 |
 | `Components/RunMapScreen.cs` · `Support/RunMapView.cs` | 지도 화면과 그 계산 |
-| `Components/BattleSceneController.cs` | 전투 씬 진행 — ESC 일시정지, 승패 판정. 전환은 `GameManager`가 한다 |
-| `Components/NodeSceneController.cs` · `Support/NodeWindows.cs` | 상점 · 이벤트 씬. 걸어다니는 방이고, 상호작용 지점이 `OpenShop`(창) · `OpenEvent` · `Rest`(대화창)를 부른다. 이벤트 칸은 선택지(`Node_Event`) · 싸움(`Node_Event_Fight`) · 모닥불(`Node_Event_Camp`, 옛 휴식) 세 벌 |
+| `Components/BattleSceneController.cs` | 전투 씬 진행 — ESC 일시정지, 승패 판정. 전환은 `GameManager`가 한다. 이긴 뒤에만 총공격 편성 문(`IAssaultEditGate`)을 연다 |
+| `Components/NodeSceneController.cs` · `Support/NodeWindows.cs` | 상점 · 이벤트 씬. 걸어다니는 방이고, 상호작용 지점이 `OpenShop`(대화창 위에 뜨는 창, 대화창엔 조작 설명) · `OpenEvent` · `Rest`(대화창)를 부른다. 이벤트 칸은 선택지(`Node_Event`) · 싸움(`Node_Event_Fight`) · 모닥불(`Node_Event_Camp`, 옛 휴식) 세 벌 — 싸움 이벤트의 검객은 정예이고, 예고(멈춤 · "!" · 바닥 원) 뒤 제자리에서 회전 베기 패턴을 쓴다(`Enemy_Duelist` 데이터 · 프리팹). 출구선은 방(`StageRoom`) 오른쪽 벽에서 푼다. 싸움이 없을 때 총공격 편성 문(`IAssaultEditGate`)을 연다 |
 | `Components/PauseMenu.cs` | 일시정지 창(ESC). 전투는 [마을로], 마을은 [타이틀로] |
 
 이 폴더 밖에 있지만 흐름의 일부인 것들:

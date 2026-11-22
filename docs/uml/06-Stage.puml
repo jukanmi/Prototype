@@ -14,6 +14,9 @@ package "4 Stage" {
     abstract class StageProgressSource <<MonoBehaviour>> {
       + ThreatsRemaining : bool
       + HasSpawnedAny : bool
+      + TryGetFinalArea(out area) : bool
+      + AwaitingEntry : bool
+      .. 끝나는 방 — 보상 · 출구선이 여기 선다 ..
     }
     class StageDirector {
       + {static} AnyWaveCleared : event Action
@@ -52,6 +55,12 @@ package "4 Stage" {
       + EliteNodeEvery = 3
       + IsElite(authored, role, ordinal, modifier) : bool
     }
+    class EncounterRoomRules <<static>> {
+      + SameRoom(a, b) · EndsRoom(list, i) : bool
+      + RoomCount(list) · RoomIndexOf(list, i) : int
+      + TryFinalArea(list, sceneRoom, out area) : bool
+      .. 같은 자리 = 같은 방. 중간 방은 문만, 마지막 방이 보상 ..
+    }
     class EncounterClearRules <<static>> {
       + Threats(census) : int
       + IsCleared(census, advance) : bool
@@ -59,6 +68,7 @@ package "4 Stage" {
     class StageOutcomeRules <<static>> {
       + Evaluate(aliveEnemies, allAlliesDead, …) : StageOutcome
       + PartyWiped(…) : bool
+      + ExitLine(roomMaxX) · AuthoredArea(exitX)
     }
     interface IStageContext {
       + HasNode : bool
@@ -115,6 +125,7 @@ package "4 Stage" {
       + minX · maxX : float
     }
     class EncounterSite <<MonoBehaviour>> {
+      + Area : RoomRect
       + CloseGates()
       + OpenExit()
     }
@@ -143,6 +154,8 @@ StageDirector --> StageWaveBoard
 StageDirector --> EnemySpawnService
 StageDirector ..> StageContext : 보정 읽기
 StageDirector ..> EncounterClearRules
+StageDirector ..> EncounterRoomRules : 방이 끝날 때만 문 · 끝나는 방
+EncounterRoomRules ..> EncounterSite : Area
 StageDirector ..> EncounterModifierRules
 StageWaveBoard *--> "*" StageEncounter
 StageEncounter --> WaveAsset
@@ -163,6 +176,7 @@ StageRunner *--> "*" StageSection
 StageRunner --> StageBounds
 EncounterSite --> "2" ArenaGate
 CameraFollow ..> StageBounds
+CameraFollow ..> StageRoom : 구간이 없으면 방이 경계
 CameraFollow ..> CameraFrameRules
 CameraAnchor ..> CameraFrameRules
 

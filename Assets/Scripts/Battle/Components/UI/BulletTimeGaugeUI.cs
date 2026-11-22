@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Prototype
 {
@@ -39,11 +40,46 @@ namespace Prototype
                 return;
             }
 
+            // 아래 띠는 맵보다 먼저 그린다 — 맵이 그 위를 덮고, 방 밖 배경이 비치던 자리만 검게 남는다.
+            BuildBottomBand(transform, Camera.main);
             _gauge.Build(_canvas);
 
             RectTransform bar = _gauge.Root;
             bar.anchorMin = bar.anchorMax = bar.pivot = Vector2.zero;
             bar.anchoredPosition = Position;
+        }
+
+        /// <summary>띠를 까는 깊이 — 카메라 먼 면의 이 비율. 방 · 몸은 전부 이보다 가깝다.</summary>
+        private const float BandDepth = 0.95f;
+
+        /// <summary>
+        /// 화면 아래를 가로지르는 검은 띠 — 방 밖 배경이 비치던 자리를 채운다. 위쪽 런 바와 같은 판 색이다.
+        ///
+        /// <b>맵보다 먼저 그린다.</b> 화면에 붙은 캔버스지만 오버레이가 아니라 카메라 공간이다 — 카메라 먼 쪽에 깔고
+        /// 정렬 순서를 맨 뒤(<see cref="UiLayer.BehindWorld"/>)로 둬서 바닥 · 벽 · 몸이 전부 그 위에 그려진다.
+        /// 그래서 맵은 하나도 안 가리고 맵이 없는 자리만 검게 보인다. 초상화 · 체력 · 게이지는 오버레이라 늘 그 위다.
+        /// 카메라가 없으면 안 짓는다 — 오버레이로 대신 깔면 다시 맵을 가린다.
+        /// </summary>
+        public static RectTransform BuildBottomBand(Transform owner, Camera camera)
+        {
+            if (camera == null) return null;
+
+            var host = new GameObject("BottomBand", typeof(RectTransform));
+            host.transform.SetParent(owner, false);
+
+            Canvas canvas = UiKit.BuildCanvas(host, UiLayer.BehindWorld, raycaster: false);
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = camera.farClipPlane * BandDepth;
+
+            Image plate = UiKit.NewImage(host.transform, "Plate", UiTheme.BarPlate);
+            RectTransform p = plate.rectTransform;
+            p.anchorMin = Vector2.zero;
+            p.anchorMax = new Vector2(1f, 0f);
+            p.pivot = new Vector2(0.5f, 0f);
+            p.sizeDelta = new Vector2(0f, HudLayout.BandHeight);
+            p.anchoredPosition = Vector2.zero;
+            return p;
         }
 
         // UI는 비배율 시간으로 돈다 — TimeControl.Scale과 무관하게 막대는 움직여야 한다.

@@ -26,7 +26,7 @@ rectangle "Prototype" {
     usecase "이동 · 평타 · 대시 · 패리\n피격 · 상태이상" as UC_Combat
   }
   package "④ 총공격\n(usecase-04-Tactic)" as Tactic {
-    usecase "총공격 슬롯 편집 · 자동 발동\n콤보 실행" as UC_Tactic
+    usecase "총공격 슬롯 편집 · 키로 발동\n콤보 실행" as UC_Tactic
   }
   package "⑤ 스테이지 · 적\n(usecase-05-Stage)" as Stage {
     usecase "웨이브 스폰 · 적 공격\n클리어 판정 · 바닥 보상" as UC_Stage

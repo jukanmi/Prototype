@@ -229,7 +229,9 @@ namespace Prototype
 
             var mesh = go.AddComponent<TextMesh>();
             mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            go.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
+            MeshRenderer popupRenderer = go.GetComponent<MeshRenderer>();
+            popupRenderer.sharedMaterial = mesh.font.material;
+            popupRenderer.sortingOrder = Interactable.TagSortingOrder;   // 이름표처럼 그림에 안 가린다
             mesh.text = text;
             mesh.anchor = TextAnchor.LowerCenter;
             mesh.alignment = TextAlignment.Center;

@@ -39,6 +39,9 @@ namespace Prototype
         private const float BoxWidth = 1400f;
         private const float LinesHeight = 240f;
         private const float BoxBottom = 40f;
+
+        /// <summary>대사 상자의 윗변. 위에 다른 창(상점)을 얹을 때 이 높이부터 쓴다.</summary>
+        public const float Top = BoxBottom + LinesHeight;
         private const float Margin = 40f;
         private const float BodyTop = 76f;
         private const float LinesBodyHeight = 120f;
@@ -66,6 +69,9 @@ namespace Prototype
         private Action<int> onPick;
         private Npc face;
         private int openedFrame;
+
+        /// <summary><see cref="Hold"/>로 연 설명 한 장 — 넘기지도 닫지도 않는다. 위의 창이 키를 받는다.</summary>
+        private bool holding;
 
         private RectTransform panel;
         private Button box;
@@ -133,6 +139,28 @@ namespace Prototype
             w.onPick = onPick;
             w.BuildBox(speaker, BodyTop + AskBodyHeight + options.Count * (ChoiceHeight + ChoiceGap) + HintBand, corner);
             w.BuildChoices(text, options);
+        }
+
+        /// <summary>
+        /// 넘기지 않는 글 한 장 — 다른 창(상점)이 떠 있는 동안 그 창의 조작을 적어 둔다.
+        /// F · Enter · ESC를 먹지 않는다(그 창이 받는다). 닫는 건 연 쪽이 <see cref="Release"/>로 한다.
+        /// 조작 잠금도 연 쪽의 창이 건다. 이미 다른 대화가 떠 있으면 안 연다.
+        /// </summary>
+        public static void Hold(string speaker, string text, Npc face = null)
+        {
+            if (current != null) return;
+
+            DialogueWindow w = Create(face);
+            w.holding = true;
+            w.BuildBox(speaker, LinesHeight, null);
+            w.body = w.Body(LinesBodyHeight);
+            w.body.text = text;
+        }
+
+        /// <summary><see cref="Hold"/>로 연 글을 닫는다. 다른 대화는 건드리지 않는다.</summary>
+        public static void Release()
+        {
+            if (current != null && current.holding) current.Close();
         }
 
         private static DialogueWindow Create(Npc face)
@@ -308,6 +336,7 @@ namespace Prototype
             if (current != this) return;
 
             RefreshPortrait();
+            if (holding) return;   // 키는 위의 창이 받는다
 
             PlayerInputController input = PlayerInputController.Instance;
             if (input != null && input.CancelPressed && !GameplayModal.CancelConsumedThisFrame)

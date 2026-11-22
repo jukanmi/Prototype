@@ -75,6 +75,76 @@ namespace Prototype
         public float GapSeconds => Mathf.Max(0f, gapSeconds);
     }
 
+    // ══ EncounterRoomRules ═══════════════════════════════════════════
+
+    /// <summary>
+    /// 조우 목록을 <b>방</b> 단위로 읽는다. 순수 함수다.
+    ///
+    /// 방 = 같은 자리에서 잇달아 벌어지는 조우 묶음. 아레나 하나에 라운드가 셋이면 방 하나,
+    /// 자리 없는 웨이브(방 전체가 자리)는 몇 개든 방 하나, 통로로 이어진 아레나 둘이면 방 둘이다.
+    /// 방 개수를 따로 적는 칸은 없다 — 목록이 곧 진실이다(계획서 2.2와 같은 이유).
+    ///
+    /// <b>보상과 출구는 스테이지 끝, 즉 마지막 방에서만 나온다.</b> 중간 방을 깨면 나가는 문만 열려
+    /// 다음 방으로 걸어간다. 판단을 조우 번호로 하면 같은 방의 라운드 사이에 문이 열리고,
+    /// "마지막 방이 어디인가"를 몰라 보상이 첫 방 좌표에 떨어진다.
+    /// </summary>
+    public static class EncounterRoomRules
+    {
+        /// <summary>같은 방의 조우인가. 같은 자리면 같은 방이다 — 둘 다 자리가 없으면 둘 다 방 전체다.</summary>
+        public static bool SameRoom(in StageEncounter a, in StageEncounter b) => a.site == b.site;
+
+        /// <summary>
+        /// <paramref name="index"/>번 조우가 끝나면 그 방이 끝나는가 — 다음 조우가 없거나 다른 방이다.
+        /// 방이 끝날 때만 나가는 문을 연다. 같은 방에 라운드가 남았는데 열면 그 틈에 걸어 나가 버린다.
+        /// </summary>
+        public static bool EndsRoom(IReadOnlyList<StageEncounter> encounters, int index)
+        {
+            if (encounters == null || index < 0 || index >= encounters.Count) return false;
+
+            return index + 1 >= encounters.Count || !SameRoom(encounters[index], encounters[index + 1]);
+        }
+
+        /// <summary>방 수. 이어진 같은 방 조우를 하나로 센다. 목록이 비면 0.</summary>
+        public static int RoomCount(IReadOnlyList<StageEncounter> encounters)
+            => encounters == null || encounters.Count == 0 ? 0 : RoomIndexOf(encounters, encounters.Count - 1) + 1;
+
+        /// <summary><paramref name="index"/>번 조우가 몇 번째 방인가(0부터). 범위 밖이면 -1.</summary>
+        public static int RoomIndexOf(IReadOnlyList<StageEncounter> encounters, int index)
+        {
+            if (encounters == null || index < 0 || index >= encounters.Count) return -1;
+
+            int room = 0;
+            for (int i = 1; i <= index; i++)
+                if (!SameRoom(encounters[i - 1], encounters[i])) room++;
+
+            return room;
+        }
+
+        /// <summary>
+        /// 스테이지가 끝나는 방의 바닥 — 마지막 조우의 자리, 자리가 없으면 씬의 방(<paramref name="sceneRoom"/>).
+        /// 클리어 보상이 여기 떨어지고, 출구선이 이 방의 오른쪽 벽에서 풀린다(<see cref="StageOutcomeRules.ExitLine"/>).
+        ///
+        /// 목록이 비었거나, 마지막 조우가 방 전체인데 씬에 방이 없으면 거짓 — 부르는 쪽이 저작값으로 떨어진다.
+        /// </summary>
+        public static bool TryFinalArea(IReadOnlyList<StageEncounter> encounters, RoomRect? sceneRoom, out RoomRect area)
+        {
+            area = default;
+            if (encounters == null || encounters.Count == 0) return false;
+
+            StageEncounter last = encounters[encounters.Count - 1];
+            if (last.HasSite)
+            {
+                area = last.site.Area;
+                return true;
+            }
+
+            if (!sceneRoom.HasValue) return false;
+
+            area = sceneRoom.Value;
+            return true;
+        }
+    }
+
     // ══ EncounterModifier ═══════════════════════════════════════════
 
     /// <summary>

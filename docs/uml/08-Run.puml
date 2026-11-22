@@ -20,6 +20,7 @@ package "5 Run (Progression)" {
       + OnChanged : event Action
       + BankExp(amount) / SettleExp() : int
       + SeedDeck(cards)
+      + ReseedDeck(cards)
       + PurgeRole(role) : int
       + AssaultSlots · CountOf(name) · Resolve(name)
       + Grant(pick) : ComboCard

@@ -72,6 +72,23 @@ namespace Prototype
             }
 
             Loadout = loadout;
+
+            // 마을은 첫 판처럼 시작 덱을 이미 뿌렸다(전투 지휘가 마을에도 있다). 편성이 바뀌면 그 덱도 바꾼다 —
+            // 안 바꾸면 뺀 동료의 스킬이 보유 스킬 · 총공격 칸에 남고, 런이 시작돼도 다시 안 뿌린다(Seeded).
+            if (deckStartupMode == DeckStartupMode.Party)
+                Prototype.RunProgression.Current.ReseedDeck(StartingCards(loadout));
+        }
+
+        /// <summary>편성의 장착 카드 전부 — 첫 판이 몸에서 긁는 것(<c>CardSupply.CollectPartyCards</c>)과 같은 순서다.</summary>
+        private static List<ComboCard> StartingCards(PartyLoadout loadout)
+        {
+            var cards = new List<ComboCard>();
+            if (loadout == null) return cards;
+
+            foreach (PartyMemberData member in loadout.Members)
+                if (member != null) cards.AddRange(member.CloneCards());
+
+            return cards;
         }
 
         // ── 런 데이터 ────────────────────────────────────

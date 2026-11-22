@@ -79,14 +79,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.StageRunner
   sections:
   - kind: 1
-    minX: -6
-    maxX: 6
+    minX: -9
+    maxX: 9
   - kind: 0
-    minX: 6
-    maxX: 32.729523
+    minX: 9
+    maxX: 35.729523
   - kind: 1
-    minX: 32.729523
-    maxX: 44.729523
+    minX: 35.729523
+    maxX: 53.729523
   arenas:
   - {fileID: 0}
   - {fileID: 0}

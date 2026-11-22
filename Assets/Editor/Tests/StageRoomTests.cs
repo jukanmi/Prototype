@@ -11,13 +11,17 @@ namespace Prototype.Tests
     /// 여기서는 <b>무엇을 어떻게 옮기는가</b>만 본다 — 벽은 자리와 콜라이더 길이, 그림은 바닥과 나란한 축만,
     /// 지점은 위치만, 높이는 어느 것도 안 바뀐다. 그리고 100%면 아무것도 안 건드린다.
     ///
-    /// 벽 규격은 Stage_01 그대로다(옆벽 x ±6.25 · (0.5, 4, 6), 앞뒤 벽 z ±3.25 · (13, 4, 0.5)).
+    /// 벽 규격은 옛 Stage_01(12×6) 그대로다(옆벽 x ±6.25 · (0.5, 4, 6), 앞뒤 벽 z ±3.25 · (13, 4, 0.5)).
+    /// 기준 방(<see cref="RoomRect.Default"/>)이 바뀌어도 옮기는 방식은 같으므로 크기를 여기 박아 둔다.
     ///
     /// 계획서: docs/Room_Size_Plan.md (4항 · 3단계)
     /// </summary>
     public class StageRoomTests
     {
         private const float Eps = 0.001f;
+
+        /// <summary>이 파일의 기준 방(12×6). 벽 · 그림 규격이 이 크기에 맞춰져 있다.</summary>
+        private static readonly RoomRect Reference = new RoomRect(-6f, 6f, -3f, 3f);
 
         private readonly List<GameObject> spawned = new List<GameObject>();
         private readonly List<Object> assets = new List<Object>();
@@ -43,7 +47,7 @@ namespace Prototype.Tests
             anchor = Node("SpawnPoint", new Vector3(3f, 0.5f, 1.5f), Quaternion.identity, Vector3.one);
 
             room = Node("StageRoom", Vector3.zero, Quaternion.identity, Vector3.one).gameObject.AddComponent<StageRoom>();
-            room.Configure(RoomRect.Default, 0.5f, left, right, near, far,
+            room.Configure(Reference, 0.5f, left, right, near, far,
                            new[] { floor, backdrop }, new[] { anchor });
         }
 
@@ -175,7 +179,7 @@ namespace Prototype.Tests
         [Test]
         public void MissingWall_DoesNotStopTheRest()
         {
-            room.Configure(RoomRect.Default, 0.5f, null, right, near, far, new[] { floor }, new[] { anchor });
+            room.Configure(Reference, 0.5f, null, right, near, far, new[] { floor }, new[] { anchor });
             room.Apply(80);
 
             Assert.That(left.position.x, Is.EqualTo(-6.25f).Within(Eps), "안 꽂힌 벽은 그대로다");

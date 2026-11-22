@@ -44,6 +44,12 @@ namespace Prototype
         public float TriggerLine => MinX;
 
         /// <summary>
+        /// 이 자리의 바닥. 좌우는 저작 경계, 깊이는 아레나 공통 깊이(<see cref="ArenaSpawnPlanner.ArenaHalfZ"/>) —
+        /// 적이 벽에서 나오는 계산과 같은 값이다. 이 자리가 스테이지의 마지막 방이면 클리어 보상이 이 안에 떨어진다.
+        /// </summary>
+        public RoomRect Area => new RoomRect(MinX, MaxX, -ArenaSpawnPlanner.ArenaHalfZ, ArenaSpawnPlanner.ArenaHalfZ);
+
+        /// <summary>
         /// 문 둘을 닫는다. <b>갇혔다는 걸 보여 준다</b> —
         /// 조용히 벽만 세우면 조작이 씹힌 것으로 읽힌다.
         /// </summary>

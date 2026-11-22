@@ -181,7 +181,8 @@ namespace Prototype
             }
 
             percent = RoomRules.ClampPercent(requested);
-            room = RoomRules.Scale(baseRoom, percent);
+            // 가로는 화면보다 좁아지지 않는다 — 좁으면 양옆으로 방 밖이 보인다. 줄이는 건 깊이가 맡는다.
+            room = RoomRules.Scale(baseRoom, percent, ScreenHalfWidth());
             applied = true;
 
             if (percent != RoomRules.Normalize(requested))
@@ -194,7 +195,8 @@ namespace Prototype
                     $"{name}: {percent}% 방 {room} 이(가) 규칙을 못 지킨다 — 마법사 줄이 모자라거나 벽이 화면 밖이다. " +
                     "기준 방을 확인할 것.", this);
 
-            if (percent == RoomRules.FullPercent) return;
+            // 크기가 그대로면 옮길 것이 없다. 100%여도 기준 방이 화면보다 좁았으면 가로가 늘어 여기를 지난다.
+            if (room.HalfX == baseRoom.HalfX && room.HalfZ == baseRoom.HalfZ) return;
 
             MoveWall(wallLeft, RoomSide.Left);
             MoveWall(wallRight, RoomSide.Right);
@@ -243,7 +245,14 @@ namespace Prototype
             if (t == null) return;
 
             t.position = RoomRules.MovePoint(t.position, baseRoom, room);
-            t.localScale = RoomRules.StretchScale(t.localScale, t.rotation, percent);
+            t.localScale = RoomRules.StretchScale(t.localScale, t.rotation, baseRoom, room);
+        }
+
+        /// <summary>화면 반폭(월드). 방 가로가 이보다 좁아지지 않는다. 직교 카메라가 없으면 0 — 비율 그대로 준다.</summary>
+        private static float ScreenHalfWidth()
+        {
+            Camera cam = Camera.main;
+            return cam != null && cam.orthographic ? CameraFrameRules.HalfWidth(cam.orthographicSize, cam.aspect) : 0f;
         }
 
         private void Anchor(Transform t)
