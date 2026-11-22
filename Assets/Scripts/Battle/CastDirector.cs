@@ -21,7 +21,6 @@ namespace Prototype
             StageDirector.AnyWaveCleared += RecallScene;
         }
 
-        [SerializeField, Min(0f)] private float preparationSeconds = 0f;
         [SerializeField, Min(0f)] private float impactGapSeconds = 0.2f;
         [SerializeField, Min(0f)] private float maxReactionWaitSeconds = 1f;
         private AssistManager assists;
@@ -62,11 +61,8 @@ namespace Prototype
             // Bind each card to its chosen enemy before any earlier card moves that enemy.
             var prepared = new List<CastRequest>(requests.Count);
             foreach (CastRequest request in requests) prepared.Add(RefreshChainRequest(request));
+            // 동료는 전부 주인공 곁에 바로 나타난다. 첫 스킬은 아무것도 기다리지 않는다.
             Assists.PrepareFormation(prepared);
-            while (run == generation && !Assists.FormationReady) yield return null;
-            float preparation = 0f;
-            while (run == generation && preparation < preparationSeconds)
-            { preparation += TimeControl.DeltaFor(TimeDomain.Cast); yield return null; }
             for (int i = 0; i < prepared.Count && run == generation; i++)
             {
                 CastRequest request = RefreshChainRequest(prepared[i]);
@@ -88,6 +84,8 @@ namespace Prototype
                     Projectile.CancelCastEffects();
                     Installation.CancelCastEffects();
                 }
+                // 때리고 나면 바로 사라진다. 뒤에 이 동료의 차례가 또 있으면 남아서 기다린다.
+                if (!UsedLater(prepared, i, request.Caster)) Assists.Dismiss(request.Caster);
                 // Give this impact time to visibly move its victims before the next card aims.
                 float reactionWait = 0f;
                 float reactionLimit = Mathf.Max(impactGapSeconds, maxReactionWaitSeconds);
@@ -109,6 +107,13 @@ namespace Prototype
         }
 
         private static bool HasCastEffects => Projectile.HasCastEffects || Installation.HasCastEffects;
+
+        private static bool UsedLater(List<CastRequest> requests, int index, Ally caster)
+        {
+            for (int j = index + 1; j < requests.Count; j++)
+                if (requests[j].Caster == caster) return true;
+            return false;
+        }
 
         private bool HasMovingVictims
         {

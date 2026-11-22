@@ -25,5 +25,24 @@ namespace Prototype
 
         /// <summary>한 기라도 소환한 적이 있는가. 첫 프레임 오판정을 막는 데 쓴다.</summary>
         public abstract bool HasSpawnedAny { get; }
+
+        /// <summary>
+        /// 스테이지가 끝나는 방 — 마지막 조우가 벌어지는 바닥. <b>클리어 보상이 여기 떨어지고 출구선이 이 방에서 풀린다.</b>
+        ///
+        /// 방이 여럿인 스테이지(아레나 → 통로 → 아레나)에서 이 값 없이 "씬의 방 하나"를 가정하면
+        /// 보상이 첫 방 좌표에 떨어지고, 출구선이 첫 방 안이라 마지막 방에서는 영영 출구가 안 열린다.
+        /// 모르면 거짓 — 부르는 쪽이 씬의 방이나 저작값으로 떨어진다.
+        /// </summary>
+        public virtual bool TryGetFinalArea(out RoomRect area)
+        {
+            area = default;
+            return false;
+        }
+
+        /// <summary>
+        /// 다음 방에 걸어 들어가기를 기다리는 중인가 — 방 사이 통로다. 앞 방은 깼고 다음 방은 아직 안 열렸다.
+        /// 싸움 밖이라 총공격 편성이 열린다. 모르면 거짓.
+        /// </summary>
+        public virtual bool AwaitingEntry => false;
     }
 }

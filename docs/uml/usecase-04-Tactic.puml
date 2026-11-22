@@ -1,5 +1,5 @@
 @startuml usecase-04-Tactic
-' ④ 총공격 — 슬롯 편집 · 자동 발동 · 실행 · 어시스트
+' ④ 총공격 — 슬롯 편집 · 키로 발동 · 실행 · 어시스트
 title ④ 총공격 — 유스케이스
 
 left to right direction
@@ -11,8 +11,8 @@ actor "동료\n(어시스트)" as Ally <<시스템>>
 actor "게임 시스템" as GameSys <<시스템>>
 
 rectangle "총공격 (Battle · Deck · Skill)" {
-  usecase "총공격 슬롯 편집 (E)\n(AssaultEditorUI · RunProgression.AssaultSlots)" as UC_Edit
-  usecase "게이지가 차면 총공격 자동 발동\n(BulletTimeController · TacticGauge)" as UC_Assault
+  usecase "총공격 슬롯 편집 (E · 칸 안 · 싸움 밖에서만)\n(AssaultEditorUI · AssaultEditGate)" as UC_Edit
+  usecase "게이지가 찼을 때 총공격키(Space)로 발동\n(BulletTimeController.TryFireAssault · AssaultRules)" as UC_Assault
   usecase "콤보 실행\n(ComboExecutor · CastDirector)" as UC_Exec
   usecase "손패 드로우\n(Deck · CardSupply)" as UC_Draw
   usecase "동료 등장 · 시전 · 퇴장\n(AssistManager · AssistControlModule)" as UC_Assist
@@ -25,7 +25,7 @@ rectangle "총공격 (Battle · Deck · Skill)" {
 
 Player --> UC_Edit
 
-UC_Assault <-- GameSys
+Player --> UC_Assault
 UC_Assault .> UC_Exec : <<include>>
 UC_Exec .> UC_Cast : <<include>>
 UC_Cast .> UC_Chain : <<include>>

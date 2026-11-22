@@ -59,6 +59,6 @@ MonoBehaviour:
     part: 
     path: <Keyboard>/v
   - map: Gameplay
-    action: BulletTime
+    action: Assault
     part: 
     path: <Keyboard>/space

@@ -196,7 +196,8 @@ namespace Prototype.Tests
         /// <item><c>CameraFollow</c>가 <b>꺼져 있다</b> — 방 하나가 한 화면인 아이작 구도.
         /// 카메라 자리는 씬에 구워져 있고 아무도 안 건드린다(웨이브 스테이지).</item>
         /// <item><c>CameraFollow</c>가 켜져 있고 <b>경계를 아는 쪽이 있다</b> —
-        /// <see cref="StageBounds"/>든 인스펙터의 min/max든(아레나 스테이지).</item>
+        /// <see cref="StageBounds"/>(아레나 스테이지), 방(<see cref="StageRoom"/>, 웨이브 스테이지),
+        /// 인스펙터의 min/max 중 하나.</item>
         /// </list>
         ///
         /// 켜져 있는데 경계가 없으면 카메라가 방 밖을 그대로 보여 준다. 그 상태는
@@ -218,7 +219,8 @@ namespace Prototype.Tests
                 {
                     if (!follow.enabled) continue;   // 고정 구도 — 정상이다
 
-                    bool hasBounds = Object.FindAnyObjectByType<StageBounds>() != null;
+                    bool hasBounds = Object.FindAnyObjectByType<StageBounds>() != null
+                                     || Object.FindAnyObjectByType<StageRoom>() != null;
 
                     var so = new SerializedObject(follow);
                     float min = so.FindProperty("minX").floatValue;
@@ -226,7 +228,7 @@ namespace Prototype.Tests
 
                     Assert.That(hasBounds || max > min, Is.True,
                         $"{path} 의 CameraFollow 가 켜져 있는데 경계를 아는 쪽이 없다 — " +
-                        "StageBounds 를 놓거나 minX/maxX 를 채울 것. 지금은 방 밖이 그대로 보인다.");
+                        "StageBounds · StageRoom 을 놓거나 minX/maxX 를 채울 것. 지금은 방 밖이 그대로 보인다.");
                 }
             }
         }

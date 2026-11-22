@@ -31,6 +31,9 @@ namespace Prototype
         /// <summary>판 테두리(바랜 놋쇠).</summary>
         public static readonly Color Rim = Hex(0xC9B48A, 0.55f);
 
+        /// <summary>화면 위 · 아래를 가로지르는 띠의 판(런 바 · 아래 HUD 띠). 둘이 같은 색이라 한 틀로 읽힌다.</summary>
+        public static readonly Color BarPlate = Ink.WithAlpha(0.92f);
+
         // ── 글자 ─────────────────────────────────────────
 
         public static readonly Color TextMain = Hex(0xF2EEE6);

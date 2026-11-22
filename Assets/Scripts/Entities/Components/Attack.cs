@@ -77,6 +77,9 @@ namespace Prototype
         }
 
         /// <summary>히트박스 활성화. 한 번 켜는 동안 같은 대상은 1회만 맞는다.</summary>
+        /// <summary>프리팹에 저작한 판정 상자 크기. 타마다 배율을 거는 쪽이 기준으로 쓴다(<see cref="Entity.GetBasicStageHitbox"/>).</summary>
+        public Vector3 DefaultSize => defaultSize;
+
         public void Begin(in HitData data) => Begin(in data, default);
 
         /// <summary>

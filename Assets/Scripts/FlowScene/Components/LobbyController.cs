@@ -17,7 +17,7 @@ namespace Prototype
     /// 창이 없을 때 ESC는 일시정지(<see cref="PauseMenu"/>) — 음량 · 조작키 · [타이틀로]. 마법사도 같은 창을 연다.
     /// 계획서: docs/Lobby_Plan.md
     /// </summary>
-    public class LobbyController : MonoBehaviour
+    public class LobbyController : MonoBehaviour, IAssaultEditGate
     {
         private const float NoticeSeconds = 4f;
 
@@ -47,6 +47,16 @@ namespace Prototype
         private bool suspendedByMe;
 
         private string SceneName => gameObject.scene.name;
+
+        /// <summary>
+        /// 마을은 싸움이 없는 곳이라 총공격 편성이 늘 열린다(<see cref="IAssaultEditGate"/>) — 솟아오르는 중 · 떠나는 중만 빼고.
+        /// 창(편성 · 제단 · 기록판)이 떠 있을 때는 편집창 쪽이 따로 막는다.
+        /// </summary>
+        public bool AssaultEditable => !arriving && !leaving;
+
+        private void OnEnable() => AssaultEditGate.Register(this);
+
+        private void OnDisable() => AssaultEditGate.Unregister(this);
 
         /// <summary>
         /// 지난 런의 흔적을 지운다. <b>Awake여야 한다</b> — <c>PartyAssembler.Start</c>(실행 순서 -200)가

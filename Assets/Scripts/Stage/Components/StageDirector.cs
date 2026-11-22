@@ -13,8 +13,12 @@ namespace Prototype
     /// 숨 돌리는 틈도 조우마다 따로 들고 있다.
     ///
     /// <b>승패는 여기서 판정하지 않는다.</b> 그건 <see cref="Prototype.BattleSceneController"/>
-    /// 몫이고, 그쪽은 <see cref="WavesRemaining"/> 하나만 물어본다 — 남은 웨이브가 있는데
+    /// 몫이고, 그쪽은 <see cref="ThreatsRemaining"/>를 물어본다 — 남은 웨이브가 있는데
     /// 적이 0명인 순간(웨이브 사이 빈 구간)에 승리로 판정하면 첫 웨이브만 잡고 스테이지가 끝난다.
+    ///
+    /// <b>방이 여럿이면</b>(아레나 → 통로 → 아레나) 중간 방을 깨도 이기지 않는다 — 나가는 문만 열리고
+    /// 다음 방으로 걸어간다. 이기는 것은 마지막 방의 마지막 조우뿐이고, 보상 · 출구가 그 방에 서도록
+    /// 그 방의 바닥을 알려 준다(<see cref="TryGetFinalArea"/>). 방 구분은 <see cref="EncounterRoomRules"/>가 목록에서 읽는다.
     ///
     /// 디렉터가 없는 씬(SampleScene · Stage_Mini · 훈련장)은 지금까지처럼 씬에 놓인 적으로
     /// 그대로 돈다 — 이 컴포넌트는 있으면 웨이브가 생기고, 없으면 아무것도 바꾸지 않는다.
@@ -107,6 +111,12 @@ namespace Prototype
         public override bool ThreatsRemaining => !finished;
 
         public override bool HasSpawnedAny => spawnedAny;
+
+        public override bool AwaitingEntry => started && !finished && waitingForLine;
+
+        /// <summary>마지막 조우의 자리(아레나), 자리가 없으면 씬의 방. <see cref="Awake"/> 뒤에 읽는다.</summary>
+        public override bool TryGetFinalArea(out RoomRect area)
+            => EncounterRoomRules.TryFinalArea(encounters, stageRoom != null ? stageRoom.Room : (RoomRect?)null, out area);
 
         /// <summary>
         /// 지금 돌고 있는 조우의 자리. 카메라 락이 이 값을 읽는다.
@@ -557,20 +567,27 @@ namespace Prototype
             AnyWaveCleared?.Invoke();
             Debug.Log($"[StageDirector] 웨이브 {CurrentWaveNumber} 소탕");
 
-            // 입구는 열지 않는다. 되돌아갈 수 있으면 자리를 나눈 의미가 없다.
-            Current.site?.OpenExit();
+            // 나가는 문은 <b>방이 끝났을 때만</b> 연다. 같은 방에 라운드가 남았는데 열면 다음 라운드 전의 틈에
+            // 걸어 나가, 문이 다시 닫힐 때 방 밖에 갇힌다. 입구는 열지 않는다 — 되돌아갈 수 있으면 자리를 나눈 의미가 없다.
+            bool roomCleared = EncounterRoomRules.EndsRoom(encounters, waveIndex);
+            if (roomCleared) Current.site?.OpenExit();
 
             // 카메라를 먼저 푼다. 안 풀면 문이 열려도 다음 자리로 못 걸어간다.
             running = false;
 
             if (waveIndex + 1 >= WaveCount)
             {
-                // 승리 판정(BattleSceneController)은 이 값과 남은 적 수를 함께 본다 —
-                // 웨이브 중간에 필드가 비었다고 이기면 다음 웨이브가 남았는데 보상이 떨어진다.
+                // 마지막 방의 마지막 조우다. 승리 판정(BattleSceneController)이 이 값과 남은 적 수를 함께 보고
+                // 그때 처음 보상을 떨어뜨린다 — 중간 방을 깼다고 이기면 다음 방이 남았는데 보상이 나온다.
                 finished = true;
-                Debug.Log("[StageDirector] 모든 웨이브 소탕 완료");
+                Debug.Log("[StageDirector] 마지막 방 소탕 — 스테이지 끝");
                 return;
             }
+
+            // 중간 방이다. 보상은 없고 나가는 문만 열렸다 — 다음 방은 걸어 들어가면 열린다(진입선).
+            if (roomCleared)
+                Debug.Log($"[StageDirector] 방 {EncounterRoomRules.RoomIndexOf(encounters, waveIndex) + 1}/" +
+                          $"{EncounterRoomRules.RoomCount(encounters)} 소탕 — 다음 방으로");
 
             // 간격은 <b>끝난 조우</b>가 들고 있다. 지금은 전부 같은 값이지만,
             // 아레나가 합류하면 정비 시간이 자리마다 달라진다.
@@ -600,9 +617,9 @@ namespace Prototype
 
             EncounterTrigger trigger = encounters[index].Trigger;
 
-            // 앞 조우와 같은 방(같은 자리)이면 진입선을 기다리지 않고 시간만 센다.
+            // 앞 조우와 같은 방(같은 자리)이면 진입선을 기다리지 않고 시간만 센다 — 이미 그 방 안에 서 있다.
             if (trigger == EncounterTrigger.CrossLine && index > 0
-                && encounters[index].site == encounters[index - 1].site)
+                && EncounterRoomRules.SameRoom(encounters[index], encounters[index - 1]))
                 trigger = EncounterTrigger.AfterPrevious;
 
             switch (trigger)

@@ -19,8 +19,9 @@ package "6 Tactic — UI" {
   }
   class AssaultEditorUI <<MonoBehaviour>> {
     + {static} IsOpen : bool
+    + {static} CanOpen : bool
     + {static} RequestOpen()
-    .. 총공격 4슬롯 편집(E키) · GameplayModal에 등록 ..
+    .. 총공격 4슬롯 편집(E키) · 칸 안 · 싸움 밖에서만(AssaultEditGate) ..
   }
   class SkillCutinUI <<MonoBehaviour>> {
     + Duration : float

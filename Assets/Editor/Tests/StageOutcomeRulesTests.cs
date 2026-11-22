@@ -146,6 +146,9 @@ namespace Prototype.Tests
 
         private const float ExitX = 5f;
 
+        /// <summary>출구선 규칙을 보는 방(12×6) — 100%에서 문턱이 <see cref="ExitX"/>로 나오는 크기다.</summary>
+        private static readonly RoomRect Reference = new RoomRect(-6f, 6f, -3f, 3f);
+
         [Test]
         public void ShortOfExit_DoesNotTrigger()
         {
@@ -200,7 +203,7 @@ namespace Prototype.Tests
         [Test]
         public void FullRoom_ExitLine_MatchesAuthoredValue()
         {
-            RoomRect room = RoomRules.Scale(RoomRect.Default, RoomRules.FullPercent);
+            RoomRect room = RoomRules.Scale(Reference, RoomRules.FullPercent);
 
             Assert.That(StageOutcomeRules.ExitLine(room.MaxX), Is.EqualTo(ExitX).Within(0.001f));
         }
@@ -209,7 +212,7 @@ namespace Prototype.Tests
         [Test]
         public void ShrunkRoom_ExitLine_IsReachable()
         {
-            RoomRect room = RoomRules.Scale(RoomRect.Default, RoomRules.MinPercent);
+            RoomRect room = RoomRules.Scale(Reference, RoomRules.MinPercent);
 
             Assert.That(StageOutcomeRules.ReachedExit(StopsAt(room.MaxX),
                                                      StageOutcomeRules.ExitLine(room.MaxX)), Is.True);
@@ -222,7 +225,7 @@ namespace Prototype.Tests
         [Test]
         public void ShrunkRoom_FixedExitX_IsUnreachable()
         {
-            RoomRect room = RoomRules.Scale(RoomRect.Default, RoomRules.MinPercent);
+            RoomRect room = RoomRules.Scale(Reference, RoomRules.MinPercent);
 
             Assert.That(StageOutcomeRules.ReachedExit(StopsAt(room.MaxX), ExitX), Is.False);
         }
@@ -231,7 +234,7 @@ namespace Prototype.Tests
         [Test]
         public void GrownRoom_ExitLine_IsNotTrippedEarly()
         {
-            RoomRect room = RoomRules.Scale(RoomRect.Default, RoomRules.MaxPercent);
+            RoomRect room = RoomRules.Scale(Reference, RoomRules.MaxPercent);
             float line = StageOutcomeRules.ExitLine(room.MaxX);
 
             Assert.That(line, Is.GreaterThan(ExitX));
@@ -248,7 +251,7 @@ namespace Prototype.Tests
         {
             for (int percent = RoomRules.MinPercent; percent <= RoomRules.MaxPercent; percent += RoomRules.Step)
             {
-                RoomRect room = RoomRules.Scale(RoomRect.Default, percent);
+                RoomRect room = RoomRules.Scale(Reference, percent);
                 float line = StageOutcomeRules.ExitLine(room.MaxX);
 
                 Assert.That(line, Is.LessThan(StopsAt(room.MaxX)),
@@ -259,6 +262,21 @@ namespace Prototype.Tests
                 Assert.That(StageOutcomeRules.ReachedExit(StopsAt(room.MaxX), line), Is.True,
                             $"{percent}% 방: 벽에 막힌 자리에서 출구가 안 열린다.");
             }
+        }
+
+        /// <summary>
+        /// 방도 조우 목록도 없는 씬(SampleScene · 훈련장)은 저작한 출구선이 그대로 나와야 한다 —
+        /// 끝나는 방을 묻는 길로 바꾸면서 그 씬들의 문턱이 움직이면 안 된다.
+        /// </summary>
+        [TestCase(5f)]
+        [TestCase(12f)]
+        [TestCase(-8f)]
+        public void AuthoredArea_KeepsTheAuthoredExitLine(float authored)
+        {
+            RoomRect area = StageOutcomeRules.AuthoredArea(authored);
+
+            Assert.That(StageOutcomeRules.ExitLine(area.MaxX), Is.EqualTo(authored).Within(0.001f));
+            Assert.That(area.MinX, Is.LessThan(area.MaxX), "방이 뒤집히면 보상 자리 계산이 엉뚱한 데로 간다.");
         }
 
     

@@ -51,8 +51,12 @@ namespace Prototype
         public bool capAirborne;
         public float hitStunDuration;
 
-        [Tooltip("판정이 닫힐 때까지 앞으로 밀고 나가는 속도(유닛/초). 0이면 제자리. 달리기 공격 칸에서만 쓴다.")]
+        [Tooltip("판정이 닫힐 때까지 앞으로 밀고 나가는 속도(유닛/초). 0이면 제자리.\n" +
+                 "달리기 공격 칸은 늘 밀고, 지상 연타 칸은 방향키를 쥐고 있을 때만 그 방향으로 민다. 공중 평타는 안 민다.")]
         public float advanceSpeed;
+
+        [Tooltip("이 타의 판정 상자 배율(기본 히트박스 크기 × 이 값). 0 이하면 기본 크기 그대로.")]
+        public float hitboxScale;
     }
 
     /// <summary>캔슬 시점까지 확정한 한 타의 타이밍. 상태가 매 틱 이걸 본다.</summary>

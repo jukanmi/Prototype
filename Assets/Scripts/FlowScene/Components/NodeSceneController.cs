@@ -38,7 +38,7 @@ namespace Prototype
     ///
     /// 계획서: docs/Run_Map_Plan.md (2.7 · 0단계)
     /// </summary>
-    public class NodeSceneController : MonoBehaviour
+    public class NodeSceneController : MonoBehaviour, IAssaultEditGate
     {
         [Tooltip("이 씬이 어떤 칸인가.")]
         [SerializeField] private NodeSceneKind kind = NodeSceneKind.Event;
@@ -46,8 +46,12 @@ namespace Prototype
         [Tooltip("OpenEvent가 뽑을 후보. 창을 처음 열 때 하나를 무작위로 고른다.")]
         [SerializeField] private RunEventAsset[] events = new RunEventAsset[0];
 
-        [Tooltip("이 x를 넘으면 칸이 끝난다. 방 오른쪽 벽에서 1 안쪽(StageOutcomeRules.ExitLine) — 방을 바꾸면 같이 고친다.")]
+        [Tooltip("방(StageRoom)이 없는 씬에서만 쓰는 출구선 X. 방이 있으면 그 오른쪽 벽에서 1 안쪽(StageOutcomeRules.ExitLine)이 이긴다 " +
+                 "— 방 크기를 바꿔도 출구가 따라간다.")]
         [SerializeField] private float exitX = 7f;
+
+        /// <summary>이번 칸의 출구선. <see cref="ResolveExitLine"/>이 방에서 푼다.</summary>
+        private float exitLine;
 
         [Header("싸움 (선택지의 fight)")]
         [Tooltip("적으로 돌아설 NPC. 싸움이 시작되면 사라지고 그 자리에 적이 선다.")]
@@ -58,6 +62,10 @@ namespace Prototype
 
         [Tooltip("적이 선 뒤 AI가 깨어나기까지 서 있는 시간.")]
         [SerializeField] private float fightHoldSeconds = 0.6f;
+
+        [Tooltip("정예로 세운다 — 체력 · 공격 배율과 정예 표식은 전투 칸의 정예와 같다(EnemySpawnService).\n" +
+                 "어떤 패턴을 쓰는지는 적 프리팹의 EnemyPatternAction이 정한다(검객: Enemy_Duelist).")]
+        [SerializeField] private bool fightElite = true;
 
         private readonly Dictionary<string, GameObject> windows = new Dictionary<string, GameObject>();
         private GameObject openWindow;
@@ -89,6 +97,20 @@ namespace Prototype
         private string SceneName => gameObject.scene.name;
 
         /// <summary>
+        /// 총공격 편성을 바꿔도 되는가(<see cref="IAssaultEditGate"/>). 싸움이 안 벌어졌거나 이겼고 · 지지 않았고 ·
+        /// 칸을 떠나는 중이 아니면 — 규칙은 <see cref="AssaultRules.PeacefulNodeAllowsEdit"/>.
+        ///
+        /// 싸우는 선택지를 고른 순간부터 닫는다. 대화가 닫히면 곧바로 싸움이 시작된다.
+        /// 창(상점 · 대화)이 떠 있는 동안은 편집창 쪽이 따로 막는다 — 창 위에 창을 겹치지 않는다.
+        /// </summary>
+        public bool AssaultEditable
+            => AssaultRules.PeacefulNodeAllowsEdit(fighting || pendingFight.HasValue, defeated, leaving);
+
+        private void OnEnable() => AssaultEditGate.Register(this);
+
+        private void OnDisable() => AssaultEditGate.Unregister(this);
+
+        /// <summary>
         /// 이 런의 편성. 기록이 없는 동료까지 체력을 바꾸려면 필요하다.
         /// 단독 실행이면 null — 주인공 기록만 바뀐다.
         /// </summary>
@@ -109,6 +131,7 @@ namespace Prototype
 
             party = FindAnyObjectByType<PartyRoster>();
             resultUI = StageResultUI.Create(this);
+            exitLine = ResolveExitLine();
             ShowExit();
 
             Debug.Log($"[Node] {kind} 칸 진입 ({SceneName}) — 골드 {RunProgression.Current.Gold}");
@@ -150,7 +173,14 @@ namespace Prototype
         // ── 상호작용 지점이 부르는 것 (Interactable.onInteract) ──
 
         /// <summary>카드 상점 창. 처음 열 때 한 번 뽑고, 닫았다 다시 열어도 같은 물건이다.</summary>
-        public void OpenShop() => Show("Shop", root => new ShopWindow(root, Roster, CloseWindow));
+        public void OpenShop()
+        {
+            if (!Show("Shop", root => new ShopWindow(root, Roster, CloseWindow))) return;
+
+            // 상점 창은 화면을 덮지 않고 대화창 위에 뜬다. 아래 대화창에는 조작 설명이 남는다.
+            Interactable who = Interactable.Current;
+            DialogueWindow.Hold(who != null ? who.Label : "상점", ShopWindow.Controls());
+        }
 
         /// <summary>
         /// 이벤트 — 말을 건 NPC가 대화창에서 글과 선택지를 내민다. 처음 한 번 이벤트를 뽑아 두고,
@@ -254,9 +284,9 @@ namespace Prototype
         // ── 창 (상점) ───────────────────────────────────
 
         /// <summary>창을 띄운다. 처음이면 짓고, 지어 둔 것이면 그대로 다시 켠다. 떠 있는 동안 몸을 잠근다.</summary>
-        private void Show(string key, Action<Transform> build)
+        private bool Show(string key, Action<Transform> build)
         {
-            if (openWindow != null || leaving || defeated || fighting) return;
+            if (openWindow != null || leaving || defeated || fighting) return false;
 
             if (windows.TryGetValue(key, out GameObject root))
             {
@@ -274,6 +304,7 @@ namespace Prototype
 
             openWindow = root;
             PlayerInputController.SetSuspended(true);
+            return true;
         }
 
         /// <summary>[닫기] · ESC. 창만 닫는다 — 칸은 오른쪽 벽으로 걸어가야 끝난다.</summary>
@@ -281,6 +312,7 @@ namespace Prototype
         {
             if (openWindow == null) return;
 
+            DialogueWindow.Release();   // 창과 함께 띄운 조작 설명
             openWindow.SetActive(false);
             openWindow = null;
             PlayerInputController.SetSuspended(false);
@@ -320,7 +352,7 @@ namespace Prototype
             var spawner = GetComponent<EnemySpawnService>();
             if (spawner == null) spawner = gameObject.AddComponent<EnemySpawnService>();
 
-            foe = spawner.SpawnAt(fightEnemy, at, fightHoldSeconds);
+            foe = spawner.SpawnAt(fightEnemy, at, fightHoldSeconds, fightElite);
             if (foe == null) return;
 
             reward = choice;
@@ -380,12 +412,22 @@ namespace Prototype
 
         private void ShowExit() => resultUI?.ShowExitArrow("지도로", "");
 
+        /// <summary>
+        /// 출구선 — 방(<see cref="StageRoom"/>)의 오른쪽 벽에서 1 안쪽. 방이 없으면 저작값(<see cref="exitX"/>).
+        /// 숫자로 박아 두면 방을 넓히는 순간 출구가 방 한가운데에 남는다.
+        /// </summary>
+        private float ResolveExitLine()
+        {
+            StageRoom room = StageRoom.Find();
+            return room != null ? StageOutcomeRules.ExitLine(room.Room.MaxX) : exitX;
+        }
+
         /// <summary>조작 중인 몸이 출구선을 넘었는가. 꺼지거나 쓰러진 몸은 안 본다.</summary>
         private bool ExitReached()
         {
             Entity body = BattleRegistry.Controlled;
             return body != null && body.isActiveAndEnabled && !body.Combat.IsDead
-                   && StageOutcomeRules.ReachedExit(body.transform.position.x, exitX);
+                   && StageOutcomeRules.ReachedExit(body.transform.position.x, exitLine);
         }
 
         /// <summary>

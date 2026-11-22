@@ -7,8 +7,9 @@ namespace Prototype
     /// 기계는 엔티티와 같은 <see cref="StateMachine"/>이다 — 인스턴스만 따로 쓴다.
     ///
     /// <code>
-    /// RealTime ─게이지 가득 · 적 있음→ Resolve ─콤보 끝→ RealTime
+    /// RealTime ─총공격키 (게이지 가득 · 적 있음 · 슬롯 있음)→ Resolve ─콤보 끝→ RealTime
     /// </code>
+    /// 화살표는 키를 눌렀을 때만 건너간다(<see cref="BulletTimeController.TryFireAssault"/>). 저절로 건너가는 길은 없다.
     /// </summary>
     public enum TacticPhase
     {
@@ -42,7 +43,7 @@ namespace Prototype
             public virtual void Exit() { }
         }
 
-        /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · 평타 적중 스킬 발동 구간.</summary>
+        /// <summary>실시간 전투. 플레이어 직접 조작 · 게이지 충전 · 평타 적중 스킬(카드 한 장) 발동 구간.</summary>
         private sealed class RealTimeState : TacticState
         {
             public RealTimeState(BulletTimeController ctx) : base(ctx) { }

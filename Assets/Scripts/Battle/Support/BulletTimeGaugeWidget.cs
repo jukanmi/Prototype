@@ -66,6 +66,12 @@ namespace Prototype
         public static bool ShowsTick(float requiredRatio)
             => requiredRatio > 0.02f && requiredRatio < 0.99f;
 
+        /// <summary>
+        /// 다 찼을 때의 글. <b>눌러야 나간다</b>는 걸 키 이름과 함께 적는다 — 저절로 나가는 줄 알면 기다리기만 한다.
+        /// 키는 매번 묻는다(<see cref="InputHints"/>) — 리바인드 · 프리셋으로 바뀌어도 따라온다.
+        /// </summary>
+        public static string ReadyLabel(string assaultKey) => $"총공격 준비 — [{assaultKey}]";
+
         /// <summary>0~1을 오가는 맥박. 준비 완료를 눈에 띄게 만든다.</summary>
         public static float Pulse(float unscaledTime)
             => 0.5f + 0.5f * Mathf.Sin(unscaledTime * 6f);
@@ -163,7 +169,7 @@ namespace Prototype
             else if (bt.IsGaugeReady)
             {
                 _fill.color = Color.Lerp(ReadyLowColor, ReadyHighColor, Pulse(Time.unscaledTime));
-                _label.text = "총공격 준비 — 적 등장 시 자동 발동";
+                _label.text = ReadyLabel(InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Assault));
             }
             else
             {

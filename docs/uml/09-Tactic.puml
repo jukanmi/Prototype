@@ -1,6 +1,6 @@
 @startuml 09-Tactic
 ' 6층 Tactic — Battle · Deck 로직: 총공격 상태머신 · 카드 공급 · 콤보 실행 · 시전 감독 · 어시스트.
-' UI는 09-Tactic-UI.puml. 위층(App)은 IStageRestarter로만 연결된다.
+' UI는 09-Tactic-UI.puml. 위층(App)은 IStageRestarter · IAssaultEditGate로만 연결된다.
 title 6층 Tactic — 클래스 다이어그램 (로직)
 
 set separator none
@@ -16,6 +16,7 @@ package "6 Tactic" {
       + Executor : ComboExecutor
       + Director : CastDirector
       + BuildAssaultQueue() : Queue<ComboSlot>
+      + TryFireAssault() : AssaultBlock
       + OpenAssaultEditor()
       + GrantCard(card)
       + SetCastDirector(director)
@@ -150,6 +151,7 @@ BulletTimeController --> CastDirector
 BulletTimeController ..> "RunHost (5)" : 덱 시작 방식
 BulletTimeController ..> "RunProgression (5)" : 총공격 슬롯
 InputMapSwitcher ..> "AssaultEditorUI" : IsOpen
+BulletTimeController ..> "AssaultRules" : 키를 눌렀을 때만 검사
 
 CardSupply *--> Deck
 CardSupply *--> Hand

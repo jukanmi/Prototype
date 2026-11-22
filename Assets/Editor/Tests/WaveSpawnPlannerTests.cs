@@ -15,10 +15,10 @@ namespace Prototype.Tests
         private const float Eps = 0.001f;
 
         /// <summary>
-        /// 기준 방. 방을 인자로 받게 바뀐 뒤에도 이 파일의 기대값은 하나도 안 바뀌었다 —
-        /// 그게 "100% 방의 답은 예전과 같다"의 증거다. 다른 크기의 방은 아래 "방 크기" 절이 본다.
+        /// 이 파일의 기준 방(12×6). 기대값이 이 크기로 적혀 있다 — 씬의 기준 방(<see cref="RoomRect.Default"/>, 18×6)이
+        /// 넓어져도 규칙은 반폭의 비율이라 그대로다. 다른 크기의 방은 아래 "방 크기" 절이 본다.
         /// </summary>
-        private static readonly RoomRect Room = RoomRect.Default;
+        private static readonly RoomRect Room = new RoomRect(-6f, 6f, -3f, 3f);
 
         private static float MaxDepth => WaveSpawnPlanner.MaxDepth(Room);
 
@@ -297,7 +297,7 @@ namespace Prototype.Tests
 
         private static readonly EnemyRole[] Roles = { EnemyRole.Melee, EnemyRole.Charger, EnemyRole.Ranged };
 
-        private static RoomRect Scaled(int percent) => RoomRules.Scale(RoomRect.Default, percent);
+        private static RoomRect Scaled(int percent) => RoomRules.Scale(Room, percent);
 
         /// <summary>기준 크기(12×6)지만 중심이 (20, 1)인 방. 원점 중심 방에서는 중심 기준 버그가 안 보인다.</summary>
         private static readonly RoomRect OffOrigin = new RoomRect(14f, 26f, -2f, 4f);

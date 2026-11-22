@@ -16,6 +16,12 @@ namespace Prototype
     /// </summary>
     public static class UiLayer
     {
+        /// <summary>
+        /// 월드보다 <b>먼저</b> 그리는 화면 판(아래 검은 띠). 오버레이가 아니라 카메라 공간 캔버스라
+        /// 같은 정렬층의 스프라이트와 순서로 겨룬다 — 맨 뒤 순서라 바닥 · 벽 · 몸이 전부 그 위에 그려진다.
+        /// </summary>
+        public const int BehindWorld = short.MinValue;
+
         /// <summary>총공격 게이지. 전투 중 항상 떠 있는 바닥층.</summary>
         public const int Gauge = 0;
 
@@ -158,6 +164,11 @@ namespace Prototype
 
         /// <summary>묶음 전체 높이 — 틀 아랫변 ~ 삐져나온 머리 꼭대기.</summary>
         public const float Height = FrameSize + PortraitOverflow;
+
+        /// <summary>
+        /// 화면 아래 검은 띠의 높이 — 묶음 아래 여백만큼 위에도 남긴다. 삐져나온 머리(<see cref="PortraitOverflow"/>)까지 띠 안이다.
+        /// </summary>
+        public const float BandHeight = MarginBottom * 2 + FrameSize;
     }
 
     /// <summary>

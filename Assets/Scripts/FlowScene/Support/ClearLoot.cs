@@ -16,9 +16,6 @@ namespace Prototype
     /// </summary>
     public static class ClearLootRules
     {
-        /// <summary>몸보다 이만큼 앞(오른쪽)에 떨어진다 — 걸어가던 쪽에 있어야 눈에 띈다.</summary>
-        public const float Ahead = 2f;
-
         /// <summary>금화와 상자 사이의 반 간격.</summary>
         public const float PairHalfGap = 1.1f;
 
@@ -28,8 +25,11 @@ namespace Prototype
         /// <summary>벽에서 이만큼 떨어뜨린다.</summary>
         public const float WallClearance = 1f;
 
-        /// <summary>두루마리 사이 간격. 상호작용 반경(<see cref="SkillRadius"/>)의 두 배보다 넓어야 둘이 같이 안 잡힌다.</summary>
-        public const float SkillGap = 1.7f;
+        /// <summary>
+        /// 두루마리 사이 간격. 이름표("[F] 원거리 사격" ≈ 3)가 옆과 안 겹치는 폭이다.
+        /// 상호작용 반경(<see cref="SkillRadius"/>)의 두 배보다도 넓어 둘이 같이 안 잡힌다.
+        /// </summary>
+        public const float SkillGap = 3.2f;
 
         /// <summary>두루마리 줄이 상자에서 떨어지는 깊이. 화면 아래(카메라 쪽)로 내려 상자와 안 겹친다.</summary>
         public const float SkillRowDepth = 1.4f;
@@ -37,15 +37,15 @@ namespace Prototype
         public const float PickRadius = 1.3f;
         public const float SkillRadius = 0.8f;
 
-        /// <summary>금화와 상자 한가운데. 몸 앞쪽, 방 안, 출구선 안쪽.</summary>
-        public static Vector3 Center(Vector3 body, RoomRect room, float exitLine)
+        /// <summary>금화와 상자 한가운데 — <paramref name="at"/>(보통 방 한가운데)를 방 안 · 출구선 안쪽으로 민 자리.</summary>
+        public static Vector3 Center(Vector3 at, RoomRect room, float exitLine)
         {
-            float x = Fit(body.x + Ahead,
+            float x = Fit(at.x,
                           room.MinX + WallClearance + PairHalfGap,
                           Mathf.Min(room.MaxX - WallClearance, exitLine - ExitClearance) - PairHalfGap);
 
-            float z = Fit(body.z, room.MinZ + WallClearance, room.MaxZ - WallClearance);
-            return new Vector3(x, body.y, z);
+            float z = Fit(at.z, room.MinZ + WallClearance, room.MaxZ - WallClearance);
+            return new Vector3(x, at.y, z);
         }
 
         public static Vector3 GoldAt(Vector3 center) => center + Vector3.left * PairHalfGap;
@@ -103,14 +103,14 @@ namespace Prototype
         private const float ScrollSize = 0.8f;
         private const float FlySeconds = 0.45f;
 
-        /// <param name="body">지금 조작 중인 몸의 발밑. 없으면 방 가운데를 준다.</param>
+        /// <param name="spot">보상이 놓일 한가운데 — 끝나는 방의 한가운데를 준다.</param>
         /// <param name="gold">금화 하나에 든 골드. 0 이하면 금화를 안 놓는다.</param>
         /// <param name="chest">상자를 놓는가(일반 전투 · 정예).</param>
         /// <param name="elite">정예 칸 — 빨간 상자.</param>
-        public static void Drop(Vector3 body, RoomRect room, float exitLine, int gold, bool chest, bool elite)
+        public static void Drop(Vector3 spot, RoomRect room, float exitLine, int gold, bool chest, bool elite)
         {
             LootArt art = LootArt.Get();
-            Vector3 center = ClearLootRules.Center(body, room, exitLine);
+            Vector3 center = ClearLootRules.Center(spot, room, exitLine);
 
             if (gold > 0) DropGold(ClearLootRules.GoldAt(center), gold, art);
 

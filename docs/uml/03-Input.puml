@@ -15,6 +15,7 @@ package "1.5 Input" {
     + Move : Vector2
     + AttackPressed / JumpPressed / DashPressed : bool
     + BulletTimePressed : bool
+    + AssaultPressed : bool
     + NavigateStep : Vector2Int
     + InteractPressed / InteractKeyPressed : bool
     + MenuStep : Vector2Int

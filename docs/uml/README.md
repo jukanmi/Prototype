@@ -17,7 +17,7 @@ asmdef · 네임스페이스 · 이식은 이 작업 범위가 아니다 (`docs/
 | [usecase-01-App.puml](usecase-01-App.puml) | ① 게임 시작 · 파티 선택 · 설정 · 키 바인딩 · 재시작 |
 | [usecase-02-Run.puml](usecase-02-Run.puml) | ② 런 맵 · 상점 · 이벤트 · 휴식 · 보상 카드 · 스킬 레벨 · 결과 |
 | [usecase-03-Combat.puml](usecase-03-Combat.puml) | ③ 이동 · 평타 · 대시 패리 · 피격 · 상태이상 · 가드 |
-| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 총공격 슬롯 편집 · 자동 발동 · 콤보 실행 · 어시스트 · 자동 카드 |
+| [usecase-04-Tactic.puml](usecase-04-Tactic.puml) | ④ 총공격 슬롯 편집 · 키로 발동 · 콤보 실행 · 어시스트 · 자동 카드 |
 | [usecase-05-Stage.puml](usecase-05-Stage.puml) | ⑤ 웨이브 · 적 행동 · 보스 패턴 · 클리어 · 보상 |
 
 제외: `CastTester` · `TrainingDummy`(테스트용).
@@ -105,6 +105,7 @@ MonoBehaviour · ScriptableObject 파일은 `.meta` 째 `git mv` — GUID가 그
 | `Stage/Support/StageEncounter.cs` — `IStageContext` (+`StageContext`) | 4 | `GameManager` | `StageDirector` · `StageRoom` → `GameManager` · `MapNode` |
 | `Progression/Support/IRunHost.cs` (+`RunHost`) | 5 | `GameManager` | `RunProgression.Current` · `BulletTimeController` · `PartyAssembler` → `GameManager` |
 | `Battle/Support/BattleContracts.cs` — `IStageRestarter` | 6 | `BattleSceneController` | `BattleRestartUI` → `BattleSceneController` |
+| `Battle/Support/BattleContracts.cs` — `IAssaultEditGate` (+`AssaultEditGate`) | 6 | `BattleSceneController` · `NodeSceneController` · `LobbyController` | `AssaultEditorUI` · `RunBarUI` → 칸 · 마을 지휘자 (편성은 싸움 밖에서만, 지도는 불가) |
 
 ### 이벤트 (아래층이 쏘고 위층이 구독)
 

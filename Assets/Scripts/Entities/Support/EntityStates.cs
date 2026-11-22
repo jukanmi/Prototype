@@ -174,7 +174,13 @@ namespace Prototype
         private float timer;
         private int stage;
 
+        /// <summary>이번 타의 전진 속도. 단계가 시작될 때 한 번 정한다(<see cref="AdvanceFor"/>).</summary>
+        private float stageAdvance;
+
         protected BasicAttackState(Entity entity) : base(entity) { }
+
+        /// <summary>이 타에서 판정이 닫힐 때까지 앞으로 밀 속도. 기본은 안 민다 — 지상 평타가 정한다.</summary>
+        protected virtual float AdvanceFor(int stage) => 0f;
 
         /// <summary>지금 몇 타째인가(0-base). 애니메이터가 클립을 고를 때 읽는다.</summary>
         public int Stage => stage;
@@ -201,6 +207,7 @@ namespace Prototype
             Entity.SetActiveAttackStage(0, Entity.GetBasicStageTiming(0).total);
 
             OnStageStart();
+            stageAdvance = AdvanceFor(0);
 
             // 이 상태로 들어온 그 입력을 버린다. 안 버리면 같은 한 번의 입력이
             // 여기 들어오게 만들고 곧바로 2타 예약까지 해서, 한 번 눌렀는데 두 대가 나간다.
@@ -230,8 +237,8 @@ namespace Prototype
 
             if (!FiresOnStageStart && windupCrossed) Fire();
 
-            // 달리기 공격은 판정이 닫힐 때까지 앞으로 밀고 나간다. Dash는 속도를 매 프레임 덮어쓰므로 계속 밀어 준다.
-            float advance = stage == 0 ? Entity.RunAdvanceSpeed : 0f;
+            // 미는 타(달리기 공격 · 방향키를 쥔 연타)는 판정이 닫힐 때까지 앞으로 나간다. Dash는 속도를 매 프레임 덮어쓰므로 계속 밀어 준다.
+            float advance = stageAdvance;
             if (advance > 0f)
             {
                 if (timer < t.activeEnd) Physics.Dash(Physics.Facing, advance);
@@ -282,6 +289,7 @@ namespace Prototype
             Entity.SetActiveAttackStage(stage, t.total);
 
             OnStageStart();
+            stageAdvance = AdvanceFor(stage);
             Entity.Animator?.PlayBasicAttackStage(stage, t.total);
 
             if (FiresOnStageStart) Fire();
@@ -294,7 +302,7 @@ namespace Prototype
         private void Fire()
         {
             if (Entity.BasicIsRanged) Entity.FireBasicProjectile();
-            else Entity.BasicAttack?.Begin(Entity.BuildBasicHit(stage));
+            else Entity.BasicAttack?.Begin(Entity.BuildBasicHit(stage), default, Entity.GetBasicStageHitbox(stage));
         }
 
         public override void Exit()
@@ -327,6 +335,17 @@ namespace Prototype
             Physics.Move(Vector3.zero, 0f);
             if (Entity.MoveDirection.sqrMagnitude > 0.0001f)
                 Physics.Face(Entity.MoveDirection);
+        }
+
+        /// <summary>
+        /// 달리기 공격은 늘 민다. 연타 칸은 <b>방향키를 쥐고 있을 때만</b> 그 방향으로 민다 —
+        /// 방향은 <see cref="OnStageStart"/>가 이미 돌려 세웠다. 놓고 치면 제자리에서 끝낸다. 얼마나 미는지는 표가 정한다.
+        /// </summary>
+        protected override float AdvanceFor(int stage)
+        {
+            bool running = stage == 0 && Entity.RunAdvanceSpeed > 0f;
+            bool steering = Entity.MoveDirection.sqrMagnitude > 0.0001f;
+            return running || steering ? Entity.GetBasicStageAdvance(stage) : 0f;
         }
     }
 

@@ -65,10 +65,23 @@ namespace Prototype.Tests
                 InputActionNames.Gameplay.Dash,
                 InputActionNames.Gameplay.BulletTime,
                 InputActionNames.Gameplay.Interact,
+                InputActionNames.Gameplay.Assault,
             };
 
             Assert.That(Map(InputActionNames.Gameplay.Map).actions.Select(a => a.name),
                 Is.EquivalentTo(expected));
+        }
+
+        [Test]
+        public void Assault_HasItsOwnKey_ApartFromTheEditor()
+        {
+            // 총공격은 키를 눌러야만 나간다. 편집창 키(E)와 한 키를 쓰면 "열기"와 "쏘기"가 한 번에 터진다.
+            InputAction assault = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Assault);
+            InputAction editor = Action(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.BulletTime);
+
+            Assert.That(assault.type, Is.EqualTo(InputActionType.Button));
+            Assert.That(assault.bindings.Select(b => b.path), Is.EquivalentTo(new[] { "<Keyboard>/space" }));
+            Assert.That(assault.bindings.Select(b => b.path).Intersect(editor.bindings.Select(b => b.path)), Is.Empty);
         }
 
         [Test]
@@ -160,6 +173,8 @@ namespace Prototype.Tests
         [TestCase(InputActionNames.Gameplay.Jump, "<Keyboard>/k")]
         [TestCase(InputActionNames.Gameplay.Dash, "<Keyboard>/leftShift")]
         [TestCase(InputActionNames.Gameplay.BulletTime, "<Keyboard>/e")]
+        [TestCase(InputActionNames.Gameplay.Interact, "<Keyboard>/f")]
+        [TestCase(InputActionNames.Gameplay.Assault, "<Keyboard>/space")]
         public void GameplayDefaultBinding_MatchesDocumentedKey(string actionName, string path)
         {
             InputAction action = Action(InputActionNames.Gameplay.Map, actionName);

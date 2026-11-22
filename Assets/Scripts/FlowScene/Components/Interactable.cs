@@ -30,6 +30,9 @@ namespace Prototype
 
         private static readonly List<Interactable> all = new List<Interactable>();
 
+        /// <summary>이름표의 정렬 순서. 바닥 그림(깊이 × 100)이 닿지 않는 높이다.</summary>
+        public const int TagSortingOrder = short.MaxValue;
+
         private TextMesh nameTag;
 
         /// <summary>이름표 · 대화창에 쓰는 이름. 비우면 오브젝트 이름.</summary>
@@ -149,7 +152,10 @@ namespace Prototype
             // 폰트 · 재질을 안 꽂으면 TextMesh 는 아무것도 안 그린다. UiKit 과 같은 내장 폰트를 쓴다.
             var text = go.AddComponent<TextMesh>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            go.GetComponent<MeshRenderer>().sharedMaterial = text.font.material;
+            MeshRenderer tagRenderer = go.GetComponent<MeshRenderer>();
+            tagRenderer.sharedMaterial = text.font.material;
+            // 그림은 깊이(z)로 정렬 순서를 받는다. 글은 0이라 뒤에 선 상자 같은 그림에 가려졌다 — 늘 맨 위에 그린다.
+            tagRenderer.sortingOrder = TagSortingOrder;
             text.text = content;
             text.anchor = TextAnchor.LowerCenter;
             text.alignment = TextAlignment.Center;

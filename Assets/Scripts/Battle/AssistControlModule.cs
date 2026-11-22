@@ -70,9 +70,16 @@ namespace Prototype
             FormationHeld = true;
             SelectionHeld = false;
             formation = point;
-            moveToFormation = true;
-            // An automatic cast already in progress finishes before walking into formation.
-            if (Phase != AssistPhase.Casting) BeginMove(point, AssistPhase.Arriving);
+            // 걸어가지 않고 그 자리에 바로 나타난다. 이미 쓰던 자동 스킬은 마저 끝낸 뒤 옮긴다.
+            moveToFormation = Phase == AssistPhase.Casting;
+            if (!moveToFormation) StandAtFormation();
+        }
+
+        private void StandAtFormation()
+        {
+            moveToFormation = false;
+            Owner.Physics.Teleport(formation);
+            Ready();
         }
 
         public void PrepareSkill(SkillData data, Entity target)
@@ -89,7 +96,8 @@ namespace Prototype
             preparedTarget = null;
             SelectionHeld = false;
             moveToFormation = false;
-            if (Phase == AssistPhase.Ready && !HasOrders) Depart();
+            // 총공격이 끝나면 걸어 나가지 않고 바로 사라진다.
+            if (Phase == AssistPhase.Ready && !HasOrders) manager.Recycle(this);
         }
 
         public override void Tick(float dt)
@@ -116,15 +124,14 @@ namespace Prototype
                 CastTicket done = current;
                 current = null;
                 skill = null;
-                Ready();
-                if (moveToFormation) BeginMove(formation, AssistPhase.Arriving);
+                if (moveToFormation) StandAtFormation();
+                else Ready();
                 done.Complete(cancelled);
                 return;
             }
 
             if (Phase != AssistPhase.Ready) return;
             if (preparedTarget != null) Owner.Physics.Face(preparedTarget.transform.position - Owner.transform.position);
-            if (moveToFormation) { BeginMove(formation, AssistPhase.Arriving); return; }
             if (bullets.Count > 0)
             {
                 CastTicket next = bullets.Dequeue();

@@ -41,6 +41,7 @@ namespace Prototype
         private InputAction dashAction;
         private InputAction bulletTimeAction;
         private InputAction interactAction;
+        private InputAction assaultAction;
 
 
         private NavigateLatch cardNavigate;
@@ -70,6 +71,11 @@ namespace Prototype
 
         /// <summary>상호작용 지점(Interactable) — 기본 F.</summary>
         public bool InteractPressed => Pressed(interactAction);
+
+        /// <summary>
+        /// 총공격키(기본 Space) — 게이지가 차 있으면 총공격을 낸다. 낼지 말지는 <c>BulletTimeController</c>가 정한다.
+        /// </summary>
+        public bool AssaultPressed => Pressed(assaultAction);
 
         /// <summary>
         /// 상호작용 키가 이번 프레임에 눌렸는가 — <b>조작이 잠겨 있어도</b> 본다.
@@ -274,6 +280,7 @@ namespace Prototype
             dashAction = gameplayMap.FindAction(InputActionNames.Gameplay.Dash, throwIfNotFound: true);
             bulletTimeAction = gameplayMap.FindAction(InputActionNames.Gameplay.BulletTime, throwIfNotFound: true);
             interactAction = gameplayMap.FindAction(InputActionNames.Gameplay.Interact, throwIfNotFound: true);
+            assaultAction = gameplayMap.FindAction(InputActionNames.Gameplay.Assault, throwIfNotFound: true);
 
             cardNavigate = new NavigateLatch(
                 bulletTimeMap.FindAction(InputActionNames.BulletTime.Navigate, throwIfNotFound: true));

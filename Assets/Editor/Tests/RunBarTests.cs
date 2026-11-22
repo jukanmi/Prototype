@@ -66,24 +66,64 @@ namespace Prototype.Tests
         }
 
         [Test]
-        public void Battle_HidesHp_AndSlotsAreClickable()
+        public void Battle_HidesHp()
         {
             RunBarUI bar = RunBarUI.Create(owner.transform, RunBarUI.Mode.Battle);
 
             Assert.That(bar.HpVisible, Is.False, "전투 중 체력은 좌하단 HUD가 주인이다(D2).");
             Assert.That(bar.SlotButtons, Has.Count.EqualTo(RunProgression.AssaultSlotCount));
-            foreach (Button b in bar.SlotButtons)
-                Assert.That(b.interactable, Is.True, "전투에선 슬롯을 눌러 편집창을 연다.");
         }
 
         [Test]
-        public void Overlay_ShowsHp_AndSlotsAreReadOnly()
+        public void Overlay_ShowsHp()
         {
             RunBarUI bar = RunBarUI.Create(owner.transform, RunBarUI.Mode.Overlay);
 
             Assert.That(bar.HpVisible, Is.True);
+        }
+
+        // ── 총공격 슬롯 — 편성 문을 따른다 ────────────────
+        // 슬롯은 편집창을 여는 버튼이라 E키와 같은 문(AssaultEditorUI.CanOpen)을 지난다 — 모드가 아니라 칸이 정한다.
+
+        [TestCase(RunBarUI.Mode.Battle)]
+        [TestCase(RunBarUI.Mode.Overlay)]
+        public void Slots_AreReadOnly_WithoutANode(RunBarUI.Mode mode)
+        {
+            // 편성 문을 거는 칸 지휘자가 없다 — 지도 위와 같다.
+            Assume.That(AssaultEditGate.CanEdit, Is.False, "앞 테스트의 편성 문이 남아 있다.");
+
+            RunBarUI bar = RunBarUI.Create(owner.transform, mode);
+
             foreach (Button b in bar.SlotButtons)
-                Assert.That(b.interactable, Is.False, "지도 · 칸에는 편집창이 붙을 전투 덱이 없다.");
+                Assert.That(b.interactable, Is.False, "지도에서 슬롯이 눌린다 — 편성은 칸 안에서만 한다.");
+        }
+
+        [TestCase(RunBarUI.Mode.Battle)]
+        [TestCase(RunBarUI.Mode.Overlay)]
+        public void Slots_FollowTheNodesEditGate(RunBarUI.Mode mode)
+        {
+            var gate = new FakeAssaultEditGate { Editable = false };
+            AssaultEditGate.Register(gate);
+            try
+            {
+                RunBarUI bar = RunBarUI.Create(owner.transform, mode);
+                foreach (Button b in bar.SlotButtons)
+                    Assert.That(b.interactable, Is.False, "싸우는 중인데 슬롯이 눌린다.");
+
+                gate.Editable = true;
+                bar.Refresh();
+                foreach (Button b in bar.SlotButtons)
+                    Assert.That(b.interactable, Is.True, "싸움이 끝났는데 슬롯이 안 눌린다.");
+
+                gate.Editable = false;
+                bar.Refresh();
+                foreach (Button b in bar.SlotButtons)
+                    Assert.That(b.interactable, Is.False, "다시 싸움이 났는데 슬롯이 그대로 눌린다.");
+            }
+            finally
+            {
+                AssaultEditGate.Unregister(gate);
+            }
         }
 
         // ── 값 ───────────────────────────────────────────

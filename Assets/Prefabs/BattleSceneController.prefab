@@ -44,4 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac3a0876cf9c81946a0e87404b703621, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Prototype.YG.BattleSceneController
-  exitX: 5
+  exitX: 8

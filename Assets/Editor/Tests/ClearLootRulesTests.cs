@@ -9,16 +9,17 @@ namespace Prototype.Tests
     /// </summary>
     public class ClearLootRulesTests
     {
-        private static readonly RoomRect Room = RoomRect.Default;   // x[-6..6] z[-3..3]
+        private static readonly RoomRect Room = RoomRect.Default;   // x[-9..9] z[-3..3]
         private static float ExitLine => StageOutcomeRules.ExitLine(Room.MaxX);
 
         [Test]
-        public void Center_IsAheadOfTheBody()
+        public void Center_StaysWhereAsked_WhenItFits()
         {
-            Vector3 c = ClearLootRules.Center(new Vector3(-2f, 0f, 0.5f), Room, ExitLine);
+            // 방 한가운데를 주면 그 자리 그대로다 — 몸 앞으로 밀던 예전 규칙은 없앴다.
+            Vector3 c = ClearLootRules.Center(new Vector3(Room.CenterX, 0f, Room.CenterZ), Room, ExitLine);
 
-            Assert.That(c.x, Is.EqualTo(-2f + ClearLootRules.Ahead).Within(0.001f));
-            Assert.That(c.z, Is.EqualTo(0.5f).Within(0.001f));
+            Assert.That(c.x, Is.EqualTo(Room.CenterX).Within(0.001f));
+            Assert.That(c.z, Is.EqualTo(Room.CenterZ).Within(0.001f));
         }
 
         [Test]
@@ -63,6 +64,26 @@ namespace Prototype.Tests
 
             Vector3[] atWall = ClearLootRules.SkillRow(new Vector3(0f, 0f, Room.MinZ + 0.5f), Room, ExitLine, 3);
             Assert.That(atWall[0].z, Is.GreaterThan(Room.MinZ + 0.5f), "앞이 벽이면 뒤로 놓는다.");
+        }
+
+        [Test]
+        public void FinalRoomFarRight_LootLandsInThatRoom()
+        {
+            // 통로 너머 마지막 아레나(x 35.7~53.7)에서 이겼다. 기준 방(x −9~9)으로 계산하면 보상이
+            // 첫 방 좌표로 끌려가 눈앞에서 사라진다 — 고친 버그다.
+            var finalRoom = new RoomRect(35.73f, 53.73f, -ArenaSpawnPlanner.ArenaHalfZ, ArenaSpawnPlanner.ArenaHalfZ);
+            float exit = StageOutcomeRules.ExitLine(finalRoom.MaxX);
+
+            Vector3 c = ClearLootRules.Center(new Vector3(44f, 0f, 0f), finalRoom, exit);
+
+            foreach (Vector3 p in new[] { ClearLootRules.GoldAt(c), ClearLootRules.ChestAt(c) })
+            {
+                Assert.That(p.x, Is.InRange(finalRoom.MinX, exit), "금화 · 상자는 마지막 방 안, 출구선 안쪽이다.");
+                Assert.That(p.z, Is.InRange(finalRoom.MinZ, finalRoom.MaxZ));
+            }
+
+            foreach (Vector3 p in ClearLootRules.SkillRow(ClearLootRules.ChestAt(c), finalRoom, exit, 3))
+                Assert.That(p.x, Is.InRange(finalRoom.MinX, exit), "두루마리도 마지막 방 안이다.");
         }
 
         [Test]

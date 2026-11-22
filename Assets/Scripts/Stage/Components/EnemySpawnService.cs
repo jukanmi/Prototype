@@ -192,7 +192,7 @@ namespace Prototype
         /// 비전투 칸에서 NPC가 적으로 돌아서는 자리(<c>NodeSceneController</c>)가 쓴다.
         /// 선 뒤 <paramref name="holdSeconds"/> 동안 서 있다가 AI가 깨어난다.
         /// </summary>
-        public Enemy SpawnAt(EnemyData data, Vector3 point, float holdSeconds)
+        public Enemy SpawnAt(EnemyData data, Vector3 point, float holdSeconds, bool elite = false)
         {
             if (data == null)
             {
@@ -200,7 +200,7 @@ namespace Prototype
                 return null;
             }
 
-            Enemy enemy = Create(data, false, point);
+            Enemy enemy = Create(data, elite, point);
             if (enemy != null) Enter(enemy, point, holdSeconds);
             return enemy;
         }

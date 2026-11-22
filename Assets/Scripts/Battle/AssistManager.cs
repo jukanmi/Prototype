@@ -125,6 +125,14 @@ namespace Prototype
                 if (!formation.Contains(control)) control.SelectionHeld = false;
         }
 
+        /// <summary>총공격 한 칸을 마친 시전자를 바로 거둔다 — 걸어 나가지 않고 사라진다.</summary>
+        public void Dismiss(Ally ally)
+        {
+            if (ally != null && controls.TryGetValue(ally, out AssistControlModule control)
+                && control.Phase == AssistPhase.Ready && !control.HasOrders)
+                Recycle(control);
+        }
+
         public void ReleaseFormation()
         {
             foreach (var control in formation) if (control != null) control.ReleaseFormation();

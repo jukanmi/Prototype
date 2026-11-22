@@ -15,6 +15,9 @@ namespace Prototype
     /// 비운 슬롯 뒤의 스킬은 앞으로 당겨지지 않는다. ESC · 닫기 버튼으로 닫는다.
     ///
     /// 게임 조작은 열려 있는 동안 잠근다(<see cref="PlayerInputController.SetSuspended"/>).
+    ///
+    /// <b>칸(노드) 안에서, 싸움이 없을 때만 열린다</b>(<see cref="CanOpen"/>). E키와 런 바의 슬롯 버튼이 같은 문을 지난다.
+    /// 전투 중 · 지도 위 · 다른 창이 떠 있을 때는 열리지 않는다.
     /// </summary>
     public class AssaultEditorUI : MonoBehaviour
     {
@@ -62,9 +65,33 @@ namespace Prototype
 
         private static bool IsOpenNow() => IsOpen;
 
-        /// <summary>편집창을 연다. 씬에 컴포넌트가 없으면 만든다.</summary>
+        /// <summary>
+        /// 지금 편집창을 열 수 있는가 — 칸이 허락하고(<see cref="AssaultEditGate"/>), 다른 창이 떠 있지 않다.
+        /// 런 바의 슬롯 버튼도 이 값으로 눌림을 정한다 — 키와 버튼이 다른 답을 하지 않게.
+        /// </summary>
+        public static bool CanOpen => !IsOpen && AssaultEditGate.CanEdit && !OtherWindowOpen;
+
+        /// <summary>
+        /// 다른 창이 떠 있다. 상점 창처럼 <see cref="GameplayModal"/>에 오르지 않고 조작만 잠그는 창도 있어 둘 다 본다 —
+        /// 그 위에 겹쳐 열면 이 창을 닫을 때 조작 잠금이 풀려, 뒤의 창이 떠 있는데 몸이 움직인다.
+        /// </summary>
+        private static bool OtherWindowOpen
+            => GameplayModal.IsOpen
+               || (PlayerInputController.Instance != null && PlayerInputController.Instance.GameplaySuspended);
+
+        /// <summary>편집창을 연다. 지금 못 열면(<see cref="CanOpen"/>) 아무것도 안 한다. 씬에 컴포넌트가 없으면 만든다.</summary>
         public static void RequestOpen()
         {
+            if (IsOpen) return;
+
+            if (!CanOpen)
+            {
+                BattleLog.Log(LogCategory.Bullet, AssaultEditGate.CanEdit
+                    ? "총공격 편집창 안 열림 — 다른 창이 떠 있다"
+                    : "총공격 편집창 안 열림 — 칸 안에서 싸움이 없을 때만 편성할 수 있다");
+                return;
+            }
+
             if (Instance == null)
                 Instance = new GameObject(nameof(AssaultEditorUI), typeof(RectTransform))
                     .AddComponent<AssaultEditorUI>();
@@ -122,6 +149,7 @@ namespace Prototype
         private ScrollRect scroll;
         private Text emptyText;
         private Text ghost;
+        private Text slotTitle;
 
         private bool isOpen;
         private bool built;
@@ -162,6 +190,7 @@ namespace Prototype
             if (!built) { BuildUI(); built = true; }
 
             BuildEntries();
+            slotTitle.text = SlotTitle(InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Assault));
 
             focusArea = Area.Grid;
             gridFocus = 0;
@@ -176,6 +205,10 @@ namespace Prototype
 
             Refresh();
         }
+
+        /// <summary>슬롯 줄 위의 안내. 총공격이 언제 · 어떤 순서로 나가는지를 지금 키 이름으로 적는다.</summary>
+        public static string SlotTitle(string assaultKey)
+            => $"총공격 순서 — 게이지가 차면 [{assaultKey}]로 발동, 왼쪽부터 차례로";
 
         private void Close()
         {
@@ -447,7 +480,8 @@ namespace Prototype
                 19, HintColor);
             UiKit.Place(hint, new Vector2(0.5f, 1f), new Vector2(0f, -96f), new Vector2(1400f, 30f));
 
-            Text slotTitle = UiKit.CreateText(p, "SlotTitle", "총공격 순서 (왼쪽부터 자동 발동)", 20, SubColor);
+            // 글은 열 때마다 쓴다(Open) — 키를 바꿨으면 바뀐 키가 나와야 한다.
+            slotTitle = UiKit.CreateText(p, "SlotTitle", "", 20, SubColor);
             UiKit.Place(slotTitle, new Vector2(0.5f, 1f), new Vector2(0f, -132f), new Vector2(900f, 28f));
 
             // 슬롯 4칸 — 처음부터 4개를 가운데 정렬로 깐다.

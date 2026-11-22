@@ -25,14 +25,29 @@ namespace Prototype
 
         public static readonly Vector2 ExitSize = new Vector2(240f, 64f);
 
+        /// <summary>아래 대화창 윗변과 그 위에 얹는 패널 사이.</summary>
+        public const float DialogueGap = 20f;
+
         /// <summary>화면을 덮는 바탕과 가운데 패널. 패널을 돌려준다.</summary>
         public static RectTransform Panel(Transform root, string title, Vector2 size)
         {
             Image backdrop = UiKit.NewImage(root, "Backdrop", BackdropColor, raycast: true);
             UiKit.Stretch(backdrop.rectTransform);
 
-            Image panel = UiKit.NewImage(backdrop.transform, "Panel", PanelColor);
-            RectTransform rect = UiKit.Place(panel, new Vector2(0.5f, 0.5f), Vector2.zero, size);
+            return TitledPanel(backdrop.transform, title, size, new Vector2(0.5f, 0.5f), Vector2.zero);
+        }
+
+        /// <summary>
+        /// 화면을 덮지 않고 아래 대화창(<see cref="DialogueWindow"/>) 바로 위에 뜨는 패널 — 칸 화면이 그대로 보인다.
+        /// 조작 설명은 대화창이 맡는다(<see cref="DialogueWindow.Hold"/>).
+        /// </summary>
+        public static RectTransform PanelAboveDialogue(Transform root, string title, Vector2 size)
+            => TitledPanel(root, title, size, new Vector2(0.5f, 0f), new Vector2(0f, DialogueWindow.Top + DialogueGap));
+
+        private static RectTransform TitledPanel(Transform parent, string title, Vector2 size, Vector2 anchor, Vector2 position)
+        {
+            Image panel = UiKit.NewImage(parent, "Panel", PanelColor);
+            RectTransform rect = UiKit.Place(panel, anchor, position, size);
 
             Text t = UiKit.NewText(rect, "Title", 40, TitleColor, FontStyle.Bold);
             t.text = title;
@@ -86,6 +101,16 @@ namespace Prototype
     {
         private const float Gap = 40f;
 
+        /// <summary>대화창 위 · 런 바 아래에 들어가는 크기(대화창 윗변 + 간격에서 위로 700).</summary>
+        private static readonly Vector2 Size = new Vector2(1180f, 700f);
+
+        /// <summary>대화창에 적는 상점 조작. 키는 지금 묶인 키를 그때그때 묻는다.</summary>
+        public static string Controls()
+        {
+            string key = InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Interact);
+            return $"방향키 · WASD  고르기     [{key}]  사기     ESC  닫기";
+        }
+
         /// <summary>보고 있는 카드의 확대 배율. 테두리와 함께 "이 카드"를 가리킨다.</summary>
         private const float FocusScale = 1.06f;
 
@@ -102,16 +127,12 @@ namespace Prototype
         /// <param name="onClose">[닫기]. 창만 닫는다 — 칸은 오른쪽 벽으로 걸어가야 끝난다.</param>
         public ShopWindow(Transform root, IReadOnlyList<PartyMemberData> roster, Action onClose)
         {
-            RectTransform panel = NodeWindows.Panel(root, "상점", new Vector2(1180f, 760f));
+            // 화면을 덮지 않고 대화창 위에 뜬다. 조작 설명은 대화창에 적는다(Controls).
+            RectTransform panel = NodeWindows.PanelAboveDialogue(root, "상점", Size);
             menu = new KeyMenu(panel);
 
             gold = UiKit.CreateText(panel, "Gold", "", 28, NodeWindows.TitleColor);
             UiKit.Place(gold, new Vector2(1f, 1f), new Vector2(-130f, -50f), new Vector2(220f, 40f));
-
-            string key = InputHints.Key(InputActionNames.Gameplay.Map, InputActionNames.Gameplay.Interact);
-            Text keys = UiKit.CreateText(panel, "Keys", $"방향키 · WASD  고르기     [{key}]  사기     ESC  닫기",
-                                         20, NodeWindows.SubColor);
-            UiKit.Place(keys, new Vector2(0.5f, 1f), new Vector2(0f, -98f), new Vector2(1000f, 28f));
 
             notice = UiKit.CreateText(panel, "Notice", "", 22, NodeWindows.WarnColor);
             UiKit.Place(notice, new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(900f, 36f));

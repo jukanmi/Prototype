@@ -136,6 +136,7 @@ namespace Prototype.Tests
             Vector3 heroStart = hero.transform.position;
             Vector3 untouchedStart = untouched.transform.position;
             bool observedMovementDuringSequence = false;
+            int startFrame = Time.frameCount;
             director.StartCoroutine(director.Resolve(new[]
             {
                 new CastRequest(a, data, TargetInfo.Ground(enemyStart), 1f, true),
@@ -156,7 +157,10 @@ namespace Prototype.Tests
             Assert.That(data.hitTimes.Count, Is.EqualTo(2));
             Assert.That(data.hitTimes[1] - data.hitTimes[0], Is.GreaterThanOrEqualTo(0.49f));
             Assert.That(data.aimPoints[1].x, Is.GreaterThan(data.aimPoints[0].x + 0.1f));
-            Assert.That(data.allPreparedOnFirstCast, Is.True);
+            // 누르자마자 첫 스킬이 나가고, 나머지 동료는 이미 주인공 곁에 나타나 있다(걸어 들어오지 않는다).
+            Assert.That(data.firstCastFrame - startFrame, Is.LessThanOrEqualTo(2), "첫 스킬이 기다렸다.");
+            Assert.That(data.allPreparedOnFirstCast, Is.True, "첫 스킬 때 나머지 동료가 아직 자리에 없다.");
+            Assert.That(data.firstGoneOnSecondCast, Is.True, "때리고 사라져야 할 첫 시전자가 남아 있다.");
             Assert.That(TimeControl.AssistResolutionActive, Is.False);
             Assert.That(a.gameObject.activeSelf || b.gameObject.activeSelf, Is.False);
             Object.Destroy(data);
@@ -178,6 +182,9 @@ namespace Prototype.Tests
         {
             public Ally[] party;
             public bool allPreparedOnFirstCast;
+            public bool firstGoneOnSecondCast;
+            public Ally firstCaster;
+            public int firstCastFrame = -1;
             public readonly List<float> hitTimes = new List<float>();
             public readonly List<Vector3> aimPoints = new List<Vector3>();
             public override IState CreateState(in SkillContext ctx) => new ImpactSkill(this, in ctx);
@@ -197,11 +204,17 @@ namespace Prototype.Tests
                 data.aimPoints.Add(Context.targetInfo.point);
                 if (data.aimPoints.Count == 1)
                 {
+                    data.firstCastFrame = Time.frameCount;
+                    data.firstCaster = (Ally)Context.caster;
                     data.allPreparedOnFirstCast = true;
                     foreach (Ally ally in data.party)
-                        if (ally != Context.caster && !ally.GetComponent<AssistControlModule>().InFormation)
-                            data.allPreparedOnFirstCast = false;
+                    {
+                        if (ally == Context.caster) continue;
+                        if (!ally.GetComponent<AssistControlModule>().InFormation) data.allPreparedOnFirstCast = false;
+                    }
                 }
+                else if (data.aimPoints.Count == 2)
+                    data.firstGoneOnSecondCast = !data.firstCaster.gameObject.activeInHierarchy;
             }
             public override void Tick(float dt)
             {

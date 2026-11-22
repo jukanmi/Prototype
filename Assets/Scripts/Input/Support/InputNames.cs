@@ -29,14 +29,22 @@ namespace Prototype
 
             /// <summary>
             /// 총공격 슬롯 편집창 열기. 기본 E, 프리셋/리바인딩에 따라 변경.
+            /// 칸(노드) 안에서 싸움이 없을 때만 열린다(<c>AssaultEditGate</c>) — 이름은 옛 불릿타임 시절 그대로다.
             /// </summary>
             public const string BulletTime = "BulletTime";
 
             /// <summary>
-            /// 상호작용 지점(Interactable · NPC). 기본 F. E는 불릿타임이라 쓸 수 없다 —
-            /// 로비에도 허수아비가 있어 불릿타임이 살아 있다.
+            /// 상호작용 지점(Interactable · NPC). 기본 F. E는 편집창 키라 쓸 수 없다 —
+            /// 로비에도 허수아비가 있어 전투 지휘 입력이 살아 있다.
             /// </summary>
             public const string Interact = "Interact";
+
+            /// <summary>
+            /// 총공격 발동. 기본 Space. 게이지가 차 있을 때 <b>이 키를 눌러야만</b> 나간다 —
+            /// 게이지가 차거나 적이 나타나는 것만으로는 안 나간다(<c>BulletTimeController.TryFireAssault</c>).
+            /// 편집창 키(<see cref="BulletTime"/>)와 따로 둔다. 하나로 합치면 "열기"와 "쏘기"가 한 키에서 갈린다.
+            /// </summary>
+            public const string Assault = "Assault";
         }
 
         /// <summary>
@@ -96,6 +104,7 @@ namespace Prototype
             { InputActionNames.Gameplay.Dash, "대쉬" },
             { InputActionNames.Gameplay.BulletTime, "총공격 편집창 열기" },
             { InputActionNames.Gameplay.Interact, "상호작용" },
+            { InputActionNames.Gameplay.Assault, "총공격" },
             { InputActionNames.BulletTime.Navigate, "칸 이동" },
         };
 

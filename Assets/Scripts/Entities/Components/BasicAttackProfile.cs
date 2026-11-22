@@ -83,6 +83,12 @@ namespace Prototype
         /// <summary>이 단계에 재생할 클립. 없으면 null — 애니메이터가 기본 평타 클립으로 떨어진다.</summary>
         public AnimationClip ClipFor(int stage) => Has(stage) ? stages[stage].clip : null;
 
+        /// <summary>그 타의 전진 속도(<see cref="BasicAttackStage.advanceSpeed"/>). 없으면 0.</summary>
+        public float AdvanceFor(int stage) => Has(stage) ? stages[stage].advanceSpeed : 0f;
+
+        /// <summary>그 타의 판정 상자 배율(<see cref="BasicAttackStage.hitboxScale"/>). 없으면 0 — 기본 크기.</summary>
+        public float HitboxScaleFor(int stage) => Has(stage) ? stages[stage].hitboxScale : 0f;
+
         /// <summary>단계 타이밍. 없는 단계면 전부 0 — 상태가 즉시 끝난다.</summary>
         public BasicAttackTiming TimingFor(int stage)
         {

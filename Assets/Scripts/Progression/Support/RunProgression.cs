@@ -244,10 +244,43 @@ namespace Prototype
                 {
                     if (c == null || c.Data == null) continue;
                     AddSkill(c.Data);
+
+                    // 시작 스킬은 처음부터 총공격에 들어가 있다 — 편집창을 안 열어도 첫 싸움에서 총공격이 나간다.
+                    // 같은 스킬은 한 칸, 넘치면 앞에서부터 네 칸(PushAssaultSlot).
+                    PushAssaultSlot(c.Data.skillName);
                 }
 
             OnChanged?.Invoke();
             return skillCounts.Count > 0;
+        }
+
+        /// <summary>
+        /// 런을 떠나기 전(마을)에 편성이 바뀌었다 — 시작 덱을 지금 편성으로 다시 뿌린다. 씨를 아직 안 뿌렸으면 아무것도 안 한다.
+        ///
+        /// 남은 동료의 스킬은 총공격 칸을 그대로 지킨다(마을에서 순서를 바꿨을 수 있다). 빠진 동료의 스킬은 칸째 지우고,
+        /// 새로 온 동료의 스킬은 앞쪽 빈 칸에 넣는다 — 처음 뿌릴 때(<see cref="SeedDeck"/>)와 같은 규칙이다.
+        /// </summary>
+        public void ReseedDeck(IEnumerable<ComboCard> source)
+        {
+            if (!Seeded) return;
+
+            skillCounts.Clear();
+
+            var names = new List<string>();
+            if (source != null)
+                foreach (ComboCard c in source)
+                {
+                    if (c == null || c.Data == null) continue;
+                    AddSkill(c.Data);
+                    names.Add(c.Data.skillName);
+                }
+
+            for (int i = 0; i < AssaultSlotCount; i++)
+                if (assaultSlots[i] != null && CountOf(assaultSlots[i]) <= 0) assaultSlots[i] = null;
+
+            foreach (string name in names) PushAssaultSlot(name);
+
+            OnChanged?.Invoke();
         }
 
         /// <summary>

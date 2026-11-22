@@ -13,6 +13,10 @@ namespace Prototype
     /// 데드존을 적용하고, <see cref="StageBounds"/>가 들고 있는 구간 밖을 보지 않도록 물린다.
     /// 아레나는 그 구간이 화면 폭보다 좁을 뿐이고, 그러면 클램프가 한 점으로 접혀
     /// 카메라가 결과적으로 안 움직인다(<see cref="CameraFrameRules.ClampToSection"/>).
+    ///
+    /// 구간이 없는 씬(웨이브 방 · 마을 · 비전투 칸)은 <b>방(<see cref="StageRoom"/>)이 구간이다.</b>
+    /// 방 밖을 비추지 않으므로 빈 공간이나 벽 너머에서 걸어 들어오는 적이 화면에 안 잡힌다.
+    /// 방도 없으면 인스펙터의 min/max, 그것도 비면 제한 없이 따라간다.
     /// </summary>
     public class CameraFollow : MonoBehaviour
     {
@@ -34,12 +38,17 @@ namespace Prototype
         [Tooltip("화면 중앙 밴드의 반폭. 목표가 이 밴드를 벗어날 때만 카메라가 밀린다. 0이면 항상 따라간다.")]
         [SerializeField] private float deadZoneHalfWidth = 1.5f;
 
-        [Tooltip("StageBounds가 없는 씬에서 쓰는 고정 경계. min >= max면 제한하지 않는다.")]
+        [Tooltip("StageBounds 도 StageRoom 도 없는 씬에서 쓰는 고정 경계. min >= max면 제한하지 않는다.")]
         [SerializeField] private float minX = 0f;
         [SerializeField] private float maxX = 0f;
 
         private Camera cam;
         private StageBounds bounds;
+
+        /// <summary>구간이 없는 씬의 경계가 되는 방. 방 크기 비율이 이미 적용돼 있다(StageRoom은 실행 순서 -300).</summary>
+        private StageRoom room;
+
+        private bool roomLooked;
 
         /// <summary>기울기만 담은 회전. 스프라이트 빌보드가 이걸 그대로 받아 쓴다.</summary>
         public Quaternion Rotation => Quaternion.Euler(tiltDegrees, 0f, 0f);
@@ -54,7 +63,7 @@ namespace Prototype
         {
             Quaternion rot = Rotation;
 
-            return new Vector3(pivotX, 0f, 0f)
+            return new Vector3(pivotX, 2f, 0f)
                  - (rot * Vector3.forward) * distance
                  + (rot * Vector3.up) * framingLift;
         }
@@ -204,18 +213,43 @@ namespace Prototype
             return Rig(x);
         }
 
+        /// <summary>
+        /// 화면이 볼 수 있는 구간 안으로 물린다. 묻는 순서 — 구간(<see cref="StageBounds"/>, 아레나 · 통로) →
+        /// 방(<see cref="StageRoom"/>) → 인스펙터 min/max. 방이 화면보다 좁으면 가운데에 선다.
+        /// </summary>
         private float ClampToStage(float desired)
         {
             StageBounds owner = Bounds();
 
-            if (owner == null)
-                return maxX > minX ? Mathf.Clamp(desired, minX, maxX) : desired;
+            if (owner != null)
+            {
+                // 경계 보간을 여기서 한 번 민다. StageBounds도 자기 LateUpdate에서 돌리지만
+                // 실행 순서가 뒤일 수 있어서, 그러면 카메라가 한 프레임 늦은 경계를 보고 떤다.
+                owner.TickBlend();
 
-            // 경계 보간을 여기서 한 번 민다. StageBounds도 자기 LateUpdate에서 돌리지만
-            // 실행 순서가 뒤일 수 있어서, 그러면 카메라가 한 프레임 늦은 경계를 보고 떤다.
-            owner.TickBlend();
+                return CameraFrameRules.ClampToSection(desired, owner.CameraMin, owner.CameraMax, HalfWidth());
+            }
 
-            return CameraFrameRules.ClampToSection(desired, owner.CameraMin, owner.CameraMax, HalfWidth());
+            StageRoom stageRoom = Room();
+            if (stageRoom != null)
+            {
+                RoomRect r = stageRoom.Room;
+                return CameraFrameRules.ClampToSection(desired, r.MinX, r.MaxX, HalfWidth());
+            }
+
+            return maxX > minX ? Mathf.Clamp(desired, minX, maxX) : desired;
+        }
+
+        /// <summary>한 번만 찾는다 — 방은 판 내내 안 바뀌고, 없는 씬에서 매 프레임 씬을 훑지 않게.</summary>
+        private StageRoom Room()
+        {
+            if (!roomLooked)
+            {
+                roomLooked = true;
+                room = StageRoom.Find();
+            }
+
+            return room;
         }
 
         /// <summary>

@@ -116,6 +116,32 @@ namespace Prototype.Tests
         }
 
         /// <summary>
+        /// 아레나는 화면 가로를 채운다. 좁으면 카메라가 가운데에 잠긴 채 양옆으로 방 밖이 보이고,
+        /// 벽에서 나오는 적이 벽 너머에 서 있는 모습이 그대로 잡힌다.
+        /// </summary>
+        [Test]
+        public void EveryArenaSite_FillsTheScreenWidth()
+        {
+            foreach (string scene in ArenaScenes)
+            {
+                StageWaveBoard board = OpenAndFind(scene);
+                Camera cam = Camera.main;
+                Assert.That(cam != null && cam.orthographic, Is.True, $"{scene}: 직교 MainCamera 가 없다");
+
+                float screen = CameraFrameRules.HalfWidth(cam.orthographicSize, 16f / 9f) * 2f;
+
+                for (int i = 0; i < board.WaveCount; i++)
+                {
+                    EncounterSite site = board.EncounterAt(i).site;
+                    if (site == null) continue;
+
+                    Assert.That(site.MaxX - site.MinX, Is.GreaterThanOrEqualTo(screen),
+                                $"{scene} {i}번 조우의 방 가로 {site.MaxX - site.MinX} 이(가) 화면 가로 {screen:0.##} 보다 좁다");
+                }
+            }
+        }
+
+        /// <summary>
         /// 아레나는 <b>걸어 들어가야</b> 열린다. 시작 조건이 진입선이 아니면 앞 조우가 끝나는
         /// 순간 저 멀리 있는 방이 열려서, 플레이어가 도착하기도 전에 적이 벽에서 나온다.
         /// </summary>
@@ -174,6 +200,38 @@ namespace Prototype.Tests
 
                     Assert.That(here.MinX, Is.GreaterThanOrEqualTo(prev.MaxX),
                                 $"{scene}: {i}번 조우가 {i - 1}번보다 왼쪽에 있다");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 스테이지가 끝나는 방은 <b>마지막 아레나</b>여야 하고, 출구선이 그 방 안에 서야 한다.
+        ///
+        /// 통로 씬에서 났던 버그의 그물이다 — 끝나는 방을 "씬의 방 하나"로 가정하면 보상이 첫 방 좌표에 떨어지고,
+        /// 출구선이 첫 방 안이라 마지막 방에서는 이미 넘은 것으로 쳐져 칸을 못 벗어난다.
+        /// </summary>
+        [Test]
+        public void FinalArea_IsTheLastArena_WithItsExitInside()
+        {
+            foreach (string scene in ArenaScenes)
+            {
+                StageWaveBoard board = OpenAndFind(scene);
+                EncounterSite last = board.EncounterAt(board.WaveCount - 1).site;
+
+                Assert.That(EncounterRoomRules.TryFinalArea(board.Encounters, null, out RoomRect area), Is.True,
+                            $"{scene}: 끝나는 방을 못 찾는다");
+                Assert.That(area.MinX, Is.EqualTo(last.MinX).Within(0.001f), $"{scene}: 끝나는 방이 마지막 아레나가 아니다");
+
+                float exit = StageOutcomeRules.ExitLine(area.MaxX);
+                Assert.That(exit, Is.InRange(last.MinX, last.MaxX), $"{scene}: 출구선 {exit} 이(가) 마지막 아레나 밖이다");
+
+                for (int i = 0; i < board.WaveCount - 1; i++)
+                {
+                    EncounterSite earlier = board.EncounterAt(i).site;
+                    if (earlier == null || earlier == last) continue;
+
+                    Assert.That(exit, Is.GreaterThan(earlier.MaxX),
+                                $"{scene}: 출구선이 {i}번 조우의 방 안에 있다 — 그 방을 지나는 순간 칸이 끝난다");
                 }
             }
         }

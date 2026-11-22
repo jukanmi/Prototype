@@ -37,6 +37,7 @@ MonoBehaviour:
     capAirborne: 0
     hitStunDuration: 0.6
     advanceSpeed: 10
+    hitboxScale: 1.5
   dashCooldown: 0
   attackBufferWindow: 0
   animatorController: {fileID: 9100000, guid: be315ff213b5a054aadf5b6f00f7cd46, type: 2}

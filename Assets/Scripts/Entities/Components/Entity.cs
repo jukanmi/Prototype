@@ -142,6 +142,25 @@ namespace Prototype
         /// <summary>달리기 공격 1타가 도는 동안의 전진 속도. 아니면 0.</summary>
         public float RunAdvanceSpeed => UsesRunStage(0) ? runStage.advanceSpeed : 0f;
 
+        /// <summary>그 타의 전진 속도 — 달리기 공격이면 그 칸, 아니면 연타 표의 칸. 언제 미는지는 상태가 정한다.</summary>
+        public float GetBasicStageAdvance(int stage)
+        {
+            if (UsesRunStage(stage)) return runStage.advanceSpeed;
+            return AttackProfile != null ? AttackProfile.AdvanceFor(stage) : 0f;
+        }
+
+        /// <summary>
+        /// 그 타의 판정 상자 크기. 배율(<see cref="BasicAttackStage.hitboxScale"/>)을 안 적었으면 zero —
+        /// <see cref="Attack.Begin(in HitData, in SkillVfx, Vector3)"/>가 기본 크기로 친다.
+        /// </summary>
+        public Vector3 GetBasicStageHitbox(int stage)
+        {
+            float scale = UsesRunStage(stage) ? runStage.hitboxScale
+                        : AttackProfile != null ? AttackProfile.HitboxScaleFor(stage) : 0f;
+
+            return scale > 0f && BasicAttack != null ? BasicAttack.DefaultSize * scale : Vector3.zero;
+        }
+
         private bool UsesRunStage(int stage) => hasRunStage && RunAttack && stage == 0 && !BasicIsRanged;
 
         /// <summary>지금 도는 평타가 달리기 공격인가. 공격 상태가 끝나면 지워진다.</summary>
