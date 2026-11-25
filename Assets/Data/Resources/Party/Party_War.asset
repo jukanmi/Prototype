@@ -15,7 +15,8 @@ MonoBehaviour:
   memberId: War
   displayName: War
   role: 1
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: 3e16427211a347eabbdeb6f6359d2a34, type: 3}
+  skillLogFace: {fileID: 21300000, guid: 702b241b451f48ad8ae02d4562e9549b, type: 3}
   prefab: {fileID: 2659944987478458666, guid: f994c8d5dc644a744b1f348d88067811, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: 9b6163e6ba4f016489a7d00d2087db62, type: 2}

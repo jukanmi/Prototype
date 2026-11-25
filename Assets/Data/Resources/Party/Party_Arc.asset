@@ -15,7 +15,8 @@ MonoBehaviour:
   memberId: Arc
   displayName: Arc
   role: 2
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: a5afe7da163e406ebd1aefccf78cf7c5, type: 3}
+  skillLogFace: {fileID: 21300000, guid: b9508bd55cac4df78045dbbd72a6a02a, type: 3}
   prefab: {fileID: 6431140714613573192, guid: 32c6410915bdb0a4398a8344af5ba8e2, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: 098ad9324be2eb94c839183e89538a3b, type: 2}

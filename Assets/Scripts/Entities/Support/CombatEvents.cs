@@ -40,6 +40,13 @@ namespace Prototype
         public static event Action<Combat, Combat, float> OnAnyDamageDealt;
 
         /// <summary>
+        /// 스킬이 <b>시전을 시작했다</b>(<see cref="SkillState.Enter"/>). 인자는 (시전자, 스킬, 겨눈 대상) 순이다.
+        /// 대상은 시전 시점에 확정된 적이고, 장판처럼 땅을 겨누면 null일 수 있다.
+        /// 적중 여부와 상관없이 한 번 온다 — 스킬 로그(<see cref="SkillLogHUD"/>)가 받는다.
+        /// </summary>
+        public static event Action<Entity, SkillData, Entity> OnAnySkillCast;
+
+        /// <summary>
         /// Enter Play Mode Options가 Domain Reload를 끄고 있어 static이 살아남는다.
         /// 리셋하지 않으면 지난 세션의 파괴된 구독자가 계속 호출된다(BattleRegistry와 같은 이유).
         /// </summary>
@@ -50,6 +57,7 @@ namespace Prototype
             OnParried = null;
             OnAnyBasicHitLanded = null;
             OnAnyDamageDealt = null;
+            OnAnySkillCast = null;
         }
 
         // ── 쏘는 쪽 (Combat 전용) ─────────────────────────
@@ -63,6 +71,9 @@ namespace Prototype
 
         /// <summary>구독자가 없으면 계산부터 건너뛸 수 있게 묻는 자리.</summary>
         internal static bool HasDamageListeners => OnAnyDamageDealt != null;
+
+        internal static void RaiseSkillCast(Entity caster, SkillData data, Entity target = null)
+            => OnAnySkillCast?.Invoke(caster, data, target);
 
         internal static void RaiseDamageDealt(Combat attacker, Combat victim, float dealt)
             => OnAnyDamageDealt?.Invoke(attacker, victim, dealt);

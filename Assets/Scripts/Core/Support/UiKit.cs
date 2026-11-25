@@ -22,6 +22,13 @@ namespace Prototype
         /// </summary>
         public const int BehindWorld = short.MinValue;
 
+        /// <summary>
+        /// 스킬 로그(<see cref="SkillLogHUD"/>). 화면 왼쪽 위에서 아래로 최대 36줄까지 쌓여
+        /// 좌하단 묶음(초상화 · 체력 · 총공격 게이지)까지 내려올 수 있다 — 그때 묶음이 위에 그려지도록
+        /// <b>게이지(<see cref="Gauge"/>)보다도 아래</b>에 둔다.
+        /// </summary>
+        public const int SkillLog = -1;
+
         /// <summary>총공격 게이지. 전투 중 항상 떠 있는 바닥층.</summary>
         public const int Gauge = 0;
 

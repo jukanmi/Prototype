@@ -30,6 +30,9 @@ namespace Prototype
 
         public Role Role => role;
         public Sprite Portrait => portrait;
+
+        /// <summary>스킬 로그의 눈매 띠. 표(<see cref="PartyMemberData.skillLogFace"/>)에만 있다 — 없으면 null.</summary>
+        public Sprite SkillLogFace => data != null ? data.skillLogFace : null;
         public IReadOnlyList<ComboCard> Equipped => equipped;
 
         /// <summary>이 동료가 물고 있는 표. 없으면 null — 인스펙터 값으로 도는 중이다.</summary>

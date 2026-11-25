@@ -61,7 +61,13 @@ namespace Prototype
             return 1f - inv * inv * inv;
         }
 
-        public void OnPointerEnter(PointerEventData eventData) => hovered = true;
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            hovered = true;
+            // 커서를 댄 버튼이 곧 선택 버튼이 된다 — 키보드로 골라 둔 다른 버튼의 밑줄은 접힌다.
+            var es = EventSystem.current;
+            if (es != null) es.SetSelectedGameObject(gameObject);
+        }
         public void OnPointerExit(PointerEventData eventData)
         {
             hovered = false;
@@ -71,6 +77,11 @@ namespace Prototype
                 es.SetSelectedGameObject(null);
         }
         public void OnSelect(BaseEventData eventData)          => selected = true;
-        public void OnDeselect(BaseEventData eventData)        => selected = false;
+        public void OnDeselect(BaseEventData eventData)
+        {
+            // 키보드로 다른 버튼을 고르면, 커서가 아직 위에 있어도 이 밑줄은 접는다 (밑줄은 항상 하나).
+            selected = false;
+            hovered = false;
+        }
     }
 }

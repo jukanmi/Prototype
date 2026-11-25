@@ -203,6 +203,20 @@ namespace Prototype
         public static bool ShouldShow(CombatState state)
             => state != CombatState.Neutral && state != CombatState.Dead;
 
+        /// <summary>
+        /// 디버프 하나의 대표 색. 겹침 표시(<see cref="CombatOverlay"/>)와 같은 색이다 —
+        /// 스킬 로그의 순서 칸이 "이 스킬은 묶는다"를 몸 색과 같은 말로 하게.
+        /// 마스크에 여럿이 섞여 있으면 겹침 표시와 같은 우선순위(바인드 &gt; 빙결 &gt; 스턴)로 하나를 고른다.
+        /// </summary>
+        public static bool TryDebuffColor(Debuff mask, out Color color)
+        {
+            if ((mask & Debuff.AirBind) != 0) { color = AirBoundColor; return true; }
+            if ((mask & Debuff.Freeze) != 0) { color = FrozenColor; return true; }
+            if ((mask & Debuff.Stun) != 0) { color = StunnedColor; return true; }
+            color = Color.white;
+            return false;
+        }
+
         /// <summary>머리 위에 띄울 글자. 표시 대상이 아니면 빈 문자열.</summary>
         public static string Label(CombatState state)
         {
