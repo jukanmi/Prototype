@@ -28,6 +28,10 @@ namespace Prototype
         [Tooltip("컷인에 뜨는 얼굴. 비우면 직업 색 박스로 대체된다.")]
         public Sprite portrait;
 
+        [Tooltip("스킬 로그 한 줄 오른쪽에 뜨는 눈매 띠(256×80 권장). 왼쪽 끝이 투명으로 녹아 있어야 이름과 어우러진다.\n" +
+                 "비우면 직업 색 띠로 대체된다.")]
+        public Sprite skillLogFace;
+
         [Header("몸")]
         [Tooltip("이 동료의 프리팹. 루트에 Ally 컴포넌트가 있어야 한다.\n" +
                  "비우면 PartyAssembler 의 기본 Ally 프리팹으로 떨어진다.\n\n" +

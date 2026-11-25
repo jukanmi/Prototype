@@ -15,7 +15,8 @@ MonoBehaviour:
   memberId: Wiz
   displayName: Wiz
   role: 3
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: a4edb4645182498aa21f7da61f88ac30, type: 3}
+  skillLogFace: {fileID: 21300000, guid: def94a12ab884a89903044bb1bab8978, type: 3}
   prefab: {fileID: 4491905594061447380, guid: 7fcaa6c618a95274293c7b2c05b24128, type: 3}
   equipped:
   - data: {fileID: 11400000, guid: 9ba8c7cc87c6c9040a39584e3323745a, type: 2}

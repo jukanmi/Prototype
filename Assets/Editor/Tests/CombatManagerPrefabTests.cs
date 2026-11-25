@@ -108,6 +108,7 @@ namespace Prototype.Tests
         [TestCase("ComboDamageCanvas")]
         [TestCase("SkillCutinCanvas")]
         [TestCase("RecentHitEnemyCanvas")]
+        [TestCase("SkillLogCanvas")]
         public void PassiveHuds_HaveNoRaycaster(string child)
         {
             Transform t = Prefab().transform.Find(child);
@@ -126,6 +127,7 @@ namespace Prototype.Tests
         [TestCase("ComboDamageCanvas", UiLayer.ComboDamage)]
         [TestCase("SkillCutinCanvas", UiLayer.SkillCutin)]
         [TestCase("RebindCanvas", UiLayer.Rebind)]
+        [TestCase("SkillLogCanvas", UiLayer.SkillLog)]
         public void CanvasOrder_MatchesUiLayer(string child, int expected)
         {
             Transform t = Prefab().transform.Find(child);
@@ -136,6 +138,31 @@ namespace Prototype.Tests
 
             Assert.That(canvas.sortingOrder, Is.EqualTo(expected),
                 $"{child} 의 정렬 순서가 UiLayer 표와 다르다.");
+        }
+
+        /// <summary>
+        /// 스킬 로그는 36줄까지 내려와 좌하단 묶음(초상화 · 체력 · 총공격 게이지)과 겹칠 수 있다.
+        /// 그때 묶음이 위에 그려져야 한다 — 로그가 그 두 캔버스보다 아래층이어야 한다.
+        /// </summary>
+        [Test]
+        public void SkillLog_IsBelowBottomLeftHud()
+        {
+            Assert.That(UiLayer.SkillLog, Is.LessThan(UiLayer.Gauge), "총공격 게이지가 로그 위에 그려져야 한다.");
+            Assert.That(UiLayer.SkillLog, Is.LessThan(UiLayer.PartyHealth), "초상화 · 체력이 로그 위에 그려져야 한다.");
+            Assert.That(UiLayer.SkillLog, Is.GreaterThan(UiLayer.BehindWorld), "월드보다 먼저 그리면 로그가 안 보인다.");
+        }
+
+        /// <summary>스킬 로그 캔버스는 좌하단 묶음과 같은 스케일러(1920×1080, 세로 기준)여야 자리 계산이 맞는다.</summary>
+        [Test]
+        public void SkillLogCanvas_ScalesByHeight()
+        {
+            Transform t = Prefab().transform.Find("SkillLogCanvas");
+            Assert.That(t, Is.Not.Null);
+            var scaler = t.GetComponent<UnityEngine.UI.CanvasScaler>();
+            Assert.That(scaler, Is.Not.Null);
+            Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1920f, 1080f)));
+            Assert.That(scaler.matchWidthOrHeight, Is.EqualTo(1f));
+            Assert.That(t.GetComponent<SkillLogHUD>(), Is.Not.Null);
         }
     }
 }

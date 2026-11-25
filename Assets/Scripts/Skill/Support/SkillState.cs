@@ -64,6 +64,9 @@ namespace Prototype
                 $"조준 {ctx.targetInfo.type} → 대상 {BattleLog.Name(ctx.target)} | {(ctx.isBulletTime ? "불릿타임" : "라이브")} | 히트 {data.hitDataList.Count}단",
                 ctx.caster);
 
+            // 시전 알림 — 스킬 로그 같은 관전자용. 자리 잡기 전이라도 "무엇을 썼나"는 이미 정해졌다.
+            CombatEvents.RaiseSkillCast(ctx.caster, data, ctx.target);
+
             // 자리를 먼저 잡아야 아래 연출과 효과가 전부 최종 위치를 기준으로 돈다.
             PlaceCaster();
 
